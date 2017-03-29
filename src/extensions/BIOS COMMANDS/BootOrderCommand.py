@@ -222,10 +222,9 @@ class BootOrderCommand(RdmcCommandBase):
 
             if entry in (item for item in onetimebootsettings\
                                     ["Boot"][self.typepath.defs.bootoverridetargettype]):
-                try:
+
+                if entry and isinstance(entry, basestring):
                     entry = entry.upper()
-                except:
-                    pass
 
                 entry = self.searchcasestring(entry, \
                     onetimebootsettings["Boot"][self.typepath.defs.bootoverridetargettype])
@@ -251,10 +250,8 @@ class BootOrderCommand(RdmcCommandBase):
             elif uefionetimebootsettings and entry in (item for \
                                     item in uefionetimebootsettings["Boot"]\
                                     ["UefiTargetBootSourceOverrideSupported"]):
-                try:
+                if entry and isinstance(entry, basestring):
                     entry = entry.upper()
-                except:
-                    pass
 
                 entry = self.searchcasestring(entry, uefionetimebootsettings\
                             ["Boot"]["UefiTargetBootSourceOverrideSupported"])
