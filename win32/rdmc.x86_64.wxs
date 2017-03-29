@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<?define ProductName = "RESTful Interface Tool"?>
+	<?define ProductCode = "6EB632E0-45CD-4157-8B34-AFAA26C35A1B"?>
+	<?define UpgradeCode = "3BA91156-C954-4E41-BD1A-116EA0FFFC82"?>
+	<?define ProductVersion = "$product_version"?>
+	
+    <Product
+        Id           = "*"
+        UpgradeCode  = "$(var.UpgradeCode)"
+        Name         = "$(var.ProductName)"
+        Language     = "1033"
+        Version      = "$(var.ProductVersion)"
+        Manufacturer = "Hewlett Packard Enterprise"
+        Codepage     = '1252'
+    >
+        
+        <Package
+            Description      = "Command line utility for managing your ProLiant server"
+            Comments         = "This utility is for advanced users, please see documentation for usage"
+            InstallerVersion = '200'
+            Compressed       = 'yes'
+            Platform         = "x64"
+        />
+
+        <!-- Step 1: Define the directory structure -->
+        <Directory Id="TARGETDIR" Name="SourceDir" >
+            <Directory Id="ProgramFiles64Folder" Name="PFiles" >
+                <Directory Id="ProgramFilesFolderHp" Name="Hewlett Packard Enterprise" >
+                    <Directory Id="INSTALLDIR" Name="HPE RESTful Interface Tool">
+                        <Directory Id="ProgramFilesFolderiLOrestDocs" Name="Documentation" />
+                    </Directory>
+                </Directory>
+            </Directory>
+            
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ProgramMenuDirHP" Name="Hewlett Packard Enterprise">
+                    <Directory Id="ProgramMenuDirHPIp" Name="HPE RESTful Interface Tool" />
+                </Directory>
+            </Directory>
+        </Directory>
+        
+        
+        <DirectoryRef Id="INSTALLDIR">
+            <Component Id='cILORESTEXE' Guid='5A4D3AAD-6479-448A-8CF8-81338600E6DA' Win64="yes">
+                <File Id='ILORESTEXE' Name='ilorest.exe' Source='dist\ilorest.exe' KeyPath='yes' ProcessorArchitecture='x64' Checksum='yes' />
+                <File Id='ILOREST_ENVSBAT' Name='rdmc-envs.bat' Source='win32\rdmc-envs.bat' Checksum='yes' />
+				<File Id='ILOREST_SYMLINK' Name='symlink.bat' Source='win32\symlink.bat' Checksum='yes' />
+				<File Id='ILORESTCONF' Name='redfish.conf' Source='dist\redfish.conf' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP1' Name='hp-rest-classes-bios-P89-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-P89-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP2' Name='hp-rest-classes-bios-P92-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-P92-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP3' Name='hp-rest-classes-bios-U13-1.00_07_13_2014.zip' Source='dist\hp-rest-classes-bios-U13-1.00_07_13_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP4' Name='hp-rest-classes-bios-U20-1.00_07_12_2014.zip' Source='dist\hp-rest-classes-bios-U20-1.00_07_12_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP5' Name='hp-rest-classes-ilo4-200.zip' Source='dist\hp-rest-classes-ilo4-200.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTZIP6' Name='hp-rest-classes-bios-I36-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-I36-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
+				<File Id='ILORESTCHIFDLL' Name='ilorest_chif.dll' Source='dist\ilorest_chif.dll' ProcessorArchitecture='x64' Checksum='yes' />
+            </Component>
+
+            <Component Id="cProgramFilesFolderHp" Guid="7E016DBA-01DC-4058-8A04-F745397D4D2E" DiskId="1" Win64="yes">
+                <RemoveFolder Id="removeProgramFilesFolderHpRmcDocs" Directory="ProgramFilesFolderiLOrestDocs" On="uninstall"/>
+                <RemoveFolder Id="removeProgramFilesFolderHpRmc" Directory="INSTALLDIR" On="uninstall"/>
+				<RemoveFile Id="removeProgramFilesHpRmc" Name="*" On="uninstall" />
+            </Component>
+        </DirectoryRef>
+                        
+
+
+        <DirectoryRef Id="ProgramMenuDirHPIp">
+            <Component Id="cProgramMenuDirHPIp" Guid="97E2A837-84E2-4C64-B2B8-4358FA0C98CA">
+            
+                <Shortcut Id="s_ILOREST"
+                    Directory="ProgramMenuDirHPIp"
+                    Name="RESTful Interface Tool"
+                    Description="RESTful Interface Tool"
+                    Advertise="no"
+                    Target="[CMD.EXE]"
+                    Arguments='/k "[INSTALLDIR]rdmc-envs.bat"'
+                    WorkingDirectory="PersonalFolder"
+                />     
+
+            <RemoveFolder Id='removeProgramMenuDirHPIp' Directory='ProgramMenuDirHP' On='uninstall' />
+            <RemoveFolder Id='removeProgramMenuDirHP' Directory='ProgramMenuDirHPIp' On='uninstall' />
+            <RegistryValue Root="HKCU" Key="Software\Hewlett-Packard\ilorest" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+          </Component>
+        </DirectoryRef>
+
+		<CustomAction Id="Run_Cleanup" Directory="INSTALLDIR"
+		ExeCommand="cmd /C RD &quot;[INSTALLDIR]&quot; /s /q"
+		Execute="deferred" Return="ignore" HideTarget="no" Impersonate="no" />
+
+		<InstallExecuteSequence>
+		  <Custom Action="Run_Cleanup" Before="RemoveFiles" >
+			REMOVE="ALL"
+		  </Custom>
+		</InstallExecuteSequence>
+
+        <Property Id="CMD.EXE"                        Value="cmd.exe" />    
+        <Property Id="MSIEXEC.EXE"                    Value="msiexec.exe" />    
+        <Property Id='ARPPRODUCTICON'>appicon.ico</Property>
+
+        <!-- ALLUSERS Property puts the shortcuts in the all users ProgramMenu -->
+        <Property Id="ALLUSERS"><![CDATA[2]]></Property>
+
+        <Icon Id="appicon.ico" SourceFile="$(var.srcFolder)\win32\HPcircle.ico" />        
+        <!--Binary Id="appicon.ico" SourceFile="$(var.srcFolder)\win32\HPcircle.ico" / -->
+            
+        <!-- Features -->
+        <Feature Id='FEAT_ILOREST' Title='RESTful Interface Tool' Description='RESTful Interface Tool' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR' InstallDefault='local' AllowAdvertise='no'>
+            <ComponentRef Id="cILORESTEXE" />
+            <ComponentRef Id="cProgramMenuDirHPIp"/>
+            <ComponentRef Id="cProgramFilesFolderHp" />
+        </Feature>
+
+        <!-- END INSTALL DESCRIPTION -->
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+        <UIRef Id="WixUI_InstallDir" />
+        <UI>
+           <!-- skip licence dialog -->
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg">1</Publish>  
+            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">NOT Installed</Publish>  
+        </UI>
+		
+		<!-- INSTALL DESCRIPTION -->
+        <Media Id='1' Cabinet='ilorest.cab' EmbedCab='yes' />
+		
+		<Upgrade Id="$(var.UpgradeCode)">
+			<UpgradeVersion OnlyDetect="yes"
+							Minimum="$(var.ProductVersion)"
+							Property="NEWERVERSIONDETECTED"
+							IncludeMinimum="no" />
+
+			<UpgradeVersion OnlyDetect="no"
+							Maximum="$(var.ProductVersion)"
+							Property="OLDERVERSIONBEINGUPGRADED"
+							IncludeMaximum="no" />
+
+			<!-- Detect for changes in 4th field only -->
+			<UpgradeVersion Property="ANOTHERBUILDINSTALLED"
+					 Maximum="$(var.ProductVersion)" Minimum="$(var.ProductVersion)"
+					 IncludeMinimum="yes" IncludeMaximum="yes" OnlyDetect="yes" />
+
+		</Upgrade>
+		
+		<InstallExecuteSequence>
+			<!-- Schedule RemoveExistingProducts early -->
+			<RemoveExistingProducts After="InstallInitialize" />
+		</InstallExecuteSequence>
+
+		<CustomAction Id="Run_Shortcut" Directory="INSTALLDIR"
+		ExeCommand="cmd /C &quot;[INSTALLDIR]symlink.bat&quot; /s /q"
+		Execute="deferred" Return="ignore" HideTarget="no" Impersonate="no" />
+		<InstallExecuteSequence>
+			<Custom Action="Run_Shortcut" Before="InstallFinalize"></Custom>
+		</InstallExecuteSequence>
+		
+    </Product>
+</Wix>
