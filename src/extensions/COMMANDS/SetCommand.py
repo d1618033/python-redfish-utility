@@ -1,9 +1,20 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ Set Command for RDMC """
 
 import sys
@@ -36,6 +47,11 @@ class SetCommand(RdmcCommandBase):
         self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
         self.comobj = rdmcObj.commandsDict["CommitCommand"](rdmcObj)
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        #remove reboot option if there is no reboot command
+        try:
+            self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        except:
+            self.parser.remove_option('--reboot')
 
     def setfunction(self, line, skipprint=False):
         """ Main set worker function
@@ -61,10 +77,18 @@ class SetCommand(RdmcCommandBase):
         self.setvalidation(options)
 
         if len(args) > 0:
+            if any([s.lower().startswith('adminpassword=') for s in args]) and not \
+                        any([s.lower().startswith('oldadminpassword=') for s in args]):
+                raise InvalidCommandLineError("'OldAdminPassword' must also be "\
+                "set with the current password \nwhen changing 'AdminPassword' "\
+                "for security reasons.")
 
             for arg in args:
                 if arg[0] == '"' and arg[-1] == '"':
                     arg = arg[1:-1]
+                if self._rdmc.app.get_selector().lower().startswith('bios.'):
+                    if 'attributes' not in arg.lower():
+                        arg = "Attributes/" + arg
                 try:
                     (sel, val) = arg.split('=')
                     sel = sel.strip()
@@ -92,12 +116,19 @@ class SetCommand(RdmcCommandBase):
 
                 try:
                     if not newargs:
-                        contents = self._rdmc.app.loadset(selector=sel, val=val)
+                        contents = self._rdmc.app.loadset(selector=sel, val=val,\
+                                        latestschema=options.latestschema,\
+                                        uniqueoverride=options.uniqueoverride)
                     else:
                         contents = self._rdmc.app.loadset(val=val,\
-                            newargs=newargs)
+                            newargs=newargs,latestschema=options.latestschema)
 
-                    if contents == "No entries found":
+                    if not contents:
+                        if not sel.lower() == 'oldadminpassword':
+                            raise InvalidOrNothingChangedSettingsError("Setting " \
+                                                "for '%s' is the same as " \
+                                                "the current value." % sel)
+                    elif contents == "No entries found":
                         raise InvalidOrNothingChangedSettingsError("No " \
                                        "entries found in the current " \
                                        "selection for the setting '%s'." % sel)
@@ -110,11 +141,32 @@ class SetCommand(RdmcCommandBase):
                                 sys.stdout.write("Added the following" \
                                                                     " patch:\n")
                                 UI().print_out_json(content)
-                except Exception, excp:
-                    raise excp
+
+                except redfish.ris.ValidationError, excp:
+                    errs = excp.get_errors()
+                    for err in errs:
+                        if err.sel.lower() == 'adminpassword':
+                            types = self._rdmc.app.current_client.monolith.types
+                            for item in types:
+                                for instance in types[item]["Instances"]:
+                                    if 'hpbios.' in instance.type.lower():
+                                        [instance.patches.remove(patch) for patch in \
+                                         instance.patches if patch.patch[0]\
+                                         ['path'] == '/OldAdminPassword']
+
+                        if isinstance(err, redfish.ris.RegistryValidationError):
+                            sys.stderr.write(err.message)
+                            sys.stderr.write(u'\n')
+                            if err.reg and not skipprint:
+                                err.reg.print_help(sel)
+                                sys.stderr.write(u'\n')
+                    raise redfish.ris.ValidationError(excp)
 
             if options.commit:
                 self.comobj.commitfunction()
+
+            if options.reboot:
+                self.rebootobj.run(options.reboot)
 
             if options.logout:
                 self.logoutobj.logoutfunction("")
@@ -140,6 +192,8 @@ class SetCommand(RdmcCommandBase):
         """ Set data validation function """
         inputline = list()
 
+        if self._rdmc.opts.latestschema:
+            options.latestschema=True
         if self._rdmc.app.config._ac__commit.lower() == 'true':
             options.commit = True
 
@@ -170,6 +224,8 @@ class SetCommand(RdmcCommandBase):
                 inputline.extend(["--includelogs"])
             if options.path:
                 inputline.extend(["--path", options.path])
+            if options.biospassword:
+                inputline.extend(["--biospassword", options.biospassword])
 
             inputline.extend(["--selector", options.selector])
             self.lobobj.loginfunction(inputline)
@@ -180,6 +236,8 @@ class SetCommand(RdmcCommandBase):
                 inputline.extend(["--includelogs"])
             if options.path:
                 inputline.extend(["--path", options.path])
+            if options.biospassword:
+                inputline.extend(["--biospassword", options.biospassword])
 
             inputline.extend([options.selector])
             self.selobj.selectfunction(inputline)
@@ -193,6 +251,8 @@ class SetCommand(RdmcCommandBase):
                     inputline.extend(["--includelogs"])
                 if options.path:
                     inputline.extend(["--path", options.path])
+                if options.biospassword:
+                    inputline.extend(["--biospassword", options.biospassword])
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
@@ -211,7 +271,7 @@ class SetCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -227,7 +287,7 @@ class SetCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -294,4 +354,36 @@ class SetCommand(RdmcCommandBase):
             " there.  ",
             default=None,
         )
-
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
+            default=None,
+        )
+        customparser.add_option(
+            '--reboot',
+            dest='reboot',
+            help="Use this flag to perform a reboot command function after"\
+            " completion of operations.  For help with parameters and"\
+            " descriptions regarding the reboot flag, run help reboot.",
+            default=None,
+        )
+        customparser.add_option(
+            '--latestschema',
+            dest='latestschema',
+            action='store_true',
+            help="Optionally use the latest schema instead of the one "\
+            "requested by the file. Note: May cause errors in some data "\
+            "retrieval due to difference in schema versions.",
+            default=None
+        )
+        customparser.add_option(
+            '--uniqueitemoverride',
+            dest='uniqueoverride',
+            action='store_true',
+            help="Override the measures stopping the tool from writing "\
+            "over items that are system unique.",
+            default=None
+        )

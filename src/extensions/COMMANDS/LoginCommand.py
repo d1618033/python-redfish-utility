@@ -1,7 +1,17 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
 # -*- coding: utf-8 -*-
@@ -22,18 +32,19 @@ class LoginCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='login',\
             usage='login [URL] [OPTIONS] \n\n\tTo login' \
-                    ' remotely run using url and credentials' \
-                    '\n\texample: login <url/hostname> -u <username> -p' \
-                    ' <password>\n\n\tTo login on a local server run' \
+                    ' remotely run using iLO url and iLO credentials' \
+                    '\n\texample: login <iLO url/hostname> -u <iLO username> -p' \
+                    ' <iLO password>\n\n\tTo login on a local server run' \
                     ' without arguments\n\texample: login',\
             summary='Connects to a server, establishes a secure session,'\
-                    ' and discovers data.',\
+                    ' and discovers data from iLO.',\
             aliases=[],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self.url = None
         self.username = None
         self.password = None
+        self.biospassword = None
         self._rdmc = rdmcObj
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
 
@@ -54,13 +65,18 @@ class LoginCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.loginvalidation(options, args)
+        self._rdmc.app.getgen(url=self.url)
+        self._rdmc.opts.is_redfish=self._rdmc.app.updatedefinesflag(\
+                redfishflag=self._rdmc.opts.is_redfish)
 
         try:
             self._rdmc.app.login(username=self.username, \
                           password=self.password, base_url=self.url, \
                           verbose=self._rdmc.opts.verbose, \
-                          path=options.path, skipbuild=skipbuild, \
-                          includelogs=options.includelogs)
+                          path=options.path, skipbuild=skipbuild,\
+                          includelogs=options.includelogs, \
+                          biospassword=self.biospassword, \
+                          is_redfish=self._rdmc.opts.is_redfish)
         except Exception, excp:
             raise excp
 
@@ -111,6 +127,8 @@ class LoginCommand(RdmcCommandBase):
             options.user = self._rdmc.app.config.get_username()
         if not options.password:
             options.password = self._rdmc.app.config.get_password()
+        if not options.biospassword:
+            options.biospassword = self._rdmc.app.config.get_bios_password()
 
         # Password and user name validation
         if options.user and not options.password:
@@ -129,6 +147,11 @@ class LoginCommand(RdmcCommandBase):
         if options.password:
             self.password = options.password
 
+        if options.biospassword:
+            self.biospassword = options.biospassword
+
+        # Assignment of url in case no url is entered
+        self.url = 'blobstore://.'
 
         if len(args) > 0:
             # Any argument should be treated as an URL
@@ -141,10 +164,6 @@ class LoginCommand(RdmcCommandBase):
             # Check to see if there is a URL in config file
             if self._rdmc.app.config.get_url():
                 self.url = self._rdmc.app.config.get_url()
-
-        if not self.url:
-            raise InvalidCommandLineError('No URL entered for login.')
-
     def run(self, line):
         """ wrapper function for main login function
         
@@ -175,12 +194,6 @@ class LoginCommand(RdmcCommandBase):
             return
 
         customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided URL to login.",
-            default=None,
-        )
-        customparser.add_option(
             '-u',
             '--user',
             dest='user',
@@ -193,7 +206,7 @@ class LoginCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -239,4 +252,11 @@ class LoginCommand(RdmcCommandBase):
             " there.  ",
             default=None,
         )
-
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
+            default=None,
+        )

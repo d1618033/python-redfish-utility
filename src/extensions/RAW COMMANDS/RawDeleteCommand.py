@@ -1,4 +1,21 @@
-""" RawDelete Command for RDMC """
+###
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+###
+
+# -*- coding: utf-8 -*-
+""" RawDelete Command for rdmc """
 
 import sys
 import json
@@ -86,19 +103,20 @@ class RawDeleteCommand(RdmcCommandBase):
 
             results = self._rdmc.app.delete_handler(args[0], \
                 verbose=self._rdmc.opts.verbose, sessionid=options.sessionid, \
-                url=url, headers=headers, silent=options.silent)
+                url=url, headers=headers, silent=options.silent, \
+                providerheader=options.providerid, service=options.service)
 
-        if returnresponse and results:
-            if options.getheaders:
-                sys.stdout.write(json.dumps(dict(\
-                                 results._http_response.getheaders())) + "\n")
-
-            if options.response:
-                sys.stdout.write(results.text)
-        elif results.status == 404:
-            return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
-        elif results.status != 200:
-            return ReturnCodes.UI_CLI_USAGE_EXCEPTION
+            if returnresponse and results:
+                if options.getheaders:
+                    sys.stdout.write(json.dumps(dict(\
+                                     results._http_response.getheaders())) + "\n")
+    
+                if options.response:
+                    sys.stdout.write(results.text)
+            elif results.status == 404:
+                return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
+            elif results.status != 200:
+                return ReturnCodes.UI_CLI_USAGE_EXCEPTION
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -140,13 +158,14 @@ class RawDeleteCommand(RdmcCommandBase):
         :type options: list.
         """
 
+        url = None
         if options.user or options.password or options.url:
             if options.url:
                 url = options.url
         else:
             if self._rdmc.app.config.get_url():
                 url = self._rdmc.app.config.get_url()
-        if not "https://" in url:
+        if url and not "https://" in url:
             url = "https://" + url
 
         return url
@@ -163,7 +182,7 @@ class RawDeleteCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -179,21 +198,21 @@ class RawDeleteCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
             '--response',
             dest='response',
             action="store_true",
-            help="Use this flag to return the response body.",
+            help="Use this flag to return the iLO response body.",
             default=False
         )
         customparser.add_option(
             '--getheaders',
             dest='getheaders',
             action="store_true",
-            help="Use this flag to return the response headers.",
+            help="Use this flag to return the iLO response headers.",
             default=False
         )
         customparser.add_option(
@@ -216,6 +235,20 @@ class RawDeleteCommand(RdmcCommandBase):
             help="Optionally include this flag if you would prefer to "\
             "connect using a session id instead of a normal login.",
             default=None
+        )
+        customparser.add_option(
+            '--service',
+            dest='service',
+            action="store_true",
+            help="""Use this flag to enable service mode and increase """\
+                                                """the function speed""",
+            default=False,
+        )
+        customparser.add_option(
+            '--providerid',
+            dest='providerid',
+            help="""Use this flag to pass in the provider id header""",
+            default=None,
         )
         customparser.add_option(
             '--expand',

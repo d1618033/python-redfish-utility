@@ -1,14 +1,14 @@
 # Error Codes
 
-<aside class="notice">The error codes listed below are returned by the Redfish Utility, not the managed server.</aside>
+<aside class="notice">The error codes listed below are returned by the RESTful Interface Tool, not the managed server.</aside>
 
-The Redfish Utility uses the following error codes:
+The RESTful Interface Tool uses the following error codes:
 
 Error Code | Description
 ---------- | -------
 1	| Error occurred while reading the configuration file. See the error message for details.
 2	| Error occurred when user tried to invoke a command that isn't enabled.
-3	| Invalid command line syntax. Use the **-h** parameter for complete command line parameters.
+3	| Invalid iLOrest command line syntax. Use the **-h** parameter for complete command line parameters.
 4	| The input JSON file is in an invalid format.
 5	| Windows User not admin.
 6	| No contents found for operation.
@@ -27,17 +27,32 @@ Error Code | Description
 26	| Error occurred when attempting to set an object type without first selecting it.
 27	| Error occurred when selection argument fails to match anything.
 28	| Error occurred when validating user input against schema files.
+29	| RIS Missing ID token.
 30	| RIS session expired.
 31	| Error occurred when retry attempts to reach the selected server have been exhausted.
-32	| Occurs when invalid credentials have been provided.
+32	| Occurs when invalid iLO credentials have been provided.
 33	| Error occurred when correct credentials have been provided and server is unresponsive.
+34	| CHIF driver missing.
+35	| CHIF missing DLL.
 36	| Error occurred due to an unexpected response.
+37	| Error occurred due to iLO error.
+38	| Error occurred while trying to create BLOB.
+39	| Error occurred while trying to read BLOB.
 40	| Same settings error.
+41	| Firmware update error.
+42	| Boot order entry error.
+43	| NIC missing or invalid error.
 44	| No current session established.
 45	| Failure during commit operation
 51	| Multiple server configuration failure
 52	| Multiple server input file error.
 53	| Load skip setting error.
 61	| Error occurred when trying to change a value.
-62  | The requested path was not found.
+70	| Error occurred while trying to write BLOB.
+71	| Error occurred while trying to delete BLOB
+72	| Error occurred while trying to finalize BLOB
+73	| BLOB could not be found
+100	| BIOS provider is unregistered. Please refer to the documentation for details on this issue.
 255	| A general error occurred while manipulating server settings. See the error message for details
+
+<aside class="warning">You might encounter the following error message: <b>Missing token required for operation. Please add the proper token.</b> To resolve this error, add the BIOS password for the server when executing the commands.</aside>

@@ -1,16 +1,29 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ Load Command for RDMC """
 
 import os
 import sys
 import json
+import six
 import shlex
 import subprocess
+import redfish.ris
 
 from Queue import Queue
 from datetime import datetime
@@ -26,7 +39,7 @@ from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from redfish.ris.rmc_helper import LoadSkipSettingError
 
 #default file name
-__filename__ = 'redfish.json'
+__filename__ = 'ilorest.json'
 
 class LoadCommand(RdmcCommandBase):
     """ Constructor """
@@ -35,14 +48,15 @@ class LoadCommand(RdmcCommandBase):
             name='load',\
             usage='load [OPTIONS]\n\n\tRun to load the default configuration' \
             ' file\n\texample: load\n\n\tLoad configuration file from a ' \
-            'different file\n\tif any property values have changed, the ' \
-            'changes are committed and the user is logged out of the server'\
-            '\n\n\texample: load -f output.json\n\n\tLoad configurations to ' \
-            'multiple servers\n\texample: load -m mpfilename.txt -f output.' \
-            'json\n\n\tNote: multiple server file format (1 server per new ' \
-            'line)\n\t--url <url/hostname> -u admin -p password\n\t--url ' \
-            '<url/hostname> -u admin -p password\n\t--url <url/hostname> -u ' \
-            'admin -p password',\
+            'different file'\
+            '\n\tif any property values have changed, the changes are committed'\
+            ' and the user is logged out of the server'\
+            '\n\n\texample: load -f output.json\n\n\tLoad ' \
+            'configurations to multiple servers\n\texample: load -m ' \
+            'mpfilename.txt -f output.json\n\n\tNote: multiple server file ' \
+            'format (1 server per new line)\n\t--url <iLO url/hostname> -u admin ' \
+            '-p password\n\t--url <iLO url/hostname> -u admin -p password\n\t--url ' \
+            '<iLO url/hostname> -u admin -p password',\
             summary='Loads the server configuration settings from a file.',\
             aliases=[],\
             optparser=OptionParser())
@@ -121,6 +135,9 @@ class LoadCommand(RdmcCommandBase):
                         break
 
                     inputlist.append(content)
+                    if options.biospassword:
+                        inputlist.extend(["--biospassword", \
+                                                        options.biospassword])
 
                     self.selobj.selectfunction(inputlist)
                     if self._rdmc.app.get_selector().lower() not in \
@@ -141,12 +158,15 @@ class LoadCommand(RdmcCommandBase):
                             if len(indices) > 0:
                                 for index in indices:
                                     changes = []
-                                    self.loadmultihelper(dicttolist[index][0], \
+                                    if len(set(six.iterkeys(dicttolist[index][1]))):
+                                        self.loadmultihelper(dicttolist[index][0], \
                                                  dicttolist[index][1], changes)
 
                                     for change in changes:
                                         if self._rdmc.app.loadset(dicttolist=\
-                                                dicttolist, newargs=change[0], val=change[0]):
+                                                None, latestschema=options.latestschema,\
+                                                uniqueoverride=options.uniqueoverride, newargs=\
+                                                change[0], val=change[0]):
                                             results = True
 
                                 indices.sort(cmp=None, key=None, reverse=True)
@@ -159,8 +179,9 @@ class LoadCommand(RdmcCommandBase):
                                 continue
 
                             try:
-                                if self._rdmc.app.loadset(\
-                                      dicttolist=dicttolist):
+                                if self._rdmc.app.loadset(dicttolist=\
+                                    dicttolist, latestschema=options.latestschema,\
+                                    uniqueoverride=options.uniqueoverride):
                                     results = True
                             except LoadSkipSettingError, excp:
                                 returnValue = True
@@ -168,9 +189,22 @@ class LoadCommand(RdmcCommandBase):
                                 pass
                             except Exception, excp:
                                 raise excp
+
+                    except redfish.ris.ValidationError, excp:
+                        errs = excp.get_errors()
+                        for err in errs:
+                            if isinstance(err, redfish.ris.RegistryValidationError):
+                                sys.stderr.write(err.message)
+                                sys.stderr.write(u'\n')
+                                try:
+                                    if err.reg:
+                                        err.reg.print_help(str(err.sel))
+                                        sys.stderr.write(u'\n')
+                                except:
+                                    pass
+                        raise redfish.ris.ValidationError(excp)
                     except Exception, excp:
                         raise excp
-
                 if skip:
                     continue
 
@@ -226,11 +260,14 @@ class LoadCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
+        if self._rdmc.opts.latestschema:
+            options.latestschema=True
+
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -248,6 +285,13 @@ class LoadCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
+
+        if len(inputline):
+            runlogin = True
+            if not len(inputline):
+                sys.stdout.write(u'Local login initiated...\n')
+        if options.biospassword:
+            inputline.extend(["--biospassword", options.biospassword])
 
         try:
             if runlogin:
@@ -377,7 +421,7 @@ class LoadCommand(RdmcCommandBase):
             else:
                 sys.stdout.write('Loading Configuration for {} : FAILED\n'\
                                                                 .format(urlvar))
-                sys.stderr.write('return code : {}.\nFor more '\
+                sys.stderr.write('ILOREST return code : {}.\nFor more '\
                          'details please check {}.txt under {} directory.\n'\
                                         .format(returncode, urlvar, createdir))
 
@@ -453,7 +497,7 @@ class LoadCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -469,7 +513,7 @@ class LoadCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -505,4 +549,28 @@ class LoadCommand(RdmcCommandBase):
             help="""use the provided directory to output data for multiple server configuration""",
             default=None,
         )
-
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
+            default=None,
+        )
+        customparser.add_option(
+            '--latestschema',
+            dest='latestschema',
+            action='store_true',
+            help="Optionally use the latest schema instead of the one "\
+            "requested by the file. Note: May cause errors in some data "\
+            "retrieval due to difference in schema versions.",
+            default=None
+        )
+        customparser.add_option(
+            '--uniqueitemoverride',
+            dest='uniqueoverride',
+            action='store_true',
+            help="Override the measures stopping the tool from writing "\
+            "over items that are system unique.",
+            default=None
+        )

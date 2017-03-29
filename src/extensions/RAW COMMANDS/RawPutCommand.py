@@ -1,9 +1,20 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ RawPut Command for rdmc """
 
 import sys
@@ -90,7 +101,9 @@ class RawPutCommand(RdmcCommandBase):
             results = self._rdmc.app.put_handler(contentsholder["path"], \
                       contentsholder["body"], verbose=self._rdmc.opts.verbose, \
                       sessionid=options.sessionid, url=url, headers=headers, \
-                      response=returnresponse, silent=options.silent)
+                      response=returnresponse, silent=options.silent, \
+                      optionalpassword=options.biospassword, service=options.service, \
+                      providerheader=options.providerid)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
@@ -117,6 +130,8 @@ class RawPutCommand(RdmcCommandBase):
         try:
             self._rdmc.app.get_current_client()
 
+            if options.biospassword:
+                self._rdmc.app.update_bios_password(options.biospassword)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -167,7 +182,7 @@ class RawPutCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -183,21 +198,21 @@ class RawPutCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
             '--response',
             dest='response',
             action="store_true",
-            help="Use this flag to return the response body.",
+            help="Use this flag to return the iLO response body.",
             default=False
         )
         customparser.add_option(
             '--getheaders',
             dest='getheaders',
             action="store_true",
-            help="Use this flag to return the response headers.",
+            help="Use this flag to return the iLO response headers.",
             default=False
         )
         customparser.add_option(
@@ -221,4 +236,25 @@ class RawPutCommand(RdmcCommandBase):
             "connect using a session id instead of a normal login.",
             default=None
         )
-
+        customparser.add_option(
+            '--providerid',
+            dest='providerid',
+            help="""Use this flag to pass in the provider id header""",
+            default=None,
+        )
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
+            default=None,
+        )
+        customparser.add_option(
+            '--service',
+            dest='service',
+            action="store_true",
+            help="""Use this flag to enable service mode and increase """\
+                                                """the function speed""",
+            default=False,
+        )

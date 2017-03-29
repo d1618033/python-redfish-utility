@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 
-src/redfish.log
+src/ilorest.log
 /build
 /dist
 

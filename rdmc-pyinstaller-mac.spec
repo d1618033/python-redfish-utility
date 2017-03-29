@@ -1,9 +1,3 @@
-###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
-###
-
 # -*- mode: python -*-
 import os
 
@@ -48,9 +42,9 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='redfish',
+          name='ilorest',
           debug=False,
           strip=None,
           upx=True,
-	  icon='',
+	  icon='.//win32//HPcircle.ico',
           console=True )

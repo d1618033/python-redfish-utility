@@ -67,11 +67,7 @@ Other places to make changes are:
 
 Uploading to Github Pages
 ==========================
-Put the files from the 'build' folder into the gh-pages branch in the hprest repo. Make sure the main page is called index.html!
-
-Uploading to Your Own Server
-=============================
-bundle exec middleman build --clean
+Put the files from the 'build' folder into the gh-pages branch in the ilorest repo. Make sure the main page is called index.html!
 
 Slate Documentation Links
 ==========================

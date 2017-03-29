@@ -1,1 +1,1 @@
-# Commands for the Redfish Utility
+# Commands for the RESTful Interface Tool

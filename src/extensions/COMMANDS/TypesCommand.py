@@ -1,7 +1,17 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
 # -*- coding: utf-8 -*-
@@ -51,7 +61,7 @@ class TypesCommand(RdmcCommandBase):
         try:
             if len(args) == 0:
                 typeslist = list()
-                typeslist = list(set(self._rdmc.app.types()))
+                typeslist = list(set(self._rdmc.app.types(options.fulltypes)))
                 typeslist.sort()
 
                 if not returntypes:
@@ -113,6 +123,8 @@ class TypesCommand(RdmcCommandBase):
 
         if len(inputline) or not client:
             runlogin = True
+            if not len(inputline):
+                sys.stdout.write(u'Local login initiated...\n')
         if options.includelogs:
             inputline.extend(["--includelogs"])
         if options.path:
@@ -133,7 +145,7 @@ class TypesCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -149,7 +161,7 @@ class TypesCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -171,4 +183,13 @@ class TypesCommand(RdmcCommandBase):
             " your login information, you can still specify the path flag"\
             " there.  ",
             default=None,
+        )
+        customparser.add_option(
+            '--fulltypes',
+            dest='fulltypes',
+            action='store_true',
+            help="Optionally include this flag if you would prefer to "\
+            "return the full type name instead of the simplified versions" \
+            " (Redfish only option).",
+            default=None
         )

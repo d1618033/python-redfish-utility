@@ -1,11 +1,11 @@
 ---
-title: Redfish Utility 1.0 User Guide
+title: RESTful Interface Tool 1.50 User Guide
 
 language_tabs:
   - shell: Shell
 
 toc_footers:
-  - <a href='https://www.dmtf.org/'>Distributed Management Task Force, Inc.</a>
+  - <a href='https://www.hpe.com/'>Hewlett Packard Enterprise Development LP</a>
   - Copyright © 2016 
 
 includes:
@@ -14,6 +14,8 @@ includes:
   - usage
   - commands
   - globalcommands
+  - bioscommands
+  - ilocommands
   - rawcommands
   - macrocommandsandscripts
   - support

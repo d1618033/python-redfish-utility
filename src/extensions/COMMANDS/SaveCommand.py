@@ -1,9 +1,20 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ Save Command for RDMC """
 
 import sys
@@ -19,7 +30,7 @@ from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import InvalidCommandLineError, InvalidFileFormattingError
 
 #default file name
-__filename__ = 'redfish.json'
+__filename__ = 'ilorest.json'
 
 class SaveCommand(RdmcCommandBase):
     """ Constructor """
@@ -27,9 +38,9 @@ class SaveCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='save',\
             usage='save [OPTIONS]\n\n\tRun to save a selected type to a file' \
-            '\n\texample: save --selector ComputerSystem.\n\n\tChange the ' \
-            'default output filename\n\texample: save --selector ' \
-            'ComputerSystem. -f output.json',\
+            '\n\texample: save --selector HpBios.\n\n\tChange the default ' \
+            'output filename\n\texample: save --selector HpBios. -f ' \
+            'output.json',\
             summary=u"Saves the selected type's settings to a file.",\
             aliases=[],\
             optparser=OptionParser())
@@ -223,7 +234,7 @@ class SaveCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -239,7 +250,7 @@ class SaveCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(

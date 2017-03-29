@@ -1,7 +1,17 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
 # -*- coding: utf-8 -*-
@@ -21,8 +31,9 @@ import cliutils
 #---------End of imports---------
 
 #Using hard coded list until better solution is found
-HARDCODEDLIST = ["name", "description", "status", "links", "members", "id",
-                 "relateditem", "actions", "oem"]
+HARDCODEDLIST = ["oem", "name", "modified", "type", "description",
+                 "attributeregistry", "links", "settingsresult",
+                 "actions", "availableactions", "status"]
 
 class CommandBase(object):
     """Abstract base class for all Command objects.
@@ -235,8 +246,27 @@ class RdmcOptionParser(OptionParser):
             '--nologo',
             dest='nologo',
             action="store_true",
-            help="""Include to block logo.""",
+            help="""Include to block copyright and logo.""",
             default=False
         )
 
+        globalgroup.add_option(
+            '--redfish',
+            dest='is_redfish',
+            action='store_true',
+            help="Use this flag if you wish to to enable "\
+                "Redfish only compliance. It is enabled by default "\
+                "in systems with iLO5 and above.",
+            default=False
+        )
+
+        globalgroup.add_option(
+            '--latestschema',
+            dest='latestschema',
+            action='store_true',
+            help="Optionally use the latest schema instead of the one "\
+            "requested by the file. Note: May cause errors in some data "\
+            "retreval due to difference in schema versions.",
+            default=False
+        )
         self.add_option_group(globalgroup)

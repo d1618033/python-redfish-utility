@@ -1,7 +1,17 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
 # -*- coding: utf-8 -*-
@@ -24,7 +34,7 @@ class SelectCommand(RdmcCommandBase):
             ' currently selected type\n\texample: select\n\n\tIn order to ' \
             'remove the need of including the version\n\twhile ' \
             'selecting you can simply enter the type name\n\tuntil ' \
-            'the first period\n\texample: select ComputerSystem.',\
+            'the first period\n\texample: select HpBios.',\
             summary='Selects the object type to be used.',\
             aliases=['sel'],\
             optparser=OptionParser())
@@ -128,6 +138,8 @@ class SelectCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
+        if not len(inputline) and not client:
+            sys.stdout.write(u'Local login initiated...\n')
         if len(inputline):
             runlogin = True
         if options.includelogs:
@@ -160,7 +172,7 @@ class SelectCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -176,7 +188,7 @@ class SelectCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -204,12 +216,20 @@ class SelectCommand(RdmcCommandBase):
             dest='path',
             help="Optionally set a starting point for data collection."\
             " If you do not specify a starting point, the default path"\
-            " will be /redfish/v1/. Note: The path flag can only be specified"\
+            " will be /rest/v1. Note: The path flag can only be specified"\
             " at the time of login, so if you are already logged into the"\
             " server, the path flag will not change the path. If you are"\
             " entering a command that isn't the login command, but include"\
             " your login information, you can still specify the path flag"\
             " there.  ",
+            default=None,
+        )
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
             default=None,
         )
 

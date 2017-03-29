@@ -1,9 +1,20 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ Get Command for RDMC """
 
 import redfish.ris
@@ -58,6 +69,9 @@ class GetCommand(RdmcCommandBase):
         if args:
             for arg in args:
                 newargs = list()
+                if self._rdmc.app.get_selector().lower().startswith('bios.'):
+                    if 'attributes' not in arg.lower():
+                        arg = "Attributes/" + arg
                 if "/" in arg:
                     newargs = arg.split("/")
                     arg = newargs[0]
@@ -125,6 +139,17 @@ class GetCommand(RdmcCommandBase):
                                                 'found for entries: %s' % line)
 
         for content in contents:
+            if 'bios.' in self._rdmc.app.get_selector().lower():
+                if 'Attributes' in content.keys():
+                    content.update(content['Attributes'])
+                    del content['Attributes']
+                    try:
+                        for item in newargs:
+                            if item.lower() == 'attributes':
+                                newargs.remove(item)
+                                break
+                    except:
+                        pass
             content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
 
             if not uselist:
@@ -344,7 +369,7 @@ class GetCommand(RdmcCommandBase):
         customparser.add_option(
             '--url',
             dest='url',
-            help="Use the provided URL to login.",
+            help="Use the provided iLO URL to login.",
             default=None,
         )
         customparser.add_option(
@@ -360,7 +385,7 @@ class GetCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided password to log in.""",
+            help="""Use the provided iLO password to log in.""",
             default=None,
         )
         customparser.add_option(
@@ -398,7 +423,7 @@ class GetCommand(RdmcCommandBase):
             dest='path',
             help="Optionally set a starting point for data collection."\
             " If you do not specify a starting point, the default path"\
-            " will be /redfish/v1/. Note: The path flag can only be specified"\
+            " will be /rest/v1. Note: The path flag can only be specified"\
             " at the time of login, so if you are already logged into the"\
             " server, the path flag will not change the path. If you are"\
             " entering a command that isn't the login command, but include"\

@@ -1,7 +1,17 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
 # -*- coding: utf-8 -*-
@@ -16,6 +26,8 @@ import logging
 import versioning
 
 import redfish.ris
+
+from collections import OrderedDict
 
 #---------End of imports---------
 
@@ -54,12 +66,6 @@ class ReturnCodes(object):
     INVALID_FILE_INPUT_ERROR = 7
     NO_CHANGES_MADE_OR_FOUND = 8
     NO_VALID_INFO_ERROR = 9
-    SAME_SETTINGS_ERROR = 40
-    NO_CURRENT_SESSION_ESTABLISHED = 44
-    FAILURE_DURING_COMMIT_OPERATION = 45
-    MULTIPLE_SERVER_CONFIG_FAIL = 51
-    MULTIPLE_SERVER_INPUT_FILE_ERROR = 52
-    LOAD_SKIP_SETTING_ERROR = 53
 
     # ****** CLI ERRORS ******
     UI_CLI_ERROR_EXCEPTION = 10
@@ -76,15 +82,53 @@ class ReturnCodes(object):
     RIS_NOTHING_SELECTED_SET_ERROR = 26
     RIS_INVALID_SELECTION_ERROR = 27
     RIS_VALIDATION_ERROR = 28
+    RIS_MISSING_ID_TOKEN = 29
     RIS_SESSION_EXPIRED = 30
-    RIS_VALUE_CHANGED_ERROR = 61
-    RIS_REF_PATH_NOT_FOUND_ERROR = 62
 
-    # ****** V1 ERRORS ******
+    # ****** REST V1 ERRORS ******
     V1_RETRIES_EXHAUSTED_ERROR = 31
     V1_INVALID_CREDENTIALS_ERROR = 32
     V1_SERVER_DOWN_OR_UNREACHABLE_ERROR = 33
-    UNEXPECTED_RESPONSE_ERROR = 36
+    V1_CHIF_DRIVER_MISSING_ERROR = 34
+    REST_ILOREST_CHIF_DLL_MISSING_ERROR = 35
+    REST_ILOREST_UNEXPECTED_RESPONSE_ERROR = 36
+    REST_ILOREST_ILO_ERROR = 37
+    REST_ILOREST_CREATE_BLOB_ERROR = 38
+    REST_ILOREST_READ_BLOB_ERROR = 39
+
+    # ****** RDMC ERRORS ******
+    SAME_SETTINGS_ERROR = 40
+    FIRMWARE_UPDATE_ERROR = 41
+    BOOT_ORDER_ENTRY_ERROR = 42
+    NIC_MISSING_OR_INVALID_ERROR = 43
+    NO_CURRENT_SESSION_ESTABLISHED = 44
+    FAILURE_DURING_COMMIT_OPERATION = 45
+    MULTIPLE_SERVER_CONFIG_FAIL = 51
+    MULTIPLE_SERVER_INPUT_FILE_ERROR = 52
+    LOAD_SKIP_SETTING_ERROR = 53
+    INCOMPATIBLE_ILO_VERSION_ERROR = 54
+    INVALID_CLIST_FILE_ERROR = 55
+    UNABLE_TO_MOUNT_BB_ERROR = 56
+    BIRTHCERT_PARSE_ERROR = 57
+    INCOMPATIBLE_SERVER_TYPE = 58
+    ILO_LICENSE_ERROR = 59
+    ACCOUNT_EXISTS_ERROR = 60
+
+    # ****** RMC/RIS ERRORS ******
+    RIS_VALUE_CHANGED_ERROR = 61
+    RIS_REF_PATH_NOT_FOUND_ERROR = 62
+    RIS_ILO_RESPONSE_ERROR = 63
+
+    # ****** REST V1 ERRORS ******
+    REST_ILOREST_WRITE_BLOB_ERROR = 70
+    REST_ILOREST_BLOB_DELETE_ERROR = 71
+    REST_ILOREST_BLOB_FINALIZE_ERROR = 72
+    REST_ILOREST_BLOB_NOT_FOUND_ERROR = 73
+    JSON_DECODE_ERROR = 74
+    V1_SECURITY_STATE_ERROR = 75
+
+    # ****** RIS ERRORS ******
+    RIS_RIS_BIOS_UNREGISTERED_ERROR = 100
 
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
@@ -118,6 +162,10 @@ class NoCurrentSessionEstablished(RdmcError):
 
 class NoChangesFoundOrMadeError(RdmcError):
     """ Raised when no changes were found or made on the commit function """
+    pass
+
+class StandardBlobErrorHandler(RdmcError):
+    """ Raised when error occured for blob operations """
     pass
 
 class InvalidCommandLineErrorOPTS(RdmcError):
@@ -161,8 +209,56 @@ class InvalidMSCfileInputError(RdmcError):
     """ Raised when servers input file for load has incorrect parameters"""
     pass
 
+class FirmwareUpdateError(RdmcError):
+    """ Raised when there is an error while updating firmware """
+    pass
 class FailureDuringCommitError(RdmcError):
     """ Raised when there is an error during commit """
+    pass
+
+class BootOrderMissingEntriesError(RdmcError):
+    """ Raised when no entries were found for bios tools """
+    pass
+
+class NicMissingOrConfigurationError(RdmcError):
+    """ Raised when no entries are found for given NIC or all NICs are \
+     configured or when wrong inputs are presented for NIC entries"""
+    pass
+
+class IncompatibleiLOVersionError(RdmcError):
+    """Raised when the iLO version is above or below the required \
+    version"""
+    pass
+
+class IncompatableServerTypeError(RdmcError):
+    """Raised when the server type is incompatable with the requested\
+    command"""
+    pass
+
+class IloLicenseError(RdmcError):
+    """Raised when the proper iLO license is not available for a command"""
+    pass
+
+class AccountExists(RdmcError):
+    """Raised when the account to be added already exists"""
+    pass
+
+class InvalidCListFileError(RdmcError):
+    """Raised when an error occurs while reading the cfilelist \
+    within AHS logs"""
+    pass
+
+class PartitionMoutingError(RdmcError):
+    """Raised when there is error or iLO fails to respond to \
+    partition mounting request"""
+    pass
+
+class LibHPsrvMissingError(RdmcError):
+    """ Raised when unable to obtain the libhpsrv handle"""
+    pass
+
+class BirthcertParseError(RdmcError):
+    """ Raised when unable to parse the birthcert"""
     pass
 
 class UI(object):
@@ -182,14 +278,20 @@ class UI(object):
         """ Called when user entered invalid command line entries """
         sys.stderr.write(u"Error: %s\n" % excp)
 
+    def standard_blob_error(self, excp):
+        """ Called when user error encountered with blob """
+        sys.stderr.write(u"Error: Blob operation failed with error code %s\n" \
+                                                                        % excp)
+
     def invalid_file_formatting(self, excp):
         """ Called when file formatting is unrecognizable """
         sys.stderr.write(u"Error: %s\n" % excp)
 
     def user_not_admin(self):
         """ Called when file formatting in unrecognizable """
-        sys.stderr.write(u"Error: %s needs to be run " \
-                        "as administrator.\n" % versioning.__longname__)
+        sys.stderr.write(u"Both remote and local mode is accessible when %s is "\
+            "run as administrator. Only remote mode is available for non-"\
+            "admin user groups.\n" % versioning.__longname__)
 
     def no_contents_found_for_operation(self, excp):
         """ Called when no contents were found for the current operation"""
@@ -234,6 +336,11 @@ class UI(object):
         sys.stderr.write(u"\nError: Could not authenticate. Invalid " \
                          "credentials, or bad username/password.\n")
 
+    def bios_unregistered_error(self):
+        """ Called when ilo/bios unregistered error occurs """
+        sys.stderr.write(u"\nERROR 100: Bios provider is unregistered. Please" \
+        " refer to the documentation for details on this issue.\n")
+
     def error(self, msg, inner_except=None):
         """ Used for general error handling
 
@@ -273,15 +380,27 @@ class UI(object):
                                                 cls=redfish.ris.JSONEncoder))
         sys.stdout.write('\n')
 
+    def print_out_json_ordered(self, content):
+        """ Print out sorted json content to std.out
+
+        :param content: content to be printed out
+        :type content: str.
+        """
+        content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
+        sys.stdout.write(json.dumps(content, indent=2, \
+                                                cls=redfish.ris.JSONEncoder))
+        sys.stdout.write('\n')
+
     def print_out_human_readable(self, content):
         """ Print out human readable content to std.out
 
         :param content: content to be printed out
         :type content: str.
         """
-        self.pretty_human_readable(content)
+        self.pretty_human_readable(content, enterloop=True)
+        sys.stdout.write('\n')
 
-    def pretty_human_readable(self, content, indent=0, start=0):
+    def pretty_human_readable(self, content, indent=0, start=0, enterloop=False):
         """ Convert content to human readable and print out to std.out
 
         :param content: content to be printed out
@@ -291,7 +410,7 @@ class UI(object):
         :param start: used to determine the indent level
         :type start: int.
         """
-        space = '\t' * indent + ' ' * start
+        space = '\n' + '\t' * indent + ' ' * start
         if isinstance(content, list):
             for item in content:
                 if item is None:
@@ -300,12 +419,13 @@ class UI(object):
                 self.pretty_human_readable(item, indent, start)
 
                 if content.index(item) != (len(content) - 1):
-                    sys.stdout.write('\n' + space)
+                    sys.stdout.write(space)
         elif isinstance(content, dict):
             for key, value in content.iteritems():
-                if space:
-                    sys.stdout.write('\n' + space)
+                if space and not enterloop:
+                    sys.stdout.write(space)
 
+                enterloop=False
                 sys.stdout.write(str(key) + '=')
                 self.pretty_human_readable(value, indent,
                                            (start + len(key) + 2))
@@ -314,5 +434,5 @@ class UI(object):
                                                             else str(content)
 
             content = '""' if len(content) == 0 else content
-            sys.stdout.write(content.encode('utf-8') + '\n')
+            sys.stdout.write(content.encode('utf-8'))
 

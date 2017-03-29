@@ -1,9 +1,20 @@
 ###
-# Copyright Notice:
-# Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-# License: BSD 3-Clause License. For full text see link: https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ###
 
+# -*- coding: utf-8 -*-
 """ Commit Command for RDMC """
 
 import sys
@@ -28,6 +39,11 @@ class CommitCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        #remove reboot option if there is no reboot command
+        try:
+            self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        except:
+            self.parser.remove_option('--reboot')
 
     def commitfunction(self, options=None):
         """ Main commit worker function
@@ -39,6 +55,10 @@ class CommitCommand(RdmcCommandBase):
 
         sys.stdout.write(u"Committing changes...\n")
 
+        if options:
+            if options.biospassword:
+                self._rdmc.app.update_bios_password(options.biospassword)
+
         try:
             if not self._rdmc.app.commit(verbose=self._rdmc.opts.verbose):
                 raise NoChangesFoundOrMadeError("No changes found or made " \
@@ -46,7 +66,13 @@ class CommitCommand(RdmcCommandBase):
         except Exception, excp:
             raise excp
 
-        self.logoutobj.logoutfunction("")
+        if options:
+            if options.reboot:
+                self.rebootobj.run(options.reboot)
+            else:
+                self.logoutobj.logoutfunction("")
+        else:
+            self.logoutobj.logoutfunction("")
 
     def run(self, line):
         """ Wrapper function for commit main function
@@ -83,4 +109,19 @@ class CommitCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-
+        customparser.add_option(
+            '--reboot',
+            dest='reboot',
+            help="Use this flag to perform a reboot command function after"\
+            " completion of operations.  For help with parameters and"\
+            " descriptions regarding the reboot flag, run help reboot.",
+            default=None,
+        )
+        customparser.add_option(
+            '--biospassword',
+            dest='biospassword',
+            help="Select this flag to input a BIOS password. Include this"\
+            " flag if second-level BIOS authentication is needed for the"\
+            " command to execute.",
+            default=None,
+        )

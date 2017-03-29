@@ -1,6 +1,9 @@
 eclipse.preferences.version=1
+encoding//src/cliutils.py=utf-8
 encoding//src/extensions/COMMANDS/LoginCommand.py=utf-8
+encoding//src/extensions/COMMANDS/LogoutCommand.py=utf-8
 encoding//src/extensions/COMMANDS/SelectCommand.py=utf-8
 encoding//src/extensions/COMMANDS/TypesCommand.py=utf-8
 encoding//src/rdmc.py=utf-8
+encoding//src/rdmc_base_classes.py=utf-8
 encoding//src/rdmc_helper.py=utf-8
