@@ -487,8 +487,8 @@ class RdmcCommand(RdmcCommandBase):
                                             u"chif driver is installed.")
         except redfish.rest.v1.SecurityStateError, excp:
             self.retcode = ReturnCodes.V1_SECURITY_STATE_ERROR
-            UI().printmsg(u"High security mode has been enabled. Support is " \
-                                                    "not currently available.")
+            UI().printmsg(u"High security mode [%s] has been enabled. Support " \
+                          "is not currently available." % excp.message)
         except redfish.hpilo.risblobstore2.ChifDllMissingError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_CHIF_DLL_MISSING_ERROR
             UI().printmsg(u"iLOrest Chif dll not found, please check that the " \
@@ -511,6 +511,10 @@ class RdmcCommand(RdmcCommandBase):
         except redfish.hpilo.risblobstore2.Blob2DeleteError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_BLOB_DELETE_ERROR
             UI().printmsg(u"Blob delete operation failed.")
+        except redfish.hpilo.risblobstore2.Blob2OverrideError, excp:
+            self.retcode = ReturnCodes.REST_ILOREST_BLOB_OVERRIDE_ERROR
+            UI().printmsg(u"\nBlob was overwritten by another user. Please " \
+                  "unsure only 1 users is making chances at a time locally.")
         except redfish.hpilo.risblobstore2.Blob2FinalizeError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_BLOB_FINALIZE_ERROR
             UI().printmsg(u"Blob finalize operation failed.")

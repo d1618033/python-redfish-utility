@@ -12,6 +12,29 @@ This section includes commands as well as their usage and examples for general c
 ilorest > help
 Usage: ilorest [GLOBAL OPTIONS] [COMMAND] [ARGUMENTS] [COMMAND OPTIONS]
 
+Options:
+  -h, --help            Show this help message and exit.
+  -c FILE, --config=FILE
+                        Use the provided configuration file instead of the
+                        default one.
+  --cache-dir=PATH      Use the provided directory as the location to cache
+                        data (default location:
+                        C:\Users\garcjack\AppData\Roaming\.iLOrest)
+
+  GLOBAL OPTIONS:
+    -v, --verbose       Display verbose information.
+    -d, --debug         Display debug information.
+    --nocache           During execution the application will temporarily
+                        store data only in memory.
+    --nologo            Include to block copyright and logo.
+    --redfish           Use this flag if you wish to to enable Redfish only
+                        compliance. It is enabled by default in systems with
+                        iLO5 and above.
+    --latestschema      Optionally use the latest schema instead of the one
+                        requested by the file. Note: May cause errors in some
+                        data retreval due to difference in schema versions.
+                        
+COMMANDS
   help                         - Displays command line syntax and help menus
                                   for individual commands. Example: help login
   login                        - Connects to a server, establishes a secure
@@ -47,13 +70,46 @@ BIOS COMMANDS
                                   settings.
   results                      - Show the results of a BIOS change after a
                                   server reboot.
+  setpassword                  - Sets the admin password and poweron password                                
 
 iLO COMMANDS
-  reboot                       - Reboot the current logged in server.
+  certificate                  - Command for importing both iLO and login
+                                  authorization certificates as well as
+                                  generating iLO certificate signing requests
+  clearrestapistate            - Clears the persistent state of the REST API.
+                                  Some portions of the API may not be available
+                                  until after the server reboots.
+  disableilofunctionality      - disables iLO's accessibility via the network
+                                  and resets iLO. WARINING: This should be used
+                                  with caution as it will render iLO unable to
+                                  respond to further network operations
+                                  (including REST operations) until iLO is
+                                  re-enabled using the RBSU menu.
+  eskm                         - Command for all ESKM available actions.
+  factorydefaults              - Resets iLO to factory defaults. WARNING: user
+                                  data will be removed use with caution.
   iloreset                     - Reset iLO on the current logged in server.
   firmwareupdate               - Perform a firmware update on the currently
                                   logged in server.
+  iloaccounts                  - Adds / deletes an iLO account on the
+                                  currently logged in server.
+  ilofederation                - Adds / deletes an iLO federaion group on the
+                                  currently logged in server.
+  ilolicense                   - Adds an iLO license key to the currently
+                                  logged in server.
+  iloreset                     - Reset iLO on the current logged in server.
+  reboot                       - Reboot operations for the current logged in
+                                  server.
+  sendtest                     - Command for sending various tests to iLO.
+  serverlogs                   - Download and perform log operations.
   serverstate                  - Returns the current state of the server.
+  sigrecompute                 - Command to recalculate the signature of the
+                                  computer's configuration.
+  singlesignon                 - Command for all single sign on available
+                                  actions. 
+  virtualmedia                 - Command for inserting and removing virtual
+                                  media.
+                                  
 
 RAW COMMANDS
   rawget                       - This is the raw form of the GET command.

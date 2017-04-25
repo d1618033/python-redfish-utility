@@ -53,5 +53,4 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-	  icon = './/win32//HPcircle.ico',
           console=True )

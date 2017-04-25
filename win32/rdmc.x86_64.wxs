@@ -100,9 +100,6 @@
 
         <!-- ALLUSERS Property puts the shortcuts in the all users ProgramMenu -->
         <Property Id="ALLUSERS"><![CDATA[2]]></Property>
-
-        <Icon Id="appicon.ico" SourceFile="$(var.srcFolder)\win32\HPcircle.ico" />        
-        <!--Binary Id="appicon.ico" SourceFile="$(var.srcFolder)\win32\HPcircle.ico" / -->
             
         <!-- Features -->
         <Feature Id='FEAT_ILOREST' Title='RESTful Interface Tool' Description='RESTful Interface Tool' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR' InstallDefault='local' AllowAdvertise='no'>

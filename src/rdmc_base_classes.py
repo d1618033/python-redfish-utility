@@ -33,7 +33,7 @@ import cliutils
 #Using hard coded list until better solution is found
 HARDCODEDLIST = ["oem", "name", "modified", "type", "description",
                  "attributeregistry", "links", "settingsresult",
-                 "actions", "availableactions", "status"]
+                 "actions", "availableactions", "status", "id"]
 
 class CommandBase(object):
     """Abstract base class for all Command objects.
