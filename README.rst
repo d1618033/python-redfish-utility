@@ -2,8 +2,6 @@ python-redfish-utility
 ==============
 .. image:: https://travis-ci.org/HewlettPackard/python-redfish-utility.svg?branch=master
     :target: https://travis-ci.org/HewlettPackard/python-redfish-utility
-.. image:: https://img.shields.io/pypi/v/python-redfish-utility.svg?maxAge=2592000
-	:target: https://pypi.python.org/pypi/python-redfish-utility
 .. image:: https://img.shields.io/github/release/HewlettPackard/python-redfish-utility.svg?maxAge=2592000
 	:target: 
 .. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
