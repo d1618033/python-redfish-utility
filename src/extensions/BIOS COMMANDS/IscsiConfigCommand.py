@@ -162,9 +162,10 @@ class IscsiConfigCommand(RdmcCommandBase):
         for item in iscsibootsources[self.typepath.defs.iscsisource]:
             try:
                 if not item[self.typepath.defs.iscsiattemptinstance]:
+                    nicsourcedata = devicealloc[int(options.add[1:-1])-1]["Associations"]
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
-                    ["iSCSINicSource"] = devicealloc[int(options.add[1:-1])-1]\
-                                                            ["Associations"][0]
+                    ["iSCSINicSource"] = nicsourcedata[1] if isinstance(nicsourcedata[0],\
+                                                                dict) else nicsourcedata[0]
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
                             [self.typepath.defs.iscsiattemptinstance] = attemptinstancenumber
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
@@ -241,7 +242,9 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         foundlocation = False
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
-                        verbose=False, jsonflag=True, path=iscsisettingspath)
+                        verbose=False, jsonflag=False, path=iscsisettingspath)
+        holdetag = iscsibootsources.getheader('etag')#iscsibootsources['@odata.etag']
+        iscsibootsources = json.loads(iscsibootsources.read)
 
         try:
             count = 0
@@ -256,8 +259,9 @@ class IscsiConfigCommand(RdmcCommandBase):
             " does not exist. The request for delete could not be completed.")
 
         if foundlocation:
-            self._rdmc.app.patch_handler(iscsisettingspath, iscsibootsources, \
-                                         optionalpassword=options.biospassword)
+            self._rdmc.app.put_handler(iscsisettingspath, iscsibootsources, \
+                optionalpassword=options.biospassword, headers={\
+                'if-Match':holdetag})
             self._rdmc.app.get_handler(iscsisettingspath, silent=True)
         else:
             raise NicMissingOrConfigurationError("The given attempt instance " \
@@ -320,7 +324,8 @@ class IscsiConfigCommand(RdmcCommandBase):
         for item in iscsibootsources[self.typepath.defs.iscsisource]:
             if item["iSCSINicSource"]:
                 for device in devicealloc:
-                    if item["iSCSINicSource"] == device["Associations"][0]:
+                    listval = 1 if isinstance(device["Associations"][0], dict) else 0
+                    if item["iSCSINicSource"] == device["Associations"][listval]:
                         for pcidevice in pcideviceslist:
                             if device["CorrelatableID"] == \
                                                     pcidevice["UEFIDevicePath"]:

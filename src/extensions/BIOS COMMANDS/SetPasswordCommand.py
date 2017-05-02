@@ -82,7 +82,7 @@ class SetPasswordCommand(RdmcCommandBase):
                 verbose=self._rdmc.opts.verbose, service=True, silent=True).dict
 
             for item in bodydict['Actions']:
-                if 'ChangePasswords' in item:
+                if 'ChangePassword' in item:
                     action = item.split('#')[-1]
                     path = bodydict['Actions'][item]['target']
                     break

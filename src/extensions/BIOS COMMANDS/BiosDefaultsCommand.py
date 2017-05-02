@@ -32,8 +32,8 @@ class BiosDefaultsCommand(RdmcCommandBase):
             name='biosdefaults',\
             usage='biosdefaults [OPTIONS]\n\n\tRun to set the currently' \
                     ' logged in server to default BIOS settings\n\texample: ' \
-                    'biosdefaults\n\tuser defaults example: biosdefaults '\
-                    '--userdefaults',\
+                    'biosdefaults\n\n\tRun to set the currently logged in server'\
+                    ' to user defaults\n\texample: biosdefaults --userdefaults',\
             summary='Set the currently logged in server to default BIOS' \
                                                         ' settings.',\
             aliases=['biosdefaults'],\
@@ -63,7 +63,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
         put_path = self.typepath.defs.biospath
         body = None
 
-        if self.typepath.defs.isgen10:
+        if self.typepath.defs.isgen10 and not options.manufdefaults:
             bodydict = self._rdmc.app.get_handler(self.typepath.defs.biospath,\
                                         verbose=self._rdmc.opts.verbose,\
                                         service=True, silent=True).dict
@@ -78,7 +78,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
 
             if options.userdefaults:
                 body["ResetType"] = "default.user"
-            elif not options.manufdefaults:
+            else:
                 body["ResetType"] = "default"
 
             self._rdmc.app.post_handler(path, body)
@@ -89,7 +89,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
                 body = {'BaseConfig': 'default'}
 
             if body:
-                self._rdmc.app.put_handler(put_path, body=body, \
+                self._rdmc.app.put_handler(put_path + '/settings', body=body, \
                                         optionalpassword=options.biospassword)
 
         if not body and options.manufdefaults:

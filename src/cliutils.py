@@ -133,7 +133,7 @@ def get_terminal_size():
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout_s, _) = procs.communicate()
 
-            #retcode = p.wait()
+            _ = procs.wait()
             if stdout_s and re.search(r'^\d+ \d+$', stdout_s):
                 rows, cols = stdout_s.split()
                 _tuple = (cols, rows)

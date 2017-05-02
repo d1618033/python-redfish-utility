@@ -63,7 +63,7 @@ class ServerlogsCommand(RdmcCommandBase):
                     '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)' \
                     '\n\tInsert entry in the IML logs from the logged in ' \
                     'server.\n\texample: serverlogs --selectlog=IML -m "Text' \
-                    ' message for maintenance"\n\n\t(AHS LOGS ONLY FEATURE)' \
+                    ' message for maintenance"\n\n\t(AHS LOGS ONLY FEATURE IN REMOTE MODE)'\
                     '\n\tInsert customized string if required for AHS log to be'\
                     ' downloaded. \n\texample: serverlogs --selectlog=AHS -f '\
                     'AHSlog.ahs --customiseAHS "from=2014-03-01&&to=2014-03-30"'\
@@ -384,7 +384,9 @@ class ServerlogsCommand(RdmcCommandBase):
                                 else filtereddict[u"Links"]
                     ahslocpath = linkpath[u'AHSLocation']
                     path = ahslocpath[u'extref']
-                    if options.customiseAHS:
+                    if options.downloadallahs:
+                        path = path
+                    elif options.customiseAHS:
                         custr = options.customiseAHS
                         if custr.startswith(("'", '"')) and custr.\
                                                         endswith(("'", '"')):
@@ -392,6 +394,24 @@ class ServerlogsCommand(RdmcCommandBase):
                         if custr.startswith(u"from="):
                             path = path.split(u"downloadAll=1")[0]
                         path = path+custr
+                    else:
+                        if "AHSFileStart" in filtereddict.keys():
+                            enddate = filtereddict["AHSFileEnd"].split("T")[0]
+                            startdate = filtereddict["AHSFileStart"].split("T")[0]
+                            enddat = map(int, enddate.split('-'))
+                            startdat = map(int, startdate.split('-'))
+                            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
+                            weekagostr = map(int, (str(weekago).split()[0]).split('-'))
+                            strdate = min(max(datetime.date(weekagostr[0], weekagostr[1],\
+                                weekagostr[2]), datetime.date(startdat[0], startdat[1],\
+                                startdat[2])), datetime.date(enddat[0], enddat[1], enddat[2]))
+                            aweekstr = "from=" + str(strdate) + "&&to=" + enddate
+                        else:
+                            week_ago = datetime.datetime.now() - datetime.timedelta(days=7)
+                            aweekstr = "from=" + str(week_ago).split()[0] + \
+                                        "&&to=" + str(datetime.datetime.now()).split()[0] 
+                        path = path.split(u"downloadAll=1")[0]
+                        path = path+aweekstr
             if not path:
                 raise
         except Exception:
@@ -460,7 +480,7 @@ class ServerlogsCommand(RdmcCommandBase):
         self.abspath = os.path.join(abspath, 'data')
 
         self.updateiloversion()
-        allfiles = self.getfilenames()
+        allfiles = self.getfilenames(options=options)
         cfilelist = self.getclistfilelisting()
         self.getdatfilelisting(cfilelist=cfilelist, allfile=allfiles)
         self.createahsfile(ahsfile=self.getahsfilename(options))
@@ -521,7 +541,7 @@ class ServerlogsCommand(RdmcCommandBase):
             filesize = os.stat(os.path.join(self.abspath, files)).st_size
             self.lib.gendatlisting(files, bisrequiredfile, filesize)
 
-    def getfilenames(self):
+    def getfilenames(self, options=None):
         """Get all file names from the blacbox directory."""
         datelist = []
         filenames = next(os.walk(self.abspath))[2]
@@ -541,8 +561,16 @@ class ServerlogsCommand(RdmcCommandBase):
             except:
                 pass
 
-        strdate = min(datelist) if len(datelist) else strdate
-        enddate = max(datelist) if len(datelist) else enddate
+        if options.downloadallahs:
+            strdate = min(datelist) if len(datelist) else strdate
+            enddate = max(datelist) if len(datelist) else enddate
+        else:
+            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
+            weekagostr = (str(weekago).split()[0]).split('-')
+            strdate = datetime.date(int(weekagostr[0]), int(weekagostr[1]),\
+                                     int(weekagostr[2]))
+            strdate = max(min(datelist), strdate) if len(datelist) else strdate
+            enddate = min(max(datelist), enddate) if len(datelist) else enddate
         self.updateminmaxdate(strdate=strdate, enddate=enddate)
         return filenames
 
@@ -720,11 +748,11 @@ class ServerlogsCommand(RdmcCommandBase):
             except Exception:
                 raise NoContentsFoundForOperationError(u"Unable to retrieve log instance.")
             snum = filtereddictslists[0][u"SerialNumber"]
-            snum = u'EMPTY' if snum.isspace() else snum
+            snum = u'UNKNOWN' if snum.isspace() else snum
             timenow = (str(datetime.datetime.now()).\
                                                 split()[0]).split('-')
             todaysdate = ''.join(timenow)
-            ahsdefaultfilename = u'HP_'+snum+u'_'+todaysdate+u'.ahs'
+            ahsdefaultfilename = u'HPE_'+snum+u'_'+todaysdate+u'.ahs'
         if options.directorypath:
             ahsdefaultfilename = os.path.join(options.directorypath, ahsdefaultfilename)
         return ahsdefaultfilename
@@ -862,6 +890,13 @@ class ServerlogsCommand(RdmcCommandBase):
             '--customiseAHS',
             dest='customiseAHS',
             help="""Allows customized AHS log data to be downloaded.""",
+            default=None,
+        )
+        customparser.add_option(
+            '--downloadallahs',
+            dest='downloadallahs',
+            action="store_true",
+            help="""Allows complete AHS log data to be downloaded.""",
             default=None,
         )
         customparser.add_option(

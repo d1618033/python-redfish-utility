@@ -46,17 +46,18 @@ class BootOrderCommand(RdmcCommandBase):
                 'boot uefi options" section.\n\texample: bootorder --' \
                 'continuousboot=Utilities --commit\n\n\tDisable either ' \
                 'continuous or one time boot options.\n\texample: bootorder ' \
-                '--disablebootflag --commit\n\n\tNOTE: pick ONETIMEBOOT and ' \
+                '--disablebootflag --commit\n\n\t'\
+                'Changing Secure Boot Keys:\n\tTo manage secure boot keys use'\
+                ' the --securebootkeys flag.\n\tTo delete all keys.\n\n\texample:'\
+                ' bootorder --securebootkeys=deletepk\n\tFor all posibilities'
+                ' see the --securebootkeys flag \n\tin the options list.\n\n\t'\
+                'NOTE: pick ONETIMEBOOT and ' \
                 'CONTINUOUS items from "Continuous\n\tand one time boot ' \
                 'options" section. Items in this list represent\n\ta ' \
                 '"clustered" view of the "Continuous and one time boot uefi' \
                 '\n\toptions" section. Example: choosing Pxe will try to Pxe' \
                 ' boot\n\tcapable devices in the order found in the "' \
-                'Continuous and one\n\ttime boot options".\n\n\t'\
-                'Changing Secure Boot Keys:\n\tTo manage secure boot keys use'\
-                ' the --securebootkeys flag.\n\tTo delete all keys. \n\texample:'\
-                ' bootorder --securebootkeys=deletepk\n\tFor all posibilities'
-                ' see the --securebootkeys flag \n\tin the options list.',\
+                'Continuous and one\n\ttime boot options".\n\n\t',\
             summary='Displays and sets the current boot order.',\
             aliases=['bootorder'],\
             optparser=OptionParser())
@@ -173,7 +174,6 @@ class BootOrderCommand(RdmcCommandBase):
                         removallist.remove(currentlist[int(bootlist[value]) -1])
                         if not len(removallist) == 0:
                             newlist += ","
-
                     if len(removallist) == 0:
                         newlist += "]"
                     else:

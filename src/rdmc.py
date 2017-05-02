@@ -529,6 +529,9 @@ class RdmcCommand(RdmcCommandBase):
         except redfish.ris.rmc_helper.UserNotAdminError, excp:
             UI().user_not_admin()
             self.retcode = ReturnCodes.USER_NOT_ADMIN
+        except redfish.hpilo.rishpilo.HpIloInitialError, excp:
+            UI().error(excp) 
+            self.retcode = ReturnCodes.RIS_ILO_INIT_ERROR
         # ****** RIS OBJECTS ERRORS ******
         except redfish.ris.ris.BiosUnregisteredError, excp:
             self.retcode = ReturnCodes.RIS_RIS_BIOS_UNREGISTERED_ERROR

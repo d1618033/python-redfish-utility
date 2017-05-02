@@ -41,12 +41,12 @@ class IloAccountsCommand(RdmcCommandBase):
                 'iloaccounts delete [LOGINNAMEorID#]\n\t'\
                 'example: iloaccounts delete accountLoginName\n\n'
                 '\tDESCRIPTIONS:\n\tLOGINNAME:  The account name, not used ' \
-                'to login.\n\tUSERNAME: The account login name, used' \
+                'to login.\n\tUSERNAME: The account username name, used' \
                 ' to login. \n\tPASSWORD:  The account password, used to login.'
                 '\n\tId: The number associated with an iLO user account.'\
                 '\n\n\tNOTE: please make sure the order of arguments is ' \
                 'correct. The\n\tparameters are extracted based on their ' \
-                'position in the arguments list.\n\n\tOnly privileges available to' \
+                'position in the arguments list.\n\tOnly privileges available to' \
                 ' the logged in account can be set to the new account.',\
             summary='Adds / deletes an iLO account on the currently logged in server.',\
             aliases=None,\

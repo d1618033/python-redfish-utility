@@ -30,12 +30,15 @@ class IloFederationCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='ilofederation',\
             usage='ilofederation [COMMAND] [OPTIONS]\n\n\t'\
-                'Adds an iLO federation group to the current logged in'\
-                ' server.\n\texample: ilofederation add FEDERATIONNAME KEY\n\n\t'\
+                'Adds an iLO federation group to the current logged in server.'\
+                '\n\tilofederation add [FEDERATIONNAME KEY]'\
+                '\n\texample: ilofederation add newfedname thisfedkey\n\n\t'\
                 'Change the key of an iLO federation group.\n\t'\
-                'example: ilofederation changekey FEDERATIONNAME NEWKEY\n\n\t'\
+                'ilofederation changekey [FEDERATIONNAME NEWKEY]\n\t'\
+                'example: ilofederation changekey newfedname newfedkey\n\n\t'\
                 'Delete an iLO federation group.\n\t'\
-                'example: ilofederation delete FEDERATIONNAME\n\n\t'\
+                'ilofederation delete [FEDERATIONNAME]\n\t'\
+                'example: ilofederation delete newfedname\n\n\t'\
                 'See a list of federations on the system.\n\t'\
                 'example: ilofederation\n\n'\
                 '\tDESCRIPTIONS:\n\tFEDERATIONNAME: The name (Id) of the federation'\

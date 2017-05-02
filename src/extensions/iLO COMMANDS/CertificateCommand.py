@@ -33,12 +33,12 @@ class CertificateCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='certificate',\
             usage='certificate [OPTIONS]\n\n\tImport auth CA certificate.' \
-                    '\n\texample: certificate ca uri\n\n\tImport auth '\
+                    '\n\texample: certificate ca certfile.txt\n\n\tImport auth '\
                     'CRL certificate.\n\texample: importcertificate crl uri\n\n\t'\
                     'Import an iLO TLS certificate.\n\texample: certificate tls'\
                     ' certfile.txt\n\n\tGenerate an https certificate signing'\
                     ' request.\n\texmaple: certificate csr [ORG_NAME] [ORG_UNIT]'\
-                    ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\tNOTE: please make ' \
+                    ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\n\tNOTE: please make ' \
                     'sure the order of arguments is correct. The\n\tparameters ' \
                     'are extracted base on their position in the arguments ' \
                     'list.\n\n\tGet certificate signing request.\n\texample: '\
@@ -173,7 +173,7 @@ class CertificateCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
     def importtlshelper(self, args):
-        """ Helper function for importing CRL certificate
+        """ Helper function for importing TLS certificate
 
         :param args: list of args
         :type args: list.
@@ -259,6 +259,14 @@ class CertificateCommand(RdmcCommandBase):
             raise IncompatibleiLOVersionError("This certificate is not available"\
                                               " on this system.")
 
+        file = args[1]
+        try:
+            with open(file) as certfile:
+                certdata = certfile.read()
+                certfile.close()
+        except:
+            raise InvalidFileInputError("Error loading the specified file.")
+
         select = 'HpeCertAuth.'
         results = self._rdmc.app.filter(select, None, None)
 
@@ -278,7 +286,7 @@ class CertificateCommand(RdmcCommandBase):
                 path = bodydict['Actions'][item]['target']
                 break
 
-        body = {"Action": action, "ImportUri": args[1]}
+        body = {"Action": action, "Certificate": certdata}
 
         self._rdmc.app.post_handler(path, body)
 

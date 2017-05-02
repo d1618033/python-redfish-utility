@@ -160,6 +160,9 @@ class LoginCommand(RdmcCommandBase):
             # Verify that URL is properly formatted for https://
             if not "https://" in self.url:
                 self.url = "https://" + self.url
+            if not self.username or not self.password:
+                raise InvalidCommandLineError("Empty username or password" \
+                                                                " was entered.")
         else:
             # Check to see if there is a URL in config file
             if self._rdmc.app.config.get_url():
