@@ -5,7 +5,11 @@ python-redfish-utility
 .. image:: https://img.shields.io/github/release/HewlettPackard/python-redfish-utility.svg?maxAge=2592000
 	:target: 
 .. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
-	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSEutm_source=github.com&amp;utm_medium=referral&amp;utm_content=DMTF/python-redfish-utility&amp;utm_campaign=Badge_Grade
+	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSE
+.. image:: https://img.shields.io/pypi/pyversions/python-redfish-utility.svg?maxAge=2592000
+	:target: https://pypi.python.org/pypi/python-redfish-utility
+.. image:: https://api.codacy.com/project/badge/Grade/1283adc3972d42b4a3ddb9b96660bc07
+	:target: https://www.codacy.com/app/rexysmydog/python-redfish-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=HewlettPackard/python-ilorest-library&amp;utm_campaign=Badge_Grade
 
 
 .. contents:: :depth: 1
