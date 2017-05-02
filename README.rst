@@ -1,13 +1,13 @@
 python-redfish-utility
 ==============
-.. image:: https://travis-ci.org/DMTF/python-redfish-utility.svg?branch=master
-    :target: https://travis-ci.org/DMTF/python-redfish-utility
-.. image:: https://img.shields.io/github/release/DMTF/python-redfish-utility.svg?maxAge=2592000
+.. image:: https://travis-ci.org/HewlettPackard/python-redfish-utility.svg?branch=master
+    :target: https://travis-ci.org/HewlettPackard/python-redfish-utility
+.. image:: https://img.shields.io/pypi/v/python-redfish-utility.svg?maxAge=2592000
+	:target: https://pypi.python.org/pypi/python-redfish-utility
+.. image:: https://img.shields.io/github/release/HewlettPackard/python-redfish-utility.svg?maxAge=2592000
 	:target: 
-.. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
-	:target: https://raw.githubusercontent.com/DMTF/python-redfish-utility/master/LICENSE
-.. image:: https://api.codacy.com/project/badge/Grade/1283adc3972d42b4a3ddb9b96660bc07
-	:target: https://www.codacy.com/app/rexysmydog/python-redfish-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DMTF/python-redfish-utility&amp;utm_campaign=Badge_Grade
+.. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
+	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSEutm_source=github.com&amp;utm_medium=referral&amp;utm_content=DMTF/python-redfish-utility&amp;utm_campaign=Badge_Grade
 
 
 .. contents:: :depth: 1
@@ -39,7 +39,7 @@ Requirements
 
 Usage
 ----------
- For further usage please refer to our slate documentation: `https://dmtf.github.io/python-redfish-utility/ <https://dmtf.github.io/python-redfish-utility/>`_
+ For further usage please refer to our slate documentation: `https://hewlettpackard.github.io/python-redfish-utility/ <https://hewlettpackard.github.io/python-redfish-utility/>`_
 
 Contributing
 ----------
@@ -55,9 +55,26 @@ History
 
   * 01/12/2017: Initial Commit
 
-Copyright and License
----------------------
+License
+----------
 
-Copyright Notice:
-Copyright 2016 Distributed Management Task Force, Inc. All rights reserved.
-License: BSD 3-Clause License. For full text see link: `https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md <https://github.com/DMTF/python-redfish-utility/blob/master/LICENSE.md>`_
+Copyright 2017 Hewlett Packard Enterprise Development LP
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Authors
+----------
+
+* [Jack Garcia](http://github.com/LumbaJack)
+* [Matthew Kocurek](http://github.com/Yergidy)
+* [Prithvi Subrahmanya](http://github.com/PrithviBS)
