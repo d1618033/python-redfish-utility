@@ -7,7 +7,7 @@ python-redfish-utility
 .. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
 	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSE
 .. image:: https://img.shields.io/pypi/pyversions/python-ilorest-library.svg?maxAge=2592000
-	:target:
+	:target: https://pypi.python.org/pypi/python-ilorest-library
 .. image:: https://api.codacy.com/project/badge/Grade/1283adc3972d42b4a3ddb9b96660bc07
 	:target: https://www.codacy.com/app/rexysmydog/python-redfish-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=HewlettPackard/python-ilorest-library&amp;utm_campaign=Badge_Grade
 
