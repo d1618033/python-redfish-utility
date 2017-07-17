@@ -5,4 +5,6 @@ The RESTful Interface Tool is a command line interface that allows you to manage
 The RESTful Interface Tool can display and set parameters for the following:
 
 - **HPE BIOS/UEFI (including secure boot)**
-- **HPE iLO 4**
+- **HPE iLO 4/iLO 5**
+- **HPE iLO Repository**
+- **Smart Array support**

@@ -16,6 +16,8 @@ includes:
   - globalcommands
   - bioscommands
   - ilocommands
+  - ilorepositorycommands
+  - smartarraycommands
   - rawcommands
   - macrocommandsandscripts
   - support

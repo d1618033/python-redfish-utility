@@ -64,11 +64,7 @@ Then when you log into the server again, the BIOS password will have been update
 
 ## Disabling the Trusted Platform Module (TPM) on servers example
 
-```
-ilorest login https://clientilo.domain.com -u username -p password 
-set Tpm2Visibility=Hidden --selector HpBios.
-commit --reboot=ForceRestart
-```
+![TPM Example](images/TPM_disable.png "TPM Example")
 
 > **Above:** When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
 
@@ -76,11 +72,8 @@ If you need to disable TPM on a group of servers, you can use a set of commands 
 
 ### Enable the TPM on servers
 
-```
-ilorest login https://clientilo.domain.com -u username -p password
-set Tpm2Visibility=Visible --selector HpBios.
-commit --reboot=ForceRestart
-```
+![TPM Example](images/TPM_enable.png "TPM Example")
+
 
 To enable the TPM, you can set the `TpmState` to `PresentEnabled`. **See side example**.
 

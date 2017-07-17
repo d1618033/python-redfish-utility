@@ -1,10 +1,16 @@
 ## Smart Arrary Commands
 
+The Smart Array commands are designed for use with HPE Gen10 servers.
+
 
 
 ### Clearcontrollerconfig command
 
 > Clearcontrollerconfig example commands:
+
+> To clear a controller config.
+
+> ![Clearcontrollerconfig 1](images/examples/clearcontrollerconfig_ex1.png "Clearcontrollerconfig example 1")
 
 
 #### Syntax
@@ -43,16 +49,27 @@ Use this flag to sanitize all physical drives on a controller.
 
 
 #### Inputs
+None
 
 
 
 #### Outputs
+None
 
 
 
 ### Createlogicaldrive command
 
 > Createlogicaldrive example commands:
+
+> To create a quick logical drive.
+
+> ![Createlogicaldrive 1](images/examples/createlogicaldrive_ex1.png "Createlogicaldrive example 1")
+
+
+> To create a custom logical drive.
+
+> ![Createlogicaldrive 2](images/examples/createlogicaldrive_ex2.png "Createlogicaldrive example 2")
 
 
 #### Syntax
@@ -136,14 +153,24 @@ Optionally include to choose the stripe size in bytes (usable in custom creation
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None 
 
 ### Deletelogicaldrive command
 
 > Deletelogicaldrive example commands:
+
+> To delete multiple logical drives by index.
+
+> ![Deletelogicaldrive Example 1](images/examples/deletelogicaldrive_ex1.png "Deletelogicaldrive example 1")
+
+
+> To delete all logical drives on a controller.
+
+> ![Deletelogicaldrive Example 2](images/examples/deletelogicaldrive_ex2.png "Deletelogicaldrive example 2")
 
 
 #### Syntax
@@ -184,15 +211,26 @@ Use this flag to delete all logical drives on a controller.
 
 
 #### Inputs
-
+None 
 
 
 #### Outputs
+None 
 
 
 ### Drivesanitize command
 
 > Drivesanitize example commands:
+
+> To sanitize a physical drive by index.
+
+> ![Drivesanitize Example 1](images/examples/drivesanitize_ex1.png "Drivesanitize example 1")
+
+
+> To sanitize multiple drives by index.
+
+> ![Drivesanitize Example 2](images/examples/drivesanitize_ex2.png "Drivesanitize example 2")
+
 
 
 #### Syntax
@@ -238,15 +276,19 @@ Use this flag to sanitize all physical drives on a controller.
 
 
 #### Inputs
-
-
+None 
 
 #### Outputs
+None 
 
 
 ### Factoryresetcontroller command
 
 > Factoryresetcontroller example commands:
+
+> To factory reset a controller by index.
+
+> ![Factoryresetcontroller Example 1](images/examples/factoryresetcontroller_ex1.png "Factoryresetcontroller example 1")
 
 
 #### Syntax
@@ -283,10 +325,11 @@ Use this flag to select the corresponding controller.
 
 
 #### Inputs
-
+None 
 
 
 #### Outputs
+None 
 
 
 
@@ -294,6 +337,24 @@ Use this flag to select the corresponding controller.
 
 > Smartarray example commands:
 
+> Run without arguments for the current list of smart array controllers.
+
+> ![Smartarray 1](images/examples/smartarray_ex1.png "Smartarray example 1")
+
+
+> To get more details on a specific controller select it by index.
+
+> ![Smartarray 2](images/examples/smartarray_ex2.png "Smartarray example 2")
+
+
+> Get a list of all physical drives for the each controller.
+
+> ![Smartarray 3](images/examples/smartarray_ex3.png "Smartarray example 3")
+
+
+> Get details about a specific drive for a specific controller.
+
+> ![Smartarray 4](images/examples/smartarray_ex4.png "Smartarray example 4")
 
 #### Syntax
 
@@ -346,11 +407,10 @@ Use this flag to select the corresponding logical disk.
 
 
 #### Inputs
-
-
+None 
 
 #### Outputs
-
+None 
 
 
 

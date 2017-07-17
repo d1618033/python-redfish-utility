@@ -47,12 +47,29 @@ Error Code | Description
 51	| Multiple server configuration failure
 52	| Multiple server input file error.
 53	| Load skip setting error.
+54	| Incompatible iLO version error.
+55	| Invalid command list file error.
+56	| Unable to mount BB error.
+57	| Birthcertificate parse error.
+58	| Incompatible server type.
+59	| iLO license error.
+60	| Account exists error. 
 61	| Error occurred when trying to change a value.
+62	| Reference path not found error.
+63	| iLO response error.
+64	| Unable to open a channel with iLO error. 
 70	| Error occurred while trying to write BLOB.
-71	| Error occurred while trying to delete BLOB
-72	| Error occurred while trying to finalize BLOB
-73	| BLOB could not be found
+71	| Error occurred while trying to delete BLOB.
+72	| Error occurred while trying to finalize BLOB.
+73	| BLOB could not be found.
+74	| JSON decoder error.
+75	| Security state error. 
+76	| iLO RESTful API BLOB override error.
+80	| Resource allocation errors. 
 100	| BIOS provider is unregistered. Please refer to the documentation for details on this issue.
-255	| A general error occurred while manipulating server settings. See the error message for details
+101	| Failed to download component.
+102	| Update service busy.
+103	| Failed to upload component. 
+255	| A general error occurred while manipulating server settings. See the error message for details.
 
-<aside class="warning">You might encounter the following error message: <b>Missing token required for operation. Please add the proper token.</b> To resolve this error, add the BIOS password for the server when executing the commands.</aside>
+<aside class="warning">You might encounter the following error message: <b>Missing token required for operation</b>. <b>Please add the proper token</b>. To resolve this error, add the BIOS password for the server when executing the commands.</aside>

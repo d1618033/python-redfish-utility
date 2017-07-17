@@ -15,7 +15,7 @@ The following is a list of requirements for the server you want to manage with t
 
 ```
 
-\Program Files\Hewlett Packard Enterprise\HP RESTful Interface Tool\
+C:\Program Files\Hewlett Packard Enterprise\HP RESTful Interface Tool\
 
 ```
 

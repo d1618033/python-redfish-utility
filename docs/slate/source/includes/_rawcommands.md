@@ -6,22 +6,12 @@ These are the raw HTTP RESTful operations that can be used through the RESTful I
 
 > RawPatch example commands:
 
-> Here, the **AdminName** of type **HpBios** was "" before. The rawpatch command sent the patch.json to change that property to become **Jean Kranz**. Commit is left out deliberately here since, raw commands (such as rawpost, rawput, etc.) do not require the commit command to be run since changes are made directly. Note that this particular change required second-level BIOS authentication, which is why the biospassword flag was included.
+> Here, the **AdminName** of type **HpBios** was "" before. The rawpatch command sent the patch.json to change that property to become **Jean Kranz**. Commit is left out deliberately here since, raw commands (such as rawpost, rawput, etc.) do not require the commit command to be run since changes are made directly. 
 
-```
-ilorest > get AdminName –u username –p password --url=xx.xx.xx.xx –-selector=HpBios.
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-AdminName=""
-ilorest > rawpatch patch.json --biospassword=BIOSPASSWORD
-One or more properties were changed and will not take effect until system is reset.
-ilorest > logout
-Logging session out.
-ilorest > get AdminName --selector=HpBios. -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-AdminName=Jean Kranz
-```
+NOTE: This particular change requires second-level BIOS authentication, which is why the biospassword flag was included.
+
+> ![RawPatch Example 1](images/examples/rawpatch_ex1.png "RawPatch example 1")
+
 
 > The following **patch.json** file was used in the above example:
 
@@ -124,32 +114,14 @@ None
 
 > RawGet example commands:
 
-> **Above:** The rawget command here executed the GET command on the path **/rest/v1/systems/1/bios/Settings**. This displays the information in the given path. Note that the full list of information has been truncated here for space.
+> **Above:** The rawget command here executed the GET command on the path **/rest/v1/systems/1/bios/Settings**. This displays the information in the given path. 
 
-```
-ilorest > rawget "/rest/v1/systems/1/bios/Settings" –u username –p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
+NOTE: The full list of information has been truncated for space.
 
-The operation completed successfully.
-{
-  "MemFastTraining": "Enabled",
-  "NvDimmSanitize": "Disabled",
-   …
-  "TpmState": "NotPresent",
-  "CollabPowerControl": "Enabled"
-} 
-```
+> ![Rawget Example 1](images/examples/rawget_ex1.png "RawGet example 1")
 
+> ![Rawget Example 2](images/examples/rawget_ex2.png "RawGet example 2")
 
-
-```
-ilorest > rawget "/rest/v1/systems/1/bios/Settings" –u username –p password --url=xx.xx.xx.xx --filename=output.json
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-The operation completed successfully.
-Results written out to 'output.json'.
-```
 
 #### Syntax
 
@@ -230,12 +202,12 @@ If you include the `filename` flag, this command will return an output file of t
 
 > RawPost example commands:
 
-> The rawpost command performs an HTTP REST POST operation using the information provided in the provided file. Here the ForceRestart ResetType was set, so after the rawpost posted the changes iLO executed a ForceRestart. Note that if a full path is not given, the tool will search for the file in the location the RESTful Interface Tool is started in.
+> The rawpost command performs an HTTP REST POST operation using the information provided in the provided file. Here the ForceRestart ResetType was set, so after the rawpost posted the changes iLO executed a ForceRestart. 
 
-```
-ilorest > rawpost forcerestart.json -u username -p password --url=xx.xx.xx.xx
-The operation completed successfully.
-```
+NOTE: If a full path is not given, the tool searches for the file where the RESTful Interface Tool was started. 
+
+> ![RawPost Example 1](images/examples/rawpost_ex1.png "RawPost example 1")
+
 
 > The following **forcerestart.json** file is used in conjuncture:
 
@@ -338,10 +310,9 @@ None
 
 > **Above:** Here the rawput command was used to put the above put.json file to the server. Use the biospassword flag if the resource you are trying to modify requires second-level BIOS authentication to modify.
 
-```
-ilorest > rawput put.json –u username –p password –-url=xx.xx.xx.xx –biospassword=BIOSPASSWORD
-One or more properties were changed and will not take effect until system is reset.
-```
+> ![RawPut Example 1](images/examples/rawput_ex1.png "RawPut example 1")
+
+
 
 > This example uses the following **put.json** file:
 
@@ -444,13 +415,8 @@ None
 
 > Here the rawdelete command was used to delete a session. After the server was logged into, the provided session was deleted.
 
-```
-ilorest > login xx.xx.xx.xx –u username –p password
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-ilorest > rawdelete "/rest/v1/Sessions/admin556dba8328b43959"
-The operation completed successfully.
-```
+> ![RawDelete Example 1](images/examples/rawdelete_ex1.png "RawDelete example 1")
+
 
 
 #### Syntax
@@ -509,21 +475,7 @@ None
 
 > The rawhead command is the HTTP RESTful HEAD operation. It is used to retrieve the data from the passed in path.
 
-```
-ilorest > rawhead /rest/v1/systems/1/bios/Settings -u username -p password --url=xx.xx.xx.xx
-[200] No message returned by iLO.
-{
-  "Content-length": "3835",
-  "Server": "HP-iLO-Server/1.30",
-  "Connection": "keep-alive",
-  "ETag": "BB642DA122E434087C3E7E7A646A8DAB",
-  "Allow": "GET, HEAD, PUT, PATCH",
-  "Cache-Control": "no-cache",
-  "Date": "Mon, 01 Jun 2015 14:51:07 GMT",
-  "X_HP-CHRP-Service-Version": "1.0.3",
-  "Content-type": "application/json"
-}
-```
+> ![RawHead Example 1](images/examples/rawhead_ex1.png "RawHead example 1")
 
 
 #### Syntax

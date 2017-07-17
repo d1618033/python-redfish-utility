@@ -2,9 +2,34 @@
 
 This section includes advanced functions for manipulating iLO using the RESTful Interface Tool. These commands include operations such as turning the server hardware on and off, resetting iLO, and updating firmware.
 
+iLO commands that are supported for a specific HPE server generation:
++ certificate: Gen10 with limited functionality for Gen9
++ fwintegritycheck: Gen10
++ iloclone: Gen10
++ sigrecompute: Gen9
+
 ### Certificate command
 
 > Certificate example commands:
+
+> NOTE: 
+> + Please make sure the order of arguments is correct. The parameters are extracted base on their position in the arguments list.
+> + Use the singlesignon command to import single sign on certificates.
+
+> Generate an https certificate signing request.
+
+> ![Certificate Example 1](images/examples/certificate_ex1.png "Certificate example 1")
+
+
+> Import auth CA certificate.
+
+> ![Certificate Example 2](images/examples/certificate_ex2.png "Certificate example 2")
+
+
+> Import auth CRL certificate.
+
+> ![Certificate Example 3](images/examples/certificate_ex3.png "Certificate example 3")
+
 
 
 #### Syntax
@@ -13,6 +38,7 @@ certificate *[Optional Parameters]*
 
 #### Description
 
+Command for importing iLO and login authorization certificates, and generating iLO certificate signing requests.
 
 
 #### Parameters
@@ -39,14 +65,21 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
+None
 
 
 
 #### Outputs
+None
 
 ### Clearrestapistate command
 
 > Clearrestapistate example commands:
+
+> Clear the persistent RESTful API state.
+
+> ![Clearrestapistate Example 1](images/examples/clearrestapistate_ex2.png "Clearrestapistate example 1")
+
 
 
 #### Syntax
@@ -54,7 +87,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 clearrestapistate *[Optional Parameters]*
 
 #### Description
-Clear the persistent REST API state.
+Clear the persistent RESTful API state.
 
 
 #### Parameters
@@ -77,14 +110,20 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 ### Disableilofunctionality command
 
 > Disableilofunctionality example commands:
+
+> Disable iLO functionality on the current logged in server.
+
+> ![Disableilofunctionality Example 1](images/examples/disableilofunctionality_ex1.png "Disableilofunctionality example 1")  
+
 
 
 #### Syntax
@@ -115,23 +154,32 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 
 ### Eskm command
 
 > Eskm example commands:
 
+> Clear the ESKM logs.
+
+> ![Eskm Example 1](images/examples/eskm_ex1.png "Eskm example 1")
+
+
+> Test the ESKM connections.
+
+> ![Eskm Example 2](images/examples/eskm_ex2.png "Eskm example 2")
 
 #### Syntax
 
 eskm *[Optional Parameters]*
 
 #### Description
-
+Command for all ESKM available actions.
 
 
 #### Parameters
@@ -154,15 +202,20 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 
 ### Factorydefaults command
 
 > Factorydefaults example commands:
+
+> Reset iLO to factory defaults in the current loggen in server.
+
+> ![Factorydefaults Example 1](images/examples/factorydefaults_ex1.png "Factorydefaults example 1")
 
 
 #### Syntax
@@ -193,16 +246,21 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
+None
 
 
 
 #### Outputs
-
+None
 
 
 ### Fwintegritycheck command
 
 > Fwintegritycheck example commands:
+
+> Perform a firmware integrity check on the current logged in server.
+
+> ![Fwintegritycheck Example 1](images/examples/fwintegritycheck_ex1.png "Fwintegritycheck example 1")
 
 
 #### Syntax
@@ -210,7 +268,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 fwintegritycheck *[Optional Parameters]*
 
 #### Description
-
+Perform a firmware integrity check on the current logged in server.
 
 
 #### Parameters
@@ -233,11 +291,11 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
-
+None
 
 
 ### Reboot command
@@ -246,47 +304,27 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 > If the server is currently off, the reboot On command can be used to turn the server on. The reboot command logs the user out of the server.
 
-```
-ilorest > reboot On -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
+> ![Reboot Example 1](images/examples/reboot_ex1.png "Reboot example 1")
 
-Session will now be terminated.
-Please wait for the server to boot completely to login again.
-Turning on the server in 3 seconds...
-The operation completed successfully.
-Logging session out.
-```
 
-> If the server has been turned on, the reboot ForceOff command can be used to turn the server off immediately. Note that the reboot command logs the user out of the server.
+> If the server has been turned on, the reboot ForceOff command can be used to turn the server off immediately. 
 
-```
-ilorest > reboot ForceOff -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
+NOTE: The reboot command logs the user out of the server.
 
-Session will now be terminated.
-Please wait for the server to boot completely to login again.
-Turning on the server in 3 seconds...
-The operation completed successfully.
-Logging session out.
-```
+> ![Reboot Example 2](images/examples/reboot_ex2.png "Reboot example 2")
 
-> If the server is currently on, the reboot ForceRestart command can be used to turn the server off immediately and then start again. Note that the reboot command logs the user out of the server. 
 
-```
-ilorest > reboot ForceRestart -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
+> If the server is currently on, the reboot ForceRestart command can be used to turn the server off immediately and then start again. 
 
-After the server is rebooted the session will be terminated.
-Please wait for the server to boot completely to login again.
-Rebooting server in 3 seconds...
-The operation completed successfully.
-Logging session out.
-```
+NOTE: The reboot command logs the user out of the server. 
 
-> If the server is currently on, the reboot Nmi command can be used to generate a non-maskable interrupt to cause an immediate system halt. Note that the reboot command logs the user out of the server.
+> ![Reboot Example 3](images/examples/reboot_ex3.png "Reboot example 3")
+
+
+
+> If the server is currently on, the reboot Nmi command can be used to generate a non-maskable interrupt to cause an immediate system halt. 
+
+NOTE: The reboot command logs the user out of the server.
 
 ```
 ilorest > reboot Nmi -username -p password --url=xx.xx.xx.xx
@@ -300,19 +338,11 @@ The operation completed successfully.
 Logging session out.
 ```
 
-> The reboot PushPowerButton command can be used to simulate physically pressing the power button on the server. If the server is off, this command will turn the server on. If the server is on, this command will turn the server off. Note that the reboot command logs the user out of the server.
+> The reboot PushPowerButton command can be used to simulate physically pressing the power button on the server. If the server is off, this command will turn the server on. If the server is on, this command will turn the server off. 
 
-```
-ilorest > reboot PushPowerButton -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
+NOTE: The reboot command logs the user out of the server.
 
-Server is powering off the session will be terminated.
-Please wait for the server to boot completely its operation to login again.
-Powering off the server in 3 seconds...
-The operation completed successfully.
-Logging session out.
-```
+> ![Reboot Example 4](images/examples/reboot_ex4.png "Reboot example 4")
 
 
 #### Syntax
@@ -389,12 +419,28 @@ None
 
 > Sendtest example commands:
 
+> Send syslog test to the current logged in server.
+
+> ![Sendtest Example 1](images/examples/sendtest_ex1.png "Sendtest example 1")
+
+
+> Send alert mail test to the current logged in server.
+
+> ![Sendtest Example 2](images/examples/sendtest_ex2.png "Sendtest example 2")
+
+
+> Send SNMP test alert to the current logged in server.
+
+> ![Sendtest Example 3](images/examples/sendtest_ex3.png "Sendtest example 3")
+
 
 #### Syntax
 
 sendtest *[Command] [Optional Parameters]*
 
 #### Description
+
+Command for sending various tests to iLO.
 
 
 
@@ -418,15 +464,45 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 
-### serverlogs command
+### Serverlogs command
 
-> serverlogs example commands:
+> Serverlogs example commands:
+
+> Download the AHS logs from the logged in server.
+
+> ![Serverlogs Example 1](images/examples/serverlogs_ex1.png "Serverlogs example 1")
+
+
+> Insert customized string if required for AHS log to be downloaded. (AHS LOGS ONLY FEATURE IN REMOTE MODE)
+
+> ![Serverlogs Example 2](images/examples/serverlogs_ex2.png "Serverlogs example 2")
+
+
+> Clear the AHS logs from the logged in server.
+
+> ![Serverlogs Example 3](images/examples/serverlogs_ex3.png "Serverlogs example 3")
+
+
+> Download the IEL logs from the logged in server.
+
+> ![Serverlogs Example 4](images/examples/serverlogs_ex4.png "Serverlogs example 4")
+
+
+> Download the IML logs from the logged in server.
+
+> ![Serverlogs Example 5](images/examples/serverlogs_ex5.png "Serverlogs example 5")
+
+
+> Insert entry in the IML logs from the logged in server. (IML LOGS ONLY FEATURE)
+
+> ![Serverlogs Example 6](images/examples/serverlogs_ex6.png "Serverlogs example 6")
 
 
 #### Syntax
@@ -435,6 +511,7 @@ serverlogs *[Log_Selection] [Optional Parameters]*
 
 #### Description
 
+Download and perform log operations.
 
 
 #### Parameters
@@ -461,7 +538,9 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **--filter=FILTER**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. Note: Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties Usage: --filter [ATTRIBUTE]=[VALUE]
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. 
+
+NOTE: Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties Usage: --filter [ATTRIBUTE]=[VALUE].
 
 - **-j, --json**
 
@@ -492,11 +571,11 @@ Directory path for the ahs file.
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
-
+None
 
 
 
@@ -506,18 +585,7 @@ Directory path for the ahs file.
 
 > Use this command to reset iLO on the currently logged in server. This will turn iLO off and on again.
 
-```
-ilorest > iloreset -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-
-After ilo resets the session will be terminated.
-Please wait for iLO to initialize completely before loggin-in again.
-This process may take up to 3 minutes.
-
-An iLO reset is in progress.	
-Logging session out.
-```
+> ![iLOReset Example 1](images/examples/iloreset_ex1.png "iLOReset example 1")
 
 #### Syntax
 
@@ -558,24 +626,11 @@ None
 
 > Firmware update example commands:
 
-> The firmwareupdate command updates the firmware for iLO. After the server was logged into, the firmware update at the given location was used to update the firmware. After the update was completed, iLO was reset and the session was terminated. Note that iLO does not always reset after a firmware update.
+> The firmwareupdate command updates the firmware for iLO. After the server was logged into, the firmware update at the given location was used to update the firmware. After the update was completed, iLO was reset and the session was terminated. 
 
-```
-ilorest > firmwareupdate https://fileurl/file.bin -u username -p password --url=xx.xx.xx.xx
-Discovering data from iLO...Done
-WARNING: Cache is activated session keys are stored in plaintext
-The operation completed successfully.
-Starting upgrading process...
+NOTE: iLO does not always reset after a firmware update.
 
-Updating: \
-
-Firmware update has completed and iLO may reset.
-If iLO resets the session will be terminated.
-Please wait for iLO to initialize completely before logging in again.
-A reboot may be required for firmware changes to take effect.
-Logging session out.
-```
-
+> ![Firmware update Example 1](images/examples/firmwareupdate_ex1.png "Firmware update example 1")
 
 
 #### Syntax
@@ -632,6 +687,26 @@ None
 
 > Iloaccounts example commands:
 
+> Add an iLO user account the current logged in server.
+
+> ![Iloaccounts Example 1](images/examples/iloaccounts_ex1.png "Iloaccounts example 1")
+
+
+> Get the ID and login name information for the iLO user accounts.
+
+> ![Iloaccounts Example 2](images/examples/iloaccounts_ex2.png "Iloaccounts example 2")
+
+
+> Change the password of an account.
+
+> ![Iloaccounts Example 3](images/examples/iloaccounts_ex3.png "Iloaccounts example 3")
+
+
+> Delete an iLO account.
+
+> ![Iloaccounts Example 4](images/examples/iloaccounts_ex4.png "Iloaccounts example 4")
+
+
 
 #### Syntax
 
@@ -643,7 +718,7 @@ iloaccounts *[COMMAND] [OPTIONS]*
 - PASSWORD:  The account password, used to login.
 - Id: The number associated with an iLO user account.
 
-	NOTE: please make sure the order of arguments is correct. The
+	NOTE: Please make sure the order of arguments is correct. The
 	parameters are extracted based on their position in the arguments list.
 	Only privileges available to the logged in account can be set to the new account.
 
@@ -709,15 +784,25 @@ Optionally include this flag if you wish to set the system recovery config privi
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 
 ### Iloclone command
 
 > Iloclone  example commands:
+
+> Create a clone file from the current logged in server.
+
+> ![Iloclone Example 1](images/examples/iloclone_ex1.png "Iloclone example 1")
+
+
+> Load the saved clone file to currently logged in server.
+
+> ![Iloclone Example 2](images/examples/iloclone_ex2.png "Iloclone example 2")
 
 
 #### Syntax
@@ -726,6 +811,9 @@ iloclone *[Optional Parameters]*
 
 #### Description
 
+Clone the iLO config of the currently logged in server and copy it to the server in the arguments.
+
+NOTE: This command is only available in local mode. During clone load, login using an iLO account with full privileges (such as the Administrator account) to ensure all items are cloned successfully.
 
 
 #### Parameters
@@ -760,16 +848,45 @@ Use this flag during iloclone save if you wish to import a SSO certificate to th
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
-
+None
 
 
 ### Ilofederation command
 
 > Ilofederation example commands:
+
+> Descriptions:
+> +  *FEDERATIONNAME*: The name (Id) of the federation group. 
+> +  *KEY*:  The key required to join the federation.
+
+> NOTE: Please make sure the order of arguments is correct. The parameters are extracted based on their position in the arguments list. The federation key must be 8 characters or greater.
+
+
+> Add an iLO federation group to the current logged in server.
+
+> ![Ilofederation Example 1](images/examples/ilofederation_ex1.png "Ilofederation example 1")
+
+
+> See a list of federations on the system.
+
+> ![Ilofederation Example 2](images/examples/ilofederation_ex2.png "Ilofederation example 2")  
+
+
+> Change the key of an iLO federation group.
+
+> ![Ilofederation Example 3](images/examples/ilofederation_ex3.png "Ilofederation example 3")
+
+
+> Delete an iLO federation group.
+
+> ![Ilofederation Example 4](images/examples/ilofederation_ex4.png "Ilofederation example 4")
+
+
+
 
 
 #### Syntax
@@ -777,6 +894,7 @@ Use this flag during iloclone save if you wish to import a SSO certificate to th
 ilofederation *[Optional Parameters]*
 
 #### Description
+Adds / deletes an iLO federaion group on the currently logged in server.
 
 
 
@@ -840,16 +958,23 @@ Optionally include this flag if you wish to set the host NIC config privileges t
 
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None
 
 
 
 ### Ilolicense command
 
-> ilolicense  example commands:
+> Ilolicense example commands:
+
+> Set an iLO license on the current logged in server.
+
+> ![Ilolicense Example 1](images/examples/ilolicense_ex1.png "Ilolicense example 1")
+
+
 
 
 #### Syntax
@@ -880,13 +1005,11 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 #### Inputs
-
+None
 
 
 #### Outputs
-
-
-
+None
 
 
 ### Serverstate command
@@ -895,23 +1018,13 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 > Here we use the serverstate command without any parameters, which tells use the current state of the server.
 
-```
-ilorest > serverstate
+> ![Serverstate Example 1](images/examples/serverstate_ex1.png "Serverstate example 1")
 
-The server is currently in state: InPostDiscoveryComplete
-```
 
 > Here, serverstate is used along with login information to login and return the serverstate in one step.
 
-```
-ilorest > serverstate –u user –p password –url=xx.xx.xx.xx
+> ![Serverstate Example 2](images/examples/serverstate_ex2.png "Serverstate example 2")
 
-Discovering data from iLO…Done
-
-WARNING: Cache is activated. Session keys are stored in plaintext. 
-
-The server is currently in state: InPostDiscoveryComplete
-```
 
 
 #### Syntax
@@ -953,6 +1066,17 @@ None
 
 > Sigrecompute  example commands:
 
+> Recalculate the signature on the computers configuration.
+
+> ![Sigrecompute Example 1](images/examples/sigrecompute_ex1.png "Sigrecompute example 1")
+
+
+> Log in to the computer and recalculate the signature.
+
+> ![Sigrecompute Example 2](images/examples/sigrecompute_ex2.png "Sigrecompute example 2")
+
+
+
 
 #### Syntax
 
@@ -961,6 +1085,8 @@ sigrecompute *[OPTIONS]*
 #### Description
 Recalculate the signature on the computers configuration.
 
+NOTE: The sigrecompute command is not available on Redfish systems.
+
 
 #### Parameters
 
@@ -981,15 +1107,35 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 #### Inputs
-
+None
 
 
 #### Outputs
+None 
 
 
 ### Singlesignon command
 
 > Singlesignon  example commands:
+
+> Delete a specific SSO record.
+
+> ![Singlesignon Example 1](images/examples/singlesignon_ex1.png "Singlesignon example 1")
+
+
+> Delete all SSO records.
+
+> ![Singlesignon Example 2](images/examples/singlesignon_ex2.png "Singlesignon example 2")
+
+
+> Import a DNS name.
+
+> ![Singlesignon Example 3](images/examples/singlesignon_ex3.png "Singlesignon example 3")
+
+
+> Import certificate from URI or file.
+
+> ![Singlesignon Example 4](images/examples/singlesignon_ex4.png "Singlesignon example 4")
 
 
 #### Syntax
@@ -998,6 +1144,9 @@ Singlesignon *[OPTIONS]*
 
 #### Description
 
+Command for all single sign on available actions.
+
+
 
 #### Parameters
 
@@ -1018,16 +1167,30 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 #### Inputs
-
+None
 
 
 #### Outputs
-
+None 
 
 
 ### Virtualmedia command
 
 > Virtualmedia  example commands:
+
+> Insert virtual media and set to boot on next restart.
+
+> ![Virtualmedia Example 1](images/examples/virtualmedia_ex1.png "Virtualmedia example 1")  
+
+
+> Run without arguments to view the available virtual media sources.
+
+> ![Virtualmedia Example 2](images/examples/virtualmedia_ex2.png "Virtualmedia example 2") 
+
+
+> Remove current inserted media.
+
+> ![Virtualmedia Example 3](images/examples/virtualmedia_ex3.png "Virtualmedia example 3")
 
 
 #### Syntax
@@ -1035,6 +1198,9 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 virtualmedia *[ID] [URI] [OPTIONS]*
 
 #### Description
+
+Command for inserting and removing virtual media.
+
 
 
 #### Parameters
@@ -1065,12 +1231,14 @@ Use this flag to remove the media from the selection.
 
 - **--bootnextreset**
 
-Use this flag if you wish to boot from the image on next server reboot. NOTE: The image will be ejected automatically on the second server reboot so that the server does not boot to this image twice.
+Use this flag if you wish to boot from the image on next server reboot. 
+
+NOTE: The image will be ejected automatically on the second server reboot so that the server does not boot to this image twice.
 
 #### Inputs
-
-
+None 
 
 #### Outputs
+None 
 
 
