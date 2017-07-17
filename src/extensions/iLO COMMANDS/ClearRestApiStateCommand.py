@@ -16,6 +16,7 @@
 
 # -*- coding: utf-8 -*-
 """ Clear Rest API State Command for rdmc """
+import sys
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase

@@ -22,9 +22,9 @@ import sys
 import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI, InvalidFileInputError, \
+                    InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                     InvalidFileFormattingError
 
 class RawPatchCommand(RdmcCommandBase):
@@ -36,7 +36,7 @@ class RawPatchCommand(RdmcCommandBase):
                     ' in the input file.\n\texample: rawpatch rawpatch.txt' \
                     '\n\n\tExample input file:\n\t{\n\t    "path": "/redfish/' \
                     'v1/systems/(system ID)",\n\t    "body": {\n\t        ' \
-                    '"AssetTag": "NewAssetTag"\n\t    }\n\t}',
+                    '"AssetTag": "NewAssetTag"\n\t    }\n\t}',\
             summary='This is the raw form of the PATCH command.',\
             aliases=['rawpatch'],\
             optparser=OptionParser())
@@ -58,7 +58,7 @@ class RawPatchCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        url=None
+        url = None
         headers = {}
         results = None
 
@@ -104,20 +104,20 @@ class RawPatchCommand(RdmcCommandBase):
                 returnresponse = True
 
             results = self._rdmc.app.patch_handler(contentsholder["path"], \
-                      contentsholder["body"], verbose=self._rdmc.opts.verbose, \
-                      url=url, sessionid=options.sessionid, headers=headers, \
-                      response=returnresponse, silent=options.silent, \
-                      optionalpassword=options.biospassword, service=options.service,\
-					  providerheader=options.providerid)
+                  contentsholder["body"], verbose=self._rdmc.opts.verbose, \
+                  url=url, sessionid=options.sessionid, headers=headers, \
+                  response=returnresponse, silent=options.silent, \
+                  optionalpassword=options.biospassword, \
+                  service=options.service, providerheader=options.providerid)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not format" \
-                                             " properly." % args[0])
-        
+                                                        " properly." % args[0])
+
         if results and returnresponse:
             if options.getheaders:
                 sys.stdout.write(json.dumps(dict(\
                                  results._http_response.getheaders())) + "\n")
-    
+
             if options.response:
                 sys.stdout.write(results.text)
 

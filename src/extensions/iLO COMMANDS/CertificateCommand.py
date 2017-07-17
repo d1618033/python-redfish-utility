@@ -33,20 +33,20 @@ class CertificateCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='certificate',\
             usage='certificate [OPTIONS]\n\n\tImport auth CA certificate.' \
-                    '\n\texample: certificate ca certfile.txt\n\n\tImport auth '\
-                    'CRL certificate.\n\texample: importcertificate crl uri\n\n\t'\
-                    'Import an iLO TLS certificate.\n\texample: certificate tls'\
-                    ' certfile.txt\n\n\tGenerate an https certificate signing'\
-                    ' request.\n\texmaple: certificate csr [ORG_NAME] [ORG_UNIT]'\
-                    ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\n\tNOTE: please make ' \
-                    'sure the order of arguments is correct. The\n\tparameters ' \
-                    'are extracted base on their position in the arguments ' \
-                    'list.\n\n\tGet certificate signing request.\n\texample: '\
-                    'certificate getcsr\n\n\tNOTE: Use the singlesignon command '
-                    'to import single sign on certificates',\
+            '\n\texample: certificate ca certfile.txt\n\n\tImport auth '\
+            'CRL certificate.\n\texample: certificate crl uri\n\n\t'\
+            'Import an iLO TLS certificate.\n\texample: certificate tls'\
+            ' certfile.txt\n\n\tGenerate an https certificate signing'\
+            ' request.\n\texmaple: certificate csr [ORG_NAME] [ORG_UNIT]'\
+            ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\n\tNOTE: please make ' \
+            'sure the order of arguments is correct. The\n\tparameters ' \
+            'are extracted base on their position in the arguments ' \
+            'list.\n\n\tGet certificate signing request.\n\texample: '\
+            'certificate getcsr\n\n\tNOTE: Use the singlesignon command '
+            'to import single sign on certificates',\
             summary="Command for importing both iLO and login authorization "\
-                    "certificates as well as generating iLO certificate signing "\
-                    "requests",\
+                "certificates as well as generating iLO certificate signing "\
+                "requests",\
             aliases=["certificate"],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -70,14 +70,14 @@ class CertificateCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args[0].lower() == 'getcsr' and not len(args) == 1:
-            raise InvalidCommandLineError("This certificates command only takes "\
-                                          "1 parameter.")
+            raise InvalidCommandLineError("This certificates command only " \
+                                                        "takes 1 parameter.")
         elif args[0].lower() == 'csr' and not len(args) == 7:
             raise InvalidCommandLineError("This certificates command takes "\
-                                          "7 parameters.")
+                                                                "7 parameters.")
         elif not 'csr' in args[0].lower() and not len(args) == 2:
-            raise InvalidCommandLineError("This certificates command only takes "\
-                                          "2 parameters.")
+            raise InvalidCommandLineError("This certificates command only " \
+                                                        "takes 2 parameters.")
 
         self.certificatesvalidation(options)
 
@@ -93,7 +93,7 @@ class CertificateCommand(RdmcCommandBase):
             self.importtlshelper(args)
         else:
             raise InvalidCommandLineError("Invalid argument for certificates"\
-                              " command.")
+                                                                    " command.")
 
         return ReturnCodes.SUCCESS
 
@@ -118,6 +118,7 @@ class CertificateCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
         bodydict = results.resp.dict
+
         try:
             for item in bodydict['Actions']:
                 if 'GenerateCSR' in item:
@@ -125,6 +126,7 @@ class CertificateCommand(RdmcCommandBase):
                         action = item.split('#')[-1]
                     else:
                         action = "GenerateCSR"
+
                     path = bodydict['Actions'][item]['target']
                     break
         except:
@@ -133,16 +135,17 @@ class CertificateCommand(RdmcCommandBase):
         body = {"Action": action, "OrgName":args[1], "OrgUnit":args[2],\
                 "CommonName": args[3], "Country": args[4], "State": args[5],\
                                                      "City": args[6]}
+
         sys.stdout.write("iLO is creating a new certificate signing request"\
                          " This process can take up to 10 minutes.\n")
 
         self._rdmc.app.post_handler(path, body)
 
-    def getcerthelper(self, args, options):
+    def getcerthelper(self, _, options):
         """ Helper function for importing CRL certificate
 
-        :param args: list of args
-        :type args: list.
+        :param options: list of options
+        :type options: list.
         """
 
         select = self.typepath.defs.hphttpscerttype
@@ -157,12 +160,15 @@ class CertificateCommand(RdmcCommandBase):
             try:
                 csr = results.resp.dict['CertificateSigningRequest']
             except:
-                raise NoContentsFoundForOperationError('Unable to find certificate.'\
-                    ' If you just generated a new certificate signing request'\
-                    ' the process may take up to 10 minutes.')
+                raise NoContentsFoundForOperationError('Unable to find ' \
+                                       'certificate. If you just generated a ' \
+                                       'new certificate signing request the ' \
+                                       'process may take up to 10 minutes.')
 
             if not options.filename:
                 filename = __filename__
+            else:
+                filename = options.filename[0]
 
             outfile = open(filename, 'w')
             outfile.write(csr)
@@ -179,6 +185,7 @@ class CertificateCommand(RdmcCommandBase):
         :type args: list.
         """
         file = args[1]
+
         try:
             with open(file) as certfile:
                 certdata = certfile.read()
@@ -223,8 +230,8 @@ class CertificateCommand(RdmcCommandBase):
         :type args: list.
         """
         if not self.typepath.flagiften:
-            raise IncompatibleiLOVersionError("This certificate is not available"\
-                                              " on this system.")
+            raise IncompatibleiLOVersionError("This certificate is not " \
+                                                    "available on this system.")
 
         select = 'HpeCertAuth.'
         results = self._rdmc.app.filter(select, None, None)
@@ -256,10 +263,11 @@ class CertificateCommand(RdmcCommandBase):
         :type args: list.
         """
         if not self.typepath.flagiften:
-            raise IncompatibleiLOVersionError("This certificate is not available"\
-                                              " on this system.")
+            raise IncompatibleiLOVersionError("This certificate is not " \
+                                                    "available on this system.")
 
         file = args[1]
+
         try:
             with open(file) as certfile:
                 certdata = certfile.read()
@@ -323,7 +331,7 @@ class CertificateCommand(RdmcCommandBase):
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \
-                                          " to complete the operation.")
+                                                " to complete the operation.")
 
     def definearguments(self, customparser):
         """ Wrapper function for certificates command main function

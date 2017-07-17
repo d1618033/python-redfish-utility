@@ -36,6 +36,10 @@ class CommandNotFoundException(Exception):
     """Exception throw when Command is not found"""
     pass
 
+class ResourceAllocationError(Exception):
+    """Exception throw when Command is not found"""
+    pass
+
 def get_user_config_dir():
     """Platform specific directory for user configuration.
 
@@ -60,8 +64,8 @@ def get_user_config_dir():
             pass
 
         return os.environ['APPDATA']
-    else:
-        return os.path.expanduser('~')
+
+    return os.path.expanduser('~')
 
 def is_exe(filename):
     """Determine if filename is an executable.
@@ -129,8 +133,11 @@ def get_terminal_size():
 
         if which_stty:
             args = [which_stty, 'size']
-            procs = subprocess.Popen(args, shell=False, \
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                procs = subprocess.Popen(args, shell=False, \
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except OSError as excp:
+                raise ResourceAllocationError(str(excp))
             (stdout_s, _) = procs.communicate()
 
             _ = procs.wait()
@@ -156,7 +163,7 @@ class CLI(object):
         """
         return '%s\n' % (character * self._cols)
 
-    def hr(self, fileh=None, character='-'):
+    def horizontalrule(self, fileh=None, character='-'):
         """writes a horizontal rule to the file handle.
 
         :param fileh: file handle to write to. defaults to sys.stdout.
@@ -188,7 +195,7 @@ class CLI(object):
                                                 'extracontent': extracontent})
 
         fileh.flush()
-        self.hr(fileh)
+        self.horizontalrule(fileh)
 
         return None
 
@@ -267,10 +274,13 @@ class CustomOptionParser(optparse.OptionParser):
 
         if self.usage:
             result.append(self.get_usage() + "\n")
+
         if self.description:
             result.append(self.format_description(formatter) + "\n")
+
         if self._argument_heading:
             result.append(formatter.format_heading(self._argument_heading))
+
         if self._args:
             result.append(self.format_argument_help(formatter))
 
@@ -326,4 +336,3 @@ class CustomOptionParser(optparse.OptionParser):
             return self.formatter.format_usage(usg)
         else:
             return ""
-

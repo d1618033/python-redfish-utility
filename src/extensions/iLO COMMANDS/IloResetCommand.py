@@ -22,8 +22,7 @@ import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class IloResetCommand(RdmcCommandBase):
     """ Reset iLO on the server that is currently logged in """
@@ -57,13 +56,14 @@ class IloResetCommand(RdmcCommandBase):
 
         self.iloresetvalidation(options)
 
-        sys.stdout.write(u'\nAfter iLO resets the session will be terminated.\n'\
-                         'Please wait for iLO to initialize completely before' \
-                         ' logging in again.\n')
+        sys.stdout.write(u'\nAfter iLO resets the session will be terminated.' \
+                         '\nPlease wait for iLO to initialize completely ' \
+                         'before logging in again.\n')
         sys.stdout.write(u'This process may take up to 3 minutes.\n\n')
 
         select = "Manager."
         results = self._rdmc.app.filter(select, None, None)
+
         try:
             results = results[0]
         except:
@@ -75,6 +75,7 @@ class IloResetCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
         bodydict = results.resp.dict
+
         try:
             for item in bodydict['Actions']:
                 if 'Reset' in item:
@@ -82,6 +83,7 @@ class IloResetCommand(RdmcCommandBase):
                         action = item.split('#')[-1]
                     else:
                         action = 'Reset'
+
                     put_path = bodydict['Actions'][item]['target']
                     break
         except:
@@ -90,7 +92,7 @@ class IloResetCommand(RdmcCommandBase):
         body = {"Action": action}
 
         self._rdmc.app.post_handler(put_path, body)
-        self.logoutobj.logoutfunction("")
+        self.logoutobj.run("")
 
         #Return code
         return ReturnCodes.SUCCESS

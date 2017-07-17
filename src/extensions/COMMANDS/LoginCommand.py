@@ -19,9 +19,11 @@
 
 import sys
 import getpass
-import redfish.ris
 
 from optparse import OptionParser
+
+import redfish.ris
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                             InvalidCommandLineErrorOPTS, PathUnavailableError
@@ -33,8 +35,8 @@ class LoginCommand(RdmcCommandBase):
             name='login',\
             usage='login [URL] [OPTIONS] \n\n\tTo login' \
                     ' remotely run using iLO url and iLO credentials' \
-                    '\n\texample: login <iLO url/hostname> -u <iLO username> -p' \
-                    ' <iLO password>\n\n\tTo login on a local server run' \
+                    '\n\texample: login <iLO url/hostname> -u <iLO username> ' \
+                    '-p <iLO password>\n\n\tTo login on a local server run' \
                     ' without arguments\n\texample: login',\
             summary='Connects to a server, establishes a secure session,'\
                     ' and discovers data from iLO.',\
@@ -50,7 +52,7 @@ class LoginCommand(RdmcCommandBase):
 
     def loginfunction(self, line, skipbuild=None):
         """ Main worker function for login class
-        
+
         :param line: entered command line
         :type line: list.
         :param skipbuild: flag to determine if monolith should be build
@@ -66,8 +68,8 @@ class LoginCommand(RdmcCommandBase):
 
         self.loginvalidation(options, args)
         self._rdmc.app.getgen(url=self.url)
-        self._rdmc.opts.is_redfish=self._rdmc.app.updatedefinesflag(\
-                redfishflag=self._rdmc.opts.is_redfish)
+        self._rdmc.opts.is_redfish = self._rdmc.app.updatedefinesflag(\
+                                        redfishflag=self._rdmc.opts.is_redfish)
 
         try:
             self._rdmc.app.login(username=self.username, \
@@ -116,7 +118,7 @@ class LoginCommand(RdmcCommandBase):
 
     def loginvalidation(self, options, args):
         """ Login helper function for login validations
-        
+
         :param options: command line options
         :type options: list.
         :param args: command line arguments
@@ -158,7 +160,7 @@ class LoginCommand(RdmcCommandBase):
             self.url = args[0]
 
             # Verify that URL is properly formatted for https://
-            if not "https://" in self.url:
+            if "https://" not in self.url:
                 self.url = "https://" + self.url
             if not self.username or not self.password:
                 raise InvalidCommandLineError("Empty username or password" \
@@ -169,14 +171,16 @@ class LoginCommand(RdmcCommandBase):
                 self.url = self._rdmc.app.config.get_url()
     def run(self, line):
         """ wrapper function for main login function
-        
+
         :param line: command line input
         :type line: string.
         """
         try:
             self.loginfunction(line)
+
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
+
             if not self._rdmc.app.current_client.monolith._visited_urls:
                 self.logoutobj.run("")
                 raise PathUnavailableError("The path specified by the --path"\

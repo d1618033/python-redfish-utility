@@ -16,6 +16,7 @@
 
 # -*- coding: utf-8 -*-
 """ iLO Functionality Command for rdmc """
+import sys
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
@@ -62,17 +63,18 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not len(args) == 0:
-            raise InvalidCommandLineError("disableilofunctionality command takes no "\
-                                          "arguments.")
+            raise InvalidCommandLineError("disableilofunctionality command " \
+                                                        "takes no arguments.")
 
         self.ilofunctionalityvalidation(options)
 
         self.selobj.selectfunction("Chassis.")
         chassistype = self.getobj.getworkerfunction("ChassisType", options, \
                                                     "ChassisType", results=True)
+
         if chassistype['ChassisType'].lower() == 'blade':
             raise IncompatableServerTypeError("disableilofunctionality command"\
-                        " is not available on blade server types.")
+                                    " is not available on blade server types.")
 
         select = 'Manager.'
         results = self._rdmc.app.filter(select, None, None)
@@ -88,6 +90,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Manager. not found.")
 
         bodydict = results.resp.dict['Oem'][self.typepath.defs.oemhp]
+
         try:
             for item in bodydict['Actions']:
                 if 'iLOFunctionality' in item:
@@ -95,6 +98,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                         action = item.split('#')[-1]
                     else:
                         action = "iLOFunctionality"
+
                     path = bodydict['Actions'][item]['target']
                     body = {"Action": action}
                     break
@@ -102,7 +106,18 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             body = {"Action": "iLOFunctionality", \
                                 "Target": "/Oem/Hp"}
 
-        self._rdmc.app.post_handler(path, body)
+        sys.stdout.write(u"Disabling iLO functionality. iLO will be unavailable"\
+                         " on the logged in server until it is re-enabled "\
+                         "manually.\n")
+
+        results = self._rdmc.app.post_handler(path, body, silent=True, service=True, \
+                                    response=True)
+
+        if results.status == 200:
+            sys.stdout.write(u"[%d] The operation completed " \
+                                            "successfully.\n" % results.status)
+        else:
+            sys.stdout.write(u"[%d] No message returned by iLO.\n" % results.status)
 
         return ReturnCodes.SUCCESS
 

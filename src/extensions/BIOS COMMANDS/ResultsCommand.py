@@ -22,7 +22,7 @@ import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                                                    InvalidCommandLineErrorOPTS
 
 class ResultsCommand(RdmcCommandBase):
     """ Monolith class command """
@@ -71,16 +71,19 @@ class ResultsCommand(RdmcCommandBase):
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
         bootsresults = self._rdmc.app.get_handler(bootpath, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
+
         try:
             results.update({'Bios:': biosresults.dict[self.typepath.defs.\
                                             biossettingsstring][u'Messages']})
         except:
             results.update({'Bios:': None})
+
         try:
             results.update({'Iscsi:': iscsiresults.dict[self.typepath.defs.\
                                            biossettingsstring][u'Messages']})
         except:
             results.update({'Iscsi:': None})
+
         try:
             results.update({'Boot:': bootsresults.dict[self.typepath.defs.\
                                              biossettingsstring][u'Messages']})
@@ -103,7 +106,7 @@ class ResultsCommand(RdmcCommandBase):
 
             sys.stdout.write(u"%s\n" % loc)
 
-            for message in messages:   
+            for message in messages:
                 if self.typepath.flagiften:
                     message_type = message['MessageId'].split('.')
                     message_name = message_type
@@ -131,6 +134,7 @@ class ResultsCommand(RdmcCommandBase):
                         continue
                     except:
                         pass
+
                 if not output:
                     sys.stderr.write(u"Unable to find error message for: %s\n" \
                                                                 % message_name)
@@ -203,4 +207,3 @@ class ResultsCommand(RdmcCommandBase):
             help="""Use the provided iLO password to log in.""",
             default=None,
         )
-

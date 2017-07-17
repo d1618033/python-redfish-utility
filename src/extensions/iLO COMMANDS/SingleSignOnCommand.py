@@ -28,11 +28,11 @@ class SingleSignOnCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='singlesignon',\
             usage='singlesignon [OPTIONS]\n\n\tDelete all SSO records.\n\t' \
-                    'example: singlesignon deleterecord all\n\n\tDelete a ' \
-                    'specific SSO record.\n\texample: singlesignon ' \
-                    'deleterecord 1\n\n\tImport a DNS name.\n\texample: ' \
-                    'singlesignon importdns dnsname\n\n\tImport certificate' \
-                    ' from URI or file.\n\texample: singlesignon importcert cert',\
+                'example: singlesignon deleterecord all\n\n\tDelete a ' \
+                'specific SSO record.\n\texample: singlesignon ' \
+                'deleterecord 1\n\n\tImport a DNS name.\n\texample: ' \
+                'singlesignon importdns dnsname\n\n\tImport certificate' \
+                ' from URI or file.\n\texample: singlesignon importcert cert',\
             summary="Command for all single sign on available actions. ",\
             aliases=['sso'],\
             optparser=OptionParser())
@@ -57,7 +57,7 @@ class SingleSignOnCommand(RdmcCommandBase):
 
         if not len(args) == 2:
             raise InvalidCommandLineError("singlsignon command only takes "\
-                                          "2 parameters.")
+                                                                "2 parameters.")
 
         self.singlesignonvalidation(options)
 
@@ -76,30 +76,33 @@ class SingleSignOnCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("%s not found." % select)
 
         bodydict = results.resp.dict
+
         if args[0].lower() == 'importdns':
             actionitem = "ImportDNSName"
             body = {"Action": actionitem, "DNSName": args[1]}
         elif args[0].lower() == 'importcert':
+            cert = None
+            certtype = None
             actionitem = "ImportCertificate"
 
-            cert = None
-            certType = None
             try:
                 cert = open(args[1], 'r')
+
                 if cert:
-                    certText = cert.read()
+                    certtext = cert.read()
                     cert.close()
-                if certText:
-                    certType = "DirectImportCert"
+
+                if certtext:
+                    certtype = "DirectImportCert"
             except:
                 pass
 
-            if not certType:
-                certType = "ImportCertUri"
-                certText = args[1]
+            if not certtype:
+                certtype = "ImportCertUri"
+                certtext = args[1]
 
-            body = {"Action": actionitem, "CertType": certType, \
-                                                        "CertInput": certText}
+            body = {"Action": actionitem, "CertType": certtype, \
+                                                        "CertInput": certtext}
 
         elif args[0].lower() == 'deleterecord':
             if args[1].lower() == 'all':
@@ -107,21 +110,22 @@ class SingleSignOnCommand(RdmcCommandBase):
                 body = {"Action": actionitem}
             else:
                 actionitem = "DeleteSSORecordbyNumber"
+
                 try:
-                    body = {"Action": actionitem, \
-                                    "RecordNumber": int(args[1])}
+                    body = {"Action": actionitem, "RecordNumber": int(args[1])}
                 except:
                     raise InvalidCommandLineError("Record to delete must"\
                                                                 " be a number")
-
         else:
             raise InvalidCommandLineError('Unknown command.')
+
         try:
             for item in bodydict['Actions']:
                 if actionitem in item:
                     if self.typepath.defs.isgen10:
                         actionitem = item.split('#')[-1]
                         body["Action"] = actionitem
+
                     path = bodydict['Actions'][item]['target']
                     break
         except:

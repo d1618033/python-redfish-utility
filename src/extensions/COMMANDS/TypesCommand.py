@@ -18,9 +18,11 @@
 """ Types Command for RDMC """
 
 import sys
-import redfish.ris
 
 from optparse import OptionParser
+
+import redfish.ris
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                                                     InvalidCommandLineErrorOPTS

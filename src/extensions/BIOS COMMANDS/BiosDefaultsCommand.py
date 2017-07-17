@@ -31,9 +31,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='biosdefaults',\
             usage='biosdefaults [OPTIONS]\n\n\tRun to set the currently' \
-                    ' logged in server to default BIOS settings\n\texample: ' \
-                    'biosdefaults\n\n\tRun to set the currently logged in server'\
-                    ' to user defaults\n\texample: biosdefaults --userdefaults',\
+                ' logged in server to default BIOS settings\n\texample: ' \
+                'biosdefaults\n\n\tRun to set the currently logged in server'\
+                ' to user defaults\n\texample: biosdefaults --userdefaults',\
             summary='Set the currently logged in server to default BIOS' \
                                                         ' settings.',\
             aliases=['biosdefaults'],\
@@ -196,4 +196,3 @@ class BiosDefaultsCommand(RdmcCommandBase):
                                                                 "defaults.",
             default=False
         )
-

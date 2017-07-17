@@ -19,7 +19,6 @@
 
 import re
 import sys
-import copy
 import json
 
 from optparse import OptionParser
@@ -96,11 +95,13 @@ class IscsiConfigCommand(RdmcCommandBase):
             bootpath = self.typepath.defs.biospath + '/Boot'
 
         if options.list:
-            self.listoptionhelper(options, iscsipath, iscsisettingspath, bootpath)
+            self.listoptionhelper(options, iscsipath, iscsisettingspath, \
+                                                                    bootpath)
         elif options.modify:
             self.modifyoptionhelper(options, iscsisettingspath)
         elif options.add:
-            self.addoptionhelper(options, iscsipath, iscsisettingspath, bootpath)
+            self.addoptionhelper(options, iscsipath, iscsisettingspath, \
+                                                                    bootpath)
         elif options.delete:
             self.deleteoptionhelper(options, iscsisettingspath)
         elif not args:
@@ -156,25 +157,28 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         count = 0
         attemptinstancenumber = self.bootattemptcounter(iscsibootsources\
-                                                        [self.typepath.defs.iscsisource])
+                                            [self.typepath.defs.iscsisource])
         self.pcidevicehelper(devicealloc, iscsipath, bootpath, options=options)
 
         for item in iscsibootsources[self.typepath.defs.iscsisource]:
             try:
                 if not item[self.typepath.defs.iscsiattemptinstance]:
-                    nicsourcedata = devicealloc[int(options.add[1:-1])-1]["Associations"]
+                    nicsourcedata = devicealloc[int(options.add[1:-1])-1]\
+                                                                ["Associations"]
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
-                    ["iSCSINicSource"] = nicsourcedata[1] if isinstance(nicsourcedata[0],\
-                                                                dict) else nicsourcedata[0]
+                    ["iSCSINicSource"] = nicsourcedata[1] if \
+                        isinstance(nicsourcedata[0], dict) else nicsourcedata[0]
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
-                            [self.typepath.defs.iscsiattemptinstance] = attemptinstancenumber
+                            [self.typepath.defs.iscsiattemptinstance] = \
+                                                        attemptinstancenumber
                     iscsibootsources[self.typepath.defs.iscsisource][count]\
-                        [self.typepath.defs.iscsiattemptname] = str(attemptinstancenumber)
+                        [self.typepath.defs.iscsiattemptname] = \
+                                                    str(attemptinstancenumber)
                     foundlocation = True
                     break
             except Exception:
                 raise NicMissingOrConfigurationError("Invalid input value for "\
-                                                     "configuring NIC.")
+                                                            "configuring NIC.")
             count += 1
 
         if foundlocation:
@@ -249,19 +253,22 @@ class IscsiConfigCommand(RdmcCommandBase):
         try:
             count = 0
             for item in iscsibootsources[self.typepath.defs.iscsisource]:
-                if item[self.typepath.defs.iscsiattemptinstance] == int(options.delete):
-                    iscsibootsources[self.typepath.defs.iscsisource][count] = patch[count]
+                if item[self.typepath.defs.iscsiattemptinstance] == \
+                                                            int(options.delete):
+                    iscsibootsources[self.typepath.defs.iscsisource][count] = \
+                                                                    patch[count]
                     foundlocation = True
 
                 count += 1
         except Exception:
             raise NicMissingOrConfigurationError("The NIC targeted for delete"\
-            " does not exist. The request for delete could not be completed.")
+                                        " does not exist. The request for " \
+                                        "delete could not be completed.")
 
         if foundlocation:
             self._rdmc.app.put_handler(iscsisettingspath, iscsibootsources, \
-                optionalpassword=options.biospassword, headers={\
-                'if-Match':holdetag})
+                                        optionalpassword=options.biospassword, \
+                                        headers={'if-Match':holdetag})
             self._rdmc.app.get_handler(iscsisettingspath, silent=True)
         else:
             raise NicMissingOrConfigurationError("The given attempt instance " \
@@ -324,8 +331,10 @@ class IscsiConfigCommand(RdmcCommandBase):
         for item in iscsibootsources[self.typepath.defs.iscsisource]:
             if item["iSCSINicSource"]:
                 for device in devicealloc:
-                    listval = 1 if isinstance(device["Associations"][0], dict) else 0
-                    if item["iSCSINicSource"] == device["Associations"][listval]:
+                    listval = 1 if isinstance(device["Associations"][0], dict) \
+                                                                        else 0
+                    if item["iSCSINicSource"] == \
+                                                device["Associations"][listval]:
                         for pcidevice in pcideviceslist:
                             if device["CorrelatableID"] == \
                                                     pcidevice["UEFIDevicePath"]:
@@ -336,8 +345,9 @@ class IscsiConfigCommand(RdmcCommandBase):
                                             + " : " + pcidevice["Name"]
                                 structeredlist.append({inputstring: \
                                    {str("Attempt " + \
-                                    str(item[self.typepath.defs.iscsiattemptinstance])): \
-                                    item}})
+                                    str(item[self.typepath.defs.\
+                                                    iscsiattemptinstance])): \
+                                                    item}})
             else:
                 structeredlist.append({"Not Added": {}})
         try:
@@ -354,7 +364,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             sys.stderr.write(u'No entries found for iscsi boot sources.\n\n')
         elif options.filename:
             output = json.dumps(structeredlist, \
-                                            indent=2, cls=redfish.ris.JSONEncoder)
+                                        indent=2, cls=redfish.ris.JSONEncoder)
 
             filehndl = open(options.filename[0], "w")
             filehndl.write(output)
@@ -387,7 +397,7 @@ class IscsiConfigCommand(RdmcCommandBase):
 
                 for assoc in item["Associations"]:
                     if re.match("FlexLom[0-9]Enable", str(assoc)) or \
-                                        re.match("PciSlot[0-9]Enable", str(assoc)):
+                                    re.match("PciSlot[0-9]Enable", str(assoc)):
                         [devicealloc.append(x) for x in item["Subinstances"]]
 
         if self.typepath.defs.isgen10:
@@ -405,7 +415,8 @@ class IscsiConfigCommand(RdmcCommandBase):
             pcideviceslist = self.getobj.getworkerfunction("Items", options, \
                                                 "Items", results=True)["Items"]
 
-        self.selobj.selectfunction(self.typepath.defs.hpiscsisoftwareinitiatortype)
+        self.selobj.selectfunction(\
+                               self.typepath.defs.hpiscsisoftwareinitiatortype)
         iscsiinitiatorname = self.getobj.getworkerfunction(\
                                         "iSCSIInitiatorName", options, \
                                         "iSCSIInitiatorName", results=True)
@@ -447,11 +458,11 @@ class IscsiConfigCommand(RdmcCommandBase):
                 for key, value in entry.iteritems():
                     enteredsection = True
                     resultsdict.append(self.modifyfunctionhelper(key, value, \
-                                         iscsibootsources[self.typepath.defs.iscsisource]))
+                             iscsibootsources[self.typepath.defs.iscsisource]))
 
                 if not enteredsection:
-                    resultsdict.append(iscsibootsources[self.typepath.defs.iscsisource]\
-                                                                        [count])
+                    resultsdict.append(iscsibootsources[\
+                                        self.typepath.defs.iscsisource][count])
 
                 count += 1
 
@@ -474,7 +485,8 @@ class IscsiConfigCommand(RdmcCommandBase):
         foundoption = False
 
         for bootsource in bootsources:
-            if bootsource[self.typepath.defs.iscsiattemptinstance] == int(key[-1:]):
+            if bootsource[self.typepath.defs.iscsiattemptinstance] == \
+                                                                int(key[-1:]):
                 foundoption = True
                 break
 
@@ -514,12 +526,13 @@ class IscsiConfigCommand(RdmcCommandBase):
                 pcideviceslist = self.getobj.getworkerfunction("Items", \
                                        options, "Items", results=True)["Items"]
         try:
-            iscsinic = self.rawdatahandler(action="GET", silent=True, \
-                   verbose=False, jsonflag=True, path=iscsipath)['iSCSINicSources']
+            self.rawdatahandler(action="GET", silent=True, verbose=False, \
+                            jsonflag=True, path=iscsipath)['iSCSINicSources']
         except:
-            raise NicMissingOrConfigurationError('No iSCSI nic sources available.')
+            raise NicMissingOrConfigurationError('No iSCSI nic sources ' \
+                                                                'available.')
 
-        pciids = [x['UEFIDevicePath'] for x in pcideviceslist]
+        [x['UEFIDevicePath'] for x in pcideviceslist]
         removal = list()
 
         bios = self.rawdatahandler(action="GET", silent=True, verbose=False, \
@@ -665,8 +678,8 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         return rawdata
 
-    def validateinput(self, deviceallocsize=None, options=None, deleteoption=\
-                                                                        False):
+    def validateinput(self, deviceallocsize=None, options=None, \
+                                                            deleteoption=False):
         """ Helper function to validate that the input is correct
 
         :param deviceallocsize: current device allocated size

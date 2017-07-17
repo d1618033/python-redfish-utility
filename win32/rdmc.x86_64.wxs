@@ -27,7 +27,7 @@
         <Directory Id="TARGETDIR" Name="SourceDir" >
             <Directory Id="ProgramFiles64Folder" Name="PFiles" >
                 <Directory Id="ProgramFilesFolderHp" Name="Hewlett Packard Enterprise" >
-                    <Directory Id="INSTALLDIR" Name="HPE RESTful Interface Tool">
+                    <Directory Id="INSTALLDIR" Name="RESTful Interface Tool">
                         <Directory Id="ProgramFilesFolderiLOrestDocs" Name="Documentation" />
                     </Directory>
                 </Directory>
@@ -35,7 +35,7 @@
             
             <Directory Id="ProgramMenuFolder">
                 <Directory Id="ProgramMenuDirHP" Name="Hewlett Packard Enterprise">
-                    <Directory Id="ProgramMenuDirHPIp" Name="HPE RESTful Interface Tool" />
+                    <Directory Id="ProgramMenuDirHPIp" Name="RESTful Interface Tool" />
                 </Directory>
             </Directory>
         </Directory>

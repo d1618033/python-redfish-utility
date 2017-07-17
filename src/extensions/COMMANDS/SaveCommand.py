@@ -19,15 +19,15 @@
 
 import sys
 import json
-import redfish.ris
 
 from optparse import OptionParser
-from collections import (OrderedDict)
-from rdmc_helper import ReturnCodes, \
-                    InvalidCommandLineErrorOPTS
+from collections import OrderedDict
+
+import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import InvalidCommandLineError, InvalidFileFormattingError
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+                            InvalidCommandLineError, InvalidFileFormattingError
 
 #default file name
 __filename__ = 'ilorest.json'
@@ -98,6 +98,7 @@ class SaveCommand(RdmcCommandBase):
 
                     if len(values):
                         tempcontents = dict()
+
                         if typeselector and pathselector:
                             tempcontents[typeselector] = {pathselector: values}
                         else:
@@ -119,7 +120,7 @@ class SaveCommand(RdmcCommandBase):
         sys.stdout.write("Configuration saved to: %s\n" % self.filename)
 
         if options.logout:
-            self.logoutobj.logoutfunction("")
+            self.logoutobj.run("")
 
         #Return code
         return ReturnCodes.SUCCESS

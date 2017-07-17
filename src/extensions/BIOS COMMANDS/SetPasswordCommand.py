@@ -17,6 +17,8 @@
 # -*- coding: utf-8 -*-
 """ SetPassword Command for rdmc """
 
+import sys
+
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
@@ -65,6 +67,7 @@ class SetPasswordCommand(RdmcCommandBase):
         if not len(args) == 2:
             raise InvalidCommandLineError("Please pass both new password and " \
                                                                 "old password.")
+
         self.setpasswordvalidation(options)
 
         count = 0
@@ -75,6 +78,7 @@ class SetPasswordCommand(RdmcCommandBase):
                 elif len(arg) == 2 and '"' == arg[0] and '"' == arg[1] or \
                                 "'" == arg[0] and "'" == arg[1]:
                     args[count] = ''
+
             count += 1
 
         if self.typepath.defs.isgen10:
@@ -83,7 +87,6 @@ class SetPasswordCommand(RdmcCommandBase):
 
             for item in bodydict['Actions']:
                 if 'ChangePassword' in item:
-                    action = item.split('#')[-1]
                     path = bodydict['Actions'][item]['target']
                     break
 
@@ -200,4 +203,3 @@ class SetPasswordCommand(RdmcCommandBase):
             help="""Use this flag to set power on password instead""",
             default=None,
         )
-

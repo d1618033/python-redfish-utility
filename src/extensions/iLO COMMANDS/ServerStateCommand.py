@@ -22,7 +22,7 @@ import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class ServerStateCommand(RdmcCommandBase):
     """ Returns the current state of the server that  is currently logged in """
@@ -56,19 +56,21 @@ class ServerStateCommand(RdmcCommandBase):
 
         if len(args) > 0:
             raise InvalidCommandLineError("Invalid number of parameters, "\
-                                          "serverstate command does not take"\
-                                          "any parameters.")
+                            "serverstate command does not take any parameters.")
+
         self.serverstatevalidation(options)
 
         path = self.typepath.defs.systempath
         results = self._rdmc.app.get_handler(path, silent=True, \
-                                                uncache=True).dict
+                                                            uncache=True).dict
 
         if results:
             results = results['Oem'][self.typepath.defs.oemhp]['PostState']
-            sys.stdout.write("The server is currently in state: " + results + '\n')
+            sys.stdout.write("The server is currently in state: " + results + \
+                                                                        '\n')
         else:
-            raise NoContentsFoundForOperationError("Unable to retrieve server state")
+            raise NoContentsFoundForOperationError("Unable to retrieve " \
+                                                                "server state")
 
     def serverstatevalidation(self, options):
         """ Server state method validation function

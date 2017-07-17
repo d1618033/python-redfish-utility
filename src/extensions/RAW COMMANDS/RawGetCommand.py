@@ -19,10 +19,12 @@
 
 import sys
 import json
-import redfish
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+
+import redfish
+
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, UI
 

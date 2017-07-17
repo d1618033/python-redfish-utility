@@ -17,10 +17,11 @@
 # -*- coding: utf-8 -*-
 """ Get Command for RDMC """
 
-import redfish.ris
-
 from optparse import OptionParser
 from collections import (OrderedDict)
+
+import redfish.ris
+
 from rdmc_helper import ReturnCodes, \
                     InvalidCommandLineErrorOPTS, UI, \
                     NoContentsFoundForOperationError
@@ -69,16 +70,20 @@ class GetCommand(RdmcCommandBase):
         if args:
             for arg in args:
                 newargs = list()
+
                 if self._rdmc.app.get_selector().lower().startswith('bios.'):
                     if 'attributes' not in arg.lower():
                         arg = "Attributes/" + arg
+
                 if "/" in arg:
                     newargs = arg.split("/")
                     arg = newargs[0]
+
                 if len(args) > 1 and options.json:
                     multiargs = True
                     item = self.getworkerfunction(arg, options, line,\
                                 newargs=newargs, results=True, multivals=True)
+
                     if item:
                         content.append(item)
                     else:
@@ -105,7 +110,7 @@ class GetCommand(RdmcCommandBase):
             self.jsonprinthelper(content)
 
         if options.logout:
-            self.logoutobj.logoutfunction("")
+            self.logoutobj.run("")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -113,7 +118,7 @@ class GetCommand(RdmcCommandBase):
     def getworkerfunction(self, args, options, line, newargs=None, \
                                 results=None, uselist=False, multivals=False):
         """ main get worker function
-        
+
         :param args: command line arguments
         :type args: list.
         :param options: command line options
@@ -126,14 +131,16 @@ class GetCommand(RdmcCommandBase):
         :type results: string.
         :param uselist: use reserved properties list to filter results
         :type uselist: bool
-        :param multivals: multiple values 
+        :param multivals: multiple values
         :type multivals: boolean.
         """
         listitem = False
         somethingfound = False
         contents = self._rdmc.app.get_save(args)
+
         values = {}
         itemnum = 0
+
         if not contents:
             raise NoContentsFoundForOperationError('No contents '\
                                                 'found for entries: %s' % line)
@@ -143,6 +150,7 @@ class GetCommand(RdmcCommandBase):
                 if 'Attributes' in content.keys():
                     content.update(content['Attributes'])
                     del content['Attributes']
+
                     try:
                         for item in newargs:
                             if item.lower() == 'attributes':
@@ -150,6 +158,7 @@ class GetCommand(RdmcCommandBase):
                                 break
                     except:
                         pass
+
             content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
 
             if not uselist:
@@ -158,7 +167,8 @@ class GetCommand(RdmcCommandBase):
                         del content[k]
 
             if len(content):
-                itemnum +=1
+                itemnum += 1
+
                 if not newargs:
                     somethingfound = True
                 else:
@@ -178,6 +188,7 @@ class GetCommand(RdmcCommandBase):
                                 break
                             else:
                                 content = content[0]
+
                         for key in content.keys():
                             if item.lower() == key.lower():
                                 newlist.append(key)
@@ -197,6 +208,7 @@ class GetCommand(RdmcCommandBase):
                             counter += 1
                         else:
                             innerresults = {item:innerresults}
+
                     content = innerresults
             else:
                 continue
@@ -211,14 +223,15 @@ class GetCommand(RdmcCommandBase):
                     UI().print_out_json(content)
                 else:
                     UI().print_out_human_readable(content)
+
         if multivals:
             return values
-        else:
-            return somethingfound
+
+        return somethingfound
 
     def getworkerhelper(self, results, content, newlist, newargs, jsono=False):
         """ helper function for list items
-        
+
         :param results: current results collected
         :type results: string.
         :param content: current content to work on
@@ -236,6 +249,7 @@ class GetCommand(RdmcCommandBase):
             if isinstance(content, list):
                 if not content:
                     return
+
                 if len(content) > 1:
                     argleft = [x for x in newargs if x not in newlist]
                     [self.getworkerhelper(results, content[x], newlist[:],\
@@ -244,6 +258,7 @@ class GetCommand(RdmcCommandBase):
                     break
                 else:
                     content = content[0]
+
             for key in content.keys():
                 if item.lower() == key.lower():
                     newlist.append(key)
@@ -287,12 +302,13 @@ class GetCommand(RdmcCommandBase):
                     final[num].update(item[num])
                 except:
                     final[num] = item[num]
+
         for num in final:
             UI().print_out_json(final[num])
 
     def getvalidation(self, options):
         """ get method validation function
-        
+
         :param options: command line options
         :type options: list.
         """

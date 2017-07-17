@@ -31,22 +31,22 @@ class RebootCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='reboot',\
             usage='reboot [OPTIONS]\n\n\tTurning the system on\n\texample: ' \
-                    'reboot On\n\n\tOPTIONAL PARAMETERS AND DESCRIPTIONS:' \
-                    '\n\tOn \t\t(Turns the system on.)\n\tForceOff  ' \
-                    '\t(Performs an immediate non-graceful shutdown.)' \
-                    '\n\tForceRestart \t(DEFAULT) (Performs' \
-                    ' an immediate non-graceful shutdown,\n\t\t\t' \
-                    ' followed by a restart of the system.)\n\tNmi  ' \
-                    '\t\t(Generates a Non-Maskable Interrupt to cause' \
-                    ' an\n\t\t\t immediate system halt.)\n\tPushPowerButton ' \
-                    '(Simulates the pressing of the physical power ' \
-                    'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND'\
-                    ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the'\
-                    ' physical power button\n\t\t\t on this system.)\n\t'\
-                    'PressAndHold\t(Simulates pressing and holding of the power'\
-                    ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately'\
-                    ' Removes power from the server,\n\t\t\tfollowed by a restart'\
-                    ' of the system)',\
+                'reboot On\n\n\tOPTIONAL PARAMETERS AND DESCRIPTIONS:' \
+                '\n\tOn \t\t(Turns the system on.)\n\tForceOff  ' \
+                '\t(Performs an immediate non-graceful shutdown.)' \
+                '\n\tForceRestart \t(DEFAULT) (Performs' \
+                ' an immediate non-graceful shutdown,\n\t\t\t' \
+                ' followed by a restart of the system.)\n\tNmi  ' \
+                '\t\t(Generates a Non-Maskable Interrupt to cause' \
+                ' an\n\t\t\t immediate system halt.)\n\tPushPowerButton ' \
+                '(Simulates the pressing of the physical power ' \
+                'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND'\
+                ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the'\
+                ' physical power button\n\t\t\t on this system.)\n\t'\
+                'PressAndHold\t(Simulates pressing and holding of the power'\
+                ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately'\
+                ' Removes power from the server,\n\t\t\tfollowed by a restart'\
+                ' of the system)',\
             summary='Reboot operations for the current logged in server.',\
             aliases=['reboot'],\
             optparser=OptionParser())
@@ -80,6 +80,7 @@ class RebootCommand(RdmcCommandBase):
             sys.stdout.write(u'\nAfter the server is rebooted the session' \
              ' will be terminated.\nPlease wait for the server' \
              ' to boot completely to login again.\n')
+
             sys.stdout.write(u'Rebooting server in 3 seconds...\n')
             time.sleep(3)
         else:
@@ -102,6 +103,7 @@ class RebootCommand(RdmcCommandBase):
         if args and args[0].lower() in oemlist:
             bodydict = results.resp.dict['Oem'][self.typepath.defs.oemhp]\
                                                                     ['Actions']
+
             if args[0].lower() == 'coldboot':
                 resettype = 'SystemReset'
             else:
@@ -117,6 +119,7 @@ class RebootCommand(RdmcCommandBase):
                         action = item.split('#')[-1]
                     else:
                         action = resettype
+
                     put_path = bodydict[item]['target']
                     break
         except:
@@ -141,7 +144,7 @@ class RebootCommand(RdmcCommandBase):
             body = {"Action": action, "ResetType": "ForceRestart"}
 
         self._hprmc.app.post_handler(put_path, body)
-        self.logoutobj.logoutfunction("")
+        self.logoutobj.run("")
 
         #Return code
         return ReturnCodes.SUCCESS

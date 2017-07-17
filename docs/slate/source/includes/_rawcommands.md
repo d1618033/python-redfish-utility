@@ -77,6 +77,27 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+
+- **--silent**
+
+Use this flag to silence responses
+
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
@@ -160,17 +181,40 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--biospassword=BIOSPASSWORD**
+- **--response**
 
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+Use this flag to return the iLO response body.
 
-- **--providerid=PROVIDERID**
+- **--getheaders**
 
-Use to pass in the provider ID header.
+Use this flag to return the iLO response headers.
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request. Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses
+
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+
+- **-f FILENAME, --filename=FILENAME**
+
+ Write results to the specified file.
+
+- **-b BINFILE, --writebin=BINFILE**
+
+Write the results to the specified file in binary.
 
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
+
+- **--expand**
+
+Use this flag to expand the path specified using the expand notation '?$expand=.'
 
 #### Inputs
 
@@ -249,9 +293,26 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--biospassword=BIOSPASSWORD**
+- **--response**
 
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses
+
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
 - **--providerid=PROVIDERID**
 
@@ -329,6 +390,27 @@ If you are not logged in yet, including this flag along with the password and UR
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses
+
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
 - **--url=URL**
 
@@ -477,6 +559,18 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **--silent**
+
+Use this flag to silence responses
+
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+
+- **-f FILENAME, --filename=FILENAME**
+
+ Use the provided filename to perform operations.
 
 - **--service**
 

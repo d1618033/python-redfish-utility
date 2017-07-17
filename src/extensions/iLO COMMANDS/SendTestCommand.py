@@ -28,11 +28,11 @@ class SendTestCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='sendtest',\
             usage='sendtest [COMMAND][OPTIONS]\n\n\tSend syslog test to the' \
-                    ' current logged in server.\n\texample: sendtest syslog\n\n' \
-                    '\tSend alert mail test to the current logged in server.\n\t' \
-                    'example: sendtest alertmail\n\n\tSend SNMP test alert ' \
-                    'to the current logged in server.\n\texample: sendtest ' \
-                    'snmpalert',\
+                ' current logged in server.\n\texample: sendtest syslog\n\n' \
+                '\tSend alert mail test to the current logged in server.\n\t' \
+                'example: sendtest alertmail\n\n\tSend SNMP test alert ' \
+                'to the current logged in server.\n\texample: sendtest ' \
+                'snmpalert',\
             summary="Command for sending various tests to iLO.",\
             aliases=None,\
             optparser=OptionParser())
@@ -56,7 +56,8 @@ class SendTestCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not len(args) == 1:
-            raise InvalidCommandLineError("sendtest command takes only one argument.")
+            raise InvalidCommandLineError("sendtest command takes only one " \
+                                                                    "argument.")
 
         body = None
         path = None
@@ -74,8 +75,8 @@ class SendTestCommand(RdmcCommandBase):
             select = self.typepath.defs.managernetworkservicetype
             actionitem = "SendTestSyslog"
         else:
-            raise InvalidCommandLineError("sendtest command does not have parameter %s."\
-                                                                     % args[0])
+            raise InvalidCommandLineError("sendtest command does not have " \
+                                                    "parameter %s." % args[0])
 
         results = self._rdmc.app.filter(select, None, None)
 
@@ -87,26 +88,31 @@ class SendTestCommand(RdmcCommandBase):
         if results:
             path = results.resp.request.path
         else:
-            raise NoContentsFoundForOperationError("%s not found.It may not be"\
-                                        " available on this system." % select)
+            raise NoContentsFoundForOperationError("%s not found.It may not " \
+                                       "be available on this system." % select)
 
         bodydict = results.resp.dict
+
         try:
             if 'Actions' in bodydict:
                 for item in bodydict['Actions']:
                     if actionitem in item:
                         if self.typepath.defs.isgen10:
                             actionitem = item.split('#')[-1]
+
                         path = bodydict['Actions'][item]['target']
                         break
             else:
-                for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
+                for item in bodydict['Oem'][self.typepath.defs.oemhp]\
+                                                                    ['Actions']:
                     if actionitem in item:
                         if self.typepath.defs.isgen10:
                             actionitem = item.split('#')[-1]
+
                         path = bodydict['Oem'][self.typepath.defs.oemhp][\
                                                 'Actions'][item]['target']
                         break
+
             body = {"Action": actionitem}
         except:
             body = {"Action": actionitem, "Target": "/Oem/Hp"}
@@ -148,7 +154,7 @@ class SendTestCommand(RdmcCommandBase):
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \
-                                          " to complete the operation.")
+                                                " to complete the operation.")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

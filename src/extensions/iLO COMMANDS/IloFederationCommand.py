@@ -22,7 +22,7 @@ import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists,\
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class IloFederationCommand(RdmcCommandBase):
     """ Add a new ilo account to the server """
@@ -40,14 +40,14 @@ class IloFederationCommand(RdmcCommandBase):
                 'ilofederation delete [FEDERATIONNAME]\n\t'\
                 'example: ilofederation delete newfedname\n\n\t'\
                 'See a list of federations on the system.\n\t'\
-                'example: ilofederation\n\n'\
-                '\tDESCRIPTIONS:\n\tFEDERATIONNAME: The name (Id) of the federation'\
-                ' group. \n\tKEY:  The key required to join the federation.'\
-                '\n\n\tNOTE: please make sure the order of arguments is '\
-                'correct. The\n\tparameters are extracted based on their '\
-                'position in the arguments list.\n\tFederation key must be 8 '\
-                'characters or greater.',\
-            summary='Adds / deletes an iLO federaion group on the currently logged in server.',\
+                'example: ilofederation\n\n\tDESCRIPTIONS:\n\tFEDERATIONNAME:' \
+                ' The name (Id) of the federation group. \n\tKEY:  The key ' \
+                'required to join the federation.\n\n\tNOTE: please make sure' \
+                ' the order of arguments is correct. The\n\tparameters are ' \
+                'extracted based on their position in the arguments list.\n\t' \
+                'Federation key must be 8 characters or greater.',\
+            summary='Adds / deletes an iLO federaion group on the currently ' \
+                'logged in server.',\
             aliases=None,\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -76,40 +76,56 @@ class IloFederationCommand(RdmcCommandBase):
 
         redfish = self._rdmc.app.current_client.monolith.is_redfish
         path = self.typepath.defs.federationpath
-        results = self._rdmc.app.get_handler(path,\
-                                              service=True, silent=True).dict
+        results = self._rdmc.app.get_handler(path, service=True, \
+                                                            silent=True).dict
+
         newresults = []
+
         if redfish:
             results = results['Members']
         else:
             results = results['links']['Member']
+
         for fed in results:
-            fed = self._rdmc.app.get_handler(fed[self.typepath.defs.hrefstring]\
-                                              , service=True, silent=True).dict
+            fed = self._rdmc.app.get_handler(\
+                                         fed[self.typepath.defs.hrefstring], \
+                                         service=True, silent=True).dict
+
             newresults.append(fed)
             results = newresults
 
         if len(args) == 0:
             sys.stdout.write("iLO Federation Id list with Privileges:\n")
+
             for fed in sorted(results, key=lambda k: k['Id']):
                 privstr = ""
                 privs = fed['Privileges']
+
                 for priv in privs:
                     privstr += priv + '=' + str(privs[priv]) + '\n'
+
                 sys.stdout.write("\nId=%s:\n%s" % (fed['Id'], privstr))
 
         elif args[0].lower() == 'add':
             args.remove('add')
+
             if not len(args) == 2:
                 raise InvalidCommandLineError("Invalid number of parameters.")
 
-            body = {"Name": args[0], "Key": args[1],\
-                  "Privileges": {"RemoteConsolePriv": options.remoteconsole, \
+            body = {"Name": args[0], "Key": args[1], \
+                    "Privileges": {"RemoteConsolePriv": options.remoteconsole, \
                     "iLOConfigPriv": options.iloconfig,\
                     "VirtualMediaPriv": options.virtualmedia,\
                     "UserConfigPriv": options.userconfig,\
                     "VirtualPowerAndResetPriv": options.virtualpr,\
                     "LoginPriv": options.loginpriv}}
+
+            if self.typepath.flagiften:
+                body["Privileges"].update({\
+                    "HostBIOSConfigPriv": options.biosconfigpriv,\
+                    "HostNICConfigPriv": options.nicconfigpriv,\
+                    "HostStorageConfigPriv": options.hoststoragepriv,\
+                    "SystemRecoveryConfigPriv": options.sysrecoveryconfigpriv})
 
             self.addvalidation(args[0], args[1], results)
 
@@ -122,6 +138,7 @@ class IloFederationCommand(RdmcCommandBase):
 
         elif args[0].lower() == 'changekey':
             args.remove('changekey')
+
             try:
                 name = args[0]
                 newkey = args[1]
@@ -136,15 +153,17 @@ class IloFederationCommand(RdmcCommandBase):
                     else:
                         path = fed['links']['self']['href']
                         break
+
             body = {'Key': newkey}
+
             if path and body:
                 self._rdmc.app.patch_handler(path, body, service=True)
             else:
                 raise NoContentsFoundForOperationError('Unable to find '\
                                             'the specified federation.')
-
         elif args[0].lower() == 'delete':
             args.remove('delete')
+
             try:
                 name = args[0]
             except:
@@ -158,6 +177,7 @@ class IloFederationCommand(RdmcCommandBase):
                     else:
                         path = fed['links']['self']['href']
                         break
+
             if not path == self.typepath.defs.federationpath:
                 self._rdmc.app.delete_handler(path)
             else:
@@ -183,8 +203,8 @@ class IloFederationCommand(RdmcCommandBase):
                 raise AccountExists('Federation name is already in use.')
 
         if len(username) >= 32:
-            raise InvalidCommandLineError('Username exceeds maximum length.')            
-        if len(key) >= 32 or len(key) <= 7:
+            raise InvalidCommandLineError('User name exceeds maximum length.')
+        elif len(key) >= 32 or len(key) <= 7:
             raise InvalidCommandLineError('Password is invalid length.')
 
     def addfederationvalidation(self, options):
@@ -299,5 +319,41 @@ class IloFederationCommand(RdmcCommandBase):
             action="store_false",
             help="Optionally include this flag if you wish to set the "\
             "login privileges to false.",
+            default=True
+        )
+        customparser.add_option(
+            '--nobiosconfigpriv',
+            dest='biosconfigpriv',
+            action="store_false",
+            help="Optionally include this flag if you wish to set the "\
+            "host BIOS config privileges to false. Only available on gen10"\
+            " servers.",
+            default=True
+        )
+        customparser.add_option(
+            '--nonicconfigpriv',
+            dest='nicconfigpriv',
+            action="store_false",
+            help="Optionally include this flag if you wish to set the "\
+            "host NIC config privileges to false. Only available on gen10"\
+            " servers.",
+            default=True
+        )
+        customparser.add_option(
+            '--nohoststorageconfigpriv',
+            dest='hoststoragepriv',
+            action="store_false",
+            help="Optionally include this flag if you wish to set the "\
+            "host storage config privileges to false. Only available on gen10"\
+            " servers.",
+            default=True
+        )
+        customparser.add_option(
+            '--nosysrecoveryconfigpriv',
+            dest='sysrecoveryconfigpriv',
+            action="store_false",
+            help="Optionally include this flag if you wish to set the "\
+            "system recovery config privileges to false. Only available on gen10"\
+            " servers.",
             default=True
         )

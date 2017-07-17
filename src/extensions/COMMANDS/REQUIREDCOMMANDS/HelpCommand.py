@@ -74,6 +74,7 @@ class HelpCommand(RdmcCommandBase):
             if self._rdmc:
                 cmddict = self._rdmc.get_commands()
                 sorted_keys = cmddict.keys()
+
                 for key in sorted_keys:
                     for cmd in cmddict[key]:
                         if cmd.ismatch(args[0]):
@@ -83,4 +84,3 @@ class HelpCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Command '%s' not found." % args[0])
         #Return code
         return ReturnCodes.SUCCESS
-

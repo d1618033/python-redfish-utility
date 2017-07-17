@@ -51,8 +51,9 @@ from rdmc_helper import ReturnCodes, ConfigurationFileError, \
                     NicMissingOrConfigurationError, StandardBlobErrorHandler, \
                     NoCurrentSessionEstablished, FailureDuringCommitError,\
                     IncompatibleiLOVersionError, InvalidCListFileError,\
-                    PartitionMoutingError, BirthcertParseError, AccountExists, \
-					IncompatableServerTypeError, IloLicenseError
+                    PartitionMoutingError, TimeOutError, DownloadError, \
+                    UploadError, BirthcertParseError, AccountExists,\
+                    IncompatableServerTypeError, IloLicenseError
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 if os.name != 'nt':
@@ -77,7 +78,13 @@ for name in extensions.classNames:
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0)
 
-CLI = cliutils.CLI()
+try:
+    CLI = cliutils.CLI()
+except cliutils.ResourceAllocationError as excp:
+    sys.stdout.write(u"Unable to allocate more resources.\n")
+    retcode = ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
+    sys.stdout.write(u"ILOREST return code: %s\n" % retcode)
+    sys.exit(retcode)
 
 class RdmcCommand(RdmcCommandBase):
     """ Constructor """
@@ -156,8 +163,8 @@ class RdmcCommand(RdmcCommandBase):
 
         if len(args) > 1:
             return cmd.run(args[1:])
-        else:
-            return cmd.run([])
+
+        return cmd.run([])
 
     def run(self, line):
         """ Main rdmc command worker function
@@ -248,7 +255,7 @@ class RdmcCommand(RdmcCommandBase):
             self.app.logout()
         else:
             self.app.restore()
-            self.opts.is_redfish=self.app.updatedefinesflag(redfishflag=\
+            self.opts.is_redfish = self.app.updatedefinesflag(redfishflag=\
                                                         self.opts.is_redfish)
 
         if len(nargv) > 0:
@@ -278,7 +285,8 @@ class RdmcCommand(RdmcCommandBase):
         if not opts.nologo:
             CLI.version(self._progname, versioning.__version__,\
                                 versioning.__extracontent__, fileh=sys.stdout)
-        if self.app.typepath.adminpriv==False:
+
+        if not self.app.typepath.adminpriv:
             UI().user_not_admin()
 
         if opts.debug:
@@ -339,7 +347,7 @@ class RdmcCommand(RdmcCommandBase):
             if excp:
                 errorstr = "Exception: {0}".format(excp.__class__.__name__)
                 errorstr = errorstr+"({0})".format(excp.message) if \
-                                hasattr(excp, "message") else errorstr 
+                                hasattr(excp, "message") else errorstr
                 LOGGER.info(errorstr)
             raise
         # ****** RDMC ERRORS ******
@@ -415,13 +423,21 @@ class RdmcCommand(RdmcCommandBase):
         except PartitionMoutingError, excp:
             self.retcode = ReturnCodes.UNABLE_TO_MOUNT_BB_ERROR
             UI().error(excp)
+        except TimeOutError, excp:
+            self.retcode = ReturnCodes.UPDATE_SERVICE_BUSY
+            UI().error(excp)
+        except DownloadError, excp:
+            self.retcode = ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
+            UI().error(excp)
+        except UploadError, excp:
+            self.retcode = ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
+            UI().error(excp)
         except BirthcertParseError, excp:
             self.retcode = ReturnCodes.BIRTHCERT_PARSE_ERROR
             UI().error(excp)
         except AccountExists, excp:
             self.retcode = ReturnCodes.ACCOUNT_EXISTS_ERROR
             UI().error(excp)
-
         # ****** CLI ERRORS ******
         except cliutils.CommandNotFoundException, excp:
             self.retcode = ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
@@ -487,11 +503,11 @@ class RdmcCommand(RdmcCommandBase):
                                             u"chif driver is installed.")
         except redfish.rest.v1.SecurityStateError, excp:
             self.retcode = ReturnCodes.V1_SECURITY_STATE_ERROR
-            UI().printmsg(u"High security mode [%s] has been enabled. Support " \
+            UI().printmsg(u"High security mode [%s] has been enabled. Support "\
                           "is not currently available." % excp.message)
         except redfish.hpilo.risblobstore2.ChifDllMissingError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_CHIF_DLL_MISSING_ERROR
-            UI().printmsg(u"iLOrest Chif dll not found, please check that the " \
+            UI().printmsg(u"iLOrest Chif dll not found, please check that the "\
                                             u"chif dll is present.")
         except redfish.hpilo.risblobstore2.UnexpectedResponseError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_UNEXPECTED_RESPONSE_ERROR
@@ -530,7 +546,7 @@ class RdmcCommand(RdmcCommandBase):
             UI().user_not_admin()
             self.retcode = ReturnCodes.USER_NOT_ADMIN
         except redfish.hpilo.rishpilo.HpIloInitialError, excp:
-            UI().error(excp) 
+            UI().error(excp)
             self.retcode = ReturnCodes.RIS_ILO_INIT_ERROR
         # ****** RIS OBJECTS ERRORS ******
         except redfish.ris.ris.BiosUnregisteredError, excp:
@@ -575,7 +591,7 @@ class RdmcCommand(RdmcCommandBase):
 
             for content in templist:
                 for k in content.keys():
-                    if k.lower() in HARDCODEDLIST or '@odata' in k.lower():        
+                    if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
                         del content[k]
             if '#Bios.' in dictcopy[typestr]:
                 templist = templist[0]['Attributes']
@@ -628,9 +644,9 @@ class RdmcCommand(RdmcCommandBase):
                     if biosmode:
                         schemas = self.app.current_client.monolith.types
 
-                        for type in schemas.iterkeys():
-                            if self.app.typepath.defs.attributeregtype in type:
-                                currentschema = schemas[type][u'Instances']\
+                        for sctype in schemas.iterkeys():
+                            if self.app.typepath.defs.attributeregtype in sctype:
+                                currentschema = schemas[sctype][u'Instances']\
                                 [0].resp.dict[u'RegistryEntries'][u'Attributes']
                                 break
                     else:
@@ -747,7 +763,8 @@ class TabAndHistoryCompletionClass(object):
 
                         # match options with portion of input being completed
                         self.current_candidates = [w for w in candidates\
-                               if w and w.lower().startswith(being_completed.lower())]
+                               if w and w.lower().startswith(\
+                                                     being_completed.lower())]
 
                         # return possible vals
                         self.possible_vals = []
@@ -783,7 +800,8 @@ class TabAndHistoryCompletionClass(object):
                                     self.val_pos = 0
                             # first tab, complete
                             else:
-                                self.possible_vals.append(self.current_candidates[0])
+                                self.possible_vals.append(\
+                                                  self.current_candidates[0])
                                 self.val_pos += 1
                     else:
                         # matching empty string so use all candidates
@@ -830,10 +848,10 @@ if __name__ == '__main__':
     for cName in extensions.classNames:
         sName = cName.split('.')[1]
         cName = cName.split('.')[-1]
-        
+
         if not cName.endswith("Command"):
             continue
-        
+
         if cName == 'HelpCommand':
             RDMC.add_command(extensions._Commands[cName](rdmc=RDMC), \
                                                                 section=sName)
@@ -841,6 +859,12 @@ if __name__ == '__main__':
             try:
                 RDMC.add_command(extensions._Commands[cName](RDMC), \
                                                                 section=sName)
+            except cliutils.ResourceAllocationError as excp:
+                UI().error(excp)
+                retcode = ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
+                UI().printmsg(u"Unable to allocate more resources.")
+                sys.stdout.write(u"ILOREST return code: %s\n" % retcode)
+                sys.exit(retcode)
             except Exception, excp:
                 sys.stderr.write("Error loading extension: %s\n" % cName)
                 sys.stderr.write("\t" + excp.message + '\n')

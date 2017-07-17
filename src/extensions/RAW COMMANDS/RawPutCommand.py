@@ -21,9 +21,9 @@ import sys
 import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI, InvalidFileInputError, \
+                    InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                     InvalidFileFormattingError
 
 class RawPutCommand(RdmcCommandBase):
@@ -32,10 +32,11 @@ class RawPutCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='rawput',\
             usage='rawput [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
-                    'the data in the input file.\n\texample: rawput rawput.' \
-                    'txt\n\n\tExample input file:\n\t{\n\t    "path": "/redfish/' \
-                    'v1/(put path)",\n\t    "body":{\n\t      ' \
-                    '  "PutProperty": "PutValue"\n\t    }\n\t}',
+                'the data in the input file.\n\texample: rawput rawput.' \
+                'txt\n\n\tExample input file:\n\t{\n\t    "path": "/redfish/' \
+                'v1/systems/(system ID)/bios/Settings/",\n\t    "body":{\n\t'
+                '\t"Attributes": {\n\t\t' \
+                '  "BaseConfig": "default"\n\t\t}\n\t    }\n\t}',\
             summary='This is the raw form of the PUT command.',\
             aliases=['rawput'],\
             optparser=OptionParser())
@@ -99,11 +100,11 @@ class RawPutCommand(RdmcCommandBase):
                 returnresponse = True
 
             results = self._rdmc.app.put_handler(contentsholder["path"], \
-                      contentsholder["body"], verbose=self._rdmc.opts.verbose, \
-                      sessionid=options.sessionid, url=url, headers=headers, \
-                      response=returnresponse, silent=options.silent, \
-                      optionalpassword=options.biospassword, service=options.service, \
-                      providerheader=options.providerid)
+              contentsholder["body"], verbose=self._rdmc.opts.verbose, \
+              sessionid=options.sessionid, url=url, headers=headers, \
+              response=returnresponse, silent=options.silent, \
+              optionalpassword=options.biospassword, service=options.service, \
+              providerheader=options.providerid)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
@@ -112,7 +113,7 @@ class RawPutCommand(RdmcCommandBase):
             if options.getheaders:
                 sys.stdout.write(json.dumps(dict(\
                                  results._http_response.getheaders())) + "\n")
-    
+
             if options.response:
                 sys.stdout.write(results.text)
 

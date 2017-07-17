@@ -23,11 +23,11 @@ import sys
 import time
 import json
 import logging
-import versioning
-
-import redfish.ris
 
 from collections import OrderedDict
+
+import versioning
+import redfish.ris
 
 #---------End of imports---------
 
@@ -129,8 +129,16 @@ class ReturnCodes(object):
     V1_SECURITY_STATE_ERROR = 75
     REST_ILOREST_BLOB_OVERRIDE_ERROR = 76
 
+    # ****** RDMC ERRORS ******
+    RESOURCE_ALLOCATION_ISSUES_ERROR = 80
+
     # ****** RIS ERRORS ******
     RIS_RIS_BIOS_UNREGISTERED_ERROR = 100
+
+    # ***** Upload/Download ERRORS ******
+    FAILED_TO_DOWNLOAD_COMPONENT = 101
+    UPDATE_SERVICE_BUSY = 102
+    FAILED_TO_UPLOAD_COMPONENT = 103
 
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
@@ -255,6 +263,18 @@ class PartitionMoutingError(RdmcError):
     partition mounting request"""
     pass
 
+class DownloadError(RdmcError):
+    """Raised when the component fails to download"""
+    pass
+
+class UploadError(RdmcError):
+    """Raised when the component fails to download"""
+    pass
+
+class TimeOutError(RdmcError):
+    """Raised when the update service times out"""
+    pass
+
 class LibHPsrvMissingError(RdmcError):
     """ Raised when unable to obtain the libhpsrv handle"""
     pass
@@ -291,9 +311,9 @@ class UI(object):
 
     def user_not_admin(self):
         """ Called when file formatting in unrecognizable """
-        sys.stderr.write(u"Both remote and local mode is accessible when %s is "\
-            "run as administrator. Only remote mode is available for non-"\
-            "admin user groups.\n" % versioning.__longname__)
+        sys.stderr.write(u"Both remote and local mode is accessible when %s " \
+             "is run as administrator. Only remote mode is available for non-" \
+             "admin user groups.\n" % versioning.__longname__)
 
     def no_contents_found_for_operation(self, excp):
         """ Called when no contents were found for the current operation"""
@@ -332,16 +352,18 @@ class UI(object):
         :type timeout: int.
         """
         sys.stderr.write(u"Validating...")
+
         for _ in range(0, (int(str(timeout))+10)):
             time.sleep(1)
             sys.stderr.write(".")
+
         sys.stderr.write(u"\nError: Could not authenticate. Invalid " \
                          "credentials, or bad username/password.\n")
 
     def bios_unregistered_error(self):
         """ Called when ilo/bios unregistered error occurs """
         sys.stderr.write(u"\nERROR 100: Bios provider is unregistered. Please" \
-        " refer to the documentation for details on this issue.\n")
+                     " refer to the documentation for details on this issue.\n")
 
     def error(self, msg, inner_except=None):
         """ Used for general error handling
@@ -427,7 +449,7 @@ class UI(object):
                 if space and not enterloop:
                     sys.stdout.write(space)
 
-                enterloop=False
+                enterloop = False
                 sys.stdout.write(str(key) + '=')
                 self.pretty_human_readable(value, indent,
                                            (start + len(key) + 2))
@@ -437,4 +459,3 @@ class UI(object):
 
             content = '""' if len(content) == 0 else content
             sys.stdout.write(content.encode('utf-8'))
-

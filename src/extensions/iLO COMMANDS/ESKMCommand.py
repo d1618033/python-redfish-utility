@@ -85,12 +85,13 @@ class ESKMCommand(RdmcCommandBase):
                 if actionitem in item:
                     if self.typepath.defs.isgen10:
                         actionitem = item.split('#')[-1]
+
                     path = bodydict['Actions'][item]['target']
                     break
         except:
             pass
-        body = {"Action": actionitem}
 
+        body = {"Action": actionitem}
         self._rdmc.app.post_handler(path, body)
 
         return ReturnCodes.SUCCESS

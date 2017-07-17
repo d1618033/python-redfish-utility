@@ -16,7 +16,6 @@
 
 # -*- coding: utf-8 -*-
 """ Factory Defaults Command for rdmc """
-
 import sys
 
 from optparse import OptionParser
@@ -34,7 +33,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                 'Reset iLO to factory defaults in the current loggen in ' \
                 'server.\n\texample: factorydefaults',\
             summary='Resets iLO to factory defaults. WARNING: user data will ' \
-            'be removed use with caution.',\
+                'be removed use with caution.',\
             aliases=None,\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -58,12 +57,12 @@ class FactoryDefaultsCommand(RdmcCommandBase):
 
         if not len(args) == 0:
             raise InvalidCommandLineError("factorydefaults command takes no "\
-                                          "arguments.")
+                                                                "arguments.")
 
         self.factorydefaultsvalidation(options)
 
         sys.stdout.write("Resetting iLO to factory default settings.\n"\
-                         "Current session will be terminated.\n")
+                                        "Current session will be terminated.\n")
 
         select = 'Manager.'
         results = self._rdmc.app.filter(select, None, None)
@@ -79,6 +78,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Manager. not found.")
 
         bodydict = results.resp.dict['Oem'][self.typepath.defs.oemhp]
+
         try:
             for item in bodydict['Actions']:
                 if 'ResetToFactoryDefaults' in item:
@@ -86,6 +86,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                         action = item.split('#')[-1]
                     else:
                         action = "ResetToFactoryDefaults"
+
                     path = bodydict['Actions'][item]['target']
                     body = {"Action": action, "ResetType": "Default"}
                     break

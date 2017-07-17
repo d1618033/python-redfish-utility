@@ -18,12 +18,14 @@
 """ Select Command for RDMC """
 
 import sys
-import redfish.ris
 
 from optparse import OptionParser
+
+import redfish.ris
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS
+                                                    InvalidCommandLineErrorOPTS
 
 class SelectCommand(RdmcCommandBase):
     """ Constructor """
@@ -32,9 +34,9 @@ class SelectCommand(RdmcCommandBase):
             name='select',\
             usage='select [TYPE] [OPTIONS]\n\n\tRun without a type to display' \
             ' currently selected type\n\texample: select\n\n\tIn order to ' \
-            'remove the need of including the version\n\twhile ' \
-            'selecting you can simply enter the type name\n\tuntil ' \
-            'the first period\n\texample: select HpBios.',\
+            'remove the need of including the version\n\twhile selecting you' \
+            ' can simply enter the type name\n\tuntil the first period\n\t' \
+            'example: select HpBios.',\
             summary='Selects the object type to be used.',\
             aliases=['sel'],\
             optparser=OptionParser())
@@ -151,7 +153,7 @@ class SelectCommand(RdmcCommandBase):
 
     def run(self, line):
         """ Wrapper function for main select function
-        
+
         :param line: entered command line
         :type line: list.
         """
@@ -232,4 +234,3 @@ class SelectCommand(RdmcCommandBase):
             " command to execute.",
             default=None,
         )
-

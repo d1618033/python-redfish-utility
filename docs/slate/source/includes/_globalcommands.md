@@ -88,11 +88,15 @@ iLO COMMANDS
   eskm                         - Command for all ESKM available actions.
   factorydefaults              - Resets iLO to factory defaults. WARNING: user
                                   data will be removed use with caution.
-  iloreset                     - Reset iLO on the current logged in server.
+  fwintegritycheck             - Perform a firmware integrity check on the
+                                  current logged inserver.
   firmwareupdate               - Perform a firmware update on the currently
                                   logged in server.
   iloaccounts                  - Adds / deletes an iLO account on the
                                   currently logged in server.
+  iloclone                     - Clone the iLO config of the currently logged
+                                  in server and copy it to the server in the
+                                  arguments.
   ilofederation                - Adds / deletes an iLO federaion group on the
                                   currently logged in server.
   ilolicense                   - Adds an iLO license key to the currently
@@ -111,6 +115,19 @@ iLO COMMANDS
                                   media.
                                   
 
+iLO REPOSITORY COMMANDS
+  deletecomp                   - Deletes components/binaries from the iLO
+                                  Repository.
+  downloadcomp                 - Downloads components/binaries from the iLO
+                                  Repository.
+  installset                   - Manages install sets for iLO.
+  listcomp                     - Lists components/binaries from the iLO
+                                  Repository.
+  taskqueue                    - Manages the update task queue for iLO.
+  uploadcomp                   - Upload components/binary to the iLO
+                                  Repository.                                  
+                                  
+
 RAW COMMANDS
   rawget                       - This is the raw form of the GET command.
   rawpost                      - This is the raw form of the POST command.
@@ -118,6 +135,20 @@ RAW COMMANDS
   rawdelete                    - This is the raw form of the DELETE command.
   rawhead                      - This is the raw form of the HEAD command.
   rawpatch                     - This is the raw form of the PATCH command.
+  
+SMART ARRAY COMMANDS
+  clearcontrollerconfig        - Clears smart array controller configuration.
+  createlogicaldrive           - Creates a new logical drive on the selected
+                                  controller.
+  deletelogicaldrive           - Deletes logical drives from the selected
+                                  controller.
+  drivesanitize                - Erase/Sanitizes physical drives
+  factoryresetcontroller       - Discovers all storage controllers installed
+                                  in the server and managed by the
+                                  SmartStorage.
+  smartarray                   - Discovers all storage controllers installed
+                                  in the server and managed by the
+                                  SmartStorage.  
 ```
 
 > Providing a specific command will list help regarding that specific command
@@ -240,6 +271,8 @@ None
 > Login example commands:
 
 > To login remotely, supply the URL, username, and password for the server. Here the selector tag has been included so that the **HpBios** type is selected once the user is logged in. You can prove that the **HpBios** type has indeed been selected when we enter the select command.
+
+> ![Login Example 1](images/examples/login_ex1.PNG "Login example 1")
 
 ```
 ilorest > login xx.xx.xx.xx -u username -p password --selector=HpBios.
@@ -732,6 +765,11 @@ Optionally set a filter value for a filter attribute. This uses the provided fil
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
+
+- **---j, --json**
+
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
+
 - **--path=PATH**
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
@@ -1027,12 +1065,6 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the <b>filter</b> flag to narrow down results based on properties.</aside>
-
-- **--latestschema**
-
-Optionally use the latest schema instead of the one requested by the file.
-
-<aside class="warning">This might cause errors in some data retrieval due to differences in the schema’s organizational structure between versions.</aside>
 
 - **-j, --json**
 
@@ -1458,6 +1490,10 @@ Override the measures stopping the tool from writing over items that are system 
 - **-m MPFILENAME, --multiprocessing=MPFILENAME**
 
 Use the provided filename to obtain data.
+
+- **-o OUTDIRECTORY, --outputdirectory=OUTDIRECTORY**
+
+Use the provided directory to output data for a multiple server configuration.
 
 - **-o OFILENAME, --outputfilename=OFILENAME**
 

@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists,\
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists, \
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class IloAccountsCommand(RdmcCommandBase):
     """ command to manipulate/add ilo user accounts """
@@ -30,25 +30,26 @@ class IloAccountsCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='iloaccounts',\
             usage='iloaccounts [COMMAND] [OPTIONS]\n\n\t'\
-                'Add an iLO user account the current logged in server.\n\t' \
-                'iloaccounts add [USERNAME LOGINNAME PASSWORD] \n\t'\
-                'example: iloaccounts add USERNAME ACCOUNTNAME PASSWORD' \
-                '\n\n\tChange the password of an account.\n\t'\
-                'iloaccounts changepass [LOGINNAMEorID# PASSWORD]\n\t'\
-                'example: iloaccounts changepass 2 newpassword\n\n\t'\
-                'Get Id and LoginName info of iLO user accounts.\n\t'\
-                'example: iloaccounts\n\n\tDelete an iLO account.\n\t'\
-                'iloaccounts delete [LOGINNAMEorID#]\n\t'\
-                'example: iloaccounts delete accountLoginName\n\n'
-                '\tDESCRIPTIONS:\n\tLOGINNAME:  The account name, not used ' \
-                'to login.\n\tUSERNAME: The account username name, used' \
-                ' to login. \n\tPASSWORD:  The account password, used to login.'
-                '\n\tId: The number associated with an iLO user account.'\
-                '\n\n\tNOTE: please make sure the order of arguments is ' \
-                'correct. The\n\tparameters are extracted based on their ' \
-                'position in the arguments list.\n\tOnly privileges available to' \
-                ' the logged in account can be set to the new account.',\
-            summary='Adds / deletes an iLO account on the currently logged in server.',\
+            'Add an iLO user account the current logged in server.\n\t' \
+            'iloaccounts add [USERNAME LOGINNAME PASSWORD] \n\t'\
+            'example: iloaccounts add USERNAME ACCOUNTNAME PASSWORD' \
+            '\n\n\tChange the password of an account.\n\t'\
+            'iloaccounts changepass [LOGINNAMEorID# PASSWORD]\n\t'\
+            'example: iloaccounts changepass 2 newpassword\n\n\t'\
+            'Get Id and LoginName info of iLO user accounts.\n\t'\
+            'example: iloaccounts\n\n\tDelete an iLO account.\n\t'\
+            'iloaccounts delete [LOGINNAMEorID#]\n\t'\
+            'example: iloaccounts delete accountLoginName\n\n'
+            '\tDESCRIPTIONS:\n\tLOGINNAME:  The account name, not used ' \
+            'to login.\n\tUSERNAME: The account username name, used' \
+            ' to login. \n\tPASSWORD:  The account password, used to login.'
+            '\n\tId: The number associated with an iLO user account.'\
+            '\n\n\tNOTE: please make sure the order of arguments is ' \
+            'correct. The\n\tparameters are extracted based on their ' \
+            'position in the arguments list.\n\tOnly privileges available to' \
+            ' the logged in account can be set to the new account.',\
+            summary='Adds / deletes an iLO account on the currently logged ' \
+                                                                'in server.',\
             aliases=None,\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -70,25 +71,28 @@ class IloAccountsCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
         if len(args) > 4:
             raise InvalidCommandLineError("Invalid number of parameters for "\
-                                          "this command.")
+                                                                "this command.")
 
         self.iloaccountsvalidation(options)
 
         redfish = self._rdmc.app.current_client.monolith.is_redfish
         results = self._rdmc.app.get_handler(self.typepath.defs.accountspath,\
-                                              service=False, silent=True).dict\
-                                        [self.typepath.defs.collectionstring]
+          service=False, silent=True).dict[self.typepath.defs.collectionstring]
         path = None
 
         if 'Id' not in results[0].keys():
             newresults = []
+
             for acct in results:
                 acct = self._rdmc.app.get_handler(acct[self.typepath.defs.\
                                 hrefstring], service=True, silent=True).dict
                 newresults.append(acct)
+
             results = newresults
+
         if not results:
             raise NoContentsFoundForOperationError("")
 
@@ -101,12 +105,14 @@ class IloAccountsCommand(RdmcCommandBase):
                                             oemhp]['Privileges']
                 for priv in privs:
                     privstr += priv + '=' + str(privs[priv]) + '\n'
+
                 sys.stdout.write("[%s] %s:\n%s\n" % (acct['Id'], \
                                 acct['Oem'][self.typepath.defs.\
                                             oemhp]['LoginName'], privstr))
         elif args[0].lower() == 'changepass':
             if len(args) == 3:
                 account = args[1]
+
                 for acct in results:
                     if acct['Id'] == account or acct['Oem'][self.typepath.\
                                                             defs.oemhp]\
@@ -117,18 +123,20 @@ class IloAccountsCommand(RdmcCommandBase):
                         else:
                             path = acct['links']['self']['href']
                             break
+
                 body = {'Password': args[2]}
+
                 if path and body:
                     self._rdmc.app.patch_handler(path, body, service=True)
                 else:
                     raise NoContentsFoundForOperationError('Unable to find '\
                                                 'the specified account.')
-
             else:
                 raise InvalidCommandLineError('Invalid number of parameters.')
 
         elif args[0].lower() == 'add':
             args.remove('add')
+
             if not len(args) == 3:
                 raise InvalidCommandLineError('Invalid number of parameters.')
 
@@ -136,17 +144,17 @@ class IloAccountsCommand(RdmcCommandBase):
             path = self.typepath.defs.accountspath
 
             body = {"UserName": args[0], "Password": args[2], "Oem": {self.\
-                                                            typepath.defs.oemhp: {\
-                  "Privileges": privs,
-                  "LoginName": args[1]}}}
+                                        typepath.defs.oemhp: {"Privileges": \
+                                              privs, "LoginName": args[1]}}}
 
             self.addvalidation(args[0], args[1], args[2], results)
 
             if path and body:
-                resp = self._rdmc.app.post_handler(path, body)
+                self._rdmc.app.post_handler(path, body)
 
         elif args[0].lower() == 'delete':
             args.remove('delete')
+
             try:
                 account = args[0]
             except:
@@ -176,16 +184,23 @@ class IloAccountsCommand(RdmcCommandBase):
     def getprivs(self, options):
         """ find and return the current available session privileges """
         if self._rdmc.app.current_client:
-            sespath = self._rdmc.app.current_client._rest_client._RestClientBase__session_location  
-            sespath = self._rdmc.app.current_client._rest_client.default_prefix + sespath.split(self._rdmc.app.current_client._rest_client.default_prefix)[-1]
+            sespath = self._rdmc.app.current_client._rest_client.\
+                                            _RestClientBase__session_location
+            sespath = self._rdmc.app.current_client.\
+                                _rest_client.default_prefix + \
+                                sespath.split(self._rdmc.app.current_client.\
+                                              _rest_client.default_prefix)[-1]
 
-            ses = self._rdmc.app.get_handler(sespath, service=False, silent=True)
+            ses = self._rdmc.app.get_handler(sespath, service=False, \
+                                                                    silent=True)
+
             sesprivs = ses.dict['Oem'][self.typepath.defs.oemhp]['Privileges']
-            privdict = {}
+
             templist = []
             for key in sesprivs:
                 if not sesprivs[key]:
                     templist.append(key)
+
             if templist:
                 for item in templist:
                     del sesprivs[item]
@@ -217,8 +232,10 @@ class IloAccountsCommand(RdmcCommandBase):
 
         if len(username) >= 60:
             raise InvalidCommandLineError('Username exceeds maximum length.')
+
         if len(loginname) >= 60:
-            raise InvalidCommandLineError('Login name exceeds maximum length.')            
+            raise InvalidCommandLineError('Login name exceeds maximum length.')
+
         if len(password) >= 40 or len(password) < 8:
             raise InvalidCommandLineError('Password length is invalid.')
 
@@ -228,11 +245,10 @@ class IloAccountsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
         inputline = list()
 
         try:
-            client = self._rdmc.app.get_current_client()
+            self._rdmc.app.get_current_client()
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -290,7 +306,7 @@ class IloAccountsCommand(RdmcCommandBase):
             '--noremoteconsolepriv',
             dest='optprivs',
             action="append_const",
-            const={"RemoteConsolePriv": False}, 
+            const={"RemoteConsolePriv": False},
             help="Optionally include this flag if you wish to set the "\
             "remote console privileges to false."
         )
@@ -298,7 +314,7 @@ class IloAccountsCommand(RdmcCommandBase):
             '--noiloconfigpriv',
             dest='optprivs',
             action="append_const",
-            const={"iLOConfigPriv": False}, 
+            const={"iLOConfigPriv": False},
             help="Optionally include this flag if you wish to set the "\
             "ilo config privileges to false."
         )
@@ -333,4 +349,40 @@ class IloAccountsCommand(RdmcCommandBase):
             const={"LoginPriv": False},
             help="Optionally include this flag if you wish to set the "\
             "login privileges to false."
+        )
+        customparser.add_option(
+            '--nobiosconfigpriv',
+            dest='optprivs',
+            action="append_const",
+            const={"HostBIOSConfigPriv": False},
+            help="Optionally include this flag if you wish to set the "\
+            "host BIOS config privileges to false. Only available on gen10"\
+            " servers."
+        )
+        customparser.add_option(
+            '--nonicconfigpriv',
+            dest='optprivs',
+            action="append_const",
+            const={"HostNICConfigPriv": False},
+            help="Optionally include this flag if you wish to set the "\
+            "host NIC config privileges to false. Only available on gen10"\
+            " servers."
+        )
+        customparser.add_option(
+            '--nohoststorageconfigpriv',
+            dest='optprivs',
+            action="append_const",
+            const={"HostStorageConfigPriv": False},
+            help="Optionally include this flag if you wish to set the "\
+            "host storage config privileges to false. Only available on gen10"\
+            " servers."
+        )
+        customparser.add_option(
+            '--nosysrecoveryconfigpriv',
+            dest='optprivs',
+            action="append_const",
+            const={"SystemRecoveryConfigPriv": False},
+            help="Optionally include this flag if you wish to set the "\
+            "system recovery config privileges to false. Only available on gen10"\
+            " servers."
         )

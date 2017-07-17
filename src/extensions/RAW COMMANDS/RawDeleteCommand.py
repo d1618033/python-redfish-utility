@@ -21,9 +21,9 @@ import sys
 import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI
+                                                    InvalidCommandLineErrorOPTS
 
 class RawDeleteCommand(RdmcCommandBase):
     """ Raw form of the delete command """
@@ -32,7 +32,7 @@ class RawDeleteCommand(RdmcCommandBase):
             name='rawdelete',\
             usage='rawdelete [PATH] [OPTIONS]\n\n\tRun to to delete data from' \
                     ' the passed in path.\n\texample: rawdelete "/redfish/v1/' \
-                    'Sessions/(session ID)"',
+                    'Sessions/(session ID)"', \
             summary='This is the raw form of the DELETE command.',\
             aliases=['rawdelete'],\
             optparser=OptionParser())
@@ -77,7 +77,7 @@ class RawDeleteCommand(RdmcCommandBase):
             currentsess = self._rdmc.app.current_client._rest_client.\
                                             _RestClientBase__session_location
         except:
-            currentsess=None
+            currentsess = None
 
         if options.headers:
             extraheaders = options.headers.split(',')
@@ -109,8 +109,8 @@ class RawDeleteCommand(RdmcCommandBase):
             if returnresponse and results:
                 if options.getheaders:
                     sys.stdout.write(json.dumps(dict(\
-                                     results._http_response.getheaders())) + "\n")
-    
+                                 results._http_response.getheaders())) + "\n")
+
                 if options.response:
                     sys.stdout.write(results.text)
             elif results.status == 404:
@@ -153,7 +153,7 @@ class RawDeleteCommand(RdmcCommandBase):
 
     def sessionvalidation(self, options):
         """ Raw delete session validation function
-        
+
         :param options: command line options
         :type options: list.
         """
@@ -258,4 +258,3 @@ class RawDeleteCommand(RdmcCommandBase):
                                             """expand notation '?$expand=.'""",
             default=False,
         )
-

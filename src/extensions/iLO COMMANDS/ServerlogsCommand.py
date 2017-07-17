@@ -49,28 +49,28 @@ class ServerlogsCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='serverlogs',\
             usage='serverlogs [LOG_SELECTION] [OPTIONS]\n\n\tDownload the AHS' \
-                    ' logs from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=AHS -f AHSlog.ahs\n\n\tClear the AHS logs ' \
-                    'from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=AHS --clearlog\n\n\tDownload the IEL' \
-                    ' logs from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs ' \
-                    'from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=IEL --clearlog\n\n\tDownload the IML' \
-                    ' logs from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs ' \
-                    'from the logged in server.\n\texample: serverlogs ' \
-                    '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)' \
-                    '\n\tInsert entry in the IML logs from the logged in ' \
-                    'server.\n\texample: serverlogs --selectlog=IML -m "Text' \
-                    ' message for maintenance"\n\n\t(AHS LOGS ONLY FEATURE IN REMOTE MODE)'\
-                    '\n\tInsert customized string if required for AHS log to be'\
-                    ' downloaded. \n\texample: serverlogs --selectlog=AHS -f '\
-                    'AHSlog.ahs --customiseAHS "from=2014-03-01&&to=2014-03-30"'\
-                    '\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/path of' \
-                    'directory where AHS log needs to be saved.'\
-                    ' \n\texample: serverlogs --selectlog=AHS -f '\
-                    'AHSlog.ahs --directorypath=C:\\Python27\\DataFiles',\
+                ' logs from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=AHS -f AHSlog.ahs\n\n\tClear the AHS logs ' \
+                'from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=AHS --clearlog\n\n\tDownload the IEL' \
+                ' logs from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs ' \
+                'from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=IEL --clearlog\n\n\tDownload the IML' \
+                ' logs from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs ' \
+                'from the logged in server.\n\texample: serverlogs ' \
+                '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)' \
+                '\n\tInsert entry in the IML logs from the logged in ' \
+                'server.\n\texample: serverlogs --selectlog=IML -m "Text' \
+                ' message for maintenance"\n\n\t(AHS LOGS ONLY FEATURE IN ' \
+                'REMOTE MODE)\n\tInsert customized string if required for AHS' \
+                ' log to be downloaded. \n\texample: serverlogs --selectlog=' \
+                'AHS -f AHSlog.ahs --customiseAHS "from=2014-03-01&&to=2014' \
+                '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/' \
+                'path of directory where AHS log needs to be saved.'\
+                ' \n\texample: serverlogs --selectlog=AHS -f '\
+                'AHSlog.ahs --directorypath=C:\\Python27\\DataFiles',\
             summary='Download and perform log operations.',\
             aliases=['logservices'],\
             optparser=OptionParser())
@@ -80,6 +80,7 @@ class ServerlogsCommand(RdmcCommandBase):
         self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
         self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.dontunmount = None
         self.abspath = None
         self.lib = None
 
@@ -102,7 +103,7 @@ class ServerlogsCommand(RdmcCommandBase):
         self.serverlogsworkerfunction(options)
 
         if options.logout:
-            self.logoutobj.logoutfunction("")
+            self.logoutobj.run("")
 
         return ReturnCodes.SUCCESS
 
@@ -132,12 +133,14 @@ class ServerlogsCommand(RdmcCommandBase):
             raise InvalidCommandLineErrorOPTS("")
 
         data = None
+
         if options.clearlog:
             self.clearlog(path)
         elif options.mainmes:
             self.addmaintenancelogentry(options, path=path)
         else:
             data = self.downloaddata(path=path, options=options)
+
         self.savedata(options=options, data=data)
 
     def addmaintenancelogentry(self, options, path=None):
@@ -150,18 +153,24 @@ class ServerlogsCommand(RdmcCommandBase):
         """
         if options.mainmes is None:
             raise InvalidCommandLineErrorOPTS("")
+
         if options.service != 'IML':
             sys.stdout.write('Log opted cannot make maintenance entries!\n')
             raise InvalidCommandLineErrorOPTS("")
+
         message = options.mainmes
+
         if message.endswith(('"', "'")) and message.startswith(('"', "'")):
             message = message[1:-1]
+
         if path:
             bodydict = dict()
             bodydict[u"path"] = path
-            bodydict[u"body"] = {u"EntryCode": u"Maintenance", u"Message":message}
-            self._rdmc.app.post_handler(path, bodydict[u"body"], verbose=\
-                                         self._rdmc.opts.verbose)
+            bodydict[u"body"] = {u"EntryCode": u"Maintenance", \
+                                                            u"Message":message}
+
+            self._rdmc.app.post_handler(path, bodydict[u"body"], \
+                                                verbose=self._rdmc.opts.verbose)
 
     def clearlog(self, path):
         """Worker function to clear logs.
@@ -174,18 +183,19 @@ class ServerlogsCommand(RdmcCommandBase):
                 path = path[:-len(u"/Entries")]
             elif path.endswith(u"Entries/"):
                 path = path[:-len(u"Entries/")]
+
             bodydict = dict()
             bodydict[u"path"] = path
             bodydict[u"body"] = {u"Action":u"ClearLog"}
-            self._rdmc.app.post_handler(path, bodydict[u"body"], verbose=\
-                                         self._rdmc.opts.verbose)
+            self._rdmc.app.post_handler(path, bodydict[u"body"], \
+                                                verbose=self._rdmc.opts.verbose)
         elif path:
             action = path.split(u'/')[-2]
             bodydict = dict()
             bodydict[u"path"] = path
             bodydict[u"body"] = {u"Action":action}
-            self._rdmc.app.post_handler(path, bodydict[u"body"], verbose=\
-                                         self._rdmc.opts.verbose)
+            self._rdmc.app.post_handler(path, bodydict[u"body"], \
+                                                verbose=self._rdmc.opts.verbose)
 
     def downloaddata(self, path=None, options=None):
         """Worker function to download the log files
@@ -203,44 +213,48 @@ class ServerlogsCommand(RdmcCommandBase):
                     return data.read
                 else:
                     raise NoContentsFoundForOperationError\
-                                        (u"Unable to retrieve AHS logs.")
-            elif self.typepath.defs.isgen10:
-                path = path + u'?$expand=.'
-                data = self._rdmc.app.get_handler(path, silent=True)
+                                            (u"Unable to retrieve AHS logs.")
             else:
                 data = self._rdmc.app.get_handler(path, silent=True)
+
             datadict = data.dict
+
             try:
                 completedatadictlist = datadict[u'Items'] if u'Items' in\
-                                    datadict else datadict[u'Members']
+                                            datadict else datadict[u'Members']
             except:
                 sys.stdout.write(u'No data available within log.\n')
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
             if self.typepath.defs.flagforrest:
                 morepages = True
+
                 while morepages:
                     if 'links' in datadict and 'NextPage' in datadict['links']:
                         next_link_uri = path + '?page=' + \
-                                        str(datadict['links']['NextPage']['page'])
+                                    str(datadict['links']['NextPage']['page'])
+
                         href = u'%s' % next_link_uri
                         data = self._rdmc.app.get_handler(href, silent=True)
                         datadict = data.dict
+
                         try:
                             completedatadictlist = completedatadictlist+\
-                                                    datadict[u'Items']
+                                                            datadict[u'Items']
                         except:
                             sys.stdout.write(u'No data available within log.\n')
-                            raise NoContentsFoundForOperationError(u"Unable to "\
-                                                           u"retrieve logs.")
+                            raise NoContentsFoundForOperationError(u"Unable " \
+                                                           "to retrieve logs.")
                     else:
                         morepages = False
-            elif not self.typepath.defs.isgen10:
+            else:
                 datadict = list()
+
                 for members in completedatadictlist:
                     memberpath = members[self.typepath.defs.hrefstring]
                     data = self._rdmc.app.get_handler(memberpath, silent=True)
                     datadict = datadict+[data.dict]
+
                 completedatadictlist = datadict
 
             if completedatadictlist:
@@ -248,10 +262,12 @@ class ServerlogsCommand(RdmcCommandBase):
                     return completedatadictlist
                 except Exception:
                     sys.stdout.write(u"Could not get the data from server!\n")
-                    raise NoContentsFoundForOperationError(u"Unable to retrieve logs.")
+                    raise NoContentsFoundForOperationError(u"Unable to " \
+                                                            "retrieve logs.")
             else:
                 sys.stdout.write(u"No data present!\n")
-                raise NoContentsFoundForOperationError(u"Unable to retrieve logs.")
+                raise NoContentsFoundForOperationError(u"Unable to retrieve " \
+                                                                        "logs.")
         else:
             sys.stdout.write(u"Path not found for input log!\n")
             raise NoContentsFoundForOperationError(u"Unable to retrieve logs.")
@@ -265,14 +281,13 @@ class ServerlogsCommand(RdmcCommandBase):
         path = ""
         sel = self.typepath.defs.typestring
         val = self.typepath.defs.logservicetype
-        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, val=val)
+        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
+                                                                        val=val)
+
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
             if not len(filtereddictslists):
-                raise
-        except Exception:
-            raise NoContentsFoundForOperationError("Unable to retrieve instance.")
-        try:
+                raise NoContentsFoundForOperationError("Unable to retrieve instance.")
             for filtereddict in filtereddictslists:
                 if filtereddict[u'Name'] == u'Integrated Management Log':
                     if options.clearlog:
@@ -291,16 +306,21 @@ class ServerlogsCommand(RdmcCommandBase):
                         linkpath = filtereddict[u'links'] if u"links" in \
                                                 filtereddict else filtereddict
                         dictpath = linkpath[u'Entries']
-                        dictpath = dictpath[0] if isinstance(dictpath, list) else\
-                                                                    dictpath
+                        dictpath = dictpath[0] if isinstance(dictpath, list) \
+                                                                else dictpath
                         path = dictpath[self.typepath.defs.hrefstring]
             if not path:
-                raise
-        except Exception:
+                raise NoContentsFoundForOperationError("Unable to retrieve logs.")
+        except NoContentsFoundForOperationError as excp:
+            raise excp
+        except Exception as excp:
+#             self._rdmc.app.warn(str(excp))
             sys.stdout.write('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
+
         if self._rdmc.opts.verbose:
             sys.stdout.write(str(path)+'\n')
+
         return path
 
     def returnielpath(self, options=None):
@@ -312,14 +332,13 @@ class ServerlogsCommand(RdmcCommandBase):
         path = ""
         sel = self.typepath.defs.typestring
         val = self.typepath.defs.logservicetype
-        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, val=val)
+        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
+                                                                        val=val)
+
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
             if not len(filtereddictslists):
-                raise
-        except Exception:
-            raise NoContentsFoundForOperationError("Unable to retrieve instance.")
-        try:
+                raise NoContentsFoundForOperationError("Unable to retrieve instance.")
             for filtereddict in filtereddictslists:
                 if filtereddict[u'Name'] == u'iLO Event Log':
                     if options.clearlog:
@@ -331,8 +350,8 @@ class ServerlogsCommand(RdmcCommandBase):
                             path = filtereddict[self.typepath.defs.hrefstring]
                         else:
                             actiondict = filtereddict[u"Actions"]
-                            clearkey = [x for x in actiondict if x.\
-                                                endswith(u"ClearLog")]
+                            clearkey = [x for x in actiondict if \
+                                                        x.endswith(u"ClearLog")]
                             path = actiondict[clearkey[0]][u"target"]
                     else:
                         linkpath = filtereddict[u'links'] if u"links" in \
@@ -341,13 +360,19 @@ class ServerlogsCommand(RdmcCommandBase):
                         dictpath = dictpath[0] if isinstance(dictpath, list) else\
                                                                     dictpath
                         path = dictpath[self.typepath.defs.hrefstring]
+
             if not path:
-                raise
-        except Exception:
+                raise NoContentsFoundForOperationError("Unable to retrieve logs.")
+        except NoContentsFoundForOperationError as excp:
+            raise excp
+        except Exception as excp:
+#             self._rdmc.app.warn(str(excp))
             sys.stdout.write(u'No path found for the entry.\n')
             raise NoContentsFoundForOperationError(u"Unable to retrieve logs.")
+
         if self._rdmc.opts.verbose:
             sys.stdout.write(str(path)+'\n')
+
         return path
 
     def returnahspath(self, options):
@@ -359,14 +384,16 @@ class ServerlogsCommand(RdmcCommandBase):
         path = ""
         sel = self.typepath.defs.typestring
         val = self.typepath.defs.hpiloactivehealthsystemtype
-        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, val=val)
+        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
+                                                                        val=val)
+
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
+
             if not len(filtereddictslists):
-                raise
-        except Exception:
-            raise NoContentsFoundForOperationError("Unable to retrieve log instance.")
-        try:
+                raise NoContentsFoundForOperationError("Unable to retrieve log"\
+                                                                " instance.")
+
             for filtereddict in filtereddictslists:
                 if options.clearlog:
                     if self.typepath.defs.flagforrest:
@@ -377,13 +404,16 @@ class ServerlogsCommand(RdmcCommandBase):
                         path = filtereddict[self.typepath.defs.hrefstring]
                     else:
                         actiondict = filtereddict[u"Actions"]
-                        clearkey = [x for x in actiondict if x.endswith(u"ClearLog")]
+                        clearkey = [x for x in actiondict if \
+                                                        x.endswith(u"ClearLog")]
                         path = actiondict[clearkey[0]][u"target"]
                 else:
-                    linkpath = filtereddict[u'links'] if u'links' in filtereddict\
-                                else filtereddict[u"Links"]
+                    linkpath = filtereddict[u'links'] if u'links' in \
+                                        filtereddict else filtereddict[u"Links"]
+
                     ahslocpath = linkpath[u'AHSLocation']
                     path = ahslocpath[u'extref']
+
                     if options.downloadallahs:
                         path = path
                     elif options.customiseAHS:
@@ -391,34 +421,55 @@ class ServerlogsCommand(RdmcCommandBase):
                         if custr.startswith(("'", '"')) and custr.\
                                                         endswith(("'", '"')):
                             custr = custr[1:-1]
+
                         if custr.startswith(u"from="):
                             path = path.split(u"downloadAll=1")[0]
+
                         path = path+custr
                     else:
                         if "AHSFileStart" in filtereddict.keys():
                             enddate = filtereddict["AHSFileEnd"].split("T")[0]
-                            startdate = filtereddict["AHSFileStart"].split("T")[0]
+                            startdate = filtereddict["AHSFileStart"].\
+                                                                split("T")[0]
+
                             enddat = map(int, enddate.split('-'))
                             startdat = map(int, startdate.split('-'))
-                            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
-                            weekagostr = map(int, (str(weekago).split()[0]).split('-'))
-                            strdate = min(max(datetime.date(weekagostr[0], weekagostr[1],\
-                                weekagostr[2]), datetime.date(startdat[0], startdat[1],\
-                                startdat[2])), datetime.date(enddat[0], enddat[1], enddat[2]))
-                            aweekstr = "from=" + str(strdate) + "&&to=" + enddate
+
+                            weekago = datetime.datetime.now() - \
+                                                    datetime.timedelta(days=7)
+                            weekagostr = map(int, (str(weekago).split()[0]).\
+                                                                    split('-'))
+
+                            strdate = min(max(datetime.date(weekagostr[0], \
+                                weekagostr[1], weekagostr[2]), \
+                                  datetime.date(startdat[0], startdat[1], \
+                                    startdat[2])), datetime.date(enddat[0], \
+                                                         enddat[1], enddat[2]))
+
+                            aweekstr = "from=" + str(strdate) + "&&to=" + \
+                                                                        enddate
                         else:
-                            week_ago = datetime.datetime.now() - datetime.timedelta(days=7)
+                            week_ago = datetime.datetime.now() - \
+                                                    datetime.timedelta(days=7)
                             aweekstr = "from=" + str(week_ago).split()[0] + \
-                                        "&&to=" + str(datetime.datetime.now()).split()[0] 
+                                        "&&to=" + str(datetime.datetime.now()).\
+                                        split()[0]
+
                         path = path.split(u"downloadAll=1")[0]
                         path = path+aweekstr
+
             if not path:
-                raise
-        except Exception:
+                raise NoContentsFoundForOperationError("Unable to retrieve logs.")
+        except NoContentsFoundForOperationError as excp:
+            raise excp
+        except Exception as excp:
+#             self._rdmc.app.warn(str(excp))
             sys.stdout.write('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
+
         if self._rdmc.opts.verbose:
             sys.stdout.write(str(path)+'\n')
+
         return path
 
     def savedata(self, options=None, data=None):
@@ -433,6 +484,7 @@ class ServerlogsCommand(RdmcCommandBase):
             data = self.filterdata(data=data, tofilter=options.filter)
             if options.service == 'AHS':
                 filename = self.getahsfilename(options)
+
                 with open(filename, 'wb') as foutput:
                     foutput.write(data)
             elif options.filename:
@@ -465,10 +517,14 @@ class ServerlogsCommand(RdmcCommandBase):
         :type options: list.
         """
         self.dontunmount = True
+
         if self.typepath.ilogen < 4:
             raise IncompatibleiLOVersionError(u"Need at least iLO 4 for "\
-                                    u"this program to run!\n")
+                                                    u"this program to run!\n")
+
         self.lib = risblobstore2.BlobStore2.gethprestchifhandle()
+
+        sys.stdout.write(u"Mounting blackbox...\n")
 
         try:
             (manual_ovr, abspath) = self.getbbabspath()
@@ -531,33 +587,50 @@ class ServerlogsCommand(RdmcCommandBase):
         for files in allfile:
             if files.startswith((".", "..")):
                 continue
+
             bisrequiredfile = False
+
             if files.split(".")[0] in [x.split(".")[0] for x in cfilelist]:
                 if files.endswith("bb"):
                     bisrequiredfile = True
                     self.lib.updatenfileoptions()
+
             self.lib.gendatlisting.argtypes = [ctypes.c_char_p, \
-                                    ctypes.c_bool, ctypes.c_uint]
+                                                ctypes.c_bool, ctypes.c_uint]
+
             filesize = os.stat(os.path.join(self.abspath, files)).st_size
             self.lib.gendatlisting(files, bisrequiredfile, filesize)
 
     def getfilenames(self, options=None):
         """Get all file names from the blacbox directory."""
-        datelist = []
+        datelist = list()
+        allfiles = list()
+
         filenames = next(os.walk(self.abspath))[2]
-        timenow = (str(datetime.datetime.now()).\
-                                            split()[0]).split('-')
+        timenow = (str(datetime.datetime.now()).split()[0]).split('-')
         strdate = enddate = datetime.date(int(timenow[0]),\
-                            int(timenow[1]), int(timenow[2]))
+                                            int(timenow[1]), int(timenow[2]))
+
+        if not options.downloadallahs:
+            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
+            weekagostr = (str(weekago).split()[0]).split('-')
+            strdate = datetime.date(int(weekagostr[0]), int(weekagostr[1]), \
+                                                            int(weekagostr[2]))
+
         for files in filenames:
             if not files.endswith("bb"):
                 continue
+
             filenoext = files.rsplit(".", 1)[0]
             filesplit = filenoext.split("-")
 
             try:
-                datelist.append(datetime.date(int(filesplit[1]),\
-                                      int(filesplit[2]), int(filesplit[3])))
+                newdate = datetime.date(int(filesplit[1]),\
+                                      int(filesplit[2]), int(filesplit[3]))
+                datelist.append(newdate)
+
+                if (strdate <= newdate) and not options.downloadallahs:
+                    allfiles.append(files)
             except:
                 pass
 
@@ -565,14 +638,11 @@ class ServerlogsCommand(RdmcCommandBase):
             strdate = min(datelist) if len(datelist) else strdate
             enddate = max(datelist) if len(datelist) else enddate
         else:
-            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
-            weekagostr = (str(weekago).split()[0]).split('-')
-            strdate = datetime.date(int(weekagostr[0]), int(weekagostr[1]),\
-                                     int(weekagostr[2]))
             strdate = max(min(datelist), strdate) if len(datelist) else strdate
             enddate = min(max(datelist), enddate) if len(datelist) else enddate
+
         self.updateminmaxdate(strdate=strdate, enddate=enddate)
-        return filenames
+        return filenames if not len(allfiles) else allfiles
 
     def updateminmaxdate(self, strdate=None, enddate=None):
         """Get the minimum and maximum date of files into header
@@ -583,10 +653,10 @@ class ServerlogsCommand(RdmcCommandBase):
         :type enddate: datetime obj
         """
         self.lib.updateMinDate.argtypes = [ctypes.c_int, \
-                                ctypes.c_int, ctypes.c_int]
+                                                    ctypes.c_int, ctypes.c_int]
         self.lib.updateMinDate(strdate.year, strdate.month, strdate.day)
         self.lib.updateMaxDate.argtypes = [ctypes.c_int, \
-                                    ctypes.c_int, ctypes.c_int]
+                                                    ctypes.c_int, ctypes.c_int]
         self.lib.updateMaxDate(enddate.year, enddate.month, enddate.day)
 
     def getclistfilelisting(self):
@@ -596,12 +666,15 @@ class ServerlogsCommand(RdmcCommandBase):
         if os.path.isfile(sclistpath):
             cfile = open(sclistpath, 'rb')
             data = cfile.read()
+
             if data == "":
                 raise InvalidCListFileError("Could not read Cfile\n")
+
             sizeofcfile = len(str(data))
             sizeofrecord = self.lib.sizeofchifbbfilecfgrecord()
             count = sizeofcfile/sizeofrecord
             revcount = 0
+
             while count >= 1:
                 dat = data[revcount*sizeofrecord:(revcount+1)*sizeofrecord]
                 dat = ctypes.create_string_buffer(dat)
@@ -609,21 +682,27 @@ class ServerlogsCommand(RdmcCommandBase):
                 self.lib.getbbfilecfgrecordname.restype = ctypes.c_char_p
                 ptrname = self.lib.getbbfilecfgrecordname(dat)
                 name = str(bytearray(ptrname[:32][:]))
+
                 if name not in cfilelist:
                     cfilelist.append(name)
+
                 count = count-1
                 revcount = revcount+1
+
         return cfilelist
 
     def getbbabspath(self):
         """Get blackbox folder path."""
         count = 0
+
         while count < 20:
             if os.name == 'nt':
                 drives = self.get_available_drives()
+
                 for i in drives:
                     try:
                         label = win32api.GetVolumeInformation(i+':')[0]
+
                         if label == 'BLACKBOX':
                             abspathbb = i+':\\'
                             return (False, abspathbb)
@@ -633,8 +712,10 @@ class ServerlogsCommand(RdmcCommandBase):
                 with open('/proc/mounts', 'r') as fmount:
                     while True:
                         lin = fmount.readline()
+
                         if len(lin.strip()) == 0:
                             break
+
                         if r"/BLACKBOX" in lin:
                             abspathbb = lin.split()[1]
                             return (False, abspathbb)
@@ -647,8 +728,8 @@ class ServerlogsCommand(RdmcCommandBase):
             count = count+1
             time.sleep(1)
 
-        raise PartitionMoutingError("iLO not responding to request "\
-                                   "for mounting BlackBox")
+        raise PartitionMoutingError("iLO not responding to request " \
+                                                        "for mounting BlackBox")
 
     def manualmountbb(self):
         """Manually mount blackbox when after fixed time."""
@@ -667,6 +748,7 @@ class ServerlogsCommand(RdmcCommandBase):
                 pmount = subprocess.Popen(['mount', device.device_node, \
                     dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 _, _ = pmount.communicate()
+
                 return (True, dirpath)
 
         return (False, None)
@@ -698,7 +780,9 @@ class ServerlogsCommand(RdmcCommandBase):
         """Obtain all drives"""
         if 'Windows' not in platform.system():
             return []
+
         drive_bitmask = ctypes.cdll.kernel32.GetLogicalDrives()
+
         return list(itertools.compress(string.ascii_uppercase,\
             [ord(drive) - ord('0') for drive in bin(drive_bitmask)[:1:-1]]))
 
@@ -713,20 +797,24 @@ class ServerlogsCommand(RdmcCommandBase):
         if tofilter and data:
             try:
                 if (str(tofilter)[0] == str(tofilter)[-1])\
-                        and str(tofilter).startswith(("'", '"')):
+                                    and str(tofilter).startswith(("'", '"')):
                     tofilter = tofilter[1:-1]
+
                 (sel, val) = tofilter.split('=')
                 sel = sel.strip()
                 val = val.strip()
+
                 if val.lower() == "true" or val.lower() == "false":
                     val = val.lower() in ("yes", "true", "t", "1")
             except:
                 raise InvalidCommandLineError("Invalid filter" \
                   " parameter format [filter_attribute]=[filter_value]")
+
             data = self._rdmc.app.filter_output(data, sel, val)
             if not data:
                 raise NoContentsFoundForOperationError("Filter returned"\
-                                                         " no matches.")
+                                                                " no matches.")
+
         return data
 
     def getahsfilename(self, options):
@@ -740,21 +828,29 @@ class ServerlogsCommand(RdmcCommandBase):
         else:
             sel = self.typepath.defs.typestring
             val = u"#ComputerSystem."
-            filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, val=val)
+            filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
+                                                                        val=val)
+
             try:
                 filtereddictslists = [x.resp.dict for x in filtereddatainstance]
+
                 if not len(filtereddictslists):
-                    raise
+                    raise NoContentsFoundForOperationError("")
             except Exception:
-                raise NoContentsFoundForOperationError(u"Unable to retrieve log instance.")
+                raise NoContentsFoundForOperationError(u"Unable to retrieve " \
+                                                                "log instance.")
+
             snum = filtereddictslists[0][u"SerialNumber"]
             snum = u'UNKNOWN' if snum.isspace() else snum
-            timenow = (str(datetime.datetime.now()).\
-                                                split()[0]).split('-')
+            timenow = (str(datetime.datetime.now()).split()[0]).split('-')
             todaysdate = ''.join(timenow)
+
             ahsdefaultfilename = u'HPE_'+snum+u'_'+todaysdate+u'.ahs'
+
         if options.directorypath:
-            ahsdefaultfilename = os.path.join(options.directorypath, ahsdefaultfilename)
+            ahsdefaultfilename = os.path.join(options.directorypath, \
+                                                            ahsdefaultfilename)
+
         return ahsdefaultfilename
 
     def serverlogsvalidation(self, options):

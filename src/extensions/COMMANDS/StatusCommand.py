@@ -20,11 +20,9 @@
 import sys
 
 from optparse import OptionParser
-from rdmc_helper import ReturnCodes, \
-                    InvalidCommandLineErrorOPTS
-
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import NoCurrentSessionEstablished
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+                                                    NoCurrentSessionEstablished
 
 class StatusCommand(RdmcCommandBase):
     """ Constructor """
@@ -70,7 +68,7 @@ class StatusCommand(RdmcCommandBase):
 
     def outputpatches(self, contents, selector):
         """ Helper function for status for use in patches
-        
+
         :param contents: contents for the selection
         :type contents: string.
         :param selector: type selected
@@ -83,6 +81,7 @@ class StatusCommand(RdmcCommandBase):
                     sys.stdout.write("%s (Currently selected)\n" % key)
                 else:
                     sys.stdout.write("%s\n" % key)
+
                 for content in value:
                     try:
                         if isinstance(content[0]["value"], int):
@@ -151,4 +150,3 @@ class StatusCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-

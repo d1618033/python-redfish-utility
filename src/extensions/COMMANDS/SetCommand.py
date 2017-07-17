@@ -18,9 +18,11 @@
 """ Set Command for RDMC """
 
 import sys
-import redfish.ris
 
 from optparse import OptionParser
+
+import redfish.ris
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
         InvalidCommandLineErrorOPTS, UI, InvalidOrNothingChangedSettingsError
@@ -47,6 +49,7 @@ class SetCommand(RdmcCommandBase):
         self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
         self.comobj = rdmcObj.commandsDict["CommitCommand"](rdmcObj)
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+
         #remove reboot option if there is no reboot command
         try:
             self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
@@ -77,18 +80,21 @@ class SetCommand(RdmcCommandBase):
         self.setvalidation(options)
 
         if len(args) > 0:
-            if any([s.lower().startswith('adminpassword=') for s in args]) and not \
-                        any([s.lower().startswith('oldadminpassword=') for s in args]):
-                raise InvalidCommandLineError("'OldAdminPassword' must also be "\
-                "set with the current password \nwhen changing 'AdminPassword' "\
-                "for security reasons.")
+            if any([s.lower().startswith('adminpassword=') for s in args]) \
+                    and not any([s.lower().startswith('oldadminpassword=') \
+                                                                for s in args]):
+                raise InvalidCommandLineError("'OldAdminPassword' must also " \
+                            "be set with the current password \nwhen " \
+                            "changing 'AdminPassword' for security reasons.")
 
             for arg in args:
                 if arg[0] == '"' and arg[-1] == '"':
                     arg = arg[1:-1]
+
                 if self._rdmc.app.get_selector().lower().startswith('bios.'):
                     if 'attributes' not in arg.lower():
                         arg = "Attributes/" + arg
+
                 try:
                     (sel, val) = arg.split('=')
                     sel = sel.strip()
@@ -101,10 +107,11 @@ class SetCommand(RdmcCommandBase):
                                                   "format. [Key]=[Value]")
 
                 newargs = list()
-                if "/" in sel and not "/" in str(val):
+
+                if "/" in sel and "/" not in str(val):
                     newargs = arg.split("/")
                 elif "/" in sel:
-                    items = arg.split('=',1)
+                    items = arg.split('=', 1)
                     newargs = items[0].split('/')
                     newargs[-1] = newargs[-1] + '=' + items[-1]
                     arg = newargs[-1]
@@ -121,7 +128,7 @@ class SetCommand(RdmcCommandBase):
                                         uniqueoverride=options.uniqueoverride)
                     else:
                         contents = self._rdmc.app.loadset(val=val,\
-                            newargs=newargs,latestschema=options.latestschema)
+                            newargs=newargs, latestschema=options.latestschema)
 
                     if not contents:
                         if not sel.lower() == 'oldadminpassword':
@@ -144,22 +151,27 @@ class SetCommand(RdmcCommandBase):
 
                 except redfish.ris.ValidationError, excp:
                     errs = excp.get_errors()
+
                     for err in errs:
                         if err.sel.lower() == 'adminpassword':
                             types = self._rdmc.app.current_client.monolith.types
+
                             for item in types:
                                 for instance in types[item]["Instances"]:
                                     if 'hpbios.' in instance.type.lower():
-                                        [instance.patches.remove(patch) for patch in \
-                                         instance.patches if patch.patch[0]\
-                                         ['path'] == '/OldAdminPassword']
+                                        [instance.patches.remove(patch) for \
+                                         patch in instance.patches if \
+                                         patch.patch[0]['path'] == \
+                                         '/OldAdminPassword']
 
                         if isinstance(err, redfish.ris.RegistryValidationError):
                             sys.stderr.write(err.message)
                             sys.stderr.write(u'\n')
+
                             if err.reg and not skipprint:
                                 err.reg.print_help(sel)
                                 sys.stderr.write(u'\n')
+
                     raise redfish.ris.ValidationError(excp)
 
             if options.commit:
@@ -169,7 +181,7 @@ class SetCommand(RdmcCommandBase):
                 self.rebootobj.run(options.reboot)
 
             if options.logout:
-                self.logoutobj.logoutfunction("")
+                self.logoutobj.run("")
 
         else:
             raise InvalidCommandLineError("Missing parameters "\
@@ -193,7 +205,7 @@ class SetCommand(RdmcCommandBase):
         inputline = list()
 
         if self._rdmc.opts.latestschema:
-            options.latestschema=True
+            options.latestschema = True
         if self._rdmc.app.config._ac__commit.lower() == 'true':
             options.commit = True
 

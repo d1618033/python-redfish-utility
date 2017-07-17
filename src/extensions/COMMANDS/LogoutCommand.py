@@ -77,4 +77,3 @@ class LogoutCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-

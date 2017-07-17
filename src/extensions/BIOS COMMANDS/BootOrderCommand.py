@@ -101,9 +101,9 @@ class BootOrderCommand(RdmcCommandBase):
 
         self.selobj.selectfunction("ComputerSystem.")
         onetimebootsettings = self.getobj.getworkerfunction("Boot", options, \
-                            ['Boot/'+self.typepath.defs.bootoverridetargettype], \
-                            newargs=['Boot', self.typepath.defs.bootoverridetargettype], \
-                            results=True)
+                ['Boot/'+self.typepath.defs.bootoverridetargettype], \
+                newargs=['Boot', self.typepath.defs.bootoverridetargettype], \
+                results=True)
 
         bootstatus = self.getobj.getworkerfunction("Boot", options, \
                                ['Boot/BootSourceOverrideEnabled'], \
@@ -120,8 +120,10 @@ class BootOrderCommand(RdmcCommandBase):
                             newargs=['Boot', 'UefiTargetBootSourceOverride'], \
                             results=True)
 
-        currentsettings = self._rdmc.app.get_handler(self.typepath.defs.systempath, \
-                    verbose=self._rdmc.opts.verbose, service=True, silent=True)
+        currentsettings = self._rdmc.app.get_handler(\
+                                            self.typepath.defs.systempath, \
+                                            verbose=self._rdmc.opts.verbose, \
+                                            service=True, silent=True)
 
         if bootmode and bootmode["BootMode"] == "Uefi":
             uefionetimebootsettings = self.getobj.getworkerfunction("Boot", \
@@ -172,13 +174,16 @@ class BootOrderCommand(RdmcCommandBase):
                                   " for possible boot \n       order numbers. ")
 
                         removallist.remove(currentlist[int(bootlist[value]) -1])
+
                         if not len(removallist) == 0:
                             newlist += ","
+
                     if len(removallist) == 0:
                         newlist += "]"
                     else:
                         for value in range(0, len(removallist)):
                             newlist += removallist[value]
+
                             if not value == len(removallist) - 1:
                                 newlist += ","
 
@@ -221,13 +226,14 @@ class BootOrderCommand(RdmcCommandBase):
             newlist = ""
 
             if entry in (item for item in onetimebootsettings\
-                                    ["Boot"][self.typepath.defs.bootoverridetargettype]):
+                        ["Boot"][self.typepath.defs.bootoverridetargettype]):
 
                 if entry and isinstance(entry, basestring):
                     entry = entry.upper()
 
                 entry = self.searchcasestring(entry, \
-                    onetimebootsettings["Boot"][self.typepath.defs.bootoverridetargettype])
+                                    onetimebootsettings["Boot"]\
+                                    [self.typepath.defs.bootoverridetargettype])
 
                 if not entry == targetstatus['Boot']\
                                                 [u'BootSourceOverrideTarget']:
@@ -574,4 +580,3 @@ class BootOrderCommand(RdmcCommandBase):
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
-

@@ -69,8 +69,10 @@ class FirmwareUpdateCommand(RdmcCommandBase):
 
         action = None
         uri = "FirmwareURI"
+
         select = self.typepath.defs.hpilofirmwareupdatetype
         results = self._rdmc.app.filter(select, None, None)
+
         try:
             results = results[0]
         except:
@@ -88,6 +90,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 if self.typepath.defs.isgen10:
                     if 'SimpleUpdate' in item:
                         action = item.split('#')[-1]
+
                     uri = "ImageURI"
                     options.tpmenabled = False
                 elif 'InstallFromURI' in item:
@@ -101,8 +104,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
             action = "Reset"
 
         if options.tpmenabled:
-            body = {"Action": action,\
-                       uri: args[0], "TPMOverrideFlag": True}
+            body = {"Action": action, uri: args[0], "TPMOverrideFlag": True}
         else:
             body = {"Action": action, uri: args[0]}
 
@@ -111,7 +113,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         sys.stdout.write("\nStarting upgrading process...\n\n")
 
         self.showupdateprogress(update_path)
-        self.logoutobj.logoutfunction("")
+        self.logoutobj.run("")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -131,7 +133,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         while True:
             if counter == 100:
                 raise FirmwareUpdateError("Error occurred while updating "\
-                                          "the firmware.")
+                                                                "the firmware.")
             else:
                 counter += 1
 
@@ -143,24 +145,27 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 pass
 
             if not results:
-                raise FirmwareUpdateError("Unable to contact Update Service. Please"\
-                                    " re-login and try again.")
+                raise FirmwareUpdateError("Unable to contact Update Service. " \
+                                            "Please re-login and try again.")
 
             if results["State"].lower().startswith("idle"):
                 time.sleep(2)
             elif results["State"].lower().startswith("uploading"):
                 counter = 0
+
                 if not uploadingpost:
                     uploadingpost = True
                 else:
-                    if written == False:
+                    if not written:
                         written = True
-                        sys.stdout.write("iLO is uploading the necessary files."\
-                                         " Please wait...")
+                        sys.stdout.write("iLO is uploading the necessary " \
+                                                        "files. Please wait...")
+
                 time.sleep(0.5)
-            elif results["State"].lower().startswith(("progressing", "updating", \
-                                                        "verifying", "writing")):
+            elif results["State"].lower().startswith(("progressing", \
+                                          "updating", "verifying", "writing")):
                 counter = 0
+
                 for _ in range(2):
                     if position < 4:
                         sys.stdout.write("Updating: "+ spinner[position]+"\r")

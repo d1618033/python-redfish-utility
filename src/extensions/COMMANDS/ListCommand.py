@@ -16,10 +16,10 @@
 
 # -*- coding: utf-8 -*-
 """ List Command for RDMC """
+from optparse import OptionParser
 
 import redfish.ris
 
-from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS,\
                                 NoContentsFoundForOperationError

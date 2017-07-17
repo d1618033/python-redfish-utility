@@ -30,8 +30,8 @@ class CommitCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='commit',\
-            usage='commit [OPTIONS]\n\n\tRun to apply all changes made during the' \
-                    ' current session\n\texample: commit',\
+            usage='commit [OPTIONS]\n\n\tRun to apply all changes made during' \
+                    ' the current session\n\texample: commit',\
             summary='Applies all the changes made during the current' \
                     ' session.',\
             aliases=[],\
@@ -39,6 +39,7 @@ class CommitCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+
         #remove reboot option if there is no reboot command
         try:
             self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
@@ -70,13 +71,13 @@ class CommitCommand(RdmcCommandBase):
             if options.reboot:
                 self.rebootobj.run(options.reboot)
             else:
-                self.logoutobj.logoutfunction("")
+                self.logoutobj.run("")
         else:
-            self.logoutobj.logoutfunction("")
+            self.logoutobj.run("")
 
     def run(self, line):
         """ Wrapper function for commit main function
-        
+
         :param line: command line input
         :type line: string.
         """

@@ -20,10 +20,11 @@
 import sys
 import json
 
+from optparse import OptionParser
+
 import redfish
 
-from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, UI
 
@@ -55,6 +56,7 @@ class RawHeadCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
         url = None
 
         if options.sessionid:

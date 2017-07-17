@@ -133,6 +133,10 @@ Use this flag to enable a continuous boot option. Using this flag will cause the
 
 Use this to disable either continuous or one-time boot modes.
 
+- **--securebootkeys=SECUREBOOT**
+
+Use this flag to perform actions on secure boot keys.Possible values include defaultkeys: resets all keys to default,deletekeys: deletes all keys, deletepk: deletes all product keys.
+
 #### Inputs
 
 None
@@ -205,6 +209,14 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
+
+- **--userdefaults**
+
+Sets bios to user defaults instead of factory defaults.
+
+- **--manufacturingdefaults**
+
+Sets bios to manufacturer defaults instead of factory defaults.
 
 #### Inputs
 
@@ -551,3 +563,50 @@ None
 #### Outputs
 
 None
+
+### Setpassword command
+
+> Setpassword example commands:
+
+
+
+#### Syntax
+
+setpassword *[NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]*
+
+#### Description
+
+
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **-p PASSWORD, --password=PASSWORD**
+
+Use the provided iLO password to log in.
+
+- **--reboot=REBOOT**
+
+Use this flag to perform a reboot command function after completion of operations. 'REBOOT' is replaceable parameter that can have multiple values. For help with parameters and descriptions regarding the reboot flag, run help reboot.
+
+
+
+
+#### Inputs
+
+
+
+#### Outputs
+
+

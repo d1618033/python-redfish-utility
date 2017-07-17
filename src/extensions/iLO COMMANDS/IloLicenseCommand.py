@@ -28,8 +28,8 @@ class IloLicenseCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='ilolicense',\
             usage='ilolicense [LICENSE_KEY] [OPTIONS]\n\n\t'\
-                'Set an iLO license on the current logged in server.\n\texample: ' \
-                'ilolicense xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',\
+                'Set an iLO license on the current logged in server.\n\t' \
+                'example: ilolicense xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',\
             summary='Adds an iLO license key to the currently logged in ' \
             'server.',\
             aliases=None,\
@@ -57,7 +57,8 @@ class IloLicenseCommand(RdmcCommandBase):
 
         if not len(args) == 1:
             raise InvalidCommandLineError("ilolicense command only takes one "\
-                                          "argument")
+                                                                    "argument")
+
         path = self.typepath.defs.addlicensepath
         body = {"LicenseKey": "%s" % args[0]}
         self._rdmc.app.post_handler(path, body)

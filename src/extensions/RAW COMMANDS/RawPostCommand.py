@@ -21,9 +21,9 @@ import sys
 import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI, InvalidFileInputError, \
+                    InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                     InvalidFileFormattingError
 
 class RawPostCommand(RdmcCommandBase):
@@ -85,6 +85,7 @@ class RawPostCommand(RdmcCommandBase):
             extraheaders = options.headers.split(',')
             for item in extraheaders:
                 header = item.split(':')
+
                 try:
                     headers[header[0]] = header[1]
                 except:

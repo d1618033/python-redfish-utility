@@ -23,10 +23,10 @@ import os
 import glob
 import shlex
 
-import versioning
 from optparse import OptionParser, OptionGroup
 
 import cliutils
+import versioning
 
 #---------End of imports---------
 
@@ -133,6 +133,7 @@ class CommandBase(object):
         arglist = []
         if isinstance(line, basestring):
             arglist = shlex.split(line, posix=False)
+
             for ind, val in enumerate(arglist):
                 arglist[ind] = val.strip('"\'')
         elif isinstance(line, list):
@@ -214,7 +215,6 @@ class RdmcOptionParser(OptionParser):
             " (default location: %s)" % config_dir_default,
             metavar='PATH'
         )
-
         globalgroup.add_option(
             '-v',
             '--verbose',
@@ -223,7 +223,6 @@ class RdmcOptionParser(OptionParser):
             help="""Display verbose information.""",
             default=False
         )
-
         globalgroup.add_option(
             '-d',
             '--debug',
@@ -232,7 +231,6 @@ class RdmcOptionParser(OptionParser):
             help="""Display debug information.""",
             default=False
         )
-
         globalgroup.add_option(
             '--nocache',
             dest='nocache',
@@ -241,7 +239,6 @@ class RdmcOptionParser(OptionParser):
             " data only in memory.",
             default=False
         )
-
         globalgroup.add_option(
             '--nologo',
             dest='nologo',
@@ -249,7 +246,6 @@ class RdmcOptionParser(OptionParser):
             help="""Include to block copyright and logo.""",
             default=False
         )
-
         globalgroup.add_option(
             '--redfish',
             dest='is_redfish',
@@ -259,7 +255,6 @@ class RdmcOptionParser(OptionParser):
                 "in systems with iLO5 and above.",
             default=False
         )
-
         globalgroup.add_option(
             '--latestschema',
             dest='latestschema',

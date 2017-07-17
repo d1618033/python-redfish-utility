@@ -58,4 +58,3 @@ class ExitCommand(RdmcCommandBase):
         else:
             sys.stderr.write("Exit command does not take any parameters.\n")
             raise InvalidCommandLineErrorOPTS("Invalid command line arguments.")
-

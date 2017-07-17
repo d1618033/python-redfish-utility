@@ -20,14 +20,17 @@
 import os
 import sys
 import json
-import six
 import shlex
 import subprocess
-import redfish.ris
 
 from Queue import Queue
 from datetime import datetime
 from optparse import OptionParser
+
+import six
+import redfish.ris
+
+from redfish.ris.rmc_helper import LoadSkipSettingError
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     NoChangesFoundOrMadeError, InvalidFileInputError, \
@@ -35,8 +38,6 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidMSCfileInputError
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-
-from redfish.ris.rmc_helper import LoadSkipSettingError
 
 #default file name
 __filename__ = 'ilorest.json'
@@ -48,15 +49,14 @@ class LoadCommand(RdmcCommandBase):
             name='load',\
             usage='load [OPTIONS]\n\n\tRun to load the default configuration' \
             ' file\n\texample: load\n\n\tLoad configuration file from a ' \
-            'different file'\
-            '\n\tif any property values have changed, the changes are committed'\
-            ' and the user is logged out of the server'\
-            '\n\n\texample: load -f output.json\n\n\tLoad ' \
-            'configurations to multiple servers\n\texample: load -m ' \
-            'mpfilename.txt -f output.json\n\n\tNote: multiple server file ' \
-            'format (1 server per new line)\n\t--url <iLO url/hostname> -u admin ' \
-            '-p password\n\t--url <iLO url/hostname> -u admin -p password\n\t--url ' \
-            '<iLO url/hostname> -u admin -p password',\
+            'different file\n\tif any property values have changed, the ' \
+            'changes are committed and the user is logged out of the server'\
+            '\n\n\texample: load -f output.json\n\n\tLoad configurations to ' \
+            'multiple servers\n\texample: load -m mpfilename.txt -f output.' \
+            'json\n\n\tNote: multiple server file format (1 server per new ' \
+            'line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url' \
+            ' <iLO url/hostname> -u admin -p password\n\t--url <iLO url/' \
+            'hostname> -u admin -p password',\
             summary='Loads the server configuration settings from a file.',\
             aliases=[],\
             optparser=OptionParser())
@@ -86,9 +86,10 @@ class LoadCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.loadvalidation(options)
-        returnValue = False
+        returnvalue = False
 
         loadcontent = dict()
+
         if options.mpfilename:
             sys.stdout.write("Loading configuration for multiple servers...\n")
         else:
@@ -110,10 +111,10 @@ class LoadCommand(RdmcCommandBase):
 
             if options.mpfilename:
                 mfile = options.mpfilename
-                outputdir=None
+                outputdir = None
 
                 if options.outdirectory:
-                    outputdir=options.outdirectory
+                    outputdir = options.outdirectory
 
                 if self.runmpfunc(mpfile=mfile, lfile=files, \
                                                         outputdir=outputdir):
@@ -158,15 +159,18 @@ class LoadCommand(RdmcCommandBase):
                             if len(indices) > 0:
                                 for index in indices:
                                     changes = []
-                                    if len(set(six.iterkeys(dicttolist[index][1]))):
-                                        self.loadmultihelper(dicttolist[index][0], \
+                                    if len(set(six.iterkeys(\
+                                                        dicttolist[index][1]))):
+                                        self.loadmultihelper(\
+                                                 dicttolist[index][0], \
                                                  dicttolist[index][1], changes)
 
                                     for change in changes:
-                                        if self._rdmc.app.loadset(dicttolist=\
-                                                None, latestschema=options.latestschema,\
-                                                uniqueoverride=options.uniqueoverride, newargs=\
-                                                change[0], val=change[0]):
+                                        if self._rdmc.app.loadset(\
+                                          dicttolist=None, \
+                                          latestschema=options.latestschema, \
+                                          uniqueoverride=options.uniqueoverride, \
+                                          newargs=change[0], val=change[0]):
                                             results = True
 
                                 indices.sort(cmp=None, key=None, reverse=True)
@@ -179,23 +183,25 @@ class LoadCommand(RdmcCommandBase):
                                 continue
 
                             try:
-                                if self._rdmc.app.loadset(dicttolist=\
-                                    dicttolist, latestschema=options.latestschema,\
-                                    uniqueoverride=options.uniqueoverride):
+                                if self._rdmc.app.loadset(\
+                                      dicttolist=dicttolist, \
+                                      latestschema=options.latestschema,\
+                                      uniqueoverride=options.uniqueoverride):
                                     results = True
                             except LoadSkipSettingError, excp:
-                                returnValue = True
+                                returnvalue = True
                                 results = True
-                                pass
                             except Exception, excp:
                                 raise excp
-
                     except redfish.ris.ValidationError, excp:
                         errs = excp.get_errors()
+
                         for err in errs:
-                            if isinstance(err, redfish.ris.RegistryValidationError):
+                            if isinstance(err, \
+                                          redfish.ris.RegistryValidationError):
                                 sys.stderr.write(err.message)
                                 sys.stderr.write(u'\n')
+
                                 try:
                                     if err.reg:
                                         err.reg.print_help(str(err.sel))
@@ -212,7 +218,7 @@ class LoadCommand(RdmcCommandBase):
                     if results:
                         self.comobj.commitfunction()
                 except NoChangesFoundOrMadeError, excp:
-                    if returnValue:
+                    if returnvalue:
                         pass
                     else:
                         raise excp
@@ -222,10 +228,10 @@ class LoadCommand(RdmcCommandBase):
                                                     "current configuration.")
 
         #Return code
-        if returnValue:
+        if returnvalue:
             return ReturnCodes.LOAD_SKIP_SETTING_ERROR
-        else:
-            return ReturnCodes.SUCCESS
+
+        return ReturnCodes.SUCCESS
 
     def loadmultihelper(self, sel, val, changes):
         """ Load multi helper function
@@ -261,13 +267,13 @@ class LoadCommand(RdmcCommandBase):
         runlogin = False
 
         if self._rdmc.opts.latestschema:
-            options.latestschema=True
+            options.latestschema = True
 
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
 
         try:
-            client = self._rdmc.app.get_current_client()
+            self._rdmc.app.get_current_client()
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -334,8 +340,10 @@ class LoadCommand(RdmcCommandBase):
         :type path: string.
         """
         contents = self._rdmc.app.get_save(onlypath=path)
+
         if not contents:
             contents = list()
+
         for content in contents:
             for k in content.keys():
                 if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
@@ -356,7 +364,7 @@ class LoadCommand(RdmcCommandBase):
         self.logoutobj.run("")
         data = self.validatempfile(mpfile=mpfile, lfile=lfile)
 
-        if data == False:
+        if not data:
             return False
 
         processes = []
@@ -364,16 +372,16 @@ class LoadCommand(RdmcCommandBase):
         outputform = '%Y-%m-%d-%H-%M-%S'
 
         if outputdir:
-            if outputdir.endswith(('"',"'")) and \
-                                                outputdir.startswith(('"',"'")):
-                outputdir=outputdir[1:-1]
+            if outputdir.endswith(('"', "'")) and \
+                                            outputdir.startswith(('"', "'")):
+                outputdir = outputdir[1:-1]
 
             if not os.path.isdir(outputdir):
                 sys.stdout.write("The give output folder path does not " \
                                                                     "exist.\n")
                 raise InvalidCommandLineErrorOPTS("")
 
-            dirpath=outputdir
+            dirpath = outputdir
         else:
             dirpath = os.getcwd()
 
@@ -398,7 +406,8 @@ class LoadCommand(RdmcCommandBase):
             if os.name is not 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
 
-            logfile = open(os.path.join(createdir, urlvar+".txt"), "w+")
+            urlfilename = urlvar.split('//')[-1]
+            logfile = open(os.path.join(createdir, urlfilename+".txt"), "w+")
             pinput = subprocess.Popen(listargforsubprocess, shell=True,\
                                                 stdout=logfile, stderr=logfile)
 
@@ -482,8 +491,8 @@ class LoadCommand(RdmcCommandBase):
 
         if data:
             return data
-        else:
-            return False
+
+        return False
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

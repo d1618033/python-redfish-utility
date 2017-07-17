@@ -16,8 +16,6 @@
 
 # -*- coding: utf-8 -*-
 """ SigRecompute Command for rdmc """
-
-import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
@@ -29,7 +27,9 @@ class SigRecomputeCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='sigrecompute',\
             usage='sigrecompute [OPTIONS]\n\n\tRecalculate the signature on ' \
-                    'the computers configuration.\n\texample: sigrecompute',\
+                    'the computers configuration.\n\texample: sigrecompute\n'\
+                    'Note: sigrecompute command is not available on Redfish'\
+                    ' systems.',\
             summary="Command to recalculate the signature of the computer's " \
             "configuration.",\
             aliases=None,\
@@ -54,7 +54,8 @@ class SigRecomputeCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not len(args) == 0:
-            raise InvalidCommandLineError("sigrecompute command takes no arguments.")
+            raise InvalidCommandLineError("Sigrecompute command takes no " \
+                                                                "arguments.")
 
         self.sigrecomputevalidation(options)
         path = self.typepath.defs.systempath
@@ -63,8 +64,8 @@ class SigRecomputeCommand(RdmcCommandBase):
             body = {"Action": "ServerSigRecompute", "Target": "/Oem/Hp"}
             self._rdmc.app.post_handler(path, body)
         else:
-            raise IncompatibleiLOVersionError("Sigrecompute action not available on "\
-                                        "redfish.")
+            raise IncompatibleiLOVersionError("Sigrecompute action not " \
+                                                        "available on redfish.")
 
         return ReturnCodes.SUCCESS
 
