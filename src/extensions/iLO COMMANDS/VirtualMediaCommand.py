@@ -71,7 +71,8 @@ class VirtualMediaCommand(RdmcCommandBase):
             self.virtualmediavalidation(options)
 
         resp = self._rdmc.app.get_handler(\
-                          '/rest/v1/Managers/1/VirtualMedia/1', response=True)
+                          '/rest/v1/Managers/1/VirtualMedia/1', response=True,\
+                          silent=True)
 
         if not resp.status == 200:
             raise IloLicenseError('')
@@ -164,6 +165,9 @@ class VirtualMediaCommand(RdmcCommandBase):
         :type options: list.
         """
         path = None
+        if not args[1].startswith('http://') and not args[1].startswith('https://'):
+            raise InvalidCommandLineError("Virtual media path must be a URL.")
+
         if isredfish:
             path, body = self.vmredfishhelper('insert', args[0], args[1])
         else:
