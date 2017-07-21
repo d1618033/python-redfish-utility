@@ -48,7 +48,6 @@ class VirtualMediaCommand(RdmcCommandBase):
         self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
         self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
         self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main iscsi configuration worker function
@@ -148,7 +147,7 @@ class VirtualMediaCommand(RdmcCommandBase):
             self._rdmc.app.post_handler(path, body)
 
         if options.reboot:
-            self.rebootobj.run("")
+            self.rebootobj.run(options.reboot)
 
     def vminserthelper(self, args, options, paths, isredfish, ilover):
         """Worker function to insert virtual media
@@ -193,7 +192,7 @@ class VirtualMediaCommand(RdmcCommandBase):
             self.vmbootnextreset(args, paths)
 
         if options.reboot:
-            self.rebootobj.run("")
+            self.rebootobj.run(options.reboot)
 
     def vmdefaulthelper(self, options, paths):
         """Worker function to reset virtual media config to default
