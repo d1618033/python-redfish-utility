@@ -23,18 +23,22 @@ import json
 import time
 import ctypes
 import string
+import shlex
 import tempfile
 import datetime
 import platform
 import itertools
 import subprocess
 
+from Queue import Queue
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                 NoContentsFoundForOperationError, IncompatibleiLOVersionError,\
-                InvalidCListFileError, PartitionMoutingError
+                InvalidCListFileError, PartitionMoutingError, \
+                MultipleServerConfigError, UnabletoFindDriveError, \
+                InvalidMSCfileInputError
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
@@ -63,9 +67,14 @@ class ServerlogsCommand(RdmcCommandBase):
                 '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)' \
                 '\n\tInsert entry in the IML logs from the logged in ' \
                 'server.\n\texample: serverlogs --selectlog=IML -m "Text' \
-                ' message for maintenance"\n\n\t(AHS LOGS ONLY FEATURE IN ' \
-                'REMOTE MODE)\n\tInsert customized string if required for AHS' \
-                ' log to be downloaded. \n\texample: serverlogs --selectlog=' \
+                ' message for maintenance"\n\n\tDownload logs from multiple servers' \
+                '\n\texample: serverlogs --mpfile mpfilename.txt -o output' \
+                'directorypath --mplog=IEL,IML\n\n\tNote: multiple server file ' \
+                'format (1 server per new line)\n\t--url <iLO url/hostname> ' \
+                '-u admin -p password\n\t--url <iLO url/hostname> -u admin -' \
+                'p password\n\t--url <iLO url/hostname> -u admin -p password'\
+                '\n\n\tInsert customized string '\
+                'if required for AHS\n\texample: serverlogs --selectlog=' \
                 'AHS -f AHSlog.ahs --customiseAHS "from=2014-03-01&&to=2014' \
                 '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/' \
                 'path of directory where AHS log needs to be saved.'\
@@ -81,6 +90,7 @@ class ServerlogsCommand(RdmcCommandBase):
         self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
         self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
         self.dontunmount = None
+        self.queue = Queue()
         self.abspath = None
         self.lib = None
 
@@ -99,6 +109,10 @@ class ServerlogsCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.serverlogsvalidation(options)
+
+        if options.mpfilename:
+            sys.stdout.write("Downloading logs for multiple servers...\n")
+            return self.gotompfunc(options)
 
         self.serverlogsworkerfunction(options)
 
@@ -142,6 +156,191 @@ class ServerlogsCommand(RdmcCommandBase):
             data = self.downloaddata(path=path, options=options)
 
         self.savedata(options=options, data=data)
+
+    def gotompfunc(self, options):
+        """"Function to download logs from multiple servers concurrently
+
+        :param options: command line options
+        :type options: list.
+        """
+        if options.mpfilename:
+            mfile = options.mpfilename
+            outputdir = None
+
+            if options.outdirectory:
+                outputdir = options.outdirectory
+
+            if self.runmpfunc(mpfile=mfile, outputdir=outputdir, options\
+                                                                =options):
+                return ReturnCodes.SUCCESS
+            else:
+                raise MultipleServerConfigError("One or more servers "\
+                                    "failed to download logs.")
+
+    def runmpfunc(self, mpfile=None, outputdir=None, options=None):
+        """ Main worker function for multi file command
+
+        :param mpfile: configuration file
+        :type mpfile: string.
+        :param outputdir: custom output directory
+        :type outputdir: string.
+        """
+        self.logoutobj.run("")
+        data = self.validatempfile(mpfile=mpfile, options=options)
+
+        if not data:
+            return False
+
+        processes = []
+        finalreturncode = True
+        outputform = '%Y-%m-%d-%H-%M-%S'
+
+        if outputdir:
+            if outputdir.endswith(('"', "'")) and \
+                                            outputdir.startswith(('"', "'")):
+                outputdir = outputdir[1:-1]
+
+            if not os.path.isdir(outputdir):
+                sys.stdout.write("The given output folder path does not " \
+                                                                    "exist.\n")
+                raise InvalidCommandLineErrorOPTS("")
+
+            dirpath = outputdir
+        else:
+            dirpath = os.getcwd()
+
+        dirname = '%s_%s' % (datetime.datetime.now().strftime(outputform), 'MSClogs')
+        createdir = os.path.join(dirpath, dirname)
+        os.mkdir(createdir)
+
+        oofile = open(os.path.join(createdir, 'CompleteOutputfile.txt'), 'w+')
+        sys.stdout.write('Create multiple processes to load configuration '\
+                                            'concurrently to all servers...\n')
+
+        while True:
+            if not self.queue.empty():
+                line = self.queue.get()
+            else:
+                break
+
+            finput = '\n'+ 'Output for '+ line[line.index('--url')+1]+': \n\n'
+            urlvar = line[line.index('--url')+1]
+            urlfilename = urlvar.split('//')[-1]
+            line[line.index('-f')+1] = str(line[line.index('-f')+1]) + urlfilename
+            listargforsubprocess = [sys.executable] + line
+
+            if os.name is not 'nt':
+                listargforsubprocess = " ".join(listargforsubprocess)
+
+            logfile = open(os.path.join(createdir, urlfilename+".txt"), "w+")
+            pinput = subprocess.Popen(listargforsubprocess, shell=True,\
+                                                stdout=logfile, stderr=logfile)
+
+            processes.append((pinput, finput, urlvar, logfile))
+
+        for pinput, finput, urlvar, logfile in processes:
+            pinput.wait()
+            returncode = pinput.returncode
+            finalreturncode = finalreturncode and not returncode
+
+            logfile.close()
+            logfile = open(os.path.join(createdir, urlvar+".txt"), "r+")
+            oofile.write(finput + str(logfile.read()))
+            oofile.write('-x+x-'*16)
+            logfile.close()
+
+            if returncode == 0:
+                sys.stdout.write('Loading Configuration for {} : SUCCESS\n'\
+                                                                .format(urlvar))
+            else:
+                sys.stdout.write('Loading Configuration for {} : FAILED\n'\
+                                                                .format(urlvar))
+                sys.stderr.write('ILOREST return code : {}.\nFor more '\
+                         'details please check {}.txt under {} directory.\n'\
+                                        .format(returncode, urlvar, createdir))
+
+        oofile.close()
+
+        if finalreturncode:
+            sys.stdout.write('All servers have been successfully configured.\n')
+
+        return finalreturncode
+
+    def validatempfile(self, mpfile=None, options=None):
+        """ Validate temporary file
+
+        :param mpfile: configuration file
+        :type mpfile: string.
+        :param lfile: custom file name
+        :type lfile: string.
+        """
+        sys.stdout.write('Checking given server information...\n')
+
+        if not mpfile:
+            return False
+        elif mpfile.startswith(('"', "'")) and mpfile[0] == mpfile[-1]:
+            mpfile = mpfile[1:-1]
+
+        if not os.path.isfile(mpfile) or not options.mplog:
+            raise InvalidFileInputError("File '%s' doesn't exist, please " \
+                            "create file by running save command." % mpfile)
+
+        logs = self.checkmplog(options)
+
+        try:
+            with open(mpfile, "r") as myfile:
+                data = list()
+                cmdtorun = ['serverlogs']
+                globalargs = ['-v', '--nocache']
+
+                while True:
+                    line = myfile.readline()
+                    if not line:
+                        break
+
+                    for logval in logs:
+                        cmdargs = ['--selectlog='+ str(logval), '-f', str(logval)]
+                        if line.endswith(os.linesep):
+                            line.rstrip(os.linesep)
+
+                        args = shlex.split(line, posix=False)
+
+                        if len(args) < 5:
+                            sys.stderr.write('Incomplete data in input file: {}\n'\
+                                                                    .format(line))
+                            raise InvalidMSCfileInputError('Please verify the '\
+                                                'contents of the %s file' %mpfile)
+                        else:
+                            linelist = globalargs + cmdtorun + args + cmdargs
+                            line = str(line).replace("\n", "")
+                            self.queue.put(linelist)
+                            data.append(linelist)
+        except Exception, excp:
+            raise excp
+
+        if data:
+            return data
+
+        return False
+
+    def checkmplog(self, options):
+        """Function to validate mplogs options
+
+        :param options: command line options
+        :type options: list.
+        """
+        if options.mplog:
+            logs = str(options.mplog)
+            if ',' in logs:
+                logs = logs.split(',')
+                return logs
+            if logs in ('all', 'IEL', 'IML', 'AHS'):
+                if logs == 'all':
+                    logs = ['IEL', 'IML', 'AHS']
+                else:
+                    logs = [logs]
+                return logs
+        raise InvalidCommandLineErrorOPTS("Error in mplogs options")
 
     def addmaintenancelogentry(self, options, path=None):
         """Worker function to add maintenance log
@@ -413,6 +612,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
                     ahslocpath = linkpath[u'AHSLocation']
                     path = ahslocpath[u'extref']
+                    weekpath = None
 
                     if options.downloadallahs:
                         path = path
@@ -427,7 +627,9 @@ class ServerlogsCommand(RdmcCommandBase):
 
                         path = path+custr
                     else:
-                        if "AHSFileStart" in filtereddict.keys():
+                        if 'RecentWeek' in linkpath.keys():
+                            weekpath = linkpath[u"RecentWeek"][u'extref']
+                        elif "AHSFileStart" in filtereddict.keys():
                             enddate = filtereddict["AHSFileEnd"].split("T")[0]
                             startdate = filtereddict["AHSFileStart"].\
                                                                 split("T")[0]
@@ -436,7 +638,7 @@ class ServerlogsCommand(RdmcCommandBase):
                             startdat = map(int, startdate.split('-'))
 
                             weekago = datetime.datetime.now() - \
-                                                    datetime.timedelta(days=7)
+                                                    datetime.timedelta(days=6)
                             weekagostr = map(int, (str(weekago).split()[0]).\
                                                                     split('-'))
 
@@ -450,13 +652,13 @@ class ServerlogsCommand(RdmcCommandBase):
                                                                         enddate
                         else:
                             week_ago = datetime.datetime.now() - \
-                                                    datetime.timedelta(days=7)
+                                                    datetime.timedelta(days=6)
                             aweekstr = "from=" + str(week_ago).split()[0] + \
                                         "&&to=" + str(datetime.datetime.now()).\
                                         split()[0]
 
                         path = path.split(u"downloadAll=1")[0]
-                        path = path+aweekstr
+                        path = weekpath if weekpath else path+aweekstr
 
             if not path:
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
@@ -611,14 +813,32 @@ class ServerlogsCommand(RdmcCommandBase):
         strdate = enddate = datetime.date(int(timenow[0]),\
                                             int(timenow[1]), int(timenow[2]))
 
-        if not options.downloadallahs:
-            weekago = datetime.datetime.now() - datetime.timedelta(days=7)
+        if not options.downloadallahs and not options.customiseAHS:
+            weekago = datetime.datetime.now() - datetime.timedelta(days=6)
             weekagostr = (str(weekago).split()[0]).split('-')
             strdate = datetime.date(int(weekagostr[0]), int(weekagostr[1]), \
                                                             int(weekagostr[2]))
 
+        if options.customiseAHS:
+            instring = options.customiseAHS
+            if instring.startswith(("'", '"')) and instring.\
+                                                endswith(("'", '"')):
+                instring = instring[1:-1]
+            try:
+                (strdatestr, enddatestr) = map(lambda e: e.split('-'), \
+                                    instring.split("from=")[-1].split("&&to="))
+                strdate = datetime.date(int(strdatestr[0]),\
+                                      int(strdatestr[1]), int(strdatestr[2]))
+                enddate = datetime.date(int(enddatestr[0]),\
+                                      int(enddatestr[1]), int(enddatestr[2]))
+            except Exception as excp:
+                self._rdmc.app.warn(excp)
+                raise InvalidCommandLineError("Cannot parse customized AHSinput.")
+
         for files in filenames:
             if not files.endswith("bb"):
+                #Check the logic for the non bb files
+                allfiles.append(files)
                 continue
 
             filenoext = files.rsplit(".", 1)[0]
@@ -629,7 +849,8 @@ class ServerlogsCommand(RdmcCommandBase):
                                       int(filesplit[2]), int(filesplit[3]))
                 datelist.append(newdate)
 
-                if (strdate <= newdate) and not options.downloadallahs:
+                if (strdate <= newdate) and (newdate <= enddate) and \
+                                    not options.downloadallahs:
                     allfiles.append(files)
             except:
                 pass
@@ -642,7 +863,7 @@ class ServerlogsCommand(RdmcCommandBase):
             enddate = min(max(datelist), enddate) if len(datelist) else enddate
 
         self.updateminmaxdate(strdate=strdate, enddate=enddate)
-        return filenames if not len(allfiles) else allfiles
+        return filenames if options.downloadallahs else allfiles
 
     def updateminmaxdate(self, strdate=None, enddate=None):
         """Get the minimum and maximum date of files into header
@@ -733,23 +954,27 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def manualmountbb(self):
         """Manually mount blackbox when after fixed time."""
-        context = pyudev.Context()
 
-        for device in context.list_devices(MAJOR="8", subsystem="block"):
-            if device.get("ID_FS_LABEL") == "BLACKBOX":
-                dirpath = os.path.join(tempfile.gettempdir(), "BLACKBOX")
+        try:
+            context = pyudev.Context()
+            for device in context.list_devices(subsystem="block"):
+                if device.get("ID_FS_LABEL") == "BLACKBOX":
+                    dirpath = os.path.join(tempfile.gettempdir(), "BLACKBOX")
 
-                if not os.path.exists(dirpath):
-                    try:
-                        os.makedirs(dirpath)
-                    except Exception, excp:
-                        raise excp
+                    if not os.path.exists(dirpath):
+                        try:
+                            os.makedirs(dirpath)
+                        except Exception, excp:
+                            raise excp
 
-                pmount = subprocess.Popen(['mount', device.device_node, \
-                    dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                _, _ = pmount.communicate()
+                    pmount = subprocess.Popen(['mount', device.device_node, \
+                        dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    _, _ = pmount.communicate()
 
-                return (True, dirpath)
+                    return (True, dirpath)
+        except UnicodeDecodeError as excp:
+            self.unmountbb()
+            raise UnabletoFindDriveError(excp)
 
         return (False, None)
 
@@ -999,5 +1224,25 @@ class ServerlogsCommand(RdmcCommandBase):
             '--directorypath',
             dest='directorypath',
             help="""Directory path for the ahs file.""",
+            default=None,
+        )
+        customparser.add_option(
+            '--mpfile',
+            dest='mpfilename',
+            help="""use the provided filename to obtain server information.""",
+            default=None,
+        )
+        customparser.add_option(
+            '-o',
+            '--outputdirectory',
+            dest='outdirectory',
+            help="""use the provided directory to output data for multiple server downloads.""",
+            default=None,
+        )
+        customparser.add_option(
+            '--mplog',
+            dest='mplog',
+            help="""used to indicate the logs to be downloaded on multiple servers. """\
+            """Allowable values: IEL, IML, AHS, all or combination of any two.""",
             default=None,
         )

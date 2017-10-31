@@ -35,7 +35,7 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     NoChangesFoundOrMadeError, InvalidFileInputError, \
                     NoDifferencesFoundError, MultipleServerConfigError, \
-                    InvalidMSCfileInputError
+                    InvalidMSCfileInputError, FileEncryption
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 
@@ -99,9 +99,14 @@ class LoadCommand(RdmcCommandBase):
             if not os.path.isfile(files):
                 raise InvalidFileInputError("File '%s' doesn't exist. Please " \
                                 "create file by running save command." % files)
-
-            with open(files, "r") as myfile:
-                data = myfile.read()
+            if options.encryption:
+                with open(files, "rb") as myfile:
+                    data = myfile.read()
+                    data = FileEncryption().decrypt_file(data, \
+                                                        options.encryption)
+            else:
+                with open(files, "r") as myfile:
+                    data = myfile.read()
 
             try:
                 loadcontents = json.loads(data)
@@ -581,5 +586,13 @@ class LoadCommand(RdmcCommandBase):
             action='store_true',
             help="Override the measures stopping the tool from writing "\
             "over items that are system unique.",
+            default=None
+        )
+        customparser.add_option(
+            '-e',
+            '--encryption',
+            dest='encryption',
+            help="Optionally include this flag to encrypt/decrypt a file "\
+            "using the key provided.",
             default=None
         )

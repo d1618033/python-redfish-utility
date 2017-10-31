@@ -18,6 +18,7 @@
 """ SetPassword Command for rdmc """
 
 import sys
+import getpass
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
@@ -64,11 +65,29 @@ class SetPasswordCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        self.setpasswordvalidation(options)
+
+        if len(args) == 0:
+            sys.stdout.write('Please input the current password.\n')
+            tempoldpass = getpass.getpass()
+
+            if tempoldpass and tempoldpass != '\r':
+                tempoldpass = tempoldpass
+            else:
+                tempoldpass = '""'
+
+            sys.stdout.write('Please input the new password.\n')
+            tempnewpass = getpass.getpass()
+
+            if tempnewpass and tempnewpass != '\r':
+                tempnewpass = tempnewpass
+            else:
+                tempnewpass = '""'
+            args.extend([tempnewpass, tempoldpass])
+
         if not len(args) == 2:
             raise InvalidCommandLineError("Please pass both new password and " \
                                                                 "old password.")
-
-        self.setpasswordvalidation(options)
 
         count = 0
         for arg in args:

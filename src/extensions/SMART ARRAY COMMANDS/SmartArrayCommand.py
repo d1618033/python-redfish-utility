@@ -18,10 +18,9 @@
 """ Smart Array Command for rdmc """
 
 import sys
-import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
+from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                                                 InvalidCommandLineErrorOPTS, UI
 
@@ -48,7 +47,7 @@ class SmartArrayCommand(RdmcCommandBase):
                 'logical drives for a specific controller.\n\texample: ' \
                 'smartarray --controller=3 --logicaldrives\n\n\tTo obtain ' \
                 'details about a specific drive for a specific controller.' \
-                '\n\texample: smartarray --controller=3 --ldrive=1',
+                '\n\texample: smartarray --controller=3 --ldrive=1',\
             summary='Discovers all storage controllers installed in the ' \
                     'server and managed by the SmartStorage.',\
             aliases=['smartarray'],\
@@ -66,7 +65,7 @@ class SmartArrayCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -87,6 +86,13 @@ class SmartArrayCommand(RdmcCommandBase):
         return ReturnCodes.SUCCESS
 
     def selection_output(self, options, content):
+        """ Selection of output for smart array command
+
+        :param options: command line options
+        :type options: list.
+        :param options: list of contents
+        :type options: list.
+        """
         controllist = []
         outputcontent = False
 
@@ -109,12 +115,12 @@ class SmartArrayCommand(RdmcCommandBase):
                     outputcontent = True
                     self.get_drives(options, controller["PhysicalDrives"], \
                                                                 physical=True)
-        
+
                 if options.logicaldrives or options.ldrive:
                     outputcontent = True
                     self.get_drives(options, controller["LogicalDrives"], \
                                                                 logical=True)
-        
+
                 if not outputcontent:
                     for k in controller.keys():
                         if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
@@ -123,6 +129,13 @@ class SmartArrayCommand(RdmcCommandBase):
                     UI().print_out_json_ordered(controller)
 
     def discovery_output(self, options, content):
+        """ Discovery of output for smart array command
+
+        :param options: command line options
+        :type options: list.
+        :param options: list of contents
+        :type options: list.
+        """
         for idx, val in enumerate(content):
             sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
 
@@ -133,6 +146,17 @@ class SmartArrayCommand(RdmcCommandBase):
                 self.get_drives(options, val["LogicalDrives"], logical=True)
 
     def get_drives(self, options, drives, physical=False, logical=False):
+        """ Selection of output for smart array command
+
+        :param options: command line options
+        :type options: list.
+        :param drives: list of drives
+        :type drives: list.
+        :param physical: options to enable physical drives
+        :type physical: boolean.
+        :param logical: options to enable logical drives
+        :type logical: boolean.
+        """
         if not options.pdrive and physical:
             sys.stdout.write("Physical Drives:\n")
 
@@ -154,7 +178,7 @@ class SmartArrayCommand(RdmcCommandBase):
                             driveloc = drive["Location"]
 
                 if not driveloc:
-                        raise InvalidCommandLineError("Selected drive not " \
+                    raise InvalidCommandLineError("Selected drive not " \
                                           "found in the current drives list.")
                 else:
                     self.get_selected_drive(driveloc)
@@ -173,7 +197,7 @@ class SmartArrayCommand(RdmcCommandBase):
                             driveloc = drive
 
                 if not driveloc:
-                        raise InvalidCommandLineError("Selected drive not " \
+                    raise InvalidCommandLineError("Selected drive not " \
                                           "found in the current drives list.")
                 else:
                     UI().print_out_json_ordered(driveloc)
@@ -187,8 +211,8 @@ class SmartArrayCommand(RdmcCommandBase):
                             drivedata = "Pending drive"
                         else:
                             drivedata = drive["VolumeUniqueIdentifier"]
-                        sys.stdout.write("[%d]: %s\n" % (idx + 1, \
-                                             drivedata))
+
+                        sys.stdout.write("[%d]: %s\n" % (idx + 1, drivedata))
         else:
             if physical:
                 sys.stdout.write("No physical drives found.\n")
@@ -198,7 +222,12 @@ class SmartArrayCommand(RdmcCommandBase):
         sys.stdout.write("\n")
 
     def get_selected_drive(self, location):
-        self.selobj.selectfunction("HpSmartStorageDiskDrive.")        
+        """ Function to get all selected drives
+
+        :param location: list of all locations
+        :type location: list.
+        """
+        self.selobj.selectfunction("HpSmartStorageDiskDrive.")
 
         for drive in self._rdmc.app.get_save():
             if drive["Location"] in location:
@@ -266,8 +295,8 @@ class SmartArrayCommand(RdmcCommandBase):
             '--user',
             dest='user',
             help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
+                " with the password and URL flags can be used to log into a"\
+                " server in the same command.""",
             default=None,
         )
         customparser.add_option(
@@ -311,4 +340,3 @@ class SmartArrayCommand(RdmcCommandBase):
             help="""Use this flag to select the corresponding logical disk.""",
             default=None,
         )
-

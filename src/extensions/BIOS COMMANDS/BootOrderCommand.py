@@ -195,6 +195,9 @@ class BootOrderCommand(RdmcCommandBase):
                     if options.biospassword:
                         newlist += " --biospassword " + options.biospassword
 
+                    if options.reboot:
+                        newlist += ' --reboot ' + options.reboot
+
                     self.setobj.run("PersistentBootConfigOrder=" + newlist)
             else:
                 raise InvalidCommandLineError("Invalid number of parameters." \
@@ -225,7 +228,7 @@ class BootOrderCommand(RdmcCommandBase):
 
             newlist = ""
 
-            if entry in (item for item in onetimebootsettings\
+            if entry.lower() in (item.lower() for item in onetimebootsettings\
                         ["Boot"][self.typepath.defs.bootoverridetargettype]):
 
                 if entry and isinstance(entry, basestring):
@@ -247,6 +250,9 @@ class BootOrderCommand(RdmcCommandBase):
 
                 if options.biospassword and newlist:
                     newlist += " --biospassword " + options.biospassword
+
+                if options.reboot:
+                    newlist += ' --reboot ' + options.reboot
 
                 if newlist:
                     self.setobj.run(newlist)
@@ -273,6 +279,9 @@ class BootOrderCommand(RdmcCommandBase):
                 if bootoverride:
                     newlist += bootoverride
 
+                if options.reboot:
+                    newlist += ' --reboot ' + options.reboot
+
                 if newlist:
                     self.setobj.run(newlist)
                 else:
@@ -286,6 +295,9 @@ class BootOrderCommand(RdmcCommandBase):
                 if options.commit and newlist:
                     newlist += " --commit"
 
+                if options.reboot:
+                    newlist += ' --reboot ' + options.reboot
+
                 if newlist:
                     self.setobj.run(newlist)
                 else:
@@ -295,9 +307,6 @@ class BootOrderCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Invalid entry passed for one"\
                           " time boot. Please run boot \n       order without"\
                           " arguments to view available options.\n")
-
-        if options.reboot:
-            self.rebootobj.run(options.reboot)
 
         #Return code
         return ReturnCodes.SUCCESS

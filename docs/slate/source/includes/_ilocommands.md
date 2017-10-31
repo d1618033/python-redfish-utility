@@ -10,11 +10,14 @@ iLO commands that are supported for a specific HPE server generation:
 
 ### Certificate command
 
-> Certificate example commands:
+<aside class="notice">
+<ul>
+<li>Please make sure the order of arguments is correct. The parameters are extracted base on their position in the arguments list.</li>
+<li>Use the singlesignon command to import single sign on certificates.</li>
+</ul>
+</aside>
 
-> NOTE: 
-> + Please make sure the order of arguments is correct. The parameters are extracted base on their position in the arguments list.
-> + Use the singlesignon command to import single sign on certificates.
+> Certificate example commands:
 
 > Generate an https certificate signing request.
 
@@ -309,14 +312,15 @@ None
 
 > If the server has been turned on, the reboot ForceOff command can be used to turn the server off immediately. 
 
-NOTE: The reboot command logs the user out of the server.
+<aside class="notice">
+The reboot command logs the user out of the server.
+</aside>
 
 > ![Reboot Example 2](images/examples/reboot_ex2.png "Reboot example 2")
 
 
 > If the server is currently on, the reboot ForceRestart command can be used to turn the server off immediately and then start again. 
 
-NOTE: The reboot command logs the user out of the server. 
 
 > ![Reboot Example 3](images/examples/reboot_ex3.png "Reboot example 3")
 
@@ -324,7 +328,6 @@ NOTE: The reboot command logs the user out of the server.
 
 > If the server is currently on, the reboot Nmi command can be used to generate a non-maskable interrupt to cause an immediate system halt. 
 
-NOTE: The reboot command logs the user out of the server.
 
 ```
 ilorest > reboot Nmi -username -p password --url=xx.xx.xx.xx
@@ -340,7 +343,6 @@ Logging session out.
 
 > The reboot PushPowerButton command can be used to simulate physically pressing the power button on the server. If the server is off, this command will turn the server on. If the server is on, this command will turn the server off. 
 
-NOTE: The reboot command logs the user out of the server.
 
 > ![Reboot Example 4](images/examples/reboot_ex4.png "Reboot example 4")
 
@@ -406,6 +408,10 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 - **--includelogs**
 
 You can optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+- **--confirm**
+
+Optionally include to request user confirmation for reboot.
 
 #### Inputs
 
@@ -513,6 +519,7 @@ serverlogs *[Log_Selection] [Optional Parameters]*
 
 Download and perform log operations.
 
+<aside class="warning">Please use the default name when downloading AHS logs, do not include the -f parameter.</aside>
 
 #### Parameters
 
@@ -540,7 +547,9 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. 
 
-NOTE: Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties Usage: --filter [ATTRIBUTE]=[VALUE].
+<aside class="notice">
+Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties Usage: --filter [ATTRIBUTE]=[VALUE].
+</aside>
 
 - **-j, --json**
 
@@ -562,12 +571,29 @@ Clears the logs for a the selected option. Maintenance message to be inserted in
 - **--customiseAHS=CUSTOMISEAHS**
  
 Allows customized AHS log data to be downloaded.
+
 - **--downloadallahs**
 
 Allows complete AHS log data to be downloaded.
 
 - **--directorypath=DIRECTORYPATH**
 Directory path for the ahs file.
+
+- **---m MAINMES, --maintenancemessage=MAINMES**
+
+Maintenance message to be inserted into the log. (IML LOGS ONLY FEATURE)
+
+- **--mpfile=MPFILENAME**
+
+Use the provided filename to obtain server information.
+
+- **-o OUTDIRECTORY, --outputdirectory=OUTDIRECTORY**
+
+Use the provided directory to output data for multiple server downloads.
+
+- **--mplog=MPLOG**
+
+Used to indicate the logs to be downloaded on multiple servers. Allowable values: IEL, IML, AHS, all or combination of any two.
 
 
 #### Inputs
@@ -628,7 +654,9 @@ None
 
 > The firmwareupdate command updates the firmware for iLO. After the server was logged into, the firmware update at the given location was used to update the firmware. After the update was completed, iLO was reset and the session was terminated. 
 
-NOTE: iLO does not always reset after a firmware update.
+<aside class="notice">
+iLO does not always reset after a firmware update.
+</aside>
 
 > ![Firmware update Example 1](images/examples/firmwareupdate_ex1.png "Firmware update example 1")
 
@@ -718,9 +746,11 @@ iloaccounts *[COMMAND] [OPTIONS]*
 - PASSWORD:  The account password, used to login.
 - Id: The number associated with an iLO user account.
 
-	NOTE: Please make sure the order of arguments is correct. The
+	<aside class="notice">
+    Please make sure the order of arguments is correct. The
 	parameters are extracted based on their position in the arguments list.
 	Only privileges available to the logged in account can be set to the new account.
+    </aside>
 
 
 
@@ -813,7 +843,9 @@ iloclone *[Optional Parameters]*
 
 Clone the iLO config of the currently logged in server and copy it to the server in the arguments.
 
-NOTE: This command is only available in local mode. During clone load, login using an iLO account with full privileges (such as the Administrator account) to ensure all items are cloned successfully.
+<aside class="notice">
+This command is only available in local mode. During clone load, login using an iLO account with full privileges (such as the Administrator account) to ensure all items are cloned successfully.
+</aside>
 
 
 #### Parameters
@@ -846,6 +878,14 @@ Use this flag during iloclone save if you wish to import a SSO certificate to th
 
 Use this flag during iloclone save if you wish to import a SSO certificate to the server to be cloned. Add the https cert file to be used to the working directory before running clone load.
 
+- **--uniqueitemoverride**
+
+Override the measures stoppping the tool from writing over items that are system unique. 
+
+- **-e ENCRYPTION, --encryption=ENCRYPTION**
+
+Optionally include this flag to encrypt/decrypt a file using the key provided.
+
 
 #### Inputs
 None
@@ -857,14 +897,15 @@ None
 
 ### Ilofederation command
 
+<aside class="notice">
+Please make sure the order of arguments is correct. The parameters are extracted based on their position in the arguments list. The federation key must be 8 characters or greater.
+</aside>
+
 > Ilofederation example commands:
 
 > Descriptions:
 > +  *FEDERATIONNAME*: The name (Id) of the federation group. 
 > +  *KEY*:  The key required to join the federation.
-
-> NOTE: Please make sure the order of arguments is correct. The parameters are extracted based on their position in the arguments list. The federation key must be 8 characters or greater.
-
 
 > Add an iLO federation group to the current logged in server.
 
@@ -1085,7 +1126,9 @@ sigrecompute *[OPTIONS]*
 #### Description
 Recalculate the signature on the computers configuration.
 
-NOTE: The sigrecompute command is not available on Redfish systems.
+<aside class="notice">
+The sigrecompute command is not available on Redfish systems.
+</aside>
 
 
 #### Parameters
@@ -1233,12 +1276,12 @@ Use this flag to remove the media from the selection.
 
 Use this flag if you wish to boot from the image on next server reboot. 
 
-NOTE: The image will be ejected automatically on the second server reboot so that the server does not boot to this image twice.
+<aside class="notice">
+The image will be ejected automatically on the second server reboot so that the server does not boot to this image twice.
+</aside>
 
 #### Inputs
 None 
 
 #### Outputs
 None 
-
-

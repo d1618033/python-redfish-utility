@@ -175,9 +175,9 @@ class SetCommand(RdmcCommandBase):
                     raise redfish.ris.ValidationError(excp)
 
             if options.commit:
-                self.comobj.commitfunction()
+                self.comobj.commitfunction(options)
 
-            if options.reboot:
+            if options.reboot and not options.commit:
                 self.rebootobj.run(options.reboot)
 
             if options.logout:

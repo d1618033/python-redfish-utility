@@ -8,7 +8,9 @@ These are the raw HTTP RESTful operations that can be used through the RESTful I
 
 > Here, the **AdminName** of type **HpBios** was "" before. The rawpatch command sent the patch.json to change that property to become **Jean Kranz**. Commit is left out deliberately here since, raw commands (such as rawpost, rawput, etc.) do not require the commit command to be run since changes are made directly. 
 
-NOTE: This particular change requires second-level BIOS authentication, which is why the biospassword flag was included.
+<aside class="notice">
+This particular change requires second-level BIOS authentication, which is why the biospassword flag was included.
+</aside>
 
 > ![RawPatch Example 1](images/examples/rawpatch_ex1.png "RawPatch example 1")
 
@@ -116,7 +118,9 @@ None
 
 > **Above:** The rawget command here executed the GET command on the path **/rest/v1/systems/1/bios/Settings**. This displays the information in the given path. 
 
-NOTE: The full list of information has been truncated for space.
+<aside class="notice">
+The full list of information has been truncated for space.
+</aside>
 
 > ![Rawget Example 1](images/examples/rawget_ex1.png "RawGet example 1")
 
@@ -204,7 +208,9 @@ If you include the `filename` flag, this command will return an output file of t
 
 > The rawpost command performs an HTTP REST POST operation using the information provided in the provided file. Here the ForceRestart ResetType was set, so after the rawpost posted the changes iLO executed a ForceRestart. 
 
-NOTE: If a full path is not given, the tool searches for the file where the RESTful Interface Tool was started. 
+<aside class="notice">
+If a full path is not given, the tool searches for the file where the RESTful Interface Tool was started.
+</aside>
 
 > ![RawPost Example 1](images/examples/rawpost_ex1.png "RawPost example 1")
 

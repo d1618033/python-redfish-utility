@@ -18,12 +18,11 @@
 """ Factory Reset Controller Command for rdmc """
 
 import sys
-import json
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI
+                                                    InvalidCommandLineErrorOPTS
 
 class FactoryResetControllerCommand(RdmcCommandBase):
     """ Factory reset controller command """
@@ -49,7 +48,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -57,7 +56,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.factoryresetcontrollervalidation(options)
-        
+
         self.selobj.selectfunction("SmartStorageConfig.")
         content = self._rdmc.app.get_save()
 
@@ -128,10 +127,6 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         if runlogin:
             self.lobobj.loginfunction(inputline)
 
-    def discovery_output(self, options, content):
-        for idx, val in enumerate(content):
-            sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
-
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
 
@@ -169,4 +164,3 @@ class FactoryResetControllerCommand(RdmcCommandBase):
             help="""Use this flag to select the corresponding controller.""",
             default=None,
         )
-

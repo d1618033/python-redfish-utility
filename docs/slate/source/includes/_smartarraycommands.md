@@ -60,6 +60,10 @@ None
 
 ### Createlogicaldrive command
 
+<aside class="notice">
+The createlogicaldrive command requires a reboot before the logical drives can be created. If the drives are not present after a full reboot, run the results command to check for errors in the configuration
+</aside>
+
 > Createlogicaldrive example commands:
 
 > To create a quick logical drive.
@@ -208,6 +212,10 @@ Use this flag to select the corresponding controller.
 - **--all**
 
 Use this flag to delete all logical drives on a controller.
+
+- **--force**
+
+Use this flag to override the "are you sure?" text when deleting a logical drive. 
 
 
 #### Inputs

@@ -1,5 +1,5 @@
 ---
-title: RESTful Interface Tool 1.50 User Guide
+title: RESTful Interface Tool 2.1.0 User Guide
 
 language_tabs:
   - shell: Shell
@@ -18,6 +18,7 @@ includes:
   - ilocommands
   - ilorepositorycommands
   - smartarraycommands
+  - scalablepmemcommands
   - rawcommands
   - macrocommandsandscripts
   - support

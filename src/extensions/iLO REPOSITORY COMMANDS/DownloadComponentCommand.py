@@ -138,7 +138,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             filepath = '/' + filepath
 
         results = self._rdmc.app.get_handler(filepath, url=url, \
-                                                    sessionid=options.sessionid)
+                             uncache=True, sessionid=options.sessionid)
 
         with open(destination, "wb") as local_file:
             local_file.write(results.read)

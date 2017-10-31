@@ -53,7 +53,8 @@ from rdmc_helper import ReturnCodes, ConfigurationFileError, \
                     IncompatibleiLOVersionError, InvalidCListFileError,\
                     PartitionMoutingError, TimeOutError, DownloadError, \
                     UploadError, BirthcertParseError, AccountExists,\
-                    IncompatableServerTypeError, IloLicenseError
+                    IncompatableServerTypeError, IloLicenseError, \
+                    InvalidKeyError, UnableToDecodeError, UnabletoFindDriveError
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 if os.name != 'nt':
@@ -82,9 +83,9 @@ try:
     CLI = cliutils.CLI()
 except cliutils.ResourceAllocationError as excp:
     sys.stdout.write(u"Unable to allocate more resources.\n")
-    retcode = ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
-    sys.stdout.write(u"ILOREST return code: %s\n" % retcode)
-    sys.exit(retcode)
+    sys.stdout.write(u"ILOREST return code: %s\n" % \
+                     ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
+    sys.exit(ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
 
 class RdmcCommand(RdmcCommandBase):
     """ Constructor """
@@ -251,7 +252,8 @@ class RdmcCommand(RdmcCommandBase):
                 else:
                     raise
 
-        if ("login" in line and not "help" in line) or not line:
+        if ("login" in line or any(x.startswith("--url") for x in line) \
+                                        and not "help" in line) or not line:
             self.app.logout()
         else:
             self.app.restore()
@@ -324,7 +326,8 @@ class RdmcCommand(RdmcCommandBase):
             nargv = shlex.split(line, posix=False)
 
             try:
-                if "login " in line or line == 'login':
+                if "login " in line or line == 'login' or \
+                                any(x.startswith("--url") for x in nargv):
                     self.app.logout()
 
                 self.retcode = self._run_command(opts, nargv)
@@ -438,6 +441,17 @@ class RdmcCommand(RdmcCommandBase):
         except AccountExists, excp:
             self.retcode = ReturnCodes.ACCOUNT_EXISTS_ERROR
             UI().error(excp)
+        except InvalidKeyError, excp:
+            self.retcode = ReturnCodes.ENCRYPTION_ERROR
+            UI().error("Invalid key has been entered for encryption/decryption.")
+        except UnableToDecodeError, excp:
+            self.retcode = ReturnCodes.ENCRYPTION_ERROR
+            UI().error("Unable to decrypt the file, make sure the key is the "\
+                       "same as used in encryption.")
+        except UnabletoFindDriveError, excp:
+            self.retcode = ReturnCodes.DRIVE_MISSING_ERROR
+            UI().error(excp)
+            UI().printmsg("Error occured while reading device labels.")
         # ****** CLI ERRORS ******
         except cliutils.CommandNotFoundException, excp:
             self.retcode = ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
@@ -548,6 +562,12 @@ class RdmcCommand(RdmcCommandBase):
         except redfish.hpilo.rishpilo.HpIloInitialError, excp:
             UI().error(excp)
             self.retcode = ReturnCodes.RIS_ILO_INIT_ERROR
+        except redfish.hpilo.rishpilo.HpIloWriteError, excp:
+            UI().error(excp)
+            self.retcode = ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
+        except redfish.hpilo.rishpilo.HpIloReadError, excp:
+            UI().error(excp)
+            self.retcode = ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
         # ****** RIS OBJECTS ERRORS ******
         except redfish.ris.ris.BiosUnregisteredError, excp:
             self.retcode = ReturnCodes.RIS_RIS_BIOS_UNREGISTERED_ERROR

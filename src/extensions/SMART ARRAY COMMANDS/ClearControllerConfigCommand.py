@@ -20,10 +20,9 @@
 import sys
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                                                    InvalidCommandLineErrorOPTS
 
 class ClearControllerConfigCommand(RdmcCommandBase):
     """ Drive erase/sanitize command """
@@ -47,7 +46,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -58,15 +57,17 @@ class ClearControllerConfigCommand(RdmcCommandBase):
 
         self.selobj.selectfunction("SmartStorageConfig.")
         content = self._rdmc.app.get_save()
+
         if not options.controller:
             raise InvalidCommandLineError('You must include a controller '\
-                                          'to select.')
+                                                                'to select.')
 
         if options.controller:
             controllist = []
             contentsholder = {"Actions": [{"Action": \
                                     "ClearConfigurationMetadata"}], \
                                                         "DataGuard": "Disabled"}
+
             if options.controller.isdigit() and not options.controller == '0':
                 try:
                     controllist.append(content[int(options.controller) - 1])
@@ -74,7 +75,8 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                     pass
             else:
                 for control in content:
-                    if options.controller.lower() == control["Location"].lower():
+                    if options.controller.lower() == \
+                                                    control["Location"].lower():
                         controllist.append(control)
 
             if not controllist:
@@ -82,7 +84,8 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                                         "found in the current inventory list.")
             else:
                 for controller in controllist:
-                    self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
+                    self._rdmc.app.patch_handler(controller["@odata.id"], \
+                                                                contentsholder)
 
         #Return code
         return ReturnCodes.SUCCESS

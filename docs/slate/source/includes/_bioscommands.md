@@ -99,7 +99,9 @@ None
 
 > Here after the server was logged into, the biosdefaults command resets the BIOS settings to their default values. 
 
-NOTE: Some changes are not applied until the system is reset.
+<aside class="notice">
+Some changes are not applied until the system is reset.
+</aside>
 
 > ![BiosDefaults Example 1](images/examples/biosdefaults_ex1.png "BiosDefaults example 1")
 
@@ -174,14 +176,18 @@ None
 
 > The add [2] flag was included here to add a boot attempt. The [2] entry here causes the server to add a boot attempt with the **iSCSINicSource NicBoot** value of 2. Thus, the [2] supplied here caused a new entry to be added with **iSCSINicSource** value **NicBoot2**. 
 
-NOTE: The 2 inputted here is not the attempt number, as opposed to "iscsiconfig --delete 2" which does *delete the 2nd boot attempt.*
+<aside class="notice">
+The 2 inputted here is not the attempt number, as opposed to "iscsiconfig --delete 2" which does *delete the 2nd boot attempt.*
+</aside>
 
 > ![iSCSIConfig Example 3](images/examples/iscsi_ex3.png "iSCSIConfig example 3")
 
 
 > Here we first added a boot attempt, then decided to modify some properties. We do this by first writing the **iscsiconfig** properties to a file called **output.txt** using the –f flag. 
 
-NOTE: The results are only written to the file if the --list flag is included as well.
+<aside class="notice">
+The results are only written to the file if the --list flag is included as well.
+</aside>
 
 > ![iSCSIConfig Example 4-1](images/examples/iscsi_ex4-1.png "iSCSIConfig example 4-1")
 
@@ -194,7 +200,10 @@ NOTE: The results are only written to the file if the --list flag is included as
 
 > Here when the server was logged into, there was already a boot attempt configured. To delete a boot attempt, use the delete flag to remove the boot attempt. We then verified that the boot attempt was deleted with another list flag. 
 
-NOTE: The "iscsiconfig --delete 1" command deletes the 1st iSCSI attempt. This is different from the number specified with "iscsiconfig --add [1]", which implies add an iSCSI attempt with **NicBoot1**.
+<aside class="notice">
+The "iscsiconfig --delete 1" command deletes the 1st iSCSI attempt. This is different from the number specified with "iscsiconfig --add [1]", which implies add an iSCSI attempt with **NicBoot1**.
+</aside>
+
 
 > ![iSCSIConfig Example 5-2](images/examples/iscsi_ex5-2.png "iSCSIConfig example 5-2")
 
@@ -302,11 +311,58 @@ None
 
 None
 
+### Pending command
+
+> Pending example commands:
+
+
+> ![Pending Example 1](images/examples/pending_ex1.png "Pending example 1")
+
+> ![Pending Example 2](images/examples/pending_ex2.png "Pending example 2")
+
+
+#### Syntax
+
+pending *[Optional Parameters]*
+
+#### Description
+
+Displays pending changes that will be applied after a reboot.
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **--url=URL**
+
+Use the provided iLO URL to login.
+
+- **-u USER, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p PASSWORD, --password=PASSWORD**
+
+Use the provided iLO password to log in.
+
+
+#### Inputs
+
+None
+
+#### Outputs
+
+None
+
 ### Setpassword command
 
-> Setpassword example commands:
+<aside class="notice">
+Please make sure the order of passwords is maintained. The passwords are extracted base on their position in the arguments list.
+</aside>
 
-> NOTE: Please make sure the order of passwords is maintained. The passwords are extracted base on their position in the arguments list.
+> Setpassword example commands:
 
 > Setting the admin password with no previous password set.
 

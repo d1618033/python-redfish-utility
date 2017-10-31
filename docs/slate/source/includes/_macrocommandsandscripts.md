@@ -66,7 +66,7 @@ Then when you log into the server again, the BIOS password will have been update
 
 ![TPM Example](images/TPM_disable.png "TPM Example")
 
-> **Above:** When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
+When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
 
 If you need to disable TPM on a group of servers, you can use a set of commands in RESTful Interface Tool. For example, you are installing SPPs and OSs on bare-metal servers, and you need to disable TPM prior to starting installation.
 

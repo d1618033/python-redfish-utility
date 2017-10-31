@@ -18,6 +18,7 @@
 """ Add Account Command for rdmc """
 
 import sys
+import getpass
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
@@ -110,6 +111,16 @@ class IloAccountsCommand(RdmcCommandBase):
                                 acct['Oem'][self.typepath.defs.\
                                             oemhp]['LoginName'], privstr))
         elif args[0].lower() == 'changepass':
+            if len(args) == 2:
+                sys.stdout.write('Please input the new password.\n')
+                tempinput = getpass.getpass()
+
+                if tempinput and tempinput != '\r':
+                    tempinput = tempinput
+                    args.extend([tempinput])
+                else:
+                    raise InvalidCommandLineError("Empty or invalid password" \
+                                                                    " was entered.")
             if len(args) == 3:
                 account = args[1]
 
@@ -136,7 +147,16 @@ class IloAccountsCommand(RdmcCommandBase):
 
         elif args[0].lower() == 'add':
             args.remove('add')
+            if len(args) == 2:
+                sys.stdout.write('Please input the account password.\n')
+                tempinput = getpass.getpass()
 
+                if tempinput and tempinput != '\r':
+                    tempinput = tempinput
+                    args.extend([tempinput])
+                else:
+                    raise InvalidCommandLineError("Empty or invalid password" \
+                                                                    " was entered.")
             if not len(args) == 3:
                 raise InvalidCommandLineError('Invalid number of parameters.')
 

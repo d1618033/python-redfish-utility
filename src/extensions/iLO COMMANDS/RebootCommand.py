@@ -21,6 +21,7 @@ import sys
 import time
 
 from optparse import OptionParser
+from six.moves import input
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
@@ -80,9 +81,6 @@ class RebootCommand(RdmcCommandBase):
             sys.stdout.write(u'\nAfter the server is rebooted the session' \
              ' will be terminated.\nPlease wait for the server' \
              ' to boot completely to login again.\n')
-
-            sys.stdout.write(u'Rebooting server in 3 seconds...\n')
-            time.sleep(3)
         else:
             self.printreboothelp(args[0])
 
@@ -143,6 +141,20 @@ class RebootCommand(RdmcCommandBase):
         else:
             body = {"Action": action, "ResetType": "ForceRestart"}
 
+        if options.confirm is True:
+            count = 0
+            while True:
+                count = count+1
+                confirmation = input("Rebooting system, type yes "\
+                                        "to confirm or no to abort:")
+                if confirmation.lower() in ('no', 'n') or count > 3:
+                    sys.stdout.write('Aborting reboot.\n')
+                    return ReturnCodes.SUCCESS
+                elif confirmation.lower() in ('yes', 'y'):
+                    break
+
+        sys.stdout.write(u'Rebooting server in 3 seconds...\n')
+        time.sleep(3)
         self._hprmc.app.post_handler(put_path, body)
         self.logoutobj.run("")
 
@@ -286,5 +298,12 @@ class RebootCommand(RdmcCommandBase):
             dest='includelogs',
             action="store_true",
             help="Optionally include logs in the data retrieval process.",
+            default=False,
+        )
+        customparser.add_option(
+            '--confirm',
+            dest='confirm',
+            action="store_true",
+            help="Optionally include to request user confirmation for reboot.",
             default=False,
         )

@@ -26,6 +26,8 @@ import logging
 
 from collections import OrderedDict
 
+import pyaes
+
 import versioning
 import redfish.ris
 
@@ -131,6 +133,8 @@ class ReturnCodes(object):
 
     # ****** RDMC ERRORS ******
     RESOURCE_ALLOCATION_ISSUES_ERROR = 80
+    ENCRYPTION_ERROR = 81
+    DRIVE_MISSING_ERROR = 82
 
     # ****** RIS ERRORS ******
     RIS_RIS_BIOS_UNREGISTERED_ERROR = 100
@@ -281,6 +285,18 @@ class LibHPsrvMissingError(RdmcError):
 
 class BirthcertParseError(RdmcError):
     """ Raised when unable to parse the birthcert"""
+    pass
+
+class InvalidKeyError(RdmcError):
+    """ Raised when an invalid encryption key is used"""
+    pass
+
+class UnableToDecodeError(RdmcError):
+    """ Raised when the file is unable to be decoded using the given key"""
+    pass
+
+class UnabletoFindDriveError(RdmcError):
+    """Raised when there is an issue finding required label"""
     pass
 
 class UI(object):
@@ -459,3 +475,41 @@ class UI(object):
 
             content = '""' if len(content) == 0 else content
             sys.stdout.write(content.encode('utf-8'))
+
+class FileEncryption(object):
+    """ Encrypts/decrypts files given a key """
+    def encrypt_file(self, filetxt, key):
+        """ encrypt a file given a key
+
+        :param filetxt: content to be encrypted
+        :type content: str.
+        :param key: string to encrypt with
+        :type key: str.
+        """
+        filetxt = str(filetxt)
+        if len(key.encode("utf8")) not in [16, 24, 32]:
+            raise InvalidKeyError("")
+        else:
+            encryptedfile = pyaes.AESModeOfOperationCTR(key).encrypt(\
+                                                        filetxt.encode("utf8"))
+
+        return encryptedfile
+
+    def decrypt_file(self, filetxt, key):
+        """ decrypt a file given a key
+
+        :param filetxt: content to be decrypted
+        :type content: str.
+        :param key: string to decrypt with
+        :type key: str.
+        """
+        if len(key.encode("utf8")) not in [16, 24, 32]:
+            raise InvalidKeyError("")
+        else:
+            decryptedfile = pyaes.AESModeOfOperationCTR(key).decrypt(filetxt)
+            try:
+                json.loads(decryptedfile)
+            except:
+                raise UnableToDecodeError("")
+
+        return decryptedfile

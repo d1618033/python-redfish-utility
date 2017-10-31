@@ -168,7 +168,7 @@ class InstallSetCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError('No install set with the' \
                                             ' provided name could be found.')
 
-        sys.stdout.write('Invoking install set:%s' % name)
+        sys.stdout.write('Invoking install set:%s\n' % name)
 
         self._rdmc.app.post_handler(path, {})
 
@@ -235,7 +235,7 @@ class InstallSetCommand(RdmcCommandBase):
                         sys.stdout.write('\t%s: %s\n' % (item['Name'], \
                                                             item['Command']))
 
-    def validatefile(self, file):
+    def validatefile(self, installsetfile):
         """ validates json file
 
         :param file: json file to validate
@@ -245,8 +245,8 @@ class InstallSetCommand(RdmcCommandBase):
         keylist = ['Name', 'UpdatableBy', 'Command', 'WaitTimeSeconds', \
                                                                     'Filename']
 
-        if isinstance(file, list):
-            for item in file:
+        if isinstance(installsetfile, list):
+            for item in installsetfile:
                 for key in item:
                     if key not in keylist:
                         raise InvalidFileInputError('Property %s is invalid ' \

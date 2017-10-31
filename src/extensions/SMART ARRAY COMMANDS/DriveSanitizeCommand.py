@@ -20,20 +20,19 @@
 import sys
 
 from optparse import OptionParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                        InvalidCommandLineErrorOPTS
 
 class DriveSanitizeCommand(RdmcCommandBase):
     """ Drive erase/sanitize command """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='drivesanitize',\
-            usage='drivesanitize [OPTIONS]\n\n\tTo sanitize a physical drive by'\
-            ' index.\n\texample: drivesanitize 1 --controller=1\n\n\tTo '
-            'sanitize multiple drives by index.\n\texample: drivesanitize 1,2 '
-            '--controller=1',\
+            usage='drivesanitize [OPTIONS]\n\n\tTo sanitize a physical drive ' \
+                'by index.\n\texample: drivesanitize 1 --controller=1\n\n\tTo' \
+                ' sanitize multiple drives by index.\n\texample: ' \
+                'drivesanitize 1,2 --controller=1',\
             summary='Erase/Sanitizes physical drives',\
             aliases=['drivesanitize'],\
             optparser=OptionParser())
@@ -61,12 +60,13 @@ class DriveSanitizeCommand(RdmcCommandBase):
 
         self.selobj.selectfunction("SmartStorageConfig.")
         content = self._rdmc.app.get_save()
+
         if not args and not options.all:
-            raise InvalidCommandLineError('You must include a physical drive '\
-                                          'to sanitize.')
+            raise InvalidCommandLineError('You must include a physical drive ' \
+                                                                'to sanitize.')
         elif not options.controller:
-            raise InvalidCommandLineError('You must include a controller '\
-                                          'to select.')
+            raise InvalidCommandLineError('You must include a controller ' \
+                                                                'to select.')
         else:
             if len(args) > 1:
                 physicaldrives = args
@@ -89,7 +89,7 @@ class DriveSanitizeCommand(RdmcCommandBase):
 
         if not controllist:
             raise InvalidCommandLineError("Selected controller not " \
-                                    "found in the current inventory list.")
+                                      "found in the current inventory list.")
         else:
             if self.sanitizedrives(controllist, physicaldrives, options.all):
                 if options.reboot:
@@ -98,19 +98,19 @@ class DriveSanitizeCommand(RdmcCommandBase):
                     self.monitorsanitization()
                 else:
                     sys.stdout.write('Sanitization will occur on the next'\
-                                     ' system reboot.\n')
+                                                            ' system reboot.\n')
         #Return code
         return ReturnCodes.SUCCESS
 
-    def sanitizedrives(self, controllist, drivelist, all):
+    def sanitizedrives(self, controllist, drivelist, optall):
         """Gets drives ready for sanitization
 
         :param controllist: list of controllers
         :type controllist: list.
         :param drivelist: physical drives to sanitize
         :type drivelist: list.
-        :param all: flag for sanitizing all drives
-        :type all: bool.
+        :param optall: flag for sanitizing all drives
+        :type optall: bool.
         """
         sanitizedrivelist = []
         logicaldrivelist = []
@@ -118,35 +118,40 @@ class DriveSanitizeCommand(RdmcCommandBase):
 
         for controller in controllist:
             pdrivelist = [x['DataDrives'] for x in controller['LogicalDrives']]
+
             for plist in pdrivelist:
                 for drive in plist:
                     logicaldrivelist.append(drive)
-            if all:
-                sanitizedrivelist = [x['Location'] for x in controller['PhysicalDrives']]
+
+            if optall:
+                sanitizedrivelist = [x['Location'] for x in \
+                                    controller['PhysicalDrives']]
             else:
                 for erasedrive in drivelist:
-                    found = False
                     if erasedrive.isdigit():
                         erasedrive = int(erasedrive)
 
                     for idx, pdrive in enumerate(controller['PhysicalDrives']):
-                            if erasedrive == idx+1:
-                                if pdrive['Location'] in logicaldrivelist:
-                                    raise InvalidCommandLineError("Unable to "\
-                                        "sanitize configured drive. Remove any "\
-                                        "logical drive(s) associated with drive %s"\
-                                        " and try again."% pdrive['Location'])
-                                sys.stdout.write('Setting physical drive %s for '\
-                                        'sanitization\n' % pdrive['Location'])
-                                sanitizedrivelist.append(pdrive['Location'])
-                                break
+                        if erasedrive == idx+1:
+                            if pdrive['Location'] in logicaldrivelist:
+                                raise InvalidCommandLineError("Unable to" \
+                                      " sanitize configured drive. Remove" \
+                                      " any logical drive(s) associated " \
+                                      "with drive %s and try again." % \
+                                                        pdrive['Location'])
+
+                            sys.stdout.write('Setting physical drive %s ' \
+                                 'for sanitization\n' % pdrive['Location'])
+
+                            sanitizedrivelist.append(pdrive['Location'])
+                            break
 
             if sanitizedrivelist:
                 changes = True
-                contentsholder = {"Actions": [{"Action": "PhysicalDriveErase",
-                                "ErasePattern": "SanitizeRestrictedBlockErase",\
-                                "PhysicalDriveList": sanitizedrivelist}], \
-                                                    "DataGuard": "Disabled"}
+                contentsholder = {"Actions": [{"Action": "PhysicalDriveErase", \
+                            "ErasePattern": "SanitizeRestrictedBlockErase", \
+                            "PhysicalDriveList": sanitizedrivelist}], \
+                                                "DataGuard": "Disabled"}
 
                 self._rdmc.app.patch_handler(controller["@odata.id"], \
                                                                 contentsholder)
@@ -214,9 +219,9 @@ class DriveSanitizeCommand(RdmcCommandBase):
             '-u',
             '--user',
             dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
+            help="""If you are not logged in yet, including this flag along""" \
+                """ with the password and URL flags can be used to log into""" \
+                """ a server in the same command.""",
             default=None,
         )
         customparser.add_option(
@@ -235,15 +240,17 @@ class DriveSanitizeCommand(RdmcCommandBase):
         customparser.add_option(
             '--reboot',
             dest='reboot',
-            help="Include this flag to perform a coldboot command function after"\
-            " completion of operations and monitor sanitization.",
+            help="""Include this flag to perform a coldboot command """ \
+                """function after completion of operations and monitor """ \
+                """sanitization.""",
             action="store_true",
             default=False,
         )
         customparser.add_option(
             '--all',
             dest='all',
-            help="""Use this flag to sanitize all physical drives on a controller.""",
+            help="""Use this flag to sanitize all physical drives on a """ \
+                """controller.""",
             action="store_true",
             default=False,
         )

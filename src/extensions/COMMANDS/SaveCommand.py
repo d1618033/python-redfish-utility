@@ -27,7 +27,8 @@ import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-                            InvalidCommandLineError, InvalidFileFormattingError
+                            InvalidCommandLineError, InvalidFileFormattingError,\
+                            FileEncryption
 
 #default file name
 __filename__ = 'ilorest.json'
@@ -113,8 +114,14 @@ class SaveCommand(RdmcCommandBase):
         else:
             contents = self.add_save_file_header(contents)
 
-        outfile = open(self.filename, 'w')
-        outfile.write(json.dumps(contents, indent=2, \
+        if options.encryption:
+            outfile = open(self.filename, 'wb')
+            outfile.write(FileEncryption().encrypt_file(json.dumps(contents, \
+                                indent=2, cls=redfish.ris.JSONEncoder),\
+                                options.encryption))
+        else:
+            outfile = open(self.filename, 'w')
+            outfile.write(json.dumps(contents, indent=2, \
                                                 cls=redfish.ris.JSONEncoder))
         outfile.close()
         sys.stdout.write("Configuration saved to: %s\n" % self.filename)
@@ -325,4 +332,12 @@ class SaveCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--encryption',
+            dest='encryption',
+            help="Optionally include this flag to encrypt/decrypt a file "\
+            "using the key provided.",
+            default=None
         )

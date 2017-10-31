@@ -18,6 +18,7 @@
 """ Add Federation Command for rdmc """
 
 import sys
+import getpass
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
@@ -41,7 +42,7 @@ class IloFederationCommand(RdmcCommandBase):
                 'example: ilofederation delete newfedname\n\n\t'\
                 'See a list of federations on the system.\n\t'\
                 'example: ilofederation\n\n\tDESCRIPTIONS:\n\tFEDERATIONNAME:' \
-                ' The name (Id) of the federation group. \n\tKEY:  The key ' \
+                ' The name of the federation group. \n\tKEY:  The key ' \
                 'required to join the federation.\n\n\tNOTE: please make sure' \
                 ' the order of arguments is correct. The\n\tparameters are ' \
                 'extracted based on their position in the arguments list.\n\t' \
@@ -69,10 +70,21 @@ class IloFederationCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) <= 3:
-            raise InvalidCommandLineError("invalid number of parameters.")
-
         self.addfederationvalidation(options)
+
+        if len(args) == 2 and args[0] in ['add', 'changekey']:
+            sys.stdout.write('Please input the federation key.\n')
+            tempnewkey = getpass.getpass()
+
+            if tempnewkey and tempnewkey != '\r':
+                tempnewkey = tempnewkey
+            else:
+                raise InvalidCommandLineError("Empty or invalid key" \
+                                                                " was entered.")
+            args.extend([tempnewkey])
+
+        elif not len(args) <= 3:
+            raise InvalidCommandLineError("invalid number of parameters.")
 
         redfish = self._rdmc.app.current_client.monolith.is_redfish
         path = self.typepath.defs.federationpath
@@ -97,14 +109,14 @@ class IloFederationCommand(RdmcCommandBase):
         if len(args) == 0:
             sys.stdout.write("iLO Federation Id list with Privileges:\n")
 
-            for fed in sorted(results, key=lambda k: k['Id']):
+            for fed in sorted(results, key=lambda k: k['Name']):
                 privstr = ""
                 privs = fed['Privileges']
 
                 for priv in privs:
                     privstr += priv + '=' + str(privs[priv]) + '\n'
 
-                sys.stdout.write("\nId=%s:\n%s" % (fed['Id'], privstr))
+                sys.stdout.write("\nName=%s:\n%s" % (fed['Name'], privstr))
 
         elif args[0].lower() == 'add':
             args.remove('add')
@@ -146,7 +158,7 @@ class IloFederationCommand(RdmcCommandBase):
                 raise InvalidCommandLineError('Invalid number of parameters.')
 
             for fed in results:
-                if fed['Id'] == name:
+                if fed['Name'] == name:
                     if redfish:
                         path = fed['@odata.id']
                         break
@@ -165,12 +177,12 @@ class IloFederationCommand(RdmcCommandBase):
             args.remove('delete')
 
             try:
-                name = args[0]
+                name = unicode(args[0])
             except:
-                raise InvalidCommandLineError("No Id entered to delete.")
+                raise InvalidCommandLineError("No Name entered to delete.")
 
             for fed in results:
-                if fed['Id'] == name:
+                if fed['Name'] == name:
                     if redfish:
                         path = fed['@odata.id']
                         break

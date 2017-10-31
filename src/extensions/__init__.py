@@ -1,3 +1,4 @@
+"""find and add dynamic extensions"""
 import os
 import sys
 

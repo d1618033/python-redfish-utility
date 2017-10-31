@@ -24,8 +24,7 @@ from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes,\
-                        InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
-                        NoContentsFoundForOperationError
+                        InvalidCommandLineErrorOPTS, InvalidCommandLineError
 
 class DeleteComponentCommand(RdmcCommandBase):
     """ Main download command class """
@@ -70,10 +69,9 @@ class DeleteComponentCommand(RdmcCommandBase):
                             '/redfish/v1/UpdateService/ComponentRepository/')
 
         if not comps:
-            raise NoContentsFoundForOperationError('No components found to ' \
-                                                                    'delete')
+            sys.stdout.write('No components found to delete\n')
 
-        if options.deleteall:
+        elif options.deleteall:
             delopts = []
 
             for comp in comps:

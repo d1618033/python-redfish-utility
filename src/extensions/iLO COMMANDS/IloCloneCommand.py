@@ -22,6 +22,7 @@ import sys
 import json
 import time
 import urllib
+import getpass
 
 from optparse import OptionParser
 from collections import (OrderedDict)
@@ -32,8 +33,7 @@ from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError,\
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     InvalidFileInputError, NoContentsFoundForOperationError, \
-                    IncompatibleiLOVersionError
-
+                    IncompatibleiLOVersionError, FileEncryption
 
 class IloCloneCommand(RdmcCommandBase):
     """ Clone iLO config of currently logged in server and copy it to another """
@@ -95,7 +95,7 @@ class IloCloneCommand(RdmcCommandBase):
         if 'save' in args:
             clone = self.gather_clone_items(isredfish, hrefstring, typestring, \
                                                     options, testing=testing)
-            self.save_clone(clone, myfile)
+            self.save_clone(clone, myfile, options)
         elif 'load' in args:
             del args[args.index('load')]
 
@@ -113,7 +113,7 @@ class IloCloneCommand(RdmcCommandBase):
                                      "factory default settings.\n")
                     return ReturnCodes.SUCCESS
 
-            self.apply_clone(myfile, testing=testing)
+            self.apply_clone(myfile, options, testing=testing)
         else:
             raise InvalidCommandLineError("Please use save argument for saving"\
                                           " a clone file or load argument for "\
@@ -130,6 +130,8 @@ class IloCloneCommand(RdmcCommandBase):
         :type href: str
         :param typestring: the key identifying type
         :type typestring: str
+        :param options: command line options
+        :type options: list.
         :param testing: flag for automatic testing
         :type: bool
         """
@@ -191,7 +193,7 @@ class IloCloneCommand(RdmcCommandBase):
                                                                silent=True).dict
 
                             if data and method.lower() == 'patch':
-                                data = self.patch_helper(data)
+                                data = self.patch_helper(data, options.uniqueoverride)
 
                                 if item == 'EthernetInterface.':
                                     if '/systems/' in path.lower():
@@ -244,15 +246,27 @@ class IloCloneCommand(RdmcCommandBase):
 
         return clone
 
-    def apply_clone(self, myfile, testing):
+    def apply_clone(self, myfile, options, testing):
         """Load the clone into the server
 
          :param myfile: file containing the saved ilo config
          :type myfile: ilo config file
+         :param options: file containing the saved ilo config
+         :type options: ilo config file
          :param testing: flag for automatic testing
          :type testing: bool
          """
-        clone = self.load_clone(myfile)
+        clone = self.load_clone(myfile, options)
+        if self._rdmc.app.current_client.base_url == "blobstore://":
+            logininfo = ""
+            ping = True
+        elif options.url and options.user and options.password:
+            logininfo = "%s -u %s -p %s " % (options.url, options.user,\
+                                                   options.password)
+            ping = False
+        else:
+            logininfo = ""
+            ping= False
 
         for item in clone:
             #if there is something to apply
@@ -275,7 +289,8 @@ class IloCloneCommand(RdmcCommandBase):
                             try:
                                 #continue so we don't reset every time we test
                                 if 'resettofactorydefaults' in path.lower():
-                                    #continue
+                                    if ping == False:
+                                        continue
                                     try:
                                         sys.stdout.write("Waiting for iLO to " \
                                                             "factory reset...")
@@ -290,8 +305,8 @@ class IloCloneCommand(RdmcCommandBase):
 
                             if 'resettofactorydefaults' in path.lower():
                                 self.logobj.run("")
-                                self.timer(minutes=3, ping=True)
-                                self.loginobj.run("")
+                                self.timer(minutes=3, ping=ping)
+                                self.loginobj.run(logininfo)
                             elif 'manager.reset' in path.lower():
                                 sys.stdout.write("Waiting for iLO to reset..." \
                                                                         "\n")
@@ -299,8 +314,8 @@ class IloCloneCommand(RdmcCommandBase):
                                 self._rdmc.app.post_handler(path,\
                                             item[path]['POST'], service=True, \
                                             silent=True)
-                                self.timer(minutes=3, ping=True)
-                                self.loginobj.run("")
+                                self.timer(minutes=3, ping=ping)
+                                self.loginobj.run(logininfo)
                             else:
                                 sys.stdout.write('\nPosting: ' + path + '\n')
 
@@ -333,7 +348,7 @@ class IloCloneCommand(RdmcCommandBase):
 
         #reboot the server after everything is completed
         self.logobj.run("")
-        self.loginobj.run("")
+        self.loginobj.run(logininfo)
 
         if not testing:
             self.rebootobj.run("")
@@ -359,11 +374,13 @@ class IloCloneCommand(RdmcCommandBase):
 
         return data
 
-    def patch_helper(self, body):
+    def patch_helper(self, body, removeunique):
         """ helper to remove some properties before patching
 
         :param body: body of the post
         :type body: dict
+        :param removeunique: flag to remove unique properties
+        :type removeunique: bool.
         """
         removelist = ['actions', 'availableactions', 'status', 'links']
 
@@ -380,7 +397,7 @@ class IloCloneCommand(RdmcCommandBase):
         except:
             pass
 
-        values = self._rdmc.app.remove_readonly(values)
+        values = self._rdmc.app.remove_readonly(values, removeunique)
 
         try:
             #special power case
@@ -446,8 +463,8 @@ class IloCloneCommand(RdmcCommandBase):
     def patch_ei(self, data):
         """ helper for patching EthernetInterfaces
 
-        :param values: dictionary with ethernet interface values
-        :type values: dict
+        :param data: dictionary with ethernet interface values
+        :type data: dict
         """
         dhcpsettingsv4 = data['Oem'][self.typepath.defs.oemhp]["DHCPv4"]
         v4vals = data['Oem'][self.typepath.defs.oemhp]['IPv4']
@@ -496,8 +513,6 @@ class IloCloneCommand(RdmcCommandBase):
         :type path: str
         :param options: command options
         :type options: list
-        :param testing: flag for automatic testing
-        :type testing: bool
         """
         resp = self._rdmc.app.get_handler(path, silent=True)
 
@@ -598,8 +613,12 @@ class IloCloneCommand(RdmcCommandBase):
             username = account['UserName']
 
             if not testing:
-                password = raw_input("Please input the password for user, %s:" \
+                sys.stdout.write("Please input the password for user, %s:" \
                                                                 "\n" % username)
+                password = getpass.getpass()
+
+                if password and password != '\r':
+                    password = password
             else:
                 password = 'password'
 
@@ -644,8 +663,12 @@ class IloCloneCommand(RdmcCommandBase):
             fed = self._rdmc.app.get_handler(item[typestr], silent=True).dict
 
             if not testing:
-                key = raw_input("Please input the key for federation, %s:\n" \
+                sys.stdout.write("Please input the key for federation, %s:\n" \
                                                                 % fed["Name"])
+                key = getpass.getpass()
+
+                if key and key != '\r':
+                    key = key
             else:
                 key = 'testkeys'
 
@@ -686,6 +709,8 @@ class IloCloneCommand(RdmcCommandBase):
         :type clone: list
         :param path: path to post
         :type path: str
+        :param options: command line options
+        :type options: list.
         """
         dnslist = []
         body = None
@@ -747,33 +772,44 @@ class IloCloneCommand(RdmcCommandBase):
             else:
                 clone.append({certpath: certbody})
 
-    def save_clone(self, clone, filename):
+    def save_clone(self, clone, filename, options):
         """ save the clone file
 
         :param clone: filename to save the clone config data
         :type clone: list
         :param filename: filename containing the clone config data
         :type filename: str
+        :param options: command line options
+        :type options: list.
         """
         if not filename:
             filename = 'clone.json'
 
-        outfile = open(filename, 'w')
+        if options.encryption:
+            outfile = open(filename, 'wb')
+            outfile.write(FileEncryption().encrypt_file(json.dumps(clone, \
+                                separators=(',', ':'), \
+                                cls=redfish.ris.JSONEncoder),\
+                                options.encryption))
+        else:
+            outfile = open(filename, 'w')
+            #compact
+            outfile.write(json.dumps(clone, separators=(',', ':'), \
+                                                    cls=redfish.ris.JSONEncoder))
 
-        #compact
-        outfile.write(json.dumps(clone, separators=(',', ':'), \
-                                                cls=redfish.ris.JSONEncoder))
-
-        #human-readable
-        #outfile.write(json.dumps(clone, indent=2, cls=redfish.ris.JSONEncoder))
+            #human-readable
+            #outfile.write(json.dumps(clone, indent=2, cls=redfish.ris.JSONEncoder))
         outfile.close()
+
         sys.stdout.write("Configuration saved to: %s\n" % filename)
 
-    def load_clone(self, filename):
+    def load_clone(self, filename, options):
         """ load the clone file onto the server
 
         :param filename: filename containing the clone config data
         :type filename: str
+        :param options: command line options
+        :type options: list.
         """
         loadcontents = None
 
@@ -783,9 +819,16 @@ class IloCloneCommand(RdmcCommandBase):
         if not os.path.isfile(filename):
             raise InvalidFileInputError("File '%s' doesn't exist. Please " \
                             "create file by running save command." % file)
+        if options.encryption:
+            with open(filename, "rb") as myfile:
+                data = myfile.read()
+                data = FileEncryption().decrypt_file(data, \
+                                                    options.encryption)
+        else:
+            myfile = open(filename, 'r')
+            data = myfile.read()
 
-        myfile = open(filename, 'r')
-        data = myfile.read()
+        myfile.close()
 
         try:
             loadcontents = json.loads(data)
@@ -941,4 +984,20 @@ class IloCloneCommand(RdmcCommandBase):
             " certificate to the server to be cloned. Add the https cert file to"\
             " be used to the working directory before running clone load.",
             default=None,
+        )
+        customparser.add_option(
+            '--uniqueitemoverride',
+            dest='uniqueoverride',
+            action='store_false',
+            help="Override the measures stopping the tool from writing "\
+            "over items that are system unique.",
+            default=True
+        )
+        customparser.add_option(
+            '-e',
+            '--encryption',
+            dest='encryption',
+            help="Optionally include this flag to encrypt/decrypt a file "\
+            "using the key provided.",
+            default=None
         )

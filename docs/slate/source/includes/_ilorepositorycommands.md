@@ -100,14 +100,14 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **sessionid=SESSIONID**
+- **--sessionid=SESSIONID**
                         
 Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
-- **includelogs**         
+- **--includelogs**         
 
 Optionally include logs in the data retrieval process.
-- **logout**
+- **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
@@ -391,7 +391,7 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **sessionid=SESSIONID**
+- **--sessionid=SESSIONID**
 
 Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
@@ -433,6 +433,3 @@ None
 
 #### Outputs
 None 
-
-
-

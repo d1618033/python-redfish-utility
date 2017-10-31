@@ -75,7 +75,9 @@ Use this flag if you wish to to enable Redfish only compliance. It is enabled by
 
 Optionally use the latest schema instead of the one requested by the file. 
 
-NOTE: Might cause errors in some data retrieval due to difference in schema versions.
+<aside class="notice">
+Might cause errors in some data retrieval due to difference in schema versions.
+</aside>
 
 #### Inputs
 
@@ -232,7 +234,9 @@ None
 
 > Before the commands were entered here, the user was not logged in to the server. When you use the select tag with login credentials, you are logged in to the server and the inputted type is selected. The type was selected by entering the select command with no type specified is verified, which shows that the currently selected type is returned. 
 
-NOTE: Adding a period after the type selected, **HpBios**, limits the selection, preventing accidentally also selecting **HpBiosMapping**. This also removes the need to include the version.
+<aside class="notice">
+Adding a period after the type selected, **HpBios**, limits the selection, preventing accidentally also selecting **HpBiosMapping**. This also removes the need to include the version.
+</aside>
 
 > ![Select Example 1](images/examples/select_ex1.png "Select example 1")
 
@@ -471,7 +475,9 @@ None
 
 > Using get without any property specified shows the properties of the selected type. 
 
-NOTE: No reserved properties are shown with the get command. Also, the full list is truncated for space.
+<aside class="notice">
+No reserved properties are shown with the get command. Also, the full list is truncated for space.
+</aside>
 
 > ![Get Example 1](images/examples/get_ex1.png "Get example 1")
 
@@ -563,7 +569,9 @@ None
 
 > Here the **ServiceName** property of the type **HpBios** has been set to the value **ExampleService**. When the get command is performed next, the value of **ServiceName** has been set to **ExampleService**. 
 
-NOTE: Even though the get command shows **ServiceName** is set to **ExampleService**, the commit command must be performed next for the changes to be reflected next time the server is logged into.
+<aside class="notice">
+Even though the get command shows **ServiceName** is set to **ExampleService**, the commit command must be performed next for the changes to be reflected next time the server is logged into.
+</aside>
 
 > ![Set Example 1](images/examples/set_ex1.png "Set example 1")
 
@@ -777,7 +785,7 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Include the selector flag to select a type to run the current command on. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
 
-- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
+- **--filter [ATTRIBUTE]=[VALUE]**
 
 Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
 
@@ -796,6 +804,10 @@ Optionally set a starting point for data collection. If you do not specify a sta
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+
+- **-e ENCRYPTION, --encryption=ENCRYPTION**
+
+Optionally include this flag to encrypt/decrypt a file using the key provided.
 
 #### Inputs
 
@@ -895,6 +907,10 @@ Use the provided directory to output data for a multiple server configuration.
 
 Use the provided filename to output data.
 
+- **-e ENCRYPTION, --encryption=ENCRYPTION**
+
+Optionally include this flag to encrypt/decrypt a file using the key provided.
+
 #### Inputs
 
 JSON Object
@@ -948,7 +964,9 @@ None
 
 > Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of HpBios was set to a new value, then the server was logged out of because the logout flag was included. 
 
-NOTE: The commit flag isn't used here; therefore, changes are not committed upon logout.
+<aside class="notice">
+The commit flag isn't used here; therefore, changes are not committed upon logout.
+</aside>
 
 > ![Commit Example 2](images/examples/commit_ex2.png "Commit example 2")
 

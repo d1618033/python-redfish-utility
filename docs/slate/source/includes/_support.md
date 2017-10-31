@@ -48,7 +48,16 @@
 
 <aside class="notice">Access to some updates might require product entitlement when accessed through the <b>Hewlett Packard Enterprise Support Center</b>. You must have an HP Passport set up with relevant entitlements.</aside>
 
+
 ## Websites and documents
+
+### Tutorial Videos
+
+[Creating iLO REST Extensions](https://www.youtube.com/watch?v=CGl8DsYTdQo)
+
+[An Introduction to the RESTful Interface Tool](https://www.youtube.com/watch?v=xfEN95pNNfY)
+
+[Benefits of RESTful Interface Tool vs. CONREP](https://www.youtube.com/watch?v=WPz2FP8bXYU)
 
 ### Websites
 

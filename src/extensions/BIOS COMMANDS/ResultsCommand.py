@@ -38,6 +38,7 @@ class ResultsCommand(RdmcCommandBase):
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
         self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
 
     def run(self, line):
         """ Gather results of latest BIOS change
@@ -65,13 +66,23 @@ class ResultsCommand(RdmcCommandBase):
             iscsipath = self.typepath.defs.biospath + '/iScsi'
             bootpath = self.typepath.defs.biospath + '/Boot'
 
+        try:
+            self.selobj.selectfunction("SmartStorageConfig")
+            smartarray = self._rdmc.app.get_save()
+            sapaths = [path['@odata.id'].split('settings')[0] for path in smartarray]
+        except:
+            sapaths = None
+
         biosresults = self._rdmc.app.get_handler(self.typepath.defs.biospath, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
         iscsiresults = self._rdmc.app.get_handler(iscsipath, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
         bootsresults = self._rdmc.app.get_handler(bootpath, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
-
+        if sapaths:
+            saresults = [self._rdmc.app.get_handler(path, \
+                            verbose=self._rdmc.opts.verbose, service=True, \
+                            silent=True) for path in sapaths]
         try:
             results.update({'Bios:': biosresults.dict[self.typepath.defs.\
                                             biossettingsstring][u'Messages']})
@@ -89,6 +100,17 @@ class ResultsCommand(RdmcCommandBase):
                                              biossettingsstring][u'Messages']})
         except:
             results.update({'Boot:': None})
+        try:
+            for result in saresults:
+                loc = 'SmartArray'
+                if saresults.index(result) > 0:
+                    loc += ' %d:' % saresults.index(result)
+                else:
+                    loc += ':'
+                results.update({loc: result.dict[self.typepath.defs.\
+                                             biossettingsstring][u'Messages']})
+        except:
+            results.update({'SmartArray:': None})
 
         messagelist = list()
 
@@ -100,7 +122,7 @@ class ResultsCommand(RdmcCommandBase):
             else:
                 sys.stderr.write(u"No messages found for %s.\n" % result[:-1])
 
-        sys.stdout.write(u"Results of the previous BIOS change:\n")
+        sys.stdout.write(u"Results of the previous reboot changes:\n\n")
 
         for loc, messages  in messagelist:
 
