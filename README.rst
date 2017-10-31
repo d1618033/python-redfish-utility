@@ -57,6 +57,8 @@ History
 
   * 03/29/2017: Initial release of version 1.9.0
   * 04/25/2017: Release of version 1.9.1
+  * 07/17/2017: Release of version 2.0.0
+  * 10/31/2017: Release of version 2.1.0
 
 License
 ----------
