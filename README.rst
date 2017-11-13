@@ -82,6 +82,9 @@ limitations under the License.
 Authors
 ----------
 
-* [Jack Garcia](http://github.com/LumbaJack)
-* [Matthew Kocurek](http://github.com/Yergidy)
-* [Prithvi Subrahmanya](http://github.com/PrithviBS)
+-  `Jack Garcia`_
+.. _Jack Garcia: http://github.com/LumbaJack
+-  `Matthew Kocurek`_
+.. _Matthew Kocurek: http://github.com/Yergidy
+-  `Prithvi Subrahmanya`_
+.. _Prithvi Subrahmanya: http://github.com/PrithviBS
