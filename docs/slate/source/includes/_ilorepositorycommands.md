@@ -71,6 +71,8 @@ None
 
 > ![Downloadcomp Example 1](images/examples/downloadcomp_ex3.png "Downloadcomp example 1")
 
+<aside class="warning">The output directory and files in that directory must be set to writable.</aside>
+<aside class="warning">Any file in the output directory with the same name as the downloading component will be overwritten.</aside>
 
 
 #### Syntax
@@ -143,7 +145,7 @@ None
 
 > ![Installset Example 3](images/examples/installset_ex1.png "Installset example 3")
 
-> Complete JSON strucuture.
+> Complete JSON structure.
 
 ```
 {
@@ -260,7 +262,7 @@ None
 
 > Listcomp example commands:
 
-> Run to list the components ofthe currently logged in system.
+> Run to list the components of the currently logged in system.
 
 > ![Listcomp Example 1](images/examples/listcomp_ex1.png "Listcomp example 1")
 

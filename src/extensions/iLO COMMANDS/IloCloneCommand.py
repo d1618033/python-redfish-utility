@@ -33,7 +33,7 @@ from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError,\
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     InvalidFileInputError, NoContentsFoundForOperationError, \
-                    IncompatibleiLOVersionError, FileEncryption
+                    IncompatibleiLOVersionError, Encryption
 
 class IloCloneCommand(RdmcCommandBase):
     """ Clone iLO config of currently logged in server and copy it to another """
@@ -453,7 +453,8 @@ class IloCloneCommand(RdmcCommandBase):
         if 'PrimaryKeyServerAddress' in removelist and \
                                     'SecondaryKeyServerAddress' in removelist:
             if 'KeyServerRedundancyReq' in values.keys():
-                removelist.append('KeyServerRedundancyReq')
+                if 'KeyServerRedundancyReq' not in removelist:
+                    removelist.append('KeyServerRedundancyReq')
 
         for item in removelist:
             del values[item]
@@ -787,7 +788,7 @@ class IloCloneCommand(RdmcCommandBase):
 
         if options.encryption:
             outfile = open(filename, 'wb')
-            outfile.write(FileEncryption().encrypt_file(json.dumps(clone, \
+            outfile.write(Encryption().encrypt_file(json.dumps(clone, \
                                 separators=(',', ':'), \
                                 cls=redfish.ris.JSONEncoder),\
                                 options.encryption))
@@ -822,7 +823,7 @@ class IloCloneCommand(RdmcCommandBase):
         if options.encryption:
             with open(filename, "rb") as myfile:
                 data = myfile.read()
-                data = FileEncryption().decrypt_file(data, \
+                data = Encryption().decrypt_file(data, \
                                                     options.encryption)
         else:
             myfile = open(filename, 'r')
@@ -906,6 +907,11 @@ class IloCloneCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:

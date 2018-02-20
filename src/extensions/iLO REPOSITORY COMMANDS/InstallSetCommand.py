@@ -85,7 +85,7 @@ class InstallSetCommand(RdmcCommandBase):
         if options.removeall:
             self.removeinstallsets()
         elif not args:
-            self.printinstallsets()
+            self.printinstallsets(options)
         elif args[0].lower() == 'add':
             if not len(args) == 2:
                 raise InvalidCommandLineError('add command requires an ' \
@@ -207,17 +207,22 @@ class InstallSetCommand(RdmcCommandBase):
             sys.stdout.write('Deleting install set: %s\n' % setvar['Name'])
             self._rdmc.app.delete_handler(setvar['@odata.id'])
 
-    def printinstallsets(self):
+    def printinstallsets(self, options):
         """Prints install sets """
         sets = self._rdmc.app.getcollectionmembers(\
                                        '/redfish/v1/UpdateService/InstallSets/')
-        sys.stdout.write('Install Sets:\n\n')
+        if not options.json:
+            sys.stdout.write('Install Sets:\n\n')
 
         if not sets:
             sys.stdout.write('No install sets found.\n')
-        else:
+        elif not options.json:
             for setvar in sets:
-                sys.stdout.write('%s:\n' % setvar['Name'])
+                if setvar['IsRecovery']:
+                    recovery = "Recovery Set"
+                else:
+                    recovery = ""
+                sys.stdout.write('%s: [%s]\n' % (setvar['Name'], recovery))
 
                 if not 'Sequence' in setvar.keys():
                     sys.stdout.write('\tNo Sequences in set.\n')
@@ -234,6 +239,11 @@ class InstallSetCommand(RdmcCommandBase):
                     else:
                         sys.stdout.write('\t%s: %s\n' % (item['Name'], \
                                                             item['Command']))
+        elif options.json:
+            outjson = dict()
+            for setvar in sets:
+                outjson[setvar['Name']] = setvar
+            sys.stdout.write(str(json.dumps(outjson, indent=2))+'\n')
 
     def validatefile(self, installsetfile):
         """ validates json file
@@ -265,7 +275,12 @@ class InstallSetCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -333,4 +348,14 @@ class InstallSetCommand(RdmcCommandBase):
             dest='removeall',
             help="""Remove all install sets.""",
             default=False,
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )

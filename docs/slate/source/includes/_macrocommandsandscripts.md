@@ -30,7 +30,7 @@ Then, using this information along with the specified boot order provided in the
 
 ![Bootorder Example 6](images/BootOrder_6.png "BootOrder example 6")
 
-Once the changes have been made to the boot order, the changes are finally committed with the `commi` command, which also logs the user out.
+Once the changes have been made to the boot order, the changes are finally committed with the `commit` command, which also logs the user out.
 
 All of the commands shown here are executed the same way in the actual `bootorder` command, and were called in this same order to execute the `bootorder` command. You can write your own scripts to combine commands just like bootorder did, to use the provided commands in the RESTful Interface Tool for higher level functionality.
 
@@ -66,9 +66,10 @@ Then when you log into the server again, the BIOS password will have been update
 
 ![TPM Example](images/TPM_disable.png "TPM Example")
 
-When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
+> **Above:** When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
 
 If you need to disable TPM on a group of servers, you can use a set of commands in RESTful Interface Tool. For example, you are installing SPPs and OSs on bare-metal servers, and you need to disable TPM prior to starting installation.
+
 
 ### Enable the TPM on servers
 
@@ -78,6 +79,92 @@ If you need to disable TPM on a group of servers, you can use a set of commands 
 To enable the TPM, you can set the `TpmState` to `PresentEnabled`. **See side example**.
 
 <aside class="notice">When you are disabling or enabling TPM, depending on the TPM chip type on the server, the TPM visibility might be <b>Tpm2Visibility</b> or <b>TpmVisibility</b>.</aside>
+
+
+## Finding iLO MAC address
+
+Finding the iLO MAC address is not implemented in the restful interface tool but is easily reached by a set of `select` and `list` commands
+
+![MAC Address Example 1](images/MacAddress1.png "Mac Address example 1")
+
+First login to the server. Then `select` the `EthernetInterfaces.` type
+
+![MAC Address Example 2](images/MacAddress2.png "Mac Address example 2")
+
+Now using the `list` command, list the `name`, `macaddress`, and `status` values with the filter of the value `Name` starting with Manager.
+
+<aside class="notice">the --filter flag is case-sensitive.</aside>
+
+
+## Setting Active iLO NIC
+
+> Use this for gen10 servers.
+
+```json
+{
+	"path": "/redfish/v1/Managers/1/EthernetInterfaces/1",
+	"body": {
+		"Oem": { 
+			"Hpe": { 
+				"NICEnabled": true
+			}
+		}
+   	 }
+}
+```
+
+> Use this for gen9 servers.
+
+```json
+{
+	"path": "/redfish/v1/Managers/1/EthernetInterfaces/1",
+	"body": {
+		"Oem": { 
+			"Hp": { 
+				"NICEnabled": true
+			}
+		}
+   	 }
+}
+```
+To set the iLO NIC, First login to the server. Then use a `rawpatch` command 
+
+![NIC Example 1](images/NIC.png "Mac Address example 1")
+
+
+To set the NIC, first login to the server. Then we will be using a `rawpatch` command
+
+## Setting iLO Timezone
+
+In setting the iLO Timezone, we will be using both a rawpost and commands.
+
+![Timezone Example 1](images/timezone1.png "Time Zone example 1")
+
+First we login and select the HpeiLODateTime. type. If using Gen9, select the HpiLODateTime type instead. We then `list` the `TimeZoneList`. 
+
+Now scroll around looking for the timezone that is wanted. In the case of the example, we will be using US/Hawaii. Take note of the index associated with the Name.(2 in the case of US/Hawaii)
+
+![Timezone Example 2](images/timezone2.png "Time Zone example 2")
+
+Finally, we `set` the Index to 2. Check the status to make sure the change is queued and finally make sure to `commit` to finalize the changes.
+
+## Getting Powermetric Average
+
+First login to the server.
+
+![Power Example 1](images/power.png "Powermetric example 1")
+
+Next `select` the Power. type. Finally `list` powercontrol. The powermetric average is represented by the `AverageConsumedWatts` value.
+
+## Getting Encryption Settings
+
+To get the encryption settings, first login to the server
+
+![Encryption Setting Example 1](images/encryptionsettings.png "Encryption Setting example 1")
+
+Then `select` the `HpeSmartStorageArrayControllerCollection` type. If on a `Gen9` server select `HpSmartStorageArrayControllerCollection` instead.
+
+In the provided example, many of the resources for the encryption setting are not available. If available there will be values of `Name`, `Model`, `SerialNumber`, `EncryptionBootPasswordSet`, `EncryptionCryptoOfficerPasswordSet`, `EncrpytionLocalKeyCacheEnabled`, `EncryptionMixedVolumesEnabled`,`EncryptionPhyiscalDriveCount`,`EncryptionRecoveryParamsSet`,`EncryptionStandaloneModeEnabled`, and/or `EncryptionUserPasswordSet`.
 
 ## Using the Parallel Distributed Shell (PDSH) to execute commands in parallel example
 
@@ -152,12 +239,14 @@ To delete an iLO license, use the `rawdelete` command. For more information, see
     }
 }
 ```
+	
 
 To deploy a SPP, use the rawpost command. For more information, see [RawPost command](#rawpost-command).
 
 `ilorest -v --nologo rawpost virtualmedia.json --url=xx.xx.xx.xxx --user=Admin --password=password`
 
 The following is an example of the JSON to include when using the `rawpost` command.
+
 
 # Script Examples
 

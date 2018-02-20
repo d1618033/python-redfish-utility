@@ -648,6 +648,72 @@ None
 
 None
 
+### Ipprofiles command
+
+> Ipprofiles example commands:
+
+> To list the current profiles on the server, run the ipprofiles command without arguments. This server currently does not have any profiles.
+
+> ![Ipprofiles Example 1](images/examples/ipprofiles_list_cmd.png "Ipprofiles example 1")
+
+
+> To upload an ipprofile, run the ipprofiles command with a valid JSON file path as an argument. When you run the command to list the profiles, a new profile has been added.
+
+> ![Ipprofiles Example 2](images/examples/ipprofiles_decode_cmd.png "Ipprofiles example 2")
+
+
+> To remove a profile, use the unique key contained in the profile with the delete option. When you run the command to list the profiles, a profile has been removed.
+
+> ![Ipprofiles Example 3](images/examples/ipprofiles_delete_cmd.png "Ipprofiles example 3")
+
+
+
+#### Syntax
+
+ipprofiles *[Optional Parameters]*
+
+#### Description
+
+Run this command to manage the hpeipprofile data store.
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **--sessionid=SESSIONID**
+
+Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+
+- **-f FILENAME, --filename=FILENAME**
+
+Write results to the specified file.
+
+- **-d DEL_KEY, --delete=DEL_KEY**
+
+Look for the key or keys in the ipprofile manager and delete.
+
+#### Inputs
+
+None
+
+#### Outputs
+
+None
+
 ### Firmware update command
 
 > Firmware update example commands:

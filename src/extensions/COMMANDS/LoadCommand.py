@@ -35,7 +35,7 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     NoChangesFoundOrMadeError, InvalidFileInputError, \
                     NoDifferencesFoundError, MultipleServerConfigError, \
-                    InvalidMSCfileInputError, FileEncryption
+                    InvalidMSCfileInputError, Encryption
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 
@@ -102,7 +102,7 @@ class LoadCommand(RdmcCommandBase):
             if options.encryption:
                 with open(files, "rb") as myfile:
                     data = myfile.read()
-                    data = FileEncryption().decrypt_file(data, \
+                    data = Encryption().decrypt_file(data, \
                                                         options.encryption)
             else:
                 with open(files, "r") as myfile:
@@ -221,7 +221,7 @@ class LoadCommand(RdmcCommandBase):
 
                 try:
                     if results:
-                        self.comobj.commitfunction()
+                        self.comobj.commitfunction(options=options)
                 except NoChangesFoundOrMadeError, excp:
                     if returnvalue:
                         pass
@@ -238,7 +238,7 @@ class LoadCommand(RdmcCommandBase):
 
         return ReturnCodes.SUCCESS
 
-    def loadmultihelper(self, sel, val, changes):
+    def loadmultihelper(self, sel, val, changes, keeplist=[]):
         """ Load multi helper function
 
         :param sel: current property
@@ -251,14 +251,16 @@ class LoadCommand(RdmcCommandBase):
         results = list()
 
         if isinstance(val, dict):
+            keeplist.append(sel)
             for first, second in val.iteritems():
                 (results, finalval) = self.loadmultihelper(first, second, \
-                                                                        changes)
-                results.insert(0, sel)
+                                                                changes, keeplist)
+                if not set(keeplist).issubset(set(results)):
+                    results = keeplist + results
+                    changes.append((results, finalval))
         else:
             results.append(sel + "=" + str(val))
             finalval = val
-            changes.append((results, finalval))
 
         return (results, finalval)
 
@@ -278,7 +280,12 @@ class LoadCommand(RdmcCommandBase):
             options.json = True
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -595,4 +602,12 @@ class LoadCommand(RdmcCommandBase):
             help="Optionally include this flag to encrypt/decrypt a file "\
             "using the key provided.",
             default=None
+        )
+        customparser.add_option(
+            '--reboot',
+            dest='reboot',
+            help="Use this flag to perform a reboot command function after"\
+            " completion of operations.  For help with parameters and"\
+            " descriptions regarding the reboot flag, run help reboot.",
+            default=None,
         )

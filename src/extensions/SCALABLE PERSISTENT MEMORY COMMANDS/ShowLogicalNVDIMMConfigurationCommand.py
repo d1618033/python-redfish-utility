@@ -36,7 +36,8 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='showscalablepmemconfig', \
             usage='showscalablepmemconfig [--available] [--json]\n\n'\
-                '\tDisplay the Scalable Persistent Memory configuration.\n\n'\
+                '\tDisplay the Scalable Persistent Memory configuration.\n'\
+                '\tIf system is configured, reports the estimated time to complete a backup boot.\n\n'\
                 '\texample: showscalablepmemconfig', \
             summary='Display the Scalable Persistent Memory configuration.', \
             aliases=['spmem-showcfg', 'spmemsc'], \
@@ -72,8 +73,8 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
             if not options.json:
                 self._helpers.writeHeader2(u"Available Scalable Persistent Memory")
                 sys.stdout.write("Available capacity to create logical NVDIMMs "\
-                                 "is constrained by the system hardware, including"\
-                                 " the number of backup storage devices selected.")
+                                 "is constrained by the system\n hardware, including"\
+                                 " the number of backup storage devices selected.\n")
 
             self._helpers.displayAvailableCapacity(scalable_pmem_config, \
                                                    output_as_json=options.json)
@@ -83,13 +84,15 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
                 self._helpers.writeHeader2(u"Overall Allocated Scalable Persistent Memory")
                 sys.stdout.write(u"\n")
                 self._helpers.displayOverallCapacityBarGraph(scalable_pmem_config, 60)
+                self._helpers.printBackupBootTimeMessage(scalable_pmem_config)
                 if len(scalable_pmem_config.drives.selectedDrives) == 0:
                     sys.stdout.write("* No backup storage devices have been selected")
                 sys.stdout.write(u"\n")
                 # allocated logical nvdimms
                 self._helpers.writeHeader2(u"Logical NVDIMMs")
             self._helpers.displayRegionConfiguration(scalable_pmem_config, \
-                                                     output_as_json=options.json)
+                                                     output_as_json=options.json, \
+                                                     print_backup_time_message=False)
 
         sys.stdout.write(u"\n\n")
 
@@ -137,7 +140,7 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
             '--available',
             action="store_true",
             dest="available",
-            help="Show available capacity per processor or processor pair"
+            help="Show the available capacity per processor or processor pair."
         )
 
         customparser.add_option(

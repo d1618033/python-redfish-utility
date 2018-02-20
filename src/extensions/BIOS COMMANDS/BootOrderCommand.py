@@ -384,7 +384,12 @@ class BootOrderCommand(RdmcCommandBase):
             options.commit = True
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
 
             if options.biospassword:
                 self._rdmc.app.update_bios_password(options.biospassword)

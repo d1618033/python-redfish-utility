@@ -232,6 +232,13 @@ class RdmcOptionParser(OptionParser):
             default=False
         )
         globalgroup.add_option(
+            '--logdir',
+            dest='logdir',
+            default=None,
+            help="""Use the provided directory as the location for log file.""",
+            metavar='PATH'
+        )
+        globalgroup.add_option(
             '--nocache',
             dest='nocache',
             action="store_true",

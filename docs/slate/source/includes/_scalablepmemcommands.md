@@ -20,6 +20,8 @@ Overall Allocated Scalable Persistent Memory
 '----------------------------------------------------------'
 250 GiB of 786 GiB allocated (536 GiB available)
 
+Estimated total backup boot time for this configuration: 2m 18s
+
 
 Logical NVDIMMs
 ---------------
@@ -29,6 +31,7 @@ Size        Type               Location                Operation
   100 GiB   Single Processor   Processor 1, Index 1                 
   100 GiB   Single Processor   Processor 1, Index 2                 
    50 GiB   Single Processor   Processor 2, Index 1                 
+
 
 
 ```
@@ -42,7 +45,7 @@ iLOrest > showscalablepmemconfig --available
 Available Scalable Persistent Memory
 ------------------------------------
 Available capacity to create logical NVDIMMs is constrained by the system
-hardware, including the number of backup storage devices selected.
+ hardware, including the number of backup storage devices selected.
 
 By Processor (for single processor logical NVDIMMs):
 
@@ -196,9 +199,9 @@ setbackupdevices *(--device=ID... | --remove-all)*
 
 #### Description
 
-- Configures the specified devices for use as Scalable Persistent Memory backup storage
-- Backup devices are not allowed to be removed while logical NVDIMMs exist
-- The device IDs can be obtained from the `showbackupdevices` command
+- Configures the specified devices for use as Scalable Persistent Memory backup storage.
+- Backup devices are not allowed to be removed while logical NVDIMMs exist.
+- The device IDs can be obtained from the `showbackupdevices` command.
 
 
 #### Parameters
@@ -218,7 +221,7 @@ Remove all currently-configured backup devices
 
 ### Create Logical NVDIMM command
 
-> Example: Create a 100 GiB logical NVDIMM on processor 1
+> Example: Create a 100 GiB logical NVDIMM on processor 1.
 
 
 ```
@@ -227,6 +230,9 @@ iLOrest > createlogicalnvdimm --processor=1 --size=100
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
   100 GiB   Single Processor   Processor 1, Index 1    Create       
+
+Estimated total backup boot time for this configuration: 1m 33s
+
 
 
 *** The pending configuration operations require a restart to take effect ***
@@ -244,6 +250,9 @@ Size        Type               Location                Operation
 --------------------------------------------------------------------
   100 GiB   Spanned            Processors 1,2          Create       
   100 GiB   Single Processor   Processor 1, Index 1    Create       
+
+Estimated total backup boot time for this configuration: 2m 3s
+
 
 
 *** The pending configuration operations require a restart to take effect ***
@@ -277,7 +286,7 @@ Use to create a logical NVDIMM. Specify the processor (auto, 1, 2).
 
 - **--pair=PAIR, --processors=PAIR**
 
-Use to create a spanned logical NVDIMM. Specify the pair of processors (auto or 1,2).
+Use to create a spanned logical NVDIMM.  Specify the pair of processors (auto or 1,2).
 
 
 
@@ -296,11 +305,12 @@ Size        Type               Location                Operation
   128 GiB   Single Processor   Processor 1, Index 1    Remove       
 
 
+
 *** WARNING ***
 
 The pending configuration operations require a restart to take effect.
 
-All backup storage devices will be initialized during restart.
+All backup storage devices will be initialized upon restart.
 Data on any existing logical NVDIMMs will be lost.
 
 The pending configuration changes can be discarded by running:
@@ -322,11 +332,12 @@ Size        Type               Location                Operation
   100 GiB   Spanned            Processors 1,2          Remove       
 
 
+
 *** WARNING ***
 
 The pending configuration operations require a restart to take effect.
 
-All backup storage devices will be initialized during restart.
+All backup storage devices will be initialized upon restart.
 Data on any existing logical NVDIMMs will be lost.
 
 The pending configuration changes can be discarded by running:
@@ -362,7 +373,7 @@ Specify the index of the logical NVDIMM to remove (use with --processor).
 
 - **--pair=PAIR, --processors=PAIR**
 
-Specify the pair of processors of the spanned logical NVDIMM to remove (1,2)
+Specify the pair of processors of the spanned logical NVDIMM to remove (1,2).
 
 
 
@@ -381,11 +392,12 @@ Size        Type               Location                Operation
   128 GiB   Single Processor   Processor 1, Index 1    Remove       
 
 
+
 *** WARNING ***
 
 The pending configuration operations require a restart to take effect.
 
-All backup storage devices are initialized during restart.
+All backup storage devices will be initialized upon restart.
 Data on any existing logical NVDIMMs will be lost.
 
 The pending configuration changes can be discarded by running:
@@ -407,6 +419,9 @@ Size        Type               Location                Operation
 --------------------------------------------------------------------
   128 GiB   Single Processor   Processor 1, Index 1                 
 
+Estimated total backup boot time for this configuration: 1m 41s
+
+
 Scalable Persistent Memory Backup Storage Devices
 -------------------------------------------------
 
@@ -418,6 +433,8 @@ ID     Location        Model        Type       Size    Status   Life PMEM Use  O
 3@4    Box 3 Bay 4     MO0800KEFHP  SSD (NVMe) 800 GB  OK       99%                                
 
 Scalable Persistent Memory supported: 786 GiB
+Estimated total backup boot time for this configuration: 1m 41s
+
 
 
 
@@ -494,8 +511,7 @@ The new backup device to use as a replacement, e.g. '2@1'
 
 ### Auto Select Backup Devices command
 
-> Example: Simulate the selection of backup storage devices to support 900 GiB of Scalable Persistent Memory:
-
+> Example: Simulate the selection of backup storage devices to support 900 GiB of Scalable Persistent Memory.
 
 ```
 iLOrest > autoselectbackupdevices --size=900

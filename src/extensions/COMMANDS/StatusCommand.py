@@ -47,14 +47,14 @@ class StatusCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (_, _) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        self.statusvalidation()
+        self.statusvalidation(options)
         contents = self._rdmc.app.status()
         selector = self._rdmc.app.get_selector()
 
@@ -134,10 +134,15 @@ class StatusCommand(RdmcCommandBase):
                     sys.stdout.write('\n')
 
 
-    def statusvalidation(self):
+    def statusvalidation(self, options):
         """ Status method validation function """
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             raise NoCurrentSessionEstablished("Please login and make setting" \
                                       " changes before using status command.")
@@ -150,3 +155,19 @@ class StatusCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+        customparser.add_option(
+            '-u',
+            '--user',
+            dest='user',
+            help="Pass this flag along with the password flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )
+        customparser.add_option(
+            '-p',
+            '--password',
+            dest='password',
+            help="Pass this flag along with the username flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )

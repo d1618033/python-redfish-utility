@@ -169,7 +169,7 @@ class RemoveLogicalNVDIMMRegionCommand(RdmcCommandBase):
             default=None,
             dest="processorNumber",
             metavar="NUMBER",
-            help="Specify the processor number of the logical NVDIMM to remove (1, 2)"
+            help="Specify the processor number of the logical NVDIMM to remove (1, 2)."
         )
 
         groupDanger.add_option(
@@ -178,7 +178,7 @@ class RemoveLogicalNVDIMMRegionCommand(RdmcCommandBase):
             type="int",
             default=None,
             dest="index",
-            help="Specify the index of the logical NVDIMM to remove (use with --processor)")
+            help="Specify the index of the logical NVDIMM to remove (use with --processor).")
 
         groupDanger.add_option(
             '--pair',
@@ -188,7 +188,7 @@ class RemoveLogicalNVDIMMRegionCommand(RdmcCommandBase):
             default=None,
             dest="processorPair",
             metavar="PAIR",
-            help="Specify the pair of processors of the spanned logical NVDIMM to remove (1,2)"
+            help="Specify the pair of processors of the spanned logical NVDIMM to remove (1,2)."
             )
 
         customparser.add_option_group(groupDanger)

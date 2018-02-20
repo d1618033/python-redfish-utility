@@ -281,7 +281,7 @@ class CreateLogicalNVDIMMRegionCommand(RdmcCommandBase):
             type="int",
             action="store",
             dest="size",
-            help="Specify the size (GiB) of the logical NVDIMM to create"
+            help="Specify the size (GiB) of the logical NVDIMM to create."
         )
 
         groupDanger.add_option(
@@ -292,7 +292,7 @@ class CreateLogicalNVDIMMRegionCommand(RdmcCommandBase):
             default=None,
             dest="processorNumber",
             metavar="NUMBER",
-            help="Use to create a logical NVDIMM. Specify the processor (auto, 1, 2)"
+            help="Use to create a logical NVDIMM. Specify the processor (auto, 1, 2)."
         )
 
         groupDanger.add_option(
@@ -304,7 +304,7 @@ class CreateLogicalNVDIMMRegionCommand(RdmcCommandBase):
             dest="processorPair",
             metavar="PAIR",
             help="Use to create a spanned logical NVDIMM.  Specify the pair of "\
-                                                        "processors (auto or 1,2)"
+                                                        "processors (auto or 1,2)."
         )
 
         customparser.add_option_group(groupDanger)

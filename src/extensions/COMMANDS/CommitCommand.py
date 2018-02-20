@@ -52,7 +52,7 @@ class CommitCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        self.commitvalidation()
+        self.commitvalidation(options)
 
         sys.stdout.write(u"Committing changes...\n")
 
@@ -94,10 +94,15 @@ class CommitCommand(RdmcCommandBase):
         #Return code
         return ReturnCodes.SUCCESS
 
-    def commitvalidation(self):
+    def commitvalidation(self, options):
         """ Commit method validation function """
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             raise NoCurrentSessionEstablished("Please login and make setting" \
                                       " changes before using commit command.")
@@ -110,6 +115,22 @@ class CommitCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+        customparser.add_option(
+            '-u',
+            '--user',
+            dest='user',
+            help="Pass this flag along with the password flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )
+        customparser.add_option(
+            '-p',
+            '--password',
+            dest='password',
+            help="Pass this flag along with the username flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )
         customparser.add_option(
             '--reboot',
             dest='reboot',

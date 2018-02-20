@@ -18,6 +18,7 @@
 """ List Component Command for rdmc """
 
 import sys
+import json
 
 from optparse import OptionParser
 
@@ -66,21 +67,27 @@ class ListComponentCommand(RdmcCommandBase):
                             '/redfish/v1/UpdateService/ComponentRepository/')
 
         if comps:
-            self.printcomponents(comps)
+            self.printcomponents(comps, options)
         else:
             sys.stdout.write('No components found.\n')
 
         return ReturnCodes.SUCCESS
 
-    def printcomponents(self, comps):
+    def printcomponents(self, comps, options):
         """ Print components function
 
         :param comps: list of components
         :type comps: list.
         """
-        for comp in comps:
-            sys.stdout.write('Id: %s\nName: %s\nVersion: %s\nComponent Uri:%s' \
-                             '\nFile Path: %s\nSizeBytes: %s\n\n' % \
+        if options.json:
+            jsonout = dict()
+            for comp in comps:
+                jsonout[comp['Id']] = comp
+            sys.stdout.write(str(json.dumps(jsonout, indent=2))+'\n')
+        else:
+            for comp in comps:
+                sys.stdout.write('Id: %s\nName: %s\nVersion: %s\nComponent '\
+                                'Uri:%s\nFile Path: %s\nSizeBytes: %s\n\n' % \
                              (comp['Id'], comp['Name'], comp['Version'], \
                               comp['ComponentUri'], comp['Filepath'], \
                               str(comp['SizeBytes'])))
@@ -94,7 +101,12 @@ class ListComponentCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -147,4 +159,14 @@ class ListComponentCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )

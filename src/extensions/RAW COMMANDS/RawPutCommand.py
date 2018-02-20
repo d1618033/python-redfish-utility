@@ -20,11 +20,11 @@
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, \
-                    InvalidFileFormattingError
+                    InvalidFileFormattingError, Encryption
 
 class RawPutCommand(RdmcCommandBase):
     """ Raw form of the put command """
@@ -61,6 +61,11 @@ class RawPutCommand(RdmcCommandBase):
         url = None
         headers = {}
         results = None
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -104,7 +109,8 @@ class RawPutCommand(RdmcCommandBase):
               sessionid=options.sessionid, url=url, headers=headers, \
               response=returnresponse, silent=options.silent, \
               optionalpassword=options.biospassword, service=options.service, \
-              providerheader=options.providerid)
+              providerheader=options.providerid, username=options.user, \
+              password=options.password)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
@@ -129,7 +135,12 @@ class RawPutCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
 
             if options.biospassword:
                 self._rdmc.app.update_bios_password(options.biospassword)
@@ -257,5 +268,13 @@ class RawPutCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to enable service mode and increase """\
                                                 """the function speed""",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

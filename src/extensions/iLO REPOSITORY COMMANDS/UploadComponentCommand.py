@@ -25,7 +25,7 @@ import shutil
 
 from random import choice
 from string import ascii_lowercase
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import ctypes
 from ctypes import c_char_p, c_int, c_uint32
@@ -35,7 +35,8 @@ from redfish.ris.rmc_helper import InvalidPathError
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-            InvalidCommandLineError, IncompatibleiLOVersionError, TimeOutError
+            InvalidCommandLineError, IncompatibleiLOVersionError, TimeOutError,\
+            Encryption, UploadError
 
 def human_readable_time(seconds):
     """ Returns human readable time
@@ -86,6 +87,11 @@ class UploadComponentCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -149,7 +155,7 @@ class UploadComponentCommand(RdmcCommandBase):
 
         results = results.dict
 
-        if 'Members' in results:
+        if 'Members' in results and results['Members']:
             for comp in results['Members']:
                 for filehndl in filelist:
                     if comp['Filename'] in filehndl[0] and not \
@@ -305,7 +311,8 @@ class UploadComponentCommand(RdmcCommandBase):
 
                 res = self._rdmc.app.post_handler(str(urltosend), data, \
                     response=True, sessionid=options.sessionid, url=url, \
-                     headers={'Cookie': 'sessionKey=' + sessionkey})
+                     headers={'Cookie': 'sessionKey=' + sessionkey}, \
+                     username=options.user, password=options.password)
 
                 if res.status != 200:
                     return ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
@@ -314,16 +321,17 @@ class UploadComponentCommand(RdmcCommandBase):
                                                     " uploaded successfully\n")
 
                 if not self.wait_for_state_change(sessionid=options.sessionid, \
-                                                                    url=url):
+                        username=options.user, password=options.password, url=url):
                     # Failed to upload the component.
-                    raise TimeOutError("Update service busy.")
+                    raise UploadError("Update service busy.")
 
             except Exception as excep:
                 raise excep
 
         return ReturnCodes.SUCCESS
 
-    def wait_for_state_change(self, wait_time=300, sessionid=None, url=None):
+    def wait_for_state_change(self, wait_time=300, sessionid=None, url=None,\
+                              username=None, password=None):
         """ Wait for the iLO UpdateService to a move to terminal state.
         :param options: command line options
         :type options: list.
@@ -337,7 +345,8 @@ class UploadComponentCommand(RdmcCommandBase):
                                                 "processing the component\n")
 
         while total_time < wait_time:
-            state, _ = self.get_update_service_state(sessionid, url)
+            state, _ = self.get_update_service_state(sessionid, url, username, \
+                                                     password)
 
             if state == "ERROR":
                 return False
@@ -361,7 +370,8 @@ class UploadComponentCommand(RdmcCommandBase):
 
         return True
 
-    def get_update_service_state(self, sessionid=None, url=None):
+    def get_update_service_state(self, sessionid=None, url=None, username=None,
+                                 password=None):
         """ Get the current UpdateService state
 
         :param options: command line options
@@ -370,7 +380,8 @@ class UploadComponentCommand(RdmcCommandBase):
         path = "/redfish/v1/UpdateService"
         results = self._rdmc.app.get_handler(path, sessionid=sessionid, \
                                      url=url, verbose=self._rdmc.opts.verbose, \
-                                     service=True, silent=True)
+                                     service=True, silent=True, username=username, \
+                                     password=password)
 
         if results and results.status == 200 and results.dict:
             output = results.dict
@@ -428,9 +439,10 @@ class UploadComponentCommand(RdmcCommandBase):
         :type options: list.
         """
         try:
-            lib = risblobstore2.BlobStore2.gethprestchifhandle()
-            lib.uploadComponent.argtypes = [c_char_p, c_char_p, c_char_p, c_uint32]
-            lib.uploadComponent.restype = c_int
+            bs2 = risblobstore2.BlobStore2()
+            risblobstore2.BlobStore2.initializecreds(options.user, options.password)
+            bs2.channel.dll.uploadComponent.argtypes = [c_char_p, c_char_p, c_char_p, c_uint32]
+            bs2.channel.dll.uploadComponent.restype = c_int
 
             multiupload = False
 
@@ -470,8 +482,8 @@ class UploadComponentCommand(RdmcCommandBase):
                                 ctypes.c_uint32(0x00000001 | 0x00000004 | \
                                                         0x00000010 | 0x00000020)
 
-                sys.stdout.write("Uploading component " + filename)
-                ret = lib.uploadComponent(\
+                sys.stdout.write("Uploading component " + filename + "\n")
+                ret = bs2.channel.dll.uploadComponent(\
                   ctypes.create_string_buffer(compsigpath.encode('utf-8')),
                   ctypes.create_string_buffer(componentpath.encode('utf-8')),
                   ctypes.create_string_buffer(ilo_upload_filename), \
@@ -481,15 +493,12 @@ class UploadComponentCommand(RdmcCommandBase):
                     sys.stdout.write("Component " + filename + \
                                                             " upload failed\n")
 
-                    risblobstore2.BlobStore2.unloadchifhandle(lib)
                     return ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
                 else:
                     sys.stdout.write("Component " + filename + \
                                                     " uploaded successfully\n")
 
                 multiupload = True
-
-            risblobstore2.BlobStore2.unloadchifhandle(lib)
 
         except Exception as excep:
             raise excep
@@ -515,7 +524,12 @@ class UploadComponentCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Component signature not found.")
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -656,5 +670,13 @@ class UploadComponentCommand(RdmcCommandBase):
             dest='update_target',
             action="store_true",
             help='If true the uploaded component/binary will be flashed, Default[False] ',
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

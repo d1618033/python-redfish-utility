@@ -113,17 +113,18 @@ The pending configuration changes can be discarded by running:
                 self.truncateLengthy(scalable_pmem_config.drive_operation_description(entry), 20)))
 
         sys.stdout.write("\n\nScalable Persistent Memory supported: {} GiB".format(regions.maxPmemGiB))
+        self.printBackupBootTimeMessage(scalable_pmem_config)
 
         self.noticeRestartRequired(scalable_pmem_config)
         sys.stdout.write(u"\n\n")
 
 
-
-    def displayRegionConfiguration(self, scalable_pmem_config, output_as_json=False):
+    def displayRegionConfiguration(self, scalable_pmem_config, output_as_json=False, print_backup_time_message=True):
         if output_as_json:
             data = {
                 "TotalSupported" : scalable_pmem_config.regions.maxPmemGiB,
                 "TotalAvailable" : scalable_pmem_config.regions.availableSizeGiB,
+                "EstimatedBackupBootTimeSec" : scalable_pmem_config.regions.backupBootSec,
                 "LogicalNVDIMMs" : {
                     "SingleProcessor" : [],
                     "Spanned" : []
@@ -161,6 +162,9 @@ The pending configuration changes can be discarded by running:
             if totalCount == 0:
                 sys.stdout.write(u"\nNo logical NVDIMMs have been created\n")
 
+            sys.stdout.write(u"\n")
+            if print_backup_time_message:
+                self.printBackupBootTimeMessage(scalable_pmem_config)
             self.noticeRestartRequired(scalable_pmem_config)
             sys.stdout.write(u"\n")
 
@@ -287,7 +291,16 @@ The pending configuration changes can be discarded by running:
         caption = u"{} GiB of {} GiB allocated ({} GiB available)".format(total - available, total, available)
         self.displayBarGraph(part=(total - available), total=total, caption=caption, max_width_chars=maxWidth)
 
-
+    def printBackupBootTimeMessage(self, scalable_pmem_config):
+        # only print if Logical NVDIMMs exist
+        if scalable_pmem_config.hasConfiguredRegions:
+            backupBootTime = scalable_pmem_config.regions.backupBootSec
+            minutes, seconds = divmod(backupBootTime, 60)
+            sys.stdout.write(u"\nEstimated total backup boot time for this configuration:")
+            if minutes > 0:
+                sys.stdout.write(u" {}m".format(minutes))
+            sys.stdout.write(u" {}s".format(int(seconds)))
+            sys.stdout.write(u"\n")
 
     def truncateLengthy(self, s, max_length):
         if s:

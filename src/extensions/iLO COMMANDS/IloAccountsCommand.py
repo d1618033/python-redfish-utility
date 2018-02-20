@@ -18,6 +18,7 @@
 """ Add Account Command for rdmc """
 
 import sys
+import json
 import getpass
 
 from optparse import OptionParser
@@ -97,19 +98,27 @@ class IloAccountsCommand(RdmcCommandBase):
         if not results:
             raise NoContentsFoundForOperationError("")
 
+        outdict = dict()
         if len(args) == 0:
-            sys.stdout.write("iLO Account info: \n[Id]LoginName: "\
+            if not options.json:
+                sys.stdout.write("iLO Account info: \n[Id]LoginName: "\
                                 "\nPrivileges\n-----------------\n")
             for acct in sorted(results, key=lambda k: int(k['Id'])):
                 privstr = ""
                 privs = acct['Oem'][self.typepath.defs.\
                                             oemhp]['Privileges']
-                for priv in privs:
-                    privstr += priv + '=' + str(privs[priv]) + '\n'
-
-                sys.stdout.write("[%s] %s:\n%s\n" % (acct['Id'], \
-                                acct['Oem'][self.typepath.defs.\
-                                            oemhp]['LoginName'], privstr))
+                if not options.json:
+                    for priv in privs:
+                        privstr += priv + '=' + str(privs[priv]) + '\n'
+                    sys.stdout.write("[%s] %s:\n%s\n" % (acct['Id'], \
+                                    acct['Oem'][self.typepath.defs.\
+                                                oemhp]['LoginName'], privstr))
+                keyval = '['+str(acct['Id'])+'] '+acct['Oem'][self.typepath.\
+                                                    defs.oemhp]['LoginName']
+                outdict[keyval] = privs
+            if options.json:
+                sys.stdout.write(str(json.dumps(outdict, indent=2)))
+                sys.stdout.write('\n')
         elif args[0].lower() == 'changepass':
             if len(args) == 2:
                 sys.stdout.write('Please input the new password.\n')
@@ -268,7 +277,12 @@ class IloAccountsCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -405,4 +419,14 @@ class IloAccountsCommand(RdmcCommandBase):
             help="Optionally include this flag if you wish to set the "\
             "system recovery config privileges to false. Only available on gen10"\
             " servers."
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )

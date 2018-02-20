@@ -54,8 +54,12 @@ class ScalablePersistentMemoryConfig(object):
 
         if self._validatorObject and self._chif_lib:
             # update the config object's theoretical vales with validated ones
-            maxPmemGiB = self._validatorObject.calculateMaxPmemGiB(self._chif_lib, self._config, self._drives.selectedDrives)
+            total = self._regions.maxPmemGiB
+            available = self._regions.availableSizeGiB
+            configured_pmem_GiB = total - available
+            (maxPmemGiB, backupBootSec) = self._validatorObject.calculateMaxPmemGiBAndBackupTime(self._chif_lib, configured_pmem_GiB, self._config, self._drives.selectedDrives)
             self._regions.maxPmemGiB = maxPmemGiB
+            self._regions.backupBootSec = backupBootSec
 
     @property
     def isConfiguredSystem(self):

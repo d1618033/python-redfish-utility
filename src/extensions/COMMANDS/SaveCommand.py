@@ -28,7 +28,7 @@ import redfish.ris
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                             InvalidCommandLineError, InvalidFileFormattingError,\
-                            FileEncryption
+                            Encryption
 
 #default file name
 __filename__ = 'ilorest.json'
@@ -116,7 +116,7 @@ class SaveCommand(RdmcCommandBase):
 
         if options.encryption:
             outfile = open(self.filename, 'wb')
-            outfile.write(FileEncryption().encrypt_file(json.dumps(contents, \
+            outfile.write(Encryption().encrypt_file(json.dumps(contents, \
                                 indent=2, cls=redfish.ris.JSONEncoder),\
                                 options.encryption))
         else:
@@ -144,7 +144,12 @@ class SaveCommand(RdmcCommandBase):
             options.json = True
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:

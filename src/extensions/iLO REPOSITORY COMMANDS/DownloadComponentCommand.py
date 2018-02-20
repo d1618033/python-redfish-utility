@@ -23,14 +23,15 @@ import time
 import ctypes
 
 from ctypes import c_char_p, c_int
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                         InvalidCommandLineError, DownloadError, \
-                        InvalidFileInputError, IncompatibleiLOVersionError
+                        InvalidFileInputError, IncompatibleiLOVersionError, \
+                        Encryption
 
 def human_readable_time(seconds):
     """ Returns human readable time
@@ -76,6 +77,11 @@ class DownloadComponentCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -154,31 +160,31 @@ class DownloadComponentCommand(RdmcCommandBase):
         :type filepath: string.
         """
         try:
-
-            lib = risblobstore2.BlobStore2.gethprestchifhandle()
-
-            lib.downloadComponent.argtypes = [c_char_p, c_char_p]
-            lib.downloadComponent.restype = c_int
+            bs2 = risblobstore2.BlobStore2()
+            risblobstore2.BlobStore2.initializecreds(options.user, options.password)
+            bs2.channel.dll.downloadComponent.argtypes = [c_char_p, c_char_p]
+            bs2.channel.dll.downloadComponent.restype = c_int
 
             filename = filepath.rsplit('/', 1)[-1]
-            destination = os.path.join(options.outdir, filename)
+            if not options.outdir:
+                destination = os.path.join(os.getcwd(), filename)
+            else:
+                destination = os.path.join(options.outdir, filename)
 
             if not os.path.exists(os.path.join(os.path.split(destination)[0])):
                 raise InvalidFileInputError("Invalid output file location.")
 
-            ret = lib.downloadComponent(ctypes.create_string_buffer(\
+            ret = bs2.channel.dll.downloadComponent(ctypes.create_string_buffer(\
                                                 filename.encode('utf-8')), \
                                                 ctypes.create_string_buffer(\
                                                 destination.encode('utf-8')))
 
             if ret != 0:
-                sys.stdout.write("Component " + filename + " download failed")
+                sys.stdout.write("Component " + filename + " download failed\n")
                 return ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
             else:
                 sys.stdout.write("Component " + filename + \
-                                                    " downloaded successfully")
-
-            risblobstore2.BlobStore2.unloadchifhandle(lib)
+                                                    " downloaded successfully\n")
 
         except Exception as excep:
             raise DownloadError(str(excep))
@@ -194,7 +200,12 @@ class DownloadComponentCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -297,4 +308,12 @@ class DownloadComponentCommand(RdmcCommandBase):
             dest='outdir',
             help="""output directory for saving the file.""",
             default="",
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

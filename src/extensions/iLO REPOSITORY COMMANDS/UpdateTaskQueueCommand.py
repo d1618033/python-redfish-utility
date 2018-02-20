@@ -18,6 +18,7 @@
 """ Update Task Queue Command for rdmc """
 
 import sys
+import json
 
 from optparse import OptionParser
 from random import randint
@@ -78,7 +79,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         elif options.cleanqueue:
             self.cleanqueue()
         elif not args:
-            self.printqueue()
+            self.printqueue(options)
         elif args[0].lower() == 'create':
             self.createtask(args[1:])
         else:
@@ -161,30 +162,39 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
             self._rdmc.app.post_handler(path, newtask)
 
-    def printqueue(self):
+    def printqueue(self, options):
         """ Prints the update task queue"""
         tasks = self._rdmc.app.getcollectionmembers(\
                                 '/redfish/v1/UpdateService/UpdateTaskQueue/')
         if not tasks:
             sys.stdout.write('No tasks found.\n')
+            return
 
-        sys.stdout.write('\nCurrent Update Task Queue:\n\n')
+        if not options.json:
+            sys.stdout.write('\nCurrent Update Task Queue:\n\n')
 
-        for task in tasks:
-            sys.stdout.write('Task %s:\n'%task['Name'])
-
-            if 'Filename' in task.keys():
-                sys.stdout.write('\tCommand: %s\n\tFilename: %s\n\tState:%s\n' \
-                         % (task['Command'], task['Filename'], task['State']))
-            elif 'WaitTimeSeconds' in task.keys():
-                sys.stdout.write('\tCommand: %s %s seconds\n\tState:%s\n'%(\
+        if not options.json:
+            for task in tasks:
+                sys.stdout.write('Task %s:\n'%task['Name'])
+    
+                if 'Filename' in task.keys():
+                    sys.stdout.write('\tCommand: %s\n\tFilename: %s\n\t'\
+                        'State:%s\n'% (task['Command'], task['Filename'], \
+                                                            task['State']))
+                elif 'WaitTimeSeconds' in task.keys():
+                    sys.stdout.write('\tCommand: %s %s seconds\n\tState:%s\n'%(\
                                 task['Command'], str(task['WaitTimeSeconds']),
-                                task['State']))
-            else:
-                sys.stdout.write('\tCommand:%s\n\ttate: %s\n'%(task['Command'],\
-                                                              task['State']))
-
-            sys.stdout.write('\n')
+                                    task['State']))
+                else:
+                    sys.stdout.write('\tCommand:%s\n\ttate: %s\n'%(task\
+                                                    ['Command'],task['State']))
+    
+                sys.stdout.write('\n')
+        elif options.json:
+            outjson = dict()
+            for task in tasks:
+                outjson[task['Name']] = task
+            sys.stdout.write(str(json.dumps(outjson, indent=2))+'\n')
 
     def updatetaskqueuevalidation(self, options):
         """ taskqueue validation function
@@ -195,7 +205,12 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -264,4 +279,14 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             dest='cleanqueue',
             help="""Clean up all finished or errored tasks - leave pending.""",
             default=False,
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )

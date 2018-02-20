@@ -22,5 +22,5 @@ for cwd, names in tl:
     cn = cn.replace(replacement, '.')
     for name in names:
         if name.endswith('.py') and '__' not in name:
-            name = name.replace('.py', '')
+            name = name.replace('.py', '')                     
             classNames.append(cn+'.'+name+'.'+name)

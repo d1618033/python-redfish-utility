@@ -20,9 +20,9 @@
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                                                     InvalidCommandLineErrorOPTS
 
 class RawDeleteCommand(RdmcCommandBase):
@@ -56,6 +56,11 @@ class RawDeleteCommand(RdmcCommandBase):
 
         url = None
         headers = {}
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -104,7 +109,8 @@ class RawDeleteCommand(RdmcCommandBase):
             results = self._rdmc.app.delete_handler(args[0], \
                 verbose=self._rdmc.opts.verbose, sessionid=options.sessionid, \
                 url=url, headers=headers, silent=options.silent, \
-                providerheader=options.providerid, service=options.service)
+                providerheader=options.providerid, service=options.service, \
+                username=options.user, password=options.password)
 
             if returnresponse and results:
                 if options.getheaders:
@@ -130,7 +136,12 @@ class RawDeleteCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -256,5 +267,13 @@ class RawDeleteCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to expand the path specified using the """\
                                             """expand notation '?$expand=.'""",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

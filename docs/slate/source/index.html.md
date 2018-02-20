@@ -1,5 +1,5 @@
 ---
-title: RESTful Interface Tool 2.1.0 User Guide
+title: RESTful Interface Tool 2.2.0 User Guide
 
 language_tabs:
   - shell: Shell
@@ -12,6 +12,7 @@ includes:
   - overview
   - installation
   - usage
+  - highsecurity
   - commands
   - globalcommands
   - bioscommands

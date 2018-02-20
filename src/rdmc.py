@@ -21,6 +21,7 @@
 
 import os
 import sys
+import ssl
 import copy
 import errno
 import shlex
@@ -54,7 +55,8 @@ from rdmc_helper import ReturnCodes, ConfigurationFileError, \
                     PartitionMoutingError, TimeOutError, DownloadError, \
                     UploadError, BirthcertParseError, AccountExists,\
                     IncompatableServerTypeError, IloLicenseError, \
-                    InvalidKeyError, UnableToDecodeError, UnabletoFindDriveError
+                    InvalidKeyError, UnableToDecodeError, UnabletoFindDriveError, \
+                    Encryption, PathUnavailableError
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 if os.name != 'nt':
@@ -86,6 +88,19 @@ except cliutils.ResourceAllocationError as excp:
     sys.stdout.write(u"ILOREST return code: %s\n" % \
                      ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
     sys.exit(ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
+
+try:
+    # enable fips mode if our special functions are available in _ssl and OS is
+    # in FIPS mode
+    if Encryption.check_fips_mode_os() and not ssl.FIPS_mode():
+        ssl.FIPS_mode_set(long(1))
+        if not ssl.FIPS_mode():
+#             sys.stdout.write("FIPS mode enabled using openssl version %s.\n" % \
+#                                                                 ssl.OPENSSL_VERSION)
+#         else:
+            sys.stderr.write("WARNING: Unable to enable FIPS mode!")
+except AttributeError:
+    pass
 
 class RdmcCommand(RdmcCommandBase):
     """ Constructor """
@@ -183,13 +198,13 @@ class RdmcCommand(RdmcCommandBase):
         curr = []
         argfound = False
 
-        if "--version" in line:
+        if "--version" in line or "-V" in line:
             sys.stdout.write("""%(progname)s %(version)s\n""" % \
                      {'progname': versioning.__longname__, 'version': \
                                                         versioning.__version__})
-
             sys.stdout.flush()
             sys.exit(self.retcode)
+
         else:
             for argument in enumerate(line):
                 if not argfound and not argument[1].startswith('-'):
@@ -213,9 +228,12 @@ class RdmcCommand(RdmcCommandBase):
             self.app.config_file = self.opts.config
 
         self.app.config_from_file(self.app.config_file)
-        logdir = self.app.config.get_logdir()
+        if self.opts.logdir and self.opts.debug:
+                logdir = self.opts.logdir
+        else: 
+            logdir = self.app.config.get_logdir()
 
-        if logdir:
+        if logdir and self.opts.debug:
             try:
                 os.makedirs(logdir)
             except OSError, ex:
@@ -224,17 +242,18 @@ class RdmcCommand(RdmcCommandBase):
                 else:
                     raise
 
-        logfile = os.path.join(logdir, versioning.__shortname__+'.log')
+        if self.opts.debug:
+            logfile = os.path.join(logdir, versioning.__shortname__+'.log')
 
-        # Create a file logger since we got a logdir
-        lfile = logging.FileHandler(filename=logfile)
-        formatter = logging.Formatter("%(asctime)s %(levelname)s\t: " \
-                                                                "%(message)s")
+            # Create a file logger since we got a logdir
+            lfile = logging.FileHandler(filename=logfile)
+            formatter = logging.Formatter("%(asctime)s %(levelname)s\t: " \
+                                                                    "%(message)s")
 
-        lfile.setFormatter(formatter)
-        lfile.setLevel(logging.DEBUG)
-        LOGGER.addHandler(lfile)
-        self.app.LOGGER = LOGGER
+            lfile.setFormatter(formatter)
+            lfile.setLevel(logging.DEBUG)
+            LOGGER.addHandler(lfile)
+            self.app.LOGGER = LOGGER
 
         if self.opts.nocache:
             self.app.config.set_cache(False)
@@ -446,12 +465,14 @@ class RdmcCommand(RdmcCommandBase):
             UI().error("Invalid key has been entered for encryption/decryption.")
         except UnableToDecodeError, excp:
             self.retcode = ReturnCodes.ENCRYPTION_ERROR
-            UI().error("Unable to decrypt the file, make sure the key is the "\
-                       "same as used in encryption.")
+            UI().error(excp)
         except UnabletoFindDriveError, excp:
             self.retcode = ReturnCodes.DRIVE_MISSING_ERROR
             UI().error(excp)
-            UI().printmsg("Error occured while reading device labels.")
+            UI().printmsg("Error occurred while reading device labels.")
+        except PathUnavailableError, excp:
+            self.retcode = ReturnCodes.PATH_UNAVAILABLE_ERROR
+            UI().printmsg("Requested path is unavailable.")
         # ****** CLI ERRORS ******
         except cliutils.CommandNotFoundException, excp:
             self.retcode = ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
@@ -497,6 +518,10 @@ class RdmcCommand(RdmcCommandBase):
             self.retcode = ReturnCodes.RIS_VALIDATION_ERROR
         except redfish.ris.ValueChangedError, excp:
             self.retcode = ReturnCodes.RIS_VALUE_CHANGED_ERROR
+        except redfish.ris.validation.SchemaValidationError, excp:
+            UI().printmsg("Error found in schema, try running with the "\
+                          "--latestschema flag.")
+            self.retcode = ReturnCodes.RIS_SCHEMA_PARSE_ERROR
         # ****** RMC/RIS ERRORS ******
         except redfish.rest.v1.RetriesExhaustedError, excp:
             self.retcode = ReturnCodes.V1_RETRIES_EXHAUSTED_ERROR
@@ -517,8 +542,11 @@ class RdmcCommand(RdmcCommandBase):
                                             u"chif driver is installed.")
         except redfish.rest.v1.SecurityStateError, excp:
             self.retcode = ReturnCodes.V1_SECURITY_STATE_ERROR
-            UI().printmsg(u"High security mode [%s] has been enabled. Support "\
-                          "is not currently available." % excp.message)
+            if isinstance(excp.message, int):
+                UI().printmsg(u"High security mode [%s] has been enabled. Please "\
+                          "provide credentials." % excp.message)
+            else:
+                UI().error(excp)
         except redfish.hpilo.risblobstore2.ChifDllMissingError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_CHIF_DLL_MISSING_ERROR
             UI().printmsg(u"iLOrest Chif dll not found, please check that the "\
@@ -543,8 +571,12 @@ class RdmcCommand(RdmcCommandBase):
             UI().printmsg(u"Blob delete operation failed.")
         except redfish.hpilo.risblobstore2.Blob2OverrideError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_BLOB_OVERRIDE_ERROR
+            UI().error(excp)
             UI().printmsg(u"\nBlob was overwritten by another user. Please " \
-                  "unsure only 1 users is making chances at a time locally.")
+                  "ensure only one user is making changes at a time locally.")
+        except redfish.hpilo.risblobstore2.BlobRetriesExhaustedError, excp:
+            self.retcode = ReturnCodes.REST_BLOB_RETRIES_EXHAUSETED_ERROR
+            UI().printmsg(u"\nBlob operation still fails after max retries.")
         except redfish.hpilo.risblobstore2.Blob2FinalizeError, excp:
             self.retcode = ReturnCodes.REST_ILOREST_BLOB_FINALIZE_ERROR
             UI().printmsg(u"Blob finalize operation failed.")
@@ -856,7 +888,6 @@ class TabAndHistoryCompletionClass(object):
         # to the current tab options list
         for key, value in options.iteritems():
             self.options[key] = value
-
 
 if __name__ == '__main__':
     # Initialization of main command class

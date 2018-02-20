@@ -199,6 +199,11 @@ class FirmwareUpdateCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except Exception:
             if options.user or options.password or options.url:
                 if options.url:

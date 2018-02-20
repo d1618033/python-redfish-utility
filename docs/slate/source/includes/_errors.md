@@ -57,7 +57,8 @@ Error Code | Description
 61	| Error occurred when trying to change a value.
 62	| Reference path not found error.
 63	| iLO response error.
-64	| Unable to open a channel with iLO error. 
+64	| Unable to open a channel with iLO error.
+65	| Error parsing schema. Try running with the “--latestschema flag”.
 70	| Error occurred while trying to write BLOB.
 71	| Error occurred while trying to delete BLOB.
 72	| Error occurred while trying to finalize BLOB.
@@ -65,7 +66,9 @@ Error Code | Description
 74	| JSON decoder error.
 75	| Security state error. 
 76	| iLO RESTful API BLOB override error.
+77	| Error occurred during the blob operation after maximum retries.
 80	| Resource allocation errors. 
+83	| The requested path is unavailable. 
 100	| BIOS provider is unregistered. Please refer to the documentation for details on this issue.
 101	| Failed to download component.
 102	| Update service busy.

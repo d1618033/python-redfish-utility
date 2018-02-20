@@ -20,13 +20,14 @@
 import sys
 import getpass
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                            InvalidCommandLineErrorOPTS, PathUnavailableError
+                            InvalidCommandLineErrorOPTS, PathUnavailableError, \
+                            Encryption
 
 class LoginCommand(RdmcCommandBase):
     """ Constructor """
@@ -67,7 +68,14 @@ class LoginCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.loginvalidation(options, args)
-        self._rdmc.app.getgen(url=self.url)
+
+        if options.encode:
+            encobj = Encryption()
+            self.username = encobj.decode_credentials(self.username)
+            self.password = encobj.decode_credentials(self.password)
+
+        self._rdmc.app.getgen(url=self.url, username=self.username, \
+                                                        password=self.password)
         self._rdmc.opts.is_redfish = self._rdmc.app.updatedefinesflag(\
                                         redfishflag=self._rdmc.opts.is_redfish)
 
@@ -79,8 +87,8 @@ class LoginCommand(RdmcCommandBase):
                           includelogs=options.includelogs, \
                           biospassword=self.biospassword, \
                           is_redfish=self._rdmc.opts.is_redfish)
-        except Exception, excp:
-            raise excp
+        except Exception:
+            raise
 
         # Warning for cache enabled, since we save session in plain text
         if self._rdmc.app.config.get_cache() and not skipbuild:
@@ -185,8 +193,8 @@ class LoginCommand(RdmcCommandBase):
                 self.logoutobj.run("")
                 raise PathUnavailableError("The path specified by the --path"\
                                 " flag is unavailable.")
-        except Exception, excp:
-            raise excp
+        except Exception:
+            raise
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -266,4 +274,12 @@ class LoginCommand(RdmcCommandBase):
             " flag if second-level BIOS authentication is needed for the"\
             " command to execute.",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

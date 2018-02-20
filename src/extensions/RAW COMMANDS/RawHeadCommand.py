@@ -20,13 +20,13 @@
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI
+                    InvalidCommandLineErrorOPTS, UI, Encryption
 
 class RawHeadCommand(RdmcCommandBase):
     """ Raw form of the head command """
@@ -59,6 +59,11 @@ class RawHeadCommand(RdmcCommandBase):
 
         url = None
 
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
+
         if options.sessionid:
             url = self.sessionvalidation(options)
         else:
@@ -76,7 +81,9 @@ class RawHeadCommand(RdmcCommandBase):
                                               verbose=self._rdmc.opts.verbose, \
                                               sessionid=options.sessionid, \
                                               url=url, silent=options.silent, \
-											  service=options.service)
+											  service=options.service, \
+                                              username=options.user, \
+                                              password=options.password)
 
         content = None
         tempdict = dict()
@@ -125,7 +132,12 @@ class RawHeadCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -224,5 +236,13 @@ class RawHeadCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to enable service mode and increase """\
                                                 """the function speed""",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

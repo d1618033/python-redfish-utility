@@ -19,10 +19,10 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption
 
 class LogoutCommand(RdmcCommandBase):
     """ Constructor """
@@ -45,12 +45,27 @@ class LogoutCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (_, _) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
+            client = self._rdmc.app.get_current_client()
+        try:
+            if options.user and options.password:
+                client = self._rdmc.app.get_current_client()
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
+        except:
+            pass
 
         self._rdmc.app.logout("")
 
@@ -77,3 +92,27 @@ class LogoutCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+        customparser.add_option(
+            '-u',
+            '--user',
+            dest='user',
+            help="Pass this flag along with the password flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )
+        customparser.add_option(
+            '-p',
+            '--password',
+            dest='password',
+            help="Pass this flag along with the username flag if you are"\
+            "running in local higher security modes.""",
+            default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
+            default=False,
+        )

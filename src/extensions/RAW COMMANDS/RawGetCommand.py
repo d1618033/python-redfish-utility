@@ -20,13 +20,13 @@
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI
+                    InvalidCommandLineErrorOPTS, UI, Encryption
 
 class RawGetCommand(RdmcCommandBase):
     """ Raw form of the get command """
@@ -59,6 +59,11 @@ class RawGetCommand(RdmcCommandBase):
 
         url = None
         headers = {}
+
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -94,7 +99,8 @@ class RawGetCommand(RdmcCommandBase):
         results = self._rdmc.app.get_handler(args[0], \
                 verbose=self._rdmc.opts.verbose, sessionid=options.sessionid, \
                 url=url, headers=headers, response=returnresponse, \
-                silent=options.silent, service=options.service)
+                silent=options.silent, service=options.service, \
+                username=options.user, password=options.password)
 
         if results and options.binfile:
             output = results.read
@@ -142,7 +148,12 @@ class RawGetCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -278,5 +289,13 @@ class RawGetCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to expand the path specified using the """\
                                             """expand notation '?$expand=.'""",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

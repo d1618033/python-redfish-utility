@@ -326,6 +326,7 @@ class Regions(object):
         self._sockets = OrderedDict()
         self._socketPairs = OrderedDict()
         self._maxPmemGiB = 0
+        self._backupBootSec = 0
         self._reportedAvailablePmemMemory = 0
         self._maxRegionsPerSocket = 2
         self._maxNonNumaRegions = 2
@@ -491,6 +492,14 @@ class Regions(object):
     @maxPmemGiB.setter
     def maxPmemGiB(self, value):
         self._maxPmemGiB = value
+
+    @property
+    def backupBootSec(self):
+        return self._backupBootSec
+
+    @backupBootSec.setter
+    def backupBootSec(self, value):
+        self._backupBootSec = value
 
     @property
     def reportedAvailablePmemMemory(self):

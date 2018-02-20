@@ -20,11 +20,11 @@
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, \
-                    InvalidFileFormattingError
+                    InvalidFileFormattingError, Encryption
 
 class RawPostCommand(RdmcCommandBase):
     """ Raw form of the post command """
@@ -62,6 +62,11 @@ class RawPostCommand(RdmcCommandBase):
         headers = {}
         results = None
 
+        if options.encode and options.user and options.password:
+            encobj = Encryption()
+            options.user = encobj.decode_credentials(options.user)
+            options.password = encobj.decode_credentials(options.password)
+
         if options.sessionid:
             url = self.sessionvalidation(options)
         else:
@@ -80,6 +85,15 @@ class RawPostCommand(RdmcCommandBase):
         else:
             raise InvalidCommandLineError("Missing raw post file input "\
                                                                 "argument.\n")
+        if options.encode:
+            if "body" in contentsholder and "UserName" in contentsholder["body"] and \
+                        "Password" in contentsholder["body"] and \
+                        len(contentsholder["body"].keys()) == 2:
+                encobj = Encryption()
+                contentsholder["body"]["UserName"] = encobj.decode_credentials(\
+                                            contentsholder["body"]["UserName"])
+                contentsholder["body"]["Password"] = encobj.decode_credentials(\
+                                            contentsholder["body"]["Password"])
 
         if options.headers:
             extraheaders = options.headers.split(',')
@@ -102,7 +116,8 @@ class RawPostCommand(RdmcCommandBase):
                   contentsholder["body"], verbose=self._rdmc.opts.verbose, \
                   sessionid=options.sessionid, url=url, headers=headers, \
                   response=returnresponse, silent=options.silent, \
-                  providerheader=options.providerid, service=options.service)
+                  providerheader=options.providerid, service=options.service, \
+                  username=options.user, password=options.password)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
@@ -113,7 +128,7 @@ class RawPostCommand(RdmcCommandBase):
                                 results._http_response.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.text)
+                sys.stdout.write(results.text + "\n")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -127,7 +142,12 @@ class RawPostCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            self._rdmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -246,4 +266,12 @@ class RawPostCommand(RdmcCommandBase):
             help="""Use this flag to enable service mode and increase """\
                                                 """the function speed""",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action = 'store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

@@ -20,7 +20,7 @@
 
 import ctypes
 from _ctypes import Structure
-from ctypes import cdll, c_bool, c_ulonglong, c_char_p, c_int
+from ctypes import c_ulonglong, c_char_p, c_int
 from jsonpointer import resolve_pointer
 
 from Drives import Drive
@@ -36,11 +36,12 @@ class LogicalNvdimmValidator():
     def __init__(self):
         pass
 
+
     def calculateMaxPmemGiB(self, chifLib, configResource, listOfDrives):
         """ calculateMaxPmemGiB Calculates the maximum available amount of persistent memory available,
         based on the system hardware and settings.
 
-        :param chifLib: hprest-chif DLL
+        :param chifLib: ilorest-chif DLL
         :type chifLib: library handle
 
         :param configResource: dictionary of Scalable PMEM configuration data
@@ -52,7 +53,31 @@ class LogicalNvdimmValidator():
         :returns: maximum available persistent memory (GiB).
         :rtype: long
         """
+        (maxPmemGiB, backupBootSec) = self.calculateMaxPmemGiBAndBackupTime(chifLib, 0, configResource, listOfDrives)
+        return maxPmemGiB
+        
+    def calculateMaxPmemGiBAndBackupTime(self, chifLib, configured_pmem_GiB, configResource, listOfDrives):
+        """ calculateMaxPmemGiBAndBackupTime Calculates the maximum available amount of persistent memory available,
+        based on the system hardware and settings. 
+        Also estimates the backup boot time based on configured Scalable PMEM size and drives.
+
+        :param chifLib: ilorest-chif DLL
+        :type chifLib: library handle
+        
+        :param configured_pmem_GiB: amount of Scalable PMEM configured
+        :type configured_pmem_GiB: number to be converted to ctypes.clonglong
+
+        :param configResource: dictionary of Scalable PMEM configuration data
+        :type configResource: dictionary
+
+        :param listOfDrives: list of ALL drives to be backup storage
+        :type listOfDrives: list of drive objects
+
+        :returns: maximum available persistent memory (GiB).
+        :rtype: long
+        """
         maxPmemGiB = 0
+        backupBootSec = 0
 
         # get the configuration data
         if configResource:
@@ -66,12 +91,13 @@ class LogicalNvdimmValidator():
                     Helpers.failNoChifLibrary()
                 # then calculate maximum persistent memory, based on the configuration
                 maxPmemGiB = self.calculateMaxPmemGiB_inner(chifLib, configData, selectedDriveCollection)
+                backupBootSec = self.estimateBackupBootTimeSec_inner(chifLib, configured_pmem_GiB, configData, selectedDriveCollection)
             else:
-                return 0
+                return (0, 0)
         else:
-            return 0
+            return (0, 0)
 
-        return maxPmemGiB
+        return (maxPmemGiB,  backupBootSec)
 
     def calculateMaxPmemGiB_inner(self, chifLib, configData, selectedDriveCollection):
         """ calls the function in the library given the structured inputs
@@ -125,6 +151,38 @@ class LogicalNvdimmValidator():
                 Helpers.failNoChifLibrary()
 
         return isSupported
+    
+    def estimateBackupBootTimeSec_inner(self, chifLib, configured_pmem_GiB, configData, selectedDriveCollection):
+        """
+        Estimate the backup boot time (sec)
+        
+        :param chifLib: reference to the ilorest-chif-library
+        :type chifLib: library handle
+        
+        :param: configured_pmem_GiB: amount of Scalable PMEM configured
+        :type configured_pmem_GiB: number to be casted to a ctypes.ulonglong
+        
+        :param configData: the configuration data.
+        :type configData: LOGICALNVDIMMCONFIGDATA.
+
+        :param selectedDriveCollection: the user selected backup drives.
+        :type selectedDriveCollection: SELECTEDDRIVECOLLECTION.
+
+        :returns: estimated backup boot time (sec)
+        :rtype: long
+        """
+        backupBootSec = 0
+        if chifLib:
+            try:
+                chifLib.estimatePMEMBackupBootTimeSec.argtypes = [c_ulonglong, ctypes.POINTER(LOGICALNVDIMMCONFIGDATA), ctypes.POINTER(SELECTEDDRIVECOLLECTION)]
+                chifLib.estimatePMEMBackupBootTimeSec.restype = c_ulonglong
+                if selectedDriveCollection != None and selectedDriveCollection.count > 0:
+                    backupBootSec = chifLib.estimatePMEMBackupBootTimeSec(c_ulonglong(configured_pmem_GiB), ctypes.byref(configData), ctypes.byref(selectedDriveCollection))
+            except AttributeError:
+                print("Unsupported version of iLO CHIF library detected. Please get the latest version.\n")
+                Helpers.failNoChifLibrary()
+
+        return backupBootSec
 
     def isScalablePmemSupported(self, config):
         """
