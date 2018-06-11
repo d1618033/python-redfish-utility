@@ -51,8 +51,8 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main update task queue worker function
@@ -163,7 +163,11 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             self._rdmc.app.post_handler(path, newtask)
 
     def printqueue(self, options):
-        """ Prints the update task queue"""
+        """ Prints the update task queue
+
+        :param options: command line options
+        :type options: list.
+        """
         tasks = self._rdmc.app.getcollectionmembers(\
                                 '/redfish/v1/UpdateService/UpdateTaskQueue/')
         if not tasks:
@@ -176,19 +180,19 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         if not options.json:
             for task in tasks:
                 sys.stdout.write('Task %s:\n'%task['Name'])
-    
+
                 if 'Filename' in task.keys():
                     sys.stdout.write('\tCommand: %s\n\tFilename: %s\n\t'\
                         'State:%s\n'% (task['Command'], task['Filename'], \
                                                             task['State']))
                 elif 'WaitTimeSeconds' in task.keys():
                     sys.stdout.write('\tCommand: %s %s seconds\n\tState:%s\n'%(\
-                                task['Command'], str(task['WaitTimeSeconds']),
+                                task['Command'], str(task['WaitTimeSeconds']),\
                                     task['State']))
                 else:
-                    sys.stdout.write('\tCommand:%s\n\ttate: %s\n'%(task\
-                                                    ['Command'],task['State']))
-    
+                    sys.stdout.write('\tCommand:%s\n\tState: %s\n'%(task\
+                                                    ['Command'], task['State']))
+
                 sys.stdout.write('\n')
         elif options.json:
             outjson = dict()
@@ -203,6 +207,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :type options: list.
         """
         inputline = list()
+        client = None
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -229,8 +234,9 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
-                sys.stdout.write(u'Local login initiated...\n')
+        if not inputline and not client:
+            sys.stdout.write(u'Local login initiated...\n')
+        if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):

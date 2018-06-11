@@ -37,7 +37,7 @@ class ESKMCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main ESKMCommand function
@@ -55,7 +55,7 @@ class ESKMCommand(RdmcCommandBase):
 
         if not len(args) == 1:
             raise InvalidCommandLineError("eskm command only takes" \
-                                                            " 1 parameter.")
+                                                            " one parameter.")
 
         self.eskmvalidation(options)
 
@@ -130,7 +130,7 @@ class ESKMCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

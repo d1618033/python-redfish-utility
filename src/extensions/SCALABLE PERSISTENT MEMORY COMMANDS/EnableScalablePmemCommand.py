@@ -28,14 +28,15 @@ from lib.LogicalNvdimmValidator import LogicalNvdimmValidator
 from lib.ScalablePersistentMemoryConfig import ScalablePersistentMemoryConfig
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+                        LOGGER, InvalidCommandLineError
 
 class EnableScalablePmemCommand(RdmcCommandBase):
     """ Enable Scalable Pmem command """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='enablescalablepmem', \
-            usage='enablescalablepmem [--disable]\n\n' \
+            usage='enablescalablepmem [OPTIONS]\n\n' \
                 '\tEnables or disables the Scalable Persistent Memory feature.\n'\
                 '\n\texample: enablescalablepmem', \
             summary='Enable or disable the Scalable Persistent Memory feature.', \
@@ -100,6 +101,9 @@ class EnableScalablePmemCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        if len(args):
+            InvalidCommandLineError("This command takes no parameters.")
+
         LOGGER.info("Options: {}".format(options))
 
         if not self._chif_lib:
@@ -122,8 +126,6 @@ class EnableScalablePmemCommand(RdmcCommandBase):
         """
 
         customparser.add_option(
-            '--off',
-            '--no',
             '--disable',
             action="store_false",
             dest="enableFeature",

@@ -44,12 +44,12 @@ class SetPasswordCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.commitobj = rdmcObj.commandsDict["CommitCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.commitobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main set password worker function
@@ -67,7 +67,7 @@ class SetPasswordCommand(RdmcCommandBase):
 
         self.setpasswordvalidation(options)
 
-        if len(args) == 0:
+        if not args:
             sys.stdout.write('Please input the current password.\n')
             tempoldpass = getpass.getpass()
 
@@ -94,8 +94,8 @@ class SetPasswordCommand(RdmcCommandBase):
             if arg:
                 if '"' in arg[0] and '"' in arg[-1] and len(arg) > 2:
                     args[count] = arg[1:-1]
-                elif len(arg) == 2 and '"' == arg[0] and '"' == arg[1] or \
-                                "'" == arg[0] and "'" == arg[1]:
+                elif len(arg) == 2 and arg[0] == '"' and arg[1] == '"' or \
+                                arg[0] == '"' and arg[1] == '"':
                     args[count] = ''
 
             count += 1
@@ -174,7 +174,7 @@ class SetPasswordCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

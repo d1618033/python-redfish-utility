@@ -63,16 +63,17 @@ class UploadComponentCommand(RdmcCommandBase):
                 'repository.\n\texample: uploadcomp --component <path> ' \
                 '--compsig <path_to_signature>\n\n\tFlash the component ' \
                 'instead of add to the iLO repository.\n\texample: ' \
-                'uploadcomp --component <binary_path> --update_target=True ' \
-                '--update_repository=False', \
+                'uploadcomp --component <binary_path> --update_target ' \
+                '--update_repository', \
             summary='Upload components/binary to the iLO Repository.', \
             aliases=['Uploadcomp'], \
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.fwpkgprepare = rdmcObj.commands_dict["FwpkgCommand"].preparefwpkg
 
     def run(self, line):
         """ Wrapper function for upload command main function
@@ -89,15 +90,22 @@ class UploadComponentCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
         else:
             url = None
             self.uploadcommandvalidation(options)
+        fwpkg = False
+        if options.component.endswith('.fwpkg'):
+            fwpkg = True
+            comp, loc, ctype = self.fwpkgprepare(self, options.component)
+            if ctype == 'C':
+                options.component = comp[0]
+            else:
+                options.component = loc + '\\' + comp[0]
 
         if options.sessionid and not url:
             raise InvalidCommandLineError(\
@@ -127,7 +135,8 @@ class UploadComponentCommand(RdmcCommandBase):
             if len(filestoupload) > 1:
                 path, _ = os.path.split((filestoupload[0])[1])
                 shutil.rmtree(path)
-
+            elif fwpkg:
+                shutil.rmtree(loc)
             if options.logout:
                 self.logoutobj.run("")
         else:
@@ -139,7 +148,7 @@ class UploadComponentCommand(RdmcCommandBase):
         return ret
 
     def componentvalidation(self, options, url, filelist):
-        """ Check and split the file to upload on to iLO Repository
+        """ Check for duplicate component in repository
 
         :param options: command line options
         :type options: list.
@@ -512,6 +521,7 @@ class UploadComponentCommand(RdmcCommandBase):
         :type options: list.
         """
         inputline = list()
+        client = None
 
         if not options.component:
             raise InvalidCommandLineError("The component option is required"\
@@ -548,8 +558,9 @@ class UploadComponentCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
-                sys.stdout.write(u'Local login initiated...\n')
+        if not inputline and not client:
+            sys.stdout.write(u'Local login initiated...\n')
+        if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def sessionvalidation(self, options):
@@ -676,7 +687,7 @@ class UploadComponentCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

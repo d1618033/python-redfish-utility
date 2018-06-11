@@ -92,6 +92,8 @@ clearrestapistate *[Optional Parameters]*
 #### Description
 Clear the persistent RESTful API state.
 
+<aside class="warning">Some types such as Bios, Icsci, and SmartStorageConfig will not be available until a system reboot occurs after running this command.</aside>
+
 
 #### Parameters
 
@@ -564,9 +566,9 @@ Optionally include the logout flag to log out of the server after this command i
 Read log from the given log service. Options: IML, IEL or AHS.
 
 
-- **-c, --clearlog, -m MAINMES, --maintenancemessage=MAINMES**
+- **-c, --clearlog**
 
-Clears the logs for a the selected option. Maintenance message to be inserted into the log. (IML LOGS ONLY FEATURE)
+Clears the logs for the selected option.
 
 - **--customiseAHS=CUSTOMISEAHS**
  
@@ -577,6 +579,7 @@ Allows customized AHS log data to be downloaded.
 Allows complete AHS log data to be downloaded.
 
 - **--directorypath=DIRECTORYPATH**
+
 Directory path for the ahs file.
 
 - **---m MAINMES, --maintenancemessage=MAINMES**
@@ -735,7 +738,7 @@ Firmwareupdate *[URI] [Optional Parameters]*
 
 Use this command to update the firmware via URI.
 
-<aside class="notice">The firmware update command is only supported in <b>iLO 2.20</b> or higher.</aside>
+<aside class="notice">The firmware update command is only supported in <b>iLO 4 2.20</b> or higher.</aside>
 
 #### Parameters
 
@@ -807,6 +810,9 @@ None
 iloaccounts *[COMMAND] [OPTIONS]*
 
 #### Description
+
+Adds/deletes an iLO account on the currently logged in server.
+
 - LOGINNAME:  The account name, not used to login.
 - USERNAME: The account username name, used to login. 
 - PASSWORD:  The account password, used to login.
@@ -969,9 +975,6 @@ Please make sure the order of arguments is correct. The parameters are extracted
 
 > Ilofederation example commands:
 
-> Descriptions:
-> +  *FEDERATIONNAME*: The name (Id) of the federation group. 
-> +  *KEY*:  The key required to join the federation.
 
 > Add an iLO federation group to the current logged in server.
 
@@ -994,15 +997,15 @@ Please make sure the order of arguments is correct. The parameters are extracted
 
 
 
-
-
 #### Syntax
 
 ilofederation *[Optional Parameters]*
 
 #### Description
-Adds / deletes an iLO federaion group on the currently logged in server.
 
+Adds / deletes an iLO federaion group on the currently logged in server.
+- *FEDERATIONNAME*: The name (Id) of the federation group.
+- *KEY*:  The key required to join the federation.
 
 
 #### Parameters

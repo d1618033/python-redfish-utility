@@ -32,6 +32,10 @@ import subprocess
 
 from Queue import Queue
 from optparse import OptionParser
+
+from redfish.rest.v1 import SecurityStateError
+import redfish.hpilo.risblobstore2 as risblobstore2
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 InvalidCommandLineErrorOPTS, InvalidFileInputError, \
@@ -39,8 +43,6 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 InvalidCListFileError, PartitionMoutingError, \
                 MultipleServerConfigError, UnabletoFindDriveError, \
                 InvalidMSCfileInputError
-
-import redfish.hpilo.risblobstore2 as risblobstore2
 
 if os.name == 'nt':
     import win32api
@@ -54,7 +56,7 @@ class ServerlogsCommand(RdmcCommandBase):
             name='serverlogs',\
             usage='serverlogs [LOG_SELECTION] [OPTIONS]\n\n\tDownload the AHS' \
                 ' logs from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=AHS -f AHSlog.ahs\n\n\tClear the AHS logs ' \
+                '--selectlog=AHS \n\n\tClear the AHS logs ' \
                 'from the logged in server.\n\texample: serverlogs ' \
                 '--selectlog=AHS --clearlog\n\n\tDownload the IEL' \
                 ' logs from the logged in server.\n\texample: serverlogs ' \
@@ -75,20 +77,20 @@ class ServerlogsCommand(RdmcCommandBase):
                 'p password\n\t--url <iLO url/hostname> -u admin -p password'\
                 '\n\n\tInsert customized string '\
                 'if required for AHS\n\texample: serverlogs --selectlog=' \
-                'AHS -f AHSlog.ahs --customiseAHS "from=2014-03-01&&to=2014' \
+                'AHS --customiseAHS "from=2014-03-01&&to=2014' \
                 '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/' \
                 'path of directory where AHS log needs to be saved.'\
-                ' \n\texample: serverlogs --selectlog=AHS -f '\
-                'AHSlog.ahs --directorypath=C:\\Python27\\DataFiles',\
+                ' \n\texample: serverlogs --selectlog=AHS '\
+                '--directorypath=C:\\Python27\\DataFiles',\
             summary='Download and perform log operations.',\
             aliases=['logservices'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = self._rdmc.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
         self.dontunmount = None
         self.queue = Queue()
         self.abspath = None
@@ -485,7 +487,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
-            if not len(filtereddictslists):
+            if not filtereddictslists:
                 raise NoContentsFoundForOperationError("Unable to retrieve instance.")
             for filtereddict in filtereddictslists:
                 if filtereddict[u'Name'] == u'Integrated Management Log':
@@ -536,7 +538,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
-            if not len(filtereddictslists):
+            if not filtereddictslists:
                 raise NoContentsFoundForOperationError("Unable to retrieve instance.")
             for filtereddict in filtereddictslists:
                 if filtereddict[u'Name'] == u'iLO Event Log':
@@ -581,6 +583,11 @@ class ServerlogsCommand(RdmcCommandBase):
         :type options: list.
         """
         path = ""
+
+        if options.filename:
+            raise InvalidCommandLineError("AHS logs to be downloadded with " \
+                            "default name! Re-run command without filename!")
+
         sel = self.typepath.defs.typestring
         val = self.typepath.defs.hpiloactivehealthsystemtype
         filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
@@ -589,7 +596,7 @@ class ServerlogsCommand(RdmcCommandBase):
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
 
-            if not len(filtereddictslists):
+            if not filtereddictslists:
                 raise NoContentsFoundForOperationError("Unable to retrieve log"\
                                                                 " instance.")
 
@@ -724,9 +731,17 @@ class ServerlogsCommand(RdmcCommandBase):
             raise IncompatibleiLOVersionError(u"Need at least iLO 4 for "\
                                                     u"this program to run!\n")
 
+        if options.filename:
+            raise InvalidCommandLineErrorOPTS("AHS logs must be downloaded with " \
+                            "default name! Re-run command without filename!")
+
+        if int(risblobstore2.BlobStore2().get_security_state()) > 3:
+            raise SecurityStateError("AHS logs cannot be downloaded" \
+                                        " locally in high security state.\n")
+
         self.lib = risblobstore2.BlobStore2.gethprestchifhandle()
 
-        sys.stdout.write(u"Mounting blackbox...\n")
+        sys.stdout.write(u"Mounting AHS partition...\n")
 
         try:
             (manual_ovr, abspath) = self.getbbabspath()
@@ -752,7 +767,7 @@ class ServerlogsCommand(RdmcCommandBase):
     def updateiloversion(self):
         """Update iloversion to create appropriate headers."""
         self.lib.updateiloversion.argtypes = [ctypes.c_float]
-        self.lib.updateiloversion(float('2.'+self.typepath.ilogen))
+        self.lib.updateiloversion(float('2.'+str(self.typepath.ilogen)))
 
     def createahsfile(self, ahsfile=None):
         """Create the AHS file
@@ -835,12 +850,15 @@ class ServerlogsCommand(RdmcCommandBase):
                 self._rdmc.app.warn(excp)
                 raise InvalidCommandLineError("Cannot parse customized AHSinput.")
 
+        atleastonefile = False
         for files in filenames:
             if not files.endswith("bb"):
                 #Check the logic for the non bb files
                 allfiles.append(files)
                 continue
 
+            if options.downloadallahs:
+                atleastonefile = True
             filenoext = files.rsplit(".", 1)[0]
             filesplit = filenoext.split("-")
 
@@ -852,18 +870,23 @@ class ServerlogsCommand(RdmcCommandBase):
                 if (strdate <= newdate) and (newdate <= enddate) and \
                                     not options.downloadallahs:
                     allfiles.append(files)
+                    atleastonefile = True
             except:
                 pass
 
         if options.downloadallahs:
-            strdate = min(datelist) if len(datelist) else strdate
-            enddate = max(datelist) if len(datelist) else enddate
+            strdate = min(datelist) if datelist else strdate
+            enddate = max(datelist) if datelist else enddate
         else:
-            strdate = max(min(datelist), strdate) if len(datelist) else strdate
-            enddate = min(max(datelist), enddate) if len(datelist) else enddate
+            strdate = max(min(datelist), strdate) if datelist else strdate
+            enddate = min(max(datelist), enddate) if datelist else enddate
 
-        self.updateminmaxdate(strdate=strdate, enddate=enddate)
-        return filenames if options.downloadallahs else allfiles
+        if atleastonefile:
+            self.updateminmaxdate(strdate=strdate, enddate=enddate)
+            return filenames if options.downloadallahs else allfiles
+        else:
+            raise NoContentsFoundForOperationError("No AHS log files "\
+                                                                "found.")
 
     def updateminmaxdate(self, strdate=None, enddate=None):
         """Get the minimum and maximum date of files into header
@@ -950,7 +973,7 @@ class ServerlogsCommand(RdmcCommandBase):
             time.sleep(1)
 
         raise PartitionMoutingError("iLO not responding to request " \
-                                                        "for mounting BlackBox")
+                                                "for mounting AHS partition")
 
     def manualmountbb(self):
         """Manually mount blackbox when after fixed time."""
@@ -1048,29 +1071,27 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        if options.filename:
-            ahsdefaultfilename = options.filename[0]
-        else:
-            sel = self.typepath.defs.typestring
-            val = u"#ComputerSystem."
-            filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
-                                                                        val=val)
 
-            try:
-                filtereddictslists = [x.resp.dict for x in filtereddatainstance]
+        sel = self.typepath.defs.typestring
+        val = u"ComputerSystem."
+        filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
+                                                                    val=val)
 
-                if not len(filtereddictslists):
-                    raise NoContentsFoundForOperationError("")
-            except Exception:
-                raise NoContentsFoundForOperationError(u"Unable to retrieve " \
-                                                                "log instance.")
+        try:
+            filtereddictslists = [x.resp.dict for x in filtereddatainstance]
 
-            snum = filtereddictslists[0][u"SerialNumber"]
-            snum = u'UNKNOWN' if snum.isspace() else snum
-            timenow = (str(datetime.datetime.now()).split()[0]).split('-')
-            todaysdate = ''.join(timenow)
+            if not filtereddictslists:
+                raise NoContentsFoundForOperationError("")
+        except Exception:
+            raise NoContentsFoundForOperationError(u"Unable to retrieve " \
+                                                            "log instance.")
 
-            ahsdefaultfilename = u'HPE_'+snum+u'_'+todaysdate+u'.ahs'
+        snum = filtereddictslists[0][u"SerialNumber"]
+        snum = u'UNKNOWN' if snum.isspace() else snum
+        timenow = (str(datetime.datetime.now()).split()[0]).split('-')
+        todaysdate = ''.join(timenow)
+
+        ahsdefaultfilename = u'HPE_'+snum+u'_'+todaysdate+u'.ahs'
 
         if options.directorypath:
             ahsdefaultfilename = os.path.join(options.directorypath, \
@@ -1089,6 +1110,11 @@ class ServerlogsCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except Exception:
             if options.user or options.password or options.url:
                 if options.url:
@@ -1107,9 +1133,9 @@ class ServerlogsCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if not len(inputline) and not client:
+        if not inputline and not client:
             sys.stdout.write(u'Local login initiated...\n')
-        if len(inputline) or not client:
+        if inputline or not client:
             self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):

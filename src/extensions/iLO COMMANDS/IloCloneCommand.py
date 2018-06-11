@@ -46,9 +46,9 @@ class IloCloneCommand(RdmcCommandBase):
                 'to currently logged in server.\n\texample: iloclone load' \
                 ' -f clone_file_to_load.json\n\n\tNOTE: This command is ' \
                 'only available in local mode.\n\t      During clone load,'\
-                ' login using an ilo account with full privileges (such as '\
-                'the Administrator account) to ensure all items are cloned '\
-                'successfully.',\
+                ' login using an ilo account with\n\t      full privileges '\
+                '(such as the Administrator account)\n\t      to ensure all '\
+                'items are cloned successfully.',\
             summary='Clone the iLO config of the currently logged in server ' \
                 'and copy it to the server in the arguments.',\
             aliases=['iloclone'],\
@@ -56,10 +56,10 @@ class IloCloneCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.logobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
-        self.loginobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.logobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.loginobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line, testing=False):
         """ Main iLO clone function
@@ -156,11 +156,11 @@ class IloCloneCommand(RdmcCommandBase):
 
         self.selobj.run(self.typepath.defs.resourcedirectorytype)
 
-        for item in self._rdmc.app.current_client.monolith.types:
-            if self.typepath.defs.resourcedirectorytype in item:
-                respobj = self._rdmc.app.current_client.monolith.types[item]\
-                    ['Instances'][0].resp.obj
-                break
+        
+        for item in self._rdmc.app.current_client.monolith.itertype(self.\
+                                        typepath.defs.resourcedirectorytype):
+            respobj = item.resp.obj
+            break
 
         if respobj:
             sys.stdout.write("Gathering data required for clone. This may "\
@@ -266,7 +266,7 @@ class IloCloneCommand(RdmcCommandBase):
             ping = False
         else:
             logininfo = ""
-            ping= False
+            ping = False
 
         for item in clone:
             #if there is something to apply
@@ -289,7 +289,7 @@ class IloCloneCommand(RdmcCommandBase):
                             try:
                                 #continue so we don't reset every time we test
                                 if 'resettofactorydefaults' in path.lower():
-                                    if ping == False:
+                                    if not ping:
                                         continue
                                     try:
                                         sys.stdout.write("Waiting for iLO to " \
@@ -467,6 +467,9 @@ class IloCloneCommand(RdmcCommandBase):
         :param data: dictionary with ethernet interface values
         :type data: dict
         """
+        if 'Oem' not in data.keys():
+            return data
+
         dhcpsettingsv4 = data['Oem'][self.typepath.defs.oemhp]["DHCPv4"]
         v4vals = data['Oem'][self.typepath.defs.oemhp]['IPv4']
 
@@ -930,7 +933,7 @@ class IloCloneCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.loginobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

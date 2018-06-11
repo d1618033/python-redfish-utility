@@ -1,5 +1,6 @@
 # -*- mode: python -*-
 import os
+import compileall
 
 block_cipher = None
 
@@ -20,15 +21,28 @@ def hiddenImportGet():
 		cn = cwd.split('extensions')[-1]
 		cn = cn.replace(replacement, '.')
 		for name in names:
-			if '.pyc' not in name and '__init__' not in name:
-				name = name.replace('.py', '')
+			if '.pyc' in name and '__init__' not in name:
+				name = name.replace('.pyc', '')
 				classNames.append('extensions'+cn+'.'+name)
+
 	return classNames
+
+def getData():
+	datalist = []
+	extensionDir = os.path.dirname(os.getcwd()+ '/src/extensions/')
+	for (cwd, dirs, _) in os.walk(extensionDir):
+		for dir in dirs:
+			tempstr = cwd.split('/src/')[-1]+'/'+dir+'/'
+			datalist.append(('./src/' + tempstr + '*.pyc', tempstr))
+
+	datalist.append(('./packaging/jsonpath_rw', 'jsonpath_rw'))
+
+	return datalist
 
 a = Analysis(['.//src//rdmc.py'],
              pathex=[],
              binaries=None,
-             datas=[('.//src//extensions', 'extensions')],
+             datas=getData(),
              hiddenimports=hiddenImportGet(),
              hookspath=[],
              runtime_hooks=[],

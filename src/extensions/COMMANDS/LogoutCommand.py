@@ -53,9 +53,8 @@ class LogoutCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
             client = self._rdmc.app.get_current_client()
         try:
             if options.user and options.password:
@@ -112,7 +111,7 @@ class LogoutCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

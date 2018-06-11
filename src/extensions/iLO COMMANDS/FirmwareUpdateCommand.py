@@ -33,7 +33,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
             name='firmwareupdate',\
             usage='firmwareupdate [URI] [OPTIONS]\n\n\tApply a firmware ' \
                     'update to the current logged in server.\n\texample: ' \
-                    'firmwareupdate <iLO url/hostname>/images/image.bin',\
+                    'firmwareupdate <url/hostname>/images/image.bin',\
             summary='Perform a firmware update on the currently logged in ' \
                                                                     'server.',\
             aliases=['firmwareupdate'],\
@@ -41,8 +41,8 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main firmware update worker function
@@ -222,7 +222,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

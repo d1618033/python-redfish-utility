@@ -36,12 +36,12 @@ class RawGetCommand(RdmcCommandBase):
             usage='rawget [PATH] [OPTIONS]\n\n\tRun to to retrieve data from ' \
                     'the passed in path.\n\texample: rawget "/redfish/v1/' \
                     'systems/(system ID)"',\
-            summary='This is the raw form of the GET command.',\
+            summary='Raw form of the GET command.',\
             aliases=['rawget'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw get worker function
@@ -61,9 +61,8 @@ class RawGetCommand(RdmcCommandBase):
         headers = {}
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -72,7 +71,7 @@ class RawGetCommand(RdmcCommandBase):
 
         if len(args) > 1:
             raise InvalidCommandLineError("Raw get only takes 1 argument.\n")
-        elif len(args) == 0:
+        elif not args:
             raise InvalidCommandLineError("Missing raw get input path.\n")
 
         if args[0].startswith('"') and args[0].endswith('"'):
@@ -115,7 +114,7 @@ class RawGetCommand(RdmcCommandBase):
                                  results._http_response.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.text)
+                sys.stdout.write(results.read)
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:
@@ -295,7 +294,7 @@ class RawGetCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

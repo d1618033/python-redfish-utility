@@ -38,11 +38,11 @@ class CommitCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
         #remove reboot option if there is no reboot command
         try:
-            self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+            self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
         except:
             self.parser.remove_option('--reboot')
 

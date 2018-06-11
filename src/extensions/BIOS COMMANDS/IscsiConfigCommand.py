@@ -62,12 +62,12 @@ class IscsiConfigCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main iscsi configuration worker function
@@ -134,19 +134,19 @@ class IscsiConfigCommand(RdmcCommandBase):
         devicealloc = list()
         self.selobj.selectfunction("HpBiosMapping.")
         pcisettingsmap = self.getobj.getworkerfunction(\
-                                    "BiosPciSettingsMappings", options, \
-                                    "BiosPciSettingsMappings", results=True)
+                        "BiosPciSettingsMappings", options, \
+                        "BiosPciSettingsMappings", results=True, uselist=True)
 
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
             if "Associations" in item:
                 if "EmbNicEnable" in item["Associations"] or \
                                         "EmbNicConfig" in item["Associations"]:
-                    [devicealloc.append(x) for x in item["Subinstances"]]
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
                 for assoc in item["Associations"]:
                     if re.match("FlexLom[0-9]Enable", str(assoc)) or \
                                     re.match("PciSlot[0-9]Enable", str(assoc)):
-                        [devicealloc.append(x) for x in item["Subinstances"]]
+                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         self.selobj.selectfunction("HpiSCSISoftwareInitiator.")
         self.validateinput(deviceallocsize=len(devicealloc), options=options)
@@ -289,26 +289,27 @@ class IscsiConfigCommand(RdmcCommandBase):
         self.selobj.selectfunction("HpBiosMapping.")
         pcisettingsmap = self.getobj.getworkerfunction(\
                                     "BiosPciSettingsMappings", options, \
-                                    "BiosPciSettingsMappings", results=True)
+                                    "BiosPciSettingsMappings", results=True,\
+                                    uselist=True)
 
         devicealloc = list()
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
             if "Associations" in item:
                 if "EmbNicEnable" in item["Associations"] or \
                                         "EmbNicConfig" in item["Associations"]:
-                    [devicealloc.append(x) for x in item["Subinstances"]]
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
                 for assoc in item["Associations"]:
                     if re.match("FlexLom[0-9]Enable", str(assoc)) or \
                                     re.match("PciSlot[0-9]Enable", str(assoc)):
-                        [devicealloc.append(x) for x in item["Subinstances"]]
+                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         if self.typepath.defs.isgen10:
             newpcilist = []
 
             self.selobj.selectfunction("HpeServerPciDeviceCollection")
             pcideviceslist = self.getobj.getworkerfunction("Members", options, \
-                                                       "Members", results=True)
+                                   "Members", results=True, uselist=False)
 
             for device in pcideviceslist["Members"]:
                 newpcilist.append(self._rdmc.app.get_handler(\
@@ -319,7 +320,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             self.selobj.selectfunction(["Collection.", "--filter", \
                                             "MemberType=HpServerPciDevice."])
             pcideviceslist = self.getobj.getworkerfunction("Items", options, \
-                                                "Items", results=True)["Items"]
+                            "Items", results=True, uselist=False)["Items"]
 
         self.selobj.selectfunction("HpiSCSISoftwareInitiator.")
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
@@ -386,25 +387,25 @@ class IscsiConfigCommand(RdmcCommandBase):
         self.selobj.selectfunction("HpBiosMapping.")
         pcisettingsmap = self.getobj.getworkerfunction(\
                                     "BiosPciSettingsMappings", options, \
-                                    "BiosPciSettingsMappings", results=True)
+                        "BiosPciSettingsMappings", results=True, uselist=True)
 
         devicealloc = list()
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
             if "Associations" in item:
                 if "EmbNicEnable" in item["Associations"] or \
                                         "EmbNicConfig" in item["Associations"]:
-                    [devicealloc.append(x) for x in item["Subinstances"]]
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
                 for assoc in item["Associations"]:
                     if re.match("FlexLom[0-9]Enable", str(assoc)) or \
                                     re.match("PciSlot[0-9]Enable", str(assoc)):
-                        [devicealloc.append(x) for x in item["Subinstances"]]
+                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         if self.typepath.defs.isgen10:
             newpcilist = []
             self.selobj.selectfunction("HpeServerPciDeviceCollection")
             pcideviceslist = self.getobj.getworkerfunction("Members", options, \
-                                                        "Members", results=True)
+                                        "Members", results=True, uselist=False)
             for device in pcideviceslist["Members"]:
                 newpcilist.append(self._rdmc.app.get_handler(\
                                          device['@odata.id'], silent=True).dict)
@@ -413,13 +414,13 @@ class IscsiConfigCommand(RdmcCommandBase):
             self.selobj.selectfunction(["Collection.", "--filter", \
                                             "MemberType=HpServerPciDevice."])
             pcideviceslist = self.getobj.getworkerfunction("Items", options, \
-                                                "Items", results=True)["Items"]
+                            "Items", results=True, uselist=False)["Items"]
 
         self.selobj.selectfunction(\
                                self.typepath.defs.hpiscsisoftwareinitiatortype)
         iscsiinitiatorname = self.getobj.getworkerfunction(\
                                         "iSCSIInitiatorName", options, \
-                                        "iSCSIInitiatorName", results=True)
+                            "iSCSIInitiatorName", results=True, uselist=True)
 
         disabledlist = self.pcidevicehelper(devicealloc, iscsipath, bootpath, \
                                                                 pcideviceslist)
@@ -513,7 +514,7 @@ class IscsiConfigCommand(RdmcCommandBase):
                 newpcilist = []
                 self.selobj.selectfunction("HpeServerPciDeviceCollection")
                 pcideviceslist = self.getobj.getworkerfunction("Members", \
-                                               options, "Members", results=True)
+                               options, "Members", results=True, uselist=False)
 
                 for device in pcideviceslist["Members"]:
                     newpcilist.append(self._rdmc.app.get_handler(\
@@ -524,7 +525,7 @@ class IscsiConfigCommand(RdmcCommandBase):
                 self.selobj.selectfunction(["Collection.", "--filter", \
                                             "MemberType=HpServerPciDevice."])
                 pcideviceslist = self.getobj.getworkerfunction("Items", \
-                                       options, "Items", results=True)["Items"]
+                       options, "Items", results=True, uselist=False)["Items"]
         try:
             self.rawdatahandler(action="GET", silent=True, verbose=False, \
                             jsonflag=True, path=iscsipath)['iSCSINicSources']
@@ -532,7 +533,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             raise NicMissingOrConfigurationError('No iSCSI nic sources ' \
                                                                 'available.')
 
-        [x['UEFIDevicePath'] for x in pcideviceslist]
+        _ = [x['UEFIDevicePath'] for x in pcideviceslist]
         removal = list()
 
         bios = self.rawdatahandler(action="GET", silent=True, verbose=False, \
@@ -547,41 +548,6 @@ class IscsiConfigCommand(RdmcCommandBase):
         [devicealloc.remove(x) for x in removal]
 
         return removal
-
-    def iscsiconfigurationvalidation(self, options):
-        """ iscsi configuration method validation function
-
-        :param options: command line options
-        :type options: list.
-        """
-        inputline = list()
-
-        try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    inputline.extend(["-p", options.password])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                        self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                        self._rdmc.app.config.get_password()])
-
-            self.lobobj.loginfunction(inputline)
 
     def print_out_iscsi_configuration(self, iscsiinitiatorname, devicealloc, \
                                                 pcideviceslist, disabled=False):
@@ -710,6 +676,41 @@ class IscsiConfigCommand(RdmcCommandBase):
             except Exception:
                 raise NicMissingOrConfigurationError("Invalid input value."\
                              "Please give valid attempt for instance values.")
+
+    def iscsiconfigurationvalidation(self, options):
+        """ iscsi configuration method validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+        inputline = list()
+
+        try:
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
+        except:
+            if options.user or options.password or options.url:
+                if options.url:
+                    inputline.extend([options.url])
+                if options.user:
+                    inputline.extend(["-u", options.user])
+                if options.password:
+                    inputline.extend(["-p", options.password])
+            else:
+                if self._rdmc.app.config.get_url():
+                    inputline.extend([self._rdmc.app.config.get_url()])
+                if self._rdmc.app.config.get_username():
+                    inputline.extend(["-u", \
+                                        self._rdmc.app.config.get_username()])
+                if self._rdmc.app.config.get_password():
+                    inputline.extend(["-p", \
+                                        self._rdmc.app.config.get_password()])
+
+            self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

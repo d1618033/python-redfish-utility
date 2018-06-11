@@ -30,7 +30,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='factorydefaults',\
             usage='factorydefaults [OPTIONS]\n\n\t'\
-                'Reset iLO to factory defaults in the current loggen in ' \
+                'Reset iLO to factory defaults in the current logged in ' \
                 'server.\n\texample: factorydefaults',\
             summary='Resets iLO to factory defaults. WARNING: user data will ' \
                 'be removed use with caution.',\
@@ -39,7 +39,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main factorydefaults function
@@ -55,7 +55,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 0:
+        if args:
             raise InvalidCommandLineError("factorydefaults command takes no "\
                                                                 "arguments.")
 
@@ -132,7 +132,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

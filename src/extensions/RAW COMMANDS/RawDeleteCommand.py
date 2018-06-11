@@ -33,12 +33,12 @@ class RawDeleteCommand(RdmcCommandBase):
             usage='rawdelete [PATH] [OPTIONS]\n\n\tRun to to delete data from' \
                     ' the passed in path.\n\texample: rawdelete "/redfish/v1/' \
                     'Sessions/(session ID)"', \
-            summary='This is the raw form of the DELETE command.',\
+            summary='Raw form of the DELETE command.',\
             aliases=['rawdelete'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw delete worker function
@@ -58,9 +58,8 @@ class RawDeleteCommand(RdmcCommandBase):
         headers = {}
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -69,7 +68,7 @@ class RawDeleteCommand(RdmcCommandBase):
 
         if len(args) > 1:
             raise InvalidCommandLineError("Raw delete only takes 1 argument.\n")
-        elif len(args) == 0:
+        elif not args:
             raise InvalidCommandLineError("Missing raw delete input path.\n")
 
         if args[0].startswith('"') and args[0].endswith('"'):
@@ -273,7 +272,7 @@ class RawDeleteCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

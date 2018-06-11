@@ -34,7 +34,7 @@ class CertificateCommand(RdmcCommandBase):
             name='certificate',\
             usage='certificate [OPTIONS]\n\n\tImport auth CA certificate.' \
             '\n\texample: certificate ca certfile.txt\n\n\tImport auth '\
-            'CRL certificate.\n\texample: certificate crl uri\n\n\t'\
+            'CRL certificate.\n\texample: certificate crl <url/hostname>/cert\n\n\t'\
             'Import an iLO TLS certificate.\n\texample: certificate tls'\
             ' certfile.txt\n\n\tGenerate an https certificate signing'\
             ' request.\n\texmaple: certificate csr [ORG_NAME] [ORG_UNIT]'\
@@ -52,7 +52,7 @@ class CertificateCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main Certificates Command function
@@ -70,13 +70,13 @@ class CertificateCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args[0].lower() == 'getcsr' and not len(args) == 1:
-            raise InvalidCommandLineError("This certificates command only " \
+            raise InvalidCommandLineError("This certificate command only " \
                                                         "takes 1 parameter.")
         elif args[0].lower() == 'csr' and not len(args) == 7:
-            raise InvalidCommandLineError("This certificates command takes "\
+            raise InvalidCommandLineError("This certificate command takes "\
                                                                 "7 parameters.")
         elif not 'csr' in args[0].lower() and not len(args) == 2:
-            raise InvalidCommandLineError("This certificates command only " \
+            raise InvalidCommandLineError("This certificate command only " \
                                                         "takes 2 parameters.")
 
         self.certificatesvalidation(options)
@@ -184,10 +184,10 @@ class CertificateCommand(RdmcCommandBase):
         :param args: list of args
         :type args: list.
         """
-        file = args[1]
+        tlsfile = args[1]
 
         try:
-            with open(file) as certfile:
+            with open(tlsfile) as certfile:
                 certdata = certfile.read()
                 certfile.close()
         except:
@@ -266,10 +266,10 @@ class CertificateCommand(RdmcCommandBase):
             raise IncompatibleiLOVersionError("This certificate is not " \
                                                     "available on this system.")
 
-        file = args[1]
+        tlsfile = args[1]
 
         try:
-            with open(file) as certfile:
+            with open(tlsfile) as certfile:
                 certdata = certfile.read()
                 certfile.close()
         except:
@@ -332,7 +332,7 @@ class CertificateCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

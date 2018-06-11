@@ -8,7 +8,7 @@ The `bootorder` command is made up of a list of select, get, and set commands. I
 
 ![Bootorder Example 1](images/BootOrder_1.png "BootOrder example 1")
 
-First the server is logged into, and the `select` and `get` commands are performed on the `HpBios` type and the `BootMode` property, respectively.
+First the server is logged into, and the `select` and `get` commands are performed on the `Bios` type and the `BootMode` property, respectively.
 
 ![Bootorder Example 2](images/BootOrder_2.png "BootOrder example 2")
 
@@ -38,7 +38,7 @@ All of the commands shown here are executed the same way in the actual `bootorde
 
 Another command that has not been implemented in the RESTful Interface Tool but could easily be set up as a macro is changing the administrator password for second-level BIOS authentication. This example shows how to write such a command as well as serves to explain how the BIOS password works.
 
-The `HpBios` type has two properties that both need to be used to change the administrator password, `AdminPassword` and `OldAdminPassword`. `AdminPassword` is the new password you want to change to, and `OldAdminPassword` is the current password you have.
+The `Bios` type has two properties that both need to be used to change the administrator password, `AdminPassword` and `OldAdminPassword`. `AdminPassword` is the new password you want to change to, and `OldAdminPassword` is the current password you have.
 
 <aside class="notice">If there is no current password, you must include <b>OldAdminPassword=””</b>.</aside>
 
@@ -48,7 +48,7 @@ If you perform a `get` command to find the current `AdminPassword` and `OldAdmin
 
 ![BIOS Password Example 2](images/BIOSPassword_2.png "BIOS Password Example 2")
 
-In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `–biospassword` flag.
+In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `–biospassword` flag if the system is iLO 4.
 
 <aside class="notice">The <b>biospassword</b> value is the same as the <b>OldAdminPassword</b> value.</aside>
 
@@ -272,9 +272,9 @@ goto :EOF
 @echo *****************************************
 ilorest.exe login %1 -u %2 -p %3
 @echo *****************************************
-@echo ******* selecting HpBios type... ********
+@echo ******* selecting Bios type... ********
 @echo *****************************************
-ilorest.exe select HpBios.
+ilorest.exe select Bios.
 @echo *****************************************
 @echo ********** getting BootMode... **********
 @echo *****************************************
@@ -282,7 +282,7 @@ ilorest.exe get
 pause
 ```
 
-This is a batch file that logs into a remote server, selects the `HpBios` type, and gets the `BootMode` value.
+This is a batch file that logs into a remote server, selects the `Bios` type, and gets the `BootMode` value.
 
 ## Saving and loading a file using file-based editing mode
 

@@ -25,7 +25,7 @@ from collections import OrderedDict
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                             InvalidCommandLineError, InvalidFileFormattingError,\
                             Encryption
@@ -48,9 +48,9 @@ class SaveCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self.filename = None
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main save worker function
@@ -68,7 +68,7 @@ class SaveCommand(RdmcCommandBase):
 
         self.savevalidation(options)
 
-        if not len(args) == 0:
+        if args:
             raise InvalidCommandLineError('Save command takes no arguments.')
 
         contents = self._rdmc.app.get_save(args, pluspath=True)
@@ -92,9 +92,6 @@ class SaveCommand(RdmcCommandBase):
                         if dictentry == type_string:
                             typeselector = values[dictentry]
                             pathselector = path
-                            del values[dictentry]
-                        elif dictentry.lower() in HARDCODEDLIST or '@odata' in \
-                                                              dictentry.lower():
                             del values[dictentry]
 
                     if len(values):
@@ -168,7 +165,7 @@ class SaveCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) and options.selector:
+        if inputline and options.selector:
             if options.filter:
                 inputline.extend(["--filter", options.filter])
             if options.includelogs:

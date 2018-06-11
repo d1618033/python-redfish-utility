@@ -28,14 +28,15 @@ from lib.LogicalNvdimmValidator import LogicalNvdimmValidator
 from lib.ScalablePersistentMemoryConfig import ScalablePersistentMemoryConfig
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, \
+                        InvalidCommandLineError
 
 class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
     """ Main showscalablepmemconfig command class """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='showscalablepmemconfig', \
-            usage='showscalablepmemconfig [--available] [--json]\n\n'\
+            usage='showscalablepmemconfig [OPTIONS]\n\n'\
                 '\tDisplay the Scalable Persistent Memory configuration.\n'\
                 '\tIf system is configured, reports the estimated time to complete a backup boot.\n\n'\
                 '\texample: showscalablepmemconfig', \
@@ -108,7 +109,7 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
         LOGGER.info("Scalable PMEM: {}".format(self.name))
 
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, args) = self._parse_arglist(line)
             if options:
                 self._options = options
         except:
@@ -116,6 +117,9 @@ class ShowLogicalNVDIMMConfigurationCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if len(args):
+            InvalidCommandLineError("This command takes no parameters.")
 
         LOGGER.info("Options: {}".format(options))
 

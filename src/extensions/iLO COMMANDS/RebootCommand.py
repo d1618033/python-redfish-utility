@@ -52,10 +52,10 @@ class RebootCommand(RdmcCommandBase):
             aliases=['reboot'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
-        self._hprmc = rdmcObj
+        self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main reboot worker function
@@ -85,7 +85,7 @@ class RebootCommand(RdmcCommandBase):
             self.printreboothelp(args[0])
 
         select = "ComputerSystem."
-        results = self._hprmc.app.filter(select, None, None)
+        results = self._rdmc.app.filter(select, None, None)
         oemlist = ['press', 'pressandhold', 'coldboot']
 
         try:
@@ -155,7 +155,7 @@ class RebootCommand(RdmcCommandBase):
 
         sys.stdout.write(u'Rebooting server in 3 seconds...\n')
         time.sleep(3)
-        self._hprmc.app.post_handler(put_path, body)
+        self._rdmc.app.post_handler(put_path, body)
         self.logoutobj.run("")
 
         #Return code
@@ -226,12 +226,15 @@ class RebootCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
         inputline = list()
-        runlogin = False
 
         try:
-            client = self._hprmc.app.get_current_client()
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except Exception:
             if options.user or options.password or options.url:
                 if options.url:
@@ -241,27 +244,18 @@ class RebootCommand(RdmcCommandBase):
                 if options.password:
                     inputline.extend(["-p", options.password])
             else:
-                if self._hprmc.app.config.get_url():
-                    inputline.extend([self._hprmc.app.config.get_url()])
-                if self._hprmc.app.config.get_username():
+                if self._rdmc.app.config.get_url():
+                    inputline.extend([self._rdmc.app.config.get_url()])
+                if self._rdmc.app.config.get_username():
                     inputline.extend(["-u", \
-                                  self._hprmc.app.config.get_username()])
-                if self._hprmc.app.config.get_password():
+                                  self._rdmc.app.config.get_username()])
+                if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", \
-                                  self._hprmc.app.config.get_password()])
+                                  self._rdmc.app.config.get_password()])
 
-        if len(inputline) or not client:
-            runlogin = True
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
-        if options.includelogs:
-            inputline.extend(["--includelogs"])
-
-        if runlogin:
             self.lobobj.loginfunction(inputline)
-        elif not client:
-            raise InvalidCommandLineError("Please login or pass credentials" \
-                                          " to complete the operation.")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

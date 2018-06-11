@@ -30,7 +30,7 @@ class ClearRestApiStateCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='clearrestapistate',\
             usage='clearrestapistate [OPTIONS]\n\n\t'\
-                'Clear the persistent rest api state.\n\texample: ' \
+                'Clears the persistent rest api state.\n\texample: ' \
                 'clearrestapistate',\
             summary='Clears the persistent state of the REST API. Some '\
             'portions of the API may not be available until after the '\
@@ -40,7 +40,7 @@ class ClearRestApiStateCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main clearrestapistate function.
@@ -56,7 +56,7 @@ class ClearRestApiStateCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 0:
+        if args:
             raise InvalidCommandLineError("clearrestapistate command takes no "\
                                           "arguments.")
 
@@ -127,8 +127,8 @@ class ClearRestApiStateCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) or not client:
-            if not len(inputline):
+        if inputline or not client:
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
         elif not client:

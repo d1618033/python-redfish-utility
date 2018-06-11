@@ -42,8 +42,8 @@ class PendingChangesCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
 
     def run(self, line):
         """ Show pending changes of settings objects
@@ -59,8 +59,8 @@ class PendingChangesCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 0:
-            raise InvalidCommandLineError("Results command does not take any " \
+        if args:
+            raise InvalidCommandLineError("Pending command does not take any " \
                                                                 "arguments.")
         self.pendingvalidation(options)
 
@@ -92,7 +92,8 @@ class PendingChangesCommand(RdmcCommandBase):
             settings = self._rdmc.app.get_handler(uri, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
 
-            currenttype = '.'.join(base.dict[u"@odata.type"].split('#')\
+            typestring = self._rdmc.app._rmc_clients._monolith._typestring
+            currenttype = '.'.join(base.dict[typestring].split('#')\
                                                         [-1].split('.')[:-1])
 
             differences = json.loads(jsondiff.diff(base.dict, settings.dict, \
@@ -178,7 +179,7 @@ class PendingChangesCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

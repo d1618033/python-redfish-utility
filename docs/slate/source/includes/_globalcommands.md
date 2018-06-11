@@ -69,7 +69,7 @@ Include to block copyright and logo.
 
 Use this flag if you wish to to enable Redfish only compliance. It is enabled by default in systems with iLO5 and above.
 
-**_Important: The **-redfish** global option is required for iLO 4 firmware version 2.40 and is not required for iLO 5._** 
+**_Important: The --redfish global option is required for iLO 4 firmware version 2.40 and is not required for iLO 5._** 
 
 **--latestschema**
 
@@ -91,11 +91,11 @@ None
 
 > Login example commands:
 
-> To login remotely, supply the URL, username, and password for the server. Here the selector tag has been included so that the **HpBios** type is selected once the user is logged in. You can prove that the **HpBios** type has indeed been selected when we enter the select command.
+> To login remotely, supply the URL, username, and password for the server. Here the selector tag has been included so that the **Bios** type is selected once the user is logged in. You can prove that the **Bios** type has indeed been selected when we enter the select command.
 
 > ![Login Example 1](images/examples/login_ex1.png "Login example 1")
 
-> Here the path was set to **/rest/v1/systems/1/bios** instead of the default **/rest/v1/**. To check that the path has indeed been set to a different place, the types command was entered and returned the types in the specified path, instead of in the default **/rest/v1/**. You can log in again with the default **/rest/v1/** to show the change.
+> Here the path was set to **/redfish/v1/systems/1/bios/** instead of the default **/redfish/v1/**. To check that the path has indeed been set to a different place, the types command was entered and returned the types in the specified path, instead of in the default **/redfish/v1/**. You can log in again with the default **/redfish/v1/** to show the change.
 
 > ![Login Example 2-1](images/examples/login_ex2-1.png "Login example 2-1")
 
@@ -157,7 +157,9 @@ Optionally set a starting point for data collection. If you do not specify a sta
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="warning">Cache is activated session keys and it is normal to see these keys stored in plaintext. This warning regarding an activated cache is normal to see. The full list has been truncated for space.</aside>
+<aside class="warning">Cache is activated session keys and it is normal to see these keys stored in plaintext. This warning regarding an activated cache is normal to see in versions earlier than 2.3, it is not seen version 2.3 and greater of the tool.</aside>
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 ### Types command
 
@@ -226,7 +228,7 @@ None
 
 None
 
-<aside class="notice">See the iLO RESTful API Data Model Reference (iLO 4) at <a href=" http://www.hpe.com/info/restfulinterface/docs">http://www.hpe.com/info/restfulinterface/docs</a> for a list and description of all the possible types.</aside>
+<aside class="notice">See the iLO RESTful API Data Model Reference at <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/">https://hewlettpackard.github.io/ilo-rest-api-docs/</a> for a list and description of all the possible types.</aside>
 
 ### Select command
 
@@ -235,13 +237,13 @@ None
 > Before the commands were entered here, the user was not logged in to the server. When you use the select tag with login credentials, you are logged in to the server and the inputted type is selected. The type was selected by entering the select command with no type specified is verified, which shows that the currently selected type is returned. 
 
 <aside class="notice">
-Adding a period after the type selected, **HpBios**, limits the selection, preventing accidentally also selecting **HpBiosMapping**. This also removes the need to include the version.
+Adding a period after the type selected, **Bios**, limits the selection, preventing accidentally also selecting **BiosMapping**. This also removes the need to include the version.
 </aside>
 
 > ![Select Example 1](images/examples/select_ex1.png "Select example 1")
 
 
-> Here the **ComputerSystem** type was selected instead of the **HpBios** type like in the example above.
+> Here the **ComputerSystem** type was selected instead of the **Bios** type like in the example above.
 
 > ![Select Example 2](images/examples/select_ex2.png "Select example 2")
 
@@ -296,6 +298,8 @@ Optionally set a starting point for data collection. If you do not specify a sta
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 #### Inputs
 
@@ -397,9 +401,12 @@ None
 > ![Info Example 1](images/examples/info_ex1.png "Info example 1")
 
 
-> Multiple properties under the VirtualMedia type are specified. By passing multiple properties, it returns the information on all of the properties passed.
+> Here the server is logged into and type **Power** is selected, the power supplies information is displayed.
 
 > ![Info Example 2](images/examples/info_ex2.png "Info example 2")
+
+
+> Multiple properties under the VirtualMedia type are specified. By passing multiple properties, it returns the information on all of the properties passed.
 
 > ![Info Example 3](images/examples/info_ex3.png "Info example 3")
 
@@ -473,10 +480,10 @@ None
 
 > Get example commands:
 
-> Using get without any property specified shows the properties of the selected type. 
+> Using get without any property specified shows the properties of the selected type. The full list is truncated for space.
 
 <aside class="notice">
-No reserved properties are shown with the get command. Also, the full list is truncated for space.
+No reserved properties are shown with the get command.
 </aside>
 
 > ![Get Example 1](images/examples/get_ex1.png "Get example 1")
@@ -486,7 +493,7 @@ No reserved properties are shown with the get command. Also, the full list is tr
 > ![Get Example 2](images/examples/get_ex2.png "Get example 2")
 
 
-> Here the server at xx.xx.xx.xx is logged into, the type HpBios. is selected, and the get command is used to retrieve the BootOrderPolicy property of HpBios.
+> Here the server at xx.xx.xx.xx is logged into, the type Bios. is selected, and the get command is used to retrieve the BootOrderPolicy property of Bios.
 
 > ![Get Example 3](images/examples/get_ex3.png "Get example 3")
 
@@ -533,28 +540,35 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **--includelogs**
 
-Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+Optional: Include this flag to set the **includelogs** flag. This will include logs in the data retrieval process.
+
+-**--selector=SELECTOR**
+
+Optional: Include this flag to select a file to run the current command on. Use this command to select a type without entering another command, or to work with a type that is different from the one currently selected.
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
+Optional:Include to set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the <b>filter</b> flag to narrow down results based on properties.</aside>
 
 - **-j, --json**
 
-Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
+Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
 
 - **--path=PATH**
 
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
+Optional: Include this flag to set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
 
 <aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+Optional: Include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
+- **--noreadonly**
+
+Optional: Include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
 #### Inputs
 
 None
@@ -567,7 +581,7 @@ None
 
 > Set example commands:
 
-> Here the **ServiceName** property of the type **HpBios** has been set to the value **ExampleService**. When the get command is performed next, the value of **ServiceName** has been set to **ExampleService**. 
+> Here the **ServiceName** property of the type **Bios** has been set to the value **ExampleService**. When the get command is performed next, the value of **ServiceName** has been set to **ExampleService**. 
 
 <aside class="notice">
 Even though the get command shows **ServiceName** is set to **ExampleService**, the commit command must be performed next for the changes to be reflected next time the server is logged into.
@@ -577,17 +591,17 @@ Even though the get command shows **ServiceName** is set to **ExampleService**, 
 
 
 
-> Set the attribute of a type using the set command. Here the server is logged into using the username, password, and URL flags, and then **HpBios** is selected with the selector flag. Then, the **ServiceName** property is set.
+> Set the attribute of a type using the set command. Here the server is logged into using the username, password, and URL flags, and then **Bios** is selected with the selector flag. Then, the **ServiceName** property is set.
 
 > ![Set Example 2](images/examples/set_ex2.png "Set example 2")
 
 
-> Here the **AdminName** property of the type **HpBios** was set to the value **JohnDoe**. Including the commit flag committed the changes, so that after logging back into the server, the **AdminName** becomes **JohnDoe**. Otherwise it would have returned to its previous value. Include the **biospassword** flag to input a password if second level BIOS authentication is required.
+> Here the **AdminName** property of the type **Bios** was set to the value **JohnDoe**. Including the commit flag committed the changes, so that after logging back into the server, the **AdminName** becomes **JohnDoe**. Otherwise it would have returned to its previous value. Include the **biospassword** flag to input a password if second level BIOS authentication is required.
 
 > ![Set Example 3](images/examples/set_ex3.png "Set example 3")
 
 
-> Here the **AdminName** property of the type **HpBios** was set to the value **JohnDoe**. However, since the reboot flag was included but the commit flag was not, after the server is logged into again the **AdminName** property has returned to its original value.
+> Here the **AdminName** property of the type **Bios** was set to the value **JohnDoe**. However, since the reboot flag was included but the commit flag was not, after the server is logged into again the **AdminName** property has returned to its original value.
 
 > ![Set Example 4](images/examples/set_ex4.png "Set example 4")
 
@@ -683,6 +697,8 @@ Optionally include the logout flag to log out of the server after this command i
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
@@ -703,7 +719,7 @@ None
 
 > Save example commands:
 
-> Here, the server is logged into, HpBios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the HpBios type, so the ilorest.json file that was saved holds the information about HpBios. The file holding that information looks like the following. 
+> Here, the server is logged into, Bios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the Bios type, so the ilorest.json file that was saved holds the information about Bios. The file holding that information looks like the following. 
 
 > ![Save Example 1](images/examples/save_ex1.png "Save example 1")
 
@@ -742,7 +758,7 @@ None
 ]
 ```
 
-> Here, **HpBios** is selected, and the corresponding JSON file is saved to a file called **HpBiosInfo.json** in a local directory. The attached --logout flag logs the user out after this command is completed.
+> Here, **Bios** is selected, and the corresponding JSON file is saved to a file called **BiosInfo.json** in a local directory. The attached --logout flag logs the user out after this command is completed.
 
 > ![Save Example 2](images/examples/save_ex2.png "Save example 2")
 
@@ -887,6 +903,8 @@ Optionally use the latest schema instead of the one requested by the file.
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
@@ -925,7 +943,7 @@ None
 
 > Status example commands:
 
-> The status command shows changes to be committed. Here we see that the Description property of **ComputerSystem** has been set to **ComputerSystemView**, and that the **ServiceName** property of **HpBios** has been set to **SimpleService**. The status command shows all pending changes, including changes for different types.
+> The status command shows changes to be committed. Here we see that the AssetTag property of **ComputerSystem** has been set to **newtag**, and that the **ServiceName** property of **Bios** has been set to **SimpleService**. The status command shows all pending changes, including changes for different types.
 
 > ![Status Example 1](images/examples/status_ex1.png "Status example 1")
 
@@ -957,12 +975,12 @@ None
 
 > Commit example commands:
 
-> Once you have made changes and are ready for them to take effect, use the commit command to commit your changes. Here the commit command saves the **AdminName** property of **HpBios.** to the new value of **DeniseHarkins**, and includes the **biospassword=BIOSPASSWORD** for second level BIOS authentication. The included reboot flag reboots the server. The commit command always logs out of the server.
+> Once you have made changes and are ready for them to take effect, use the commit command to commit your changes. Here the commit command saves the **AdminName** property of **Bios.** to the new value of **DeniseHarkins**, and includes the **biospassword=BIOSPASSWORD** for second level BIOS authentication. The included reboot flag reboots the server. The commit command always logs out of the server.
 
 > ![Commit Example 1](images/examples/commit_ex1.png "Commit example 1")
 
 
-> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of HpBios was set to a new value, then the server was logged out of because the logout flag was included. 
+> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of Bios was set to a new value, then the server was logged out of because the logout flag was included. 
 
 <aside class="notice">
 The commit flag isn't used here; therefore, changes are not committed upon logout.
@@ -990,6 +1008,8 @@ Including the help flag on this command will display help on the usage of this c
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
@@ -1010,7 +1030,7 @@ None
 
 > ![Logout Example 1](images/examples/logout_ex1.png "Logout example 1")
 
-> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of **HpBios** was set to a new value, the server was logged out of because the logout flag was included.
+> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of **Bios** was set to a new value, the server was logged out of because the logout flag was included.
 
 > ![Logout Example 2](images/examples/logout_ex2.png "Logout example 2")
 

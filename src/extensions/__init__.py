@@ -4,7 +4,7 @@ import sys
 
 tl = []
 classNames = []
-_Commands = {}
+Commands = {}
 
 extensionDir = os.path.dirname(__file__)
 
@@ -20,7 +20,13 @@ for (cwd, dirs, filenames) in os.walk(extensionDir):
 for cwd, names in tl:
     cn = cwd.split('extensions')[-1]
     cn = cn.replace(replacement, '.')
+    comms = []
     for name in names:
-        if name.endswith('.py') and '__' not in name:
-            name = name.replace('.py', '')                     
+        if name.endswith('.pyc') and '__' not in name:
+            name = name.replace('.pyc', '')
+            classNames.append(cn+'.'+name+'.'+name)
+        elif name.endswith('.py') and '__' not in name:
+            name = name.replace('.py', '')
+            if name+'.pyc' in names:
+                continue
             classNames.append(cn+'.'+name+'.'+name)

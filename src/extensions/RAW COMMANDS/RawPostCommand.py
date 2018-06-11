@@ -37,12 +37,12 @@ class RawPostCommand(RdmcCommandBase):
                     'redfish/v1/systems/(system ID)/Actions/ComputerSystem.'
                     'Reset",\n\t    "body": {\n\t        "ResetType": '\
                     '"ForceRestart"\n\t    }\n\t}',\
-            summary='This is the raw form of the POST command.',\
+            summary='Raw form of the POST command.',\
             aliases=['rawpost'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw patch worker function
@@ -63,9 +63,8 @@ class RawPostCommand(RdmcCommandBase):
         results = None
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -271,7 +270,7 @@ class RawPostCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

@@ -12,11 +12,11 @@ Interactive mode is started when you run the RESTful Interface Tool without any 
 
 ### Scriptable mode
 
-> The following script can be called to retrieve information regarding the **HpBios** type:
+> The following script can be called to retrieve information regarding the **Bios** type:
 
 ```
 :: This is a batch file that logs into a remote server,
-:: selects the HpBios type, and gets the BootMode value
+:: selects the Bios type, and gets the BootMode value
 
 :: Usage :: 
 :: selectget.bat [URI] [USERNAME] [PASSWORD] 
@@ -38,9 +38,9 @@ goto :EOF
 @echo *****************************************
 ilorest.exe login %1 -u %2 -p %3
 @echo *****************************************
-@echo ******* selecting HpBios type... ********
+@echo ******* selecting Bios type... ********
 @echo *****************************************
-ilorest.exe select HpBios.
+ilorest.exe select Bios.
 @echo *****************************************
 @echo ********** getting BootMode... **********
 @echo *****************************************
@@ -50,7 +50,7 @@ pause
 
 Scriptable mode is used if you want to script all the commands with the use of an external input file. The script contains a list of the RESTful Interface Tool command lines that let users get and set properties of server objects.
 
-In this example, first the `HpBios` type is selected, and then the **get** command is used to retrieve information about the `BootMode` property of `HpBios`
+In this example, first the `Bios` type is selected, and then the **get** command is used to retrieve information about the `BootMode` property of `Bios`
 
 ### File-based mode
 
@@ -95,9 +95,9 @@ When the example script is run, the following result is produced:
 
 ![File Mode example](images/FileBasedMode_1.png "File Based Mode example")
 
-Here, the `HpBios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the **load** command is used to make these changes on the server. 
+Here, the `Bios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the **load** command is used to make these changes on the server. 
 
-The properties of `HpBios` can be edited here, and then loaded on the server. When the file is loaded on the server, changes to read-only values are not reflected. The full list in this example is truncated to save space.
+The properties of `Bios` can be edited here, and then loaded on the server. When the file is loaded on the server, changes to read-only values are not reflected. The full list in this example is truncated to save space.
 
 > After saving this configuration, the **ilorest1.json** file looks like this:
 

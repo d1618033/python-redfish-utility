@@ -31,9 +31,9 @@ import versioning
 #---------End of imports---------
 
 #Using hard coded list until better solution is found
-HARDCODEDLIST = ["oem", "name", "modified", "type", "description",
+HARDCODEDLIST = ["name", "modified", "type", "description",
                  "attributeregistry", "links", "settingsresult",
-                 "actions", "availableactions", "status", "id"]
+                 "actions", "availableactions", "id", "extref"]
 
 class CommandBase(object):
     """Abstract base class for all Command objects.
@@ -54,7 +54,7 @@ class CommandBase(object):
         self.parser.usage = usage
         self._cli = cliutils.CLI()
 
-    def run(self, line, rmdcopts):
+    def run(self, line):
         """Called to actually perform the work.
 
         Override this method in your derived class.  This is where your program

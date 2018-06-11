@@ -30,7 +30,7 @@ class StatusCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='status',\
             usage='status\n\n\tRun to display all pending changes within'\
-                    ' the currently\n\tselected type and that need to be' \
+                    ' the currently\n\tselected type that need to be' \
                     ' committed\n\texample: status',\
             summary='Displays all pending changes within a selected type'\
                     ' that need to be committed.',\
@@ -38,7 +38,7 @@ class StatusCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
 
     def run(self, line):
         """ Main status worker function
@@ -76,6 +76,7 @@ class StatusCommand(RdmcCommandBase):
         """
         sys.stdout.write("Current changes found:\n")
         for item in contents:
+            moveoperation = ""
             for key, value in item.iteritems():
                 if selector and key.lower().startswith(selector.lower()):
                     sys.stdout.write("%s (Currently selected)\n" % key)
@@ -83,6 +84,14 @@ class StatusCommand(RdmcCommandBase):
                     sys.stdout.write("%s\n" % key)
 
                 for content in value:
+                    try:
+                        if content['op'] == 'move':
+                            moveoperation = '/'.join(content['path'].split('/')[1:-1])
+                            continue
+                    except:
+                        if content[0]['op'] == 'move':
+                            moveoperation = '/'.join(content[0]['path'].split('/')[1:-1])
+                            continue
                     try:
                         if isinstance(content[0]["value"], int):
                             sys.stdout.write(u'\t%s=%s' % \
@@ -132,7 +141,8 @@ class StatusCommand(RdmcCommandBase):
                             sys.stdout.write(u'\t%s=%s' % \
                                                 (content["path"][1:], output))
                     sys.stdout.write('\n')
-
+            if moveoperation:
+                sys.stdout.write(u"\t%s=List Manipulation\n" % moveoperation)
 
     def statusvalidation(self, options):
         """ Status method validation function """

@@ -39,7 +39,7 @@ class SingleSignOnCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main SingleSignOnCommand function
@@ -117,7 +117,7 @@ class SingleSignOnCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Record to delete must"\
                                                                 " be a number")
         else:
-            raise InvalidCommandLineError('Unknown command.')
+            raise InvalidCommandLineError('%s is not a valid command.' % args[0])
 
         try:
             for item in bodydict['Actions']:
@@ -146,6 +146,11 @@ class SingleSignOnCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -164,7 +169,7 @@ class SingleSignOnCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

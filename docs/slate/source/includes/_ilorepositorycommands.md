@@ -1,6 +1,8 @@
 ## iLO Repository Commands
 
-The iLO repository commands are designed for use with HPE Gen10 servers. 
+<aside class="notice">
+The iLO repository commands are designed for use with HPE Gen10 servers.
+</aside>
 
 
 
@@ -126,6 +128,60 @@ None
 None 
 
 
+### Flashfwpkg command
+
+> flashfwpkg example commands:
+
+> Upload component and add a task to flash.
+
+> ![Flashfwpkg Example 1](images/examples/fwpkg_ex1.png "Flashfwpkg example 1")
+
+> Skip extra checks before adding taskqueue.
+
+> ![Flashfwpkg Example 2](images/examples/fwpkg_ex2.png "Flashfwpkg example 2")
+
+#### Syntax
+
+flashfwpkg *[FWPKG PATH] [Optional Parameters]*
+
+#### Description
+
+Run to upload and flash fwpkg components using the iLO repository.
+
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **--url=URL**
+
+If you are not logged in yet , use this flag along with the provided iLO URL to login to the server.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use the provided iLO password corresponding to the username you gave to login.
+
+- **--forceupload**
+
+Include this flag to force upload firmware with the same name already on the repository.
+
+- **--ignorechecks**
+
+Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file. 
+
+
+#### Inputs
+None
+
+#### Outputs
+None
+
 
 ### Installset command
 
@@ -145,7 +201,7 @@ None
 
 > ![Installset Example 3](images/examples/installset_ex1.png "Installset example 3")
 
-> Complete JSON structure.
+> Install sets can be added by either the complete JSON structure.
 
 ```
 {
@@ -187,7 +243,7 @@ None
 }
 ```
 
-> The list of Sequences. 
+> Or a list of sequences. 
 
 ```
 [
@@ -248,6 +304,29 @@ Install set name to create, remove, or invoke.
 
 Remove all install sets.
 
+- **-j, --json**
+
+Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+- **--expire=EXAFTER**
+
+Optional: Include this flag to set the expiry time for installset. ISO 8601 Redfish-style time string to be written after which iLO will automatically change state to Expired.
+
+-**--startafter=SAFTER**
+
+Optional: Insclude this flag to set the earliest execution time for installset. ISO 8601 Redfish-style time string to be used.
+
+-**--	tpmover**
+
+Use this flag if the server you are currently logged into has a TPM chip installed.
+
+-**--updaterecoveryset**
+
+If set then the components in the flash operations are used to replace matching contents in the Recovery Set.
+
+-**--cleartaskqueue**
+
+This option clears previous items in the task queue before the Install Set is invoked.
 
 #### Inputs
 None
@@ -297,6 +376,118 @@ None
 
 #### Outputs
 None 
+
+
+### Maintenancewindow command
+
+> maintenancewindow example commands:
+
+> Print the current maintenancewindows on the system.
+
+> ![Maintenancewindow Example 1](images/examples/maintenancewindow_ex1.png "Maintenancewindow example 1")
+
+
+> Create a new maintenance window with startup time 1998-11-21T00:00:00 and user defined expire time, name, and description.
+
+> ![Maintenancewindow Example 2](images/examples/maintenancewindow_ex2.png "Maintenancewindow example 2")
+
+
+> Delete maintenance windows by ID or name. 
+
+> ![Maintenancewindow Example 3](images/examples/maintenancewindow_ex3.png "Maintenancewindow example 3")
+
+
+#### Syntax
+
+maintenancewindow *[Optional Parameters]*
+
+#### Description
+
+Run to add, remove, or delete maintenance windows from the iLO repository.
+
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--url=URL**
+
+If you are not logged in yet , use this flag along with the provided iLO URL to login.
+
+- **-j, --json**
+
+Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+- **-description=DESCRIPTION**
+
+Optional: Include this flag to add a description to the maintenance window created by you.
+
+- **-n NAME, --name=NAME**
+
+Optional: Include this flag to name the maintenance window created by you. If a name is not specified, system will add a unique name.
+
+- **-e EXPIRE, --expire=EXPIRE**
+
+Optional: Include this flag to add the time a maintenance window expires.
+
+#### Inputs
+None
+
+
+#### Outputs
+None
+
+
+### Makeinstallset command
+
+> Makeinstallset example commands:
+
+> Run without logging in for basic guidance on making an install set.
+
+> ![Makeinstallset Example 1](images/examples/minstallset_ex1.png "Makeinstallset example 1")
+
+> Run while logged into a system for guidance based on the current components on that system.
+
+> ![Makeinstallset Example 2](images/examples/minstallset_ex2.png "Makeinstallset example 2")
+
+#### Syntax
+
+makeinstallset *[Optional Parameters]*
+
+#### Description
+
+Run to make installsets for iLO. 
+If not logged into the server, the command will provide basic guidance on making an installset.
+If logged into the server, the command will provide guidance based on the current components on the system.
+<aside class="notice">When using this command on a logged in sever, for best results, make sure to upload the components before running this command.</aside>
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help.
+
+- **-f FILENAME, --filename=FILENAME**
+
+Include this flag to use a different filename than the default one. The default filename is myinstallset.json
+
+#### Inputs
+None
+
+
+#### Outputs
+None
+
 
 ### Taskqueue command
 

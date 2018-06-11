@@ -45,14 +45,14 @@ class SetCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
 
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.comobj = rdmcObj.commandsDict["CommitCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
         #remove reboot option if there is no reboot command
         try:
-            self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+            self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
         except:
             self.parser.remove_option('--reboot')
 
@@ -79,7 +79,7 @@ class SetCommand(RdmcCommandBase):
 
         self.setvalidation(options)
 
-        if len(args) > 0:
+        if args:
             if any([s.lower().startswith('adminpassword=') for s in args]) \
                     and not any([s.lower().startswith('oldadminpassword=') \
                                                                 for s in args]):
@@ -97,8 +97,10 @@ class SetCommand(RdmcCommandBase):
 
                 try:
                     (sel, val) = arg.split('=')
-                    sel = sel.strip()
+                    sel = sel.strip().lower()
                     val = val.strip()
+                    if val[0] in ("'", '"') and val[-1] in ("'", '"'):
+                        val = val[1:-1]
 
                     if val.lower() == "true" or val.lower() == "false":
                         val = val.lower() in ("yes", "true", "t", "1")
@@ -109,27 +111,25 @@ class SetCommand(RdmcCommandBase):
                 newargs = list()
 
                 if "/" in sel and "/" not in str(val):
-                    newargs = arg.split("/")
+                    newargs = sel.split("/")
                 elif "/" in sel:
                     items = arg.split('=', 1)
                     newargs = items[0].split('/')
-                    newargs[-1] = newargs[-1] + '=' + items[-1]
-                    arg = newargs[-1]
 
                 if not isinstance(val, bool):
                     if val:
                         if val[0] == "[" and val[-1] == "]":
                             val = val[1:-1].split(',')
 
+                payload = {newargs[-1]:val} if newargs else {sel:val}
+                if newargs:
+                    for key in newargs[:-1][::-1]:
+                        payload = {key:payload}
+
                 try:
-                    if not newargs:
-                        contents = self._rdmc.app.loadset(selector=sel, val=val,\
+                    contents = self._rdmc.app.loadset(seldict=payload,\
                                         latestschema=options.latestschema,\
                                         uniqueoverride=options.uniqueoverride)
-                    else:
-                        contents = self._rdmc.app.loadset(val=val,\
-                            newargs=newargs, latestschema=options.latestschema)
-
                     if not contents:
                         if not sel.lower() == 'oldadminpassword':
                             raise InvalidOrNothingChangedSettingsError("Setting " \
@@ -159,7 +159,7 @@ class SetCommand(RdmcCommandBase):
                             for item in types:
                                 for instance in types[item]["Instances"]:
                                     if 'hpbios.' in instance.type.lower():
-                                        [instance.patches.remove(patch) for \
+                                        _ = [instance.patches.remove(patch) for \
                                          patch in instance.patches if \
                                          patch.patch[0]['path'] == \
                                          '/OldAdminPassword']
@@ -234,7 +234,7 @@ class SetCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) and options.selector:
+        if inputline and options.selector:
             if options.filter:
                 inputline.extend(["--filter", options.filter])
             if options.includelogs:

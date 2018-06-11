@@ -22,6 +22,9 @@ import json
 import getpass
 
 from optparse import OptionParser
+
+from redfish.ris.rmc_helper import ValidationError
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
@@ -57,8 +60,8 @@ class IloAccountsCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main iloaccounts function
@@ -99,7 +102,7 @@ class IloAccountsCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("")
 
         outdict = dict()
-        if len(args) == 0:
+        if not args:
             if not options.json:
                 sys.stdout.write("iLO Account info: \n[Id]LoginName: "\
                                 "\nPrivileges\n-----------------\n")
@@ -107,15 +110,21 @@ class IloAccountsCommand(RdmcCommandBase):
                 privstr = ""
                 privs = acct['Oem'][self.typepath.defs.\
                                             oemhp]['Privileges']
+                if 'ServiceAccount' in acct['Oem'][self.typepath.defs.oemhp].keys() and \
+                acct['Oem'][self.typepath.defs.oemhp]['ServiceAccount']:
+                    service = 'ServiceAccount=True'
+                else:
+                    service = 'ServiceAccount=False'
                 if not options.json:
                     for priv in privs:
                         privstr += priv + '=' + str(privs[priv]) + '\n'
-                    sys.stdout.write("[%s] %s:\n%s\n" % (acct['Id'], \
+                    sys.stdout.write("[%s] %s:\n%s\n%s\n" % (acct['Id'], \
                                     acct['Oem'][self.typepath.defs.\
-                                                oemhp]['LoginName'], privstr))
+                                                oemhp]['LoginName'], service, privstr))
                 keyval = '['+str(acct['Id'])+'] '+acct['Oem'][self.typepath.\
                                                     defs.oemhp]['LoginName']
                 outdict[keyval] = privs
+                outdict[keyval]['ServiceAccount'] = service.split('=')[-1].lower()
             if options.json:
                 sys.stdout.write(str(json.dumps(outdict, indent=2)))
                 sys.stdout.write('\n')
@@ -177,7 +186,8 @@ class IloAccountsCommand(RdmcCommandBase):
                                               privs, "LoginName": args[1]}}}
 
             self.addvalidation(args[0], args[1], args[2], results)
-
+            if options.serviceacc:
+                body["Oem"][self.typepath.defs.oemhp].update({"ServiceAccount": True})
             if path and body:
                 self._rdmc.app.post_handler(path, body)
 
@@ -260,13 +270,13 @@ class IloAccountsCommand(RdmcCommandBase):
                 raise AccountExists('Username or login name is already in use.')
 
         if len(username) >= 60:
-            raise InvalidCommandLineError('Username exceeds maximum length.')
+            raise ValidationError('Username exceeds maximum length.')
 
         if len(loginname) >= 60:
-            raise InvalidCommandLineError('Login name exceeds maximum length.')
+            raise ValidationError('Login name exceeds maximum length.')
 
         if len(password) >= 40 or len(password) < 8:
-            raise InvalidCommandLineError('Password length is invalid.')
+            raise ValidationError('Password length is invalid.')
 
     def iloaccountsvalidation(self, options):
         """ add account validation function
@@ -301,7 +311,7 @@ class IloAccountsCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
 
@@ -335,6 +345,14 @@ class IloAccountsCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '--serviceaccount',
+            dest='serviceacc',
+            action="store_true",
+            help="Optionally include this flag if you wish to created account "\
+            "to be a service account.",
+            default=False
         )
         customparser.add_option(
             '--noremoteconsolepriv',

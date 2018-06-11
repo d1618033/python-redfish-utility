@@ -41,9 +41,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line):
         """ Main BIOS defaults worker function """
@@ -132,7 +132,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                         self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

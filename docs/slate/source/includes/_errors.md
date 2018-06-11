@@ -68,10 +68,13 @@ Error Code | Description
 76	| iLO RESTful API BLOB override error.
 77	| Error occurred during the blob operation after maximum retries.
 80	| Resource allocation errors. 
+81	| Error occured during encryption.
+82	| The drive is missing.
 83	| The requested path is unavailable. 
 100	| BIOS provider is unregistered. Please refer to the documentation for details on this issue.
 101	| Failed to download component.
 102	| Update service busy.
+104	| Error occured in the order of task queue items.
 103	| Failed to upload component. 
 255	| A general error occurred while manipulating server settings. See the error message for details.
 

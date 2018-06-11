@@ -42,7 +42,7 @@ class SelectCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def selectfunction(self, line):
         """ Main select worker function
@@ -61,7 +61,7 @@ class SelectCommand(RdmcCommandBase):
         self.selectvalidation(options)
 
         try:
-            if len(args) > 0:
+            if args:
                 sel = None
                 val = None
 
@@ -145,9 +145,9 @@ class SelectCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if not len(inputline) and not client:
+        if not inputline and not client:
             sys.stdout.write(u'Local login initiated...\n')
-        if len(inputline):
+        if inputline:
             runlogin = True
         if options.includelogs:
             inputline.extend(["--includelogs"])

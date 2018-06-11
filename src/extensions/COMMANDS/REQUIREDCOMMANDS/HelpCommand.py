@@ -55,7 +55,7 @@ class HelpCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if args is None or len(args) == 0 or not line:
+        if not args or not line:
             RdmcOptionParser().print_help()
             if self._rdmc:
                 cmddict = self._rdmc.get_commands()

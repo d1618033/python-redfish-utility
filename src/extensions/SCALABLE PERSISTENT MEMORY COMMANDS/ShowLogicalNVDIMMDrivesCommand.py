@@ -28,7 +28,8 @@ from lib.LogicalNvdimmValidator import LogicalNvdimmValidator
 from lib.ScalablePersistentMemoryConfig import ScalablePersistentMemoryConfig
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+                                                InvalidCommandLineError, LOGGER
 
 class ShowLogicalNVDIMMDrivesCommand(RdmcCommandBase):
     """ Main showbackupdevices command class """
@@ -75,12 +76,15 @@ class ShowLogicalNVDIMMDrivesCommand(RdmcCommandBase):
         """
         LOGGER.info("Scalable PMEM: {}".format(self.name))
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, args) = self._parse_arglist(line)
         except:
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if args:
+            raise InvalidCommandLineError("No argument is required.")
 
         LOGGER.info("Options: {}".format(options))
 

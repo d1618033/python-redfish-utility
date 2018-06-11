@@ -23,7 +23,7 @@ from optparse import OptionParser
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
                                                     InfoMissingEntriesError
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
@@ -46,9 +46,9 @@ class InfoCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line, autotest=False):
         """ Main info worker function
@@ -68,24 +68,27 @@ class InfoCommand(RdmcCommandBase):
 
         self.infovalidation(options)
 
-        if len(args) > 0:
-            # TODO need to move the print from rdmc.app.info()
-            # to here so we don't write from inside the lib
+        if args:
             inforesp = ''
 
             for item in args:
                 newargs = list()
                 if self._rdmc.app.get_selector().lower().startswith('bios.') \
                                         and not 'attributes' in item.lower():
-                    item = "Attributes/" + item
+                    if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
+                        item = "Attributes/" + item
 
                 if "/" in item:
                     newargs = item.split("/")
                     item = newargs[0]
 
-                contents = self._rdmc.app.info(selector=item, \
+                (contents, outdata) = self._rdmc.app.info(selector=item, \
                     dumpjson=options.json, autotest=autotest, newarg=newargs, \
                                             latestschema=options.latestschema)
+                if outdata and options.json:
+                    UI().print_out_json(outdata)
+                elif outdata:
+                    sys.stdout.write(outdata)
 
                 if isinstance(contents, list) and not autotest:
                     if 'none' in contents and inforesp != 'success':
@@ -104,8 +107,10 @@ class InfoCommand(RdmcCommandBase):
                     sys.stdout.write("\n************************************"\
                                      "**************\n")
         else:
-            results = sorted(self._rdmc.app.info(selector=None,\
+            (results, outdata) = sorted(self._rdmc.app.info(selector=None,\
                    ignorelist=HARDCODEDLIST, latestschema=options.latestschema))
+            if outdata:
+                sys.stdout.write(outdata)
 
             if results:
                 sys.stdout.write("Info options:\n")
@@ -113,7 +118,8 @@ class InfoCommand(RdmcCommandBase):
                     sys.stdout.write("%s\n" % item)
             else:
                 raise InfoMissingEntriesError('No info items '\
-                        'available in this selected type.')
+                        'available for this selected type. Try running with the '\
+                        '--latestschema flag.')
 
         if options.logout:
             self.logoutobj.run("")
@@ -160,7 +166,7 @@ class InfoCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) and options.selector:
+        if inputline and options.selector:
             if options.filter:
                 inputline.extend(["--filter", options.filter])
             if options.includelogs:

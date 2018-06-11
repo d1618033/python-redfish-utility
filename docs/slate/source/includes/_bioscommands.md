@@ -6,7 +6,7 @@ This section details usage and examples of RESTful Interface Tool commands relat
 
 > Bootorder example commands:
 
-> In this example, the boot order was not specified first. The current persistent boot order is listed. Other options, such as continuous and one time boot options, as well as continuous and one time boot UEFI options are also displayed. Next, we call bootorder with a specified list. This sets the boot order to **Generic.USB.1.1, HD.Emb.8.2., NIC.LOM.1.1.IPV6, NIC.LOM.1.1.IPV4,HD.Emb.8.1**. The commit flag will commit the changes, otherwise changes are not saved.
+> In this example, the boot order was not specified first. The current persistent boot order is listed. Other options, such as continuous and one time boot options, as well as continuous and one time boot UEFI options are also displayed. Next, we call bootorder with a specified list. This sets the boot order to **Generic.USB.1.1, HD.EmbRAID.1.3., NIC.LOM.1.1.Httpv4, HD.SD.1.2, NIC.LOM.1.1.IPV4, NIC.LOM.1.1.Httpv6, NIC.LOM.1.1.IPv6, HD.EmbRAID.1.5, HD.EmbRAID1.6, HD.EmbRAID.1.4, HD.EmbRAID1.2**. The commit flag will commit the changes, otherwise changes are not saved.
 
 > ![Bootorder Example 1](images/examples/bootorder_ex1.png "Bootorder example 1")
 
@@ -64,6 +64,8 @@ Use this flag when you are ready to commit all the changes for the current selec
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 - **--reboot=REBOOT**
 
@@ -140,6 +142,8 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 - **--reboot=REBOOT**
 
@@ -257,6 +261,8 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
@@ -315,11 +321,13 @@ None
 
 > Pending example commands:
 
+> Here when first running the pending command on a server with no changes we see there are no changes found.
 
 > ![Pending Example 1](images/examples/pending_ex1.png "Pending example 1")
 
-> ![Pending Example 2](images/examples/pending_ex2.png "Pending example 2")
+> Now we set and commit AdminName to the new value "newadminname". After we log back into the server we see pending command shows our change to AdminName that will take effect on reboot.
 
+> ![Pending Example 2](images/examples/pending_ex2.png "Pending example 2")
 
 #### Syntax
 
@@ -327,7 +335,7 @@ pending *[Optional Parameters]*
 
 #### Description
 
-Displays pending changes that will be applied after a reboot.
+Displays pending committed changes that will be applied after a reboot.
 
 #### Parameters
 

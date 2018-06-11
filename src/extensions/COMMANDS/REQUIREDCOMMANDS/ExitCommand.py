@@ -33,7 +33,7 @@ class ExitCommand(RdmcCommandBase):
             aliases=['quit'])
 
         self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """If an argument is present, print help else exit
@@ -49,7 +49,7 @@ class ExitCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if args is None or len(args) == 0 or not line:
+        if not args or not line:
             self.logoutobj.run("")
             sys.stdout.write(u'Bye for now\n')
 

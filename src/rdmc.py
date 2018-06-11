@@ -32,12 +32,12 @@ import importlib
 import collections
 
 import readline
-import versioning
 import redfish.ris
 import redfish.hpilo
 import redfish.rest.v1
 
 import cliutils
+import versioning
 import extensions
 
 from rdmc_helper import ReturnCodes, ConfigurationFileError, \
@@ -56,7 +56,7 @@ from rdmc_helper import ReturnCodes, ConfigurationFileError, \
                     UploadError, BirthcertParseError, AccountExists,\
                     IncompatableServerTypeError, IloLicenseError, \
                     InvalidKeyError, UnableToDecodeError, UnabletoFindDriveError, \
-                    Encryption, PathUnavailableError
+                    Encryption, PathUnavailableError, TaskQueueError
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 if os.name != 'nt':
@@ -66,15 +66,13 @@ if os.name != 'nt':
 for name in extensions.classNames:
     pkgName, cName = name.rsplit('.', 1)
     pkgName = 'extensions' + pkgName
-
     try:
-        extensions._Commands[cName] = getattr(\
+        extensions.Commands[cName] = getattr(\
                                         importlib.import_module(pkgName), cName)
     except Exception, excp:
         sys.stderr.write("Error locating extension %s at location %s\n" % \
                                                 (cName, 'extensions' + name))
         raise excp
-
 #---------End of imports---------
 
 # always flush stdout and stderr
@@ -92,13 +90,14 @@ except cliutils.ResourceAllocationError as excp:
 try:
     # enable fips mode if our special functions are available in _ssl and OS is
     # in FIPS mode
+    FIPSSTR = ""
     if Encryption.check_fips_mode_os() and not ssl.FIPS_mode():
         ssl.FIPS_mode_set(long(1))
-        if not ssl.FIPS_mode():
-#             sys.stdout.write("FIPS mode enabled using openssl version %s.\n" % \
-#                                                                 ssl.OPENSSL_VERSION)
-#         else:
-            sys.stderr.write("WARNING: Unable to enable FIPS mode!")
+        if ssl.FIPS_mode():
+            FIPSSTR = "FIPS mode enabled using openssl version %s.\n" % \
+                                                        ssl.OPENSSL_VERSION
+        else:
+            sys.stderr.write("WARNING: Unable to enable FIPS mode!\n")
 except AttributeError:
     pass
 
@@ -113,11 +112,12 @@ class RdmcCommand(RdmcCommandBase):
             optparser=RdmcOptionParser())
         Args.append('--showwarnings')
         self._commands = collections.OrderedDict()
-        self.commandsDict = extensions._Commands
+        self.commands_dict = extensions.Commands
         self.interactive = False
         self._progname = '%s : %s' % (versioning.__shortname__, \
                                       versioning.__longname__)
         self.opts = None
+        self.encoding = None
         self.config_file = None
         self.app = redfish.ris.RmcApp(Args=Args)
         self.retcode = 0
@@ -174,9 +174,9 @@ class RdmcCommand(RdmcCommandBase):
             LERR.setLevel(logging.DEBUG)
 
         if not (opts.nologo or cmd.nologo) and not self.interactive:
+            sys.stdout.write(FIPSSTR)
             CLI.version(self._progname, versioning.__version__,\
                                 versioning.__extracontent__, fileh=sys.stdout)
-
         if len(args) > 1:
             return cmd.run(args[1:])
 
@@ -220,6 +220,14 @@ class RdmcCommand(RdmcCommandBase):
 
         (self.opts, _) = self.parser.parse_args(curr)
 
+        try:
+            Encryption.encode_credentials('test')
+            self.app.set_encode_funct(Encryption.encode_credentials)
+            self.app.set_decode_funct(Encryption.decode_credentials)
+            self.encoding = True
+        except redfish.hpilo.risblobstore2.ChifDllMissingError:
+            self.encoding = False
+
         if self.opts.config is not None and len(self.opts.config) > 0:
             if not os.path.isfile(self.opts.config):
                 self.retcode = ReturnCodes.CONFIGURATION_FILE_ERROR
@@ -229,8 +237,8 @@ class RdmcCommand(RdmcCommandBase):
 
         self.app.config_from_file(self.app.config_file)
         if self.opts.logdir and self.opts.debug:
-                logdir = self.opts.logdir
-        else: 
+            logdir = self.opts.logdir
+        else:
             logdir = self.app.config.get_logdir()
 
         if logdir and self.opts.debug:
@@ -274,12 +282,13 @@ class RdmcCommand(RdmcCommandBase):
         if ("login" in line or any(x.startswith("--url") for x in line) \
                                         and not "help" in line) or not line:
             self.app.logout()
+            self.opts.is_redfish = None
         else:
             self.app.restore()
             self.opts.is_redfish = self.app.updatedefinesflag(redfishflag=\
                                                         self.opts.is_redfish)
 
-        if len(nargv) > 0:
+        if nargv:
             try:
                 self.retcode = self._run_command(self.opts, nargv)
                 if self.app.config.get_cache():
@@ -304,6 +313,7 @@ class RdmcCommand(RdmcCommandBase):
         self.interactive = True
 
         if not opts.nologo:
+            sys.stdout.write(FIPSSTR)
             CLI.version(self._progname, versioning.__version__,\
                                 versioning.__extracontent__, fileh=sys.stdout)
 
@@ -348,7 +358,7 @@ class RdmcCommand(RdmcCommandBase):
                 if "login " in line or line == 'login' or \
                                 any(x.startswith("--url") for x in nargv):
                     self.app.logout()
-
+                    self.opts.is_redfish = None
                 self.retcode = self._run_command(opts, nargv)
                 self.check_for_tab_lists(nargv)
             except Exception, excp:
@@ -380,7 +390,7 @@ class RdmcCommand(RdmcCommandBase):
         except CommandNotEnabledError, excp:
             self.retcode = ReturnCodes.COMMAND_NOT_ENABLED_ERROR
             UI().command_not_enabled(excp)
-            extensions._Commands['HelpCommand'](rdmc=self).run("")
+            extensions.Commands['HelpCommand'](rdmc=self).run("")
         except InvalidCommandLineError, excp:
             self.retcode = ReturnCodes.INVALID_COMMAND_LINE_ERROR
             UI().invalid_commmand_line(excp)
@@ -431,13 +441,15 @@ class RdmcCommand(RdmcCommandBase):
         except NicMissingOrConfigurationError, excp:
             self.retcode = ReturnCodes.NIC_MISSING_OR_INVALID_ERROR
             UI().error(excp)
-        except IncompatibleiLOVersionError, excp:
+        except (IncompatibleiLOVersionError, redfish.ris.rmc_helper.\
+                                IncompatibleiLOVersionError), excp:
             self.retcode = ReturnCodes.INCOMPATIBLE_ILO_VERSION_ERROR
             UI().printmsg(excp)
         except IncompatableServerTypeError, excp:
             self.retcode = ReturnCodes.INCOMPATIBLE_SERVER_TYPE
             UI().printmsg(excp)
         except IloLicenseError, excp:
+            UI().printmsg(excp)
             self.retcode = ReturnCodes.ILO_LICENSE_ERROR
         except InvalidCListFileError, excp:
             self.retcode = ReturnCodes.INVALID_CLIST_FILE_ERROR
@@ -472,17 +484,22 @@ class RdmcCommand(RdmcCommandBase):
             UI().printmsg("Error occurred while reading device labels.")
         except PathUnavailableError, excp:
             self.retcode = ReturnCodes.PATH_UNAVAILABLE_ERROR
+            UI().error(excp)
             UI().printmsg("Requested path is unavailable.")
+        except TaskQueueError, excp:
+            self.retcode = ReturnCodes.TASKQUEUE_ERROR
+            UI().error(excp)
         # ****** CLI ERRORS ******
         except cliutils.CommandNotFoundException, excp:
             self.retcode = ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
             UI().command_not_found(excp)
-            extensions._Commands['HelpCommand'](rdmc=self).run("")
+            extensions.Commands['HelpCommand'](rdmc=self).run("")
         # ****** RMC/RIS ERRORS ******
         except redfish.ris.UndefinedClientError:
             self.retcode = ReturnCodes.RIS_UNDEFINED_CLIENT_ERROR
             UI().error(u"Please login before making a selection")
-        except redfish.ris.InstanceNotFoundError, excp:
+        except (redfish.ris.InstanceNotFoundError, redfish.ris.\
+                RisInstanceNotFoundError), excp:
             self.retcode = ReturnCodes.RIS_INSTANCE_NOT_FOUND_ERROR
             UI().printmsg(excp)
         except redfish.ris.CurrentlyLoggedInError, excp:
@@ -645,7 +662,7 @@ class RdmcCommand(RdmcCommandBase):
                 for k in content.keys():
                     if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
                         del content[k]
-            if '#Bios.' in dictcopy[typestr]:
+            if 'Bios.' in dictcopy[typestr]:
                 templist = templist[0]['Attributes']
             else:
                 templist = templist[0]
@@ -669,12 +686,12 @@ class RdmcCommand(RdmcCommandBase):
                     try:
                         if attributeregistry[dictcopy[typestr]]:
                             regfound = validation_manager.\
-                                        find_bios_registry(attributeregistry[\
+                                        find_prop(attributeregistry[\
                                                              dictcopy[typestr]])
                             biosmode = True
                     except:
                         regfound = \
-                            validation_manager.find_schema(dictcopy[typestr])
+                            validation_manager.find_prop(dictcopy[typestr])
 
                     if self.app.current_client.monolith.is_redfish\
                                                 and not 'Location' in regfound:
@@ -694,16 +711,14 @@ class RdmcCommand(RdmcCommandBase):
                             raise excp
 
                     if biosmode:
-                        schemas = self.app.current_client.monolith.types
-
-                        for sctype in schemas.iterkeys():
-                            if self.app.typepath.defs.attributeregtype in sctype:
-                                currentschema = schemas[sctype][u'Instances']\
-                                [0].resp.dict[u'RegistryEntries'][u'Attributes']
-                                break
+                        for sctype in self.app.current_client.monolith.\
+                                itertype(self.app.typepath.defs.attributeregtype):
+                            currentschema = sctype.dict[u'RegistryEntries']\
+                                                                [u'Attributes']
+                            break
                     else:
-                        for schema in self.app.current_client.monolith.types\
-                                                        [u'ob'][u'Instances']:
+                        for schema in self.app.current_client.monolith.\
+                                                            itertype(u'object'):
                             locationdict = self.app.geturidict(\
                                                            regfound.Location[0])
 
@@ -736,7 +751,7 @@ class RdmcCommand(RdmcCommandBase):
         except:
             pass
 
-        if len(changes):
+        if changes:
             self._redobj.updates_tab_completion_lists(changes)
 
 class TabAndHistoryCompletionClass(object):
@@ -802,7 +817,6 @@ class TabAndHistoryCompletionClass(object):
                             #use command items as candidates
                             first = words[0]
                             candidates = self.options[first]
-
                     if being_completed or equals:
                         #possible value being_completed
                         if equals:
@@ -812,7 +826,6 @@ class TabAndHistoryCompletionClass(object):
                             else:
                                 #match property
                                 being_completed = equals[0]
-
                         # match options with portion of input being completed
                         self.current_candidates = [w for w in candidates\
                                if w and w.lower().startswith(\
@@ -836,17 +849,17 @@ class TabAndHistoryCompletionClass(object):
                                         except:
                                             if u'boolean' in val[u'type']:
                                                 self.possible_vals = [w for w \
-                                                        in ['True', 'False']]
+                                                        in [u'True', u'False']]
                                             elif u'string' in val[u'type']:
                                                 self.possible_vals = [w for w \
-                                                                in val[u'enum']]
+                                                        in val[u'enum'] if w \
+                                                                    is not None]
 
                                             if self.possible_vals and u'null' \
                                             in val[u'type']:
                                                 self.possible_vals.append(\
-                                                                      'None')
+                                                                      u'None')
                                         break
-
                                 if self.possible_vals:
                                     self.options["val"] = self.possible_vals
                                     self.val_pos = 0
@@ -904,11 +917,11 @@ if __name__ == '__main__':
             continue
 
         if cName == 'HelpCommand':
-            RDMC.add_command(extensions._Commands[cName](rdmc=RDMC), \
+            RDMC.add_command(extensions.Commands[cName](rdmc=RDMC), \
                                                                 section=sName)
         else:
             try:
-                RDMC.add_command(extensions._Commands[cName](RDMC), \
+                RDMC.add_command(extensions.Commands[cName](RDMC), \
                                                                 section=sName)
             except cliutils.ResourceAllocationError as excp:
                 UI().error(excp)

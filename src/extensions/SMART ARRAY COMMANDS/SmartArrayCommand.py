@@ -22,7 +22,7 @@ import sys
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                                                InvalidCommandLineErrorOPTS, UI
+                    IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
 
 class SmartArrayCommand(RdmcCommandBase):
     """ Smart array command """
@@ -40,23 +40,23 @@ class SmartArrayCommand(RdmcCommandBase):
                 '\n\n\tTo obtain details about physical drives for a ' \
                 'specific controller.\n\texample: smartarray --controller=3 ' \
                 '--physicaldrives\n\n\tTo obtain details about a specific ' \
-                'drive for a specific controller.\n\texample: smartarray ' \
+                'physical drive for a specific controller.\n\texample: smartarray ' \
                 '--controller=3 --pdrive=1\n\n\tIn order to get a list of ' \
                 'all logical drives for the each controller.\n\texample: ' \
                 'smartarray --logicaldrives\n\n\tTo obtain details about ' \
                 'logical drives for a specific controller.\n\texample: ' \
                 'smartarray --controller=3 --logicaldrives\n\n\tTo obtain ' \
-                'details about a specific drive for a specific controller.' \
-                '\n\texample: smartarray --controller=3 --ldrive=1',\
+                'details about a specific logical drive for a specific ' \
+                'controller.\n\texample: smartarray --controller=3 --ldrive=1',\
             summary='Discovers all storage controllers installed in the ' \
                     'server and managed by the SmartStorage.',\
             aliases=['smartarray'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
 
     def run(self, line):
         """ Main smart array worker function
@@ -113,8 +113,13 @@ class SmartArrayCommand(RdmcCommandBase):
             for controller in controllist:
                 if options.physicaldrives or options.pdrive:
                     outputcontent = True
-                    self.get_drives(options, controller["PhysicalDrives"], \
+                    try:
+                        self.get_drives(options, controller["PhysicalDrives"], \
                                                                 physical=True)
+                    except KeyError as excp:
+                        if excp.message == "PhysicalDrives":
+                            raise IncompatableServerTypeError("Cannot "\
+                                "configure physical drives using this controller.")
 
                 if options.logicaldrives or options.ldrive:
                     outputcontent = True
@@ -140,7 +145,12 @@ class SmartArrayCommand(RdmcCommandBase):
             sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
 
             if options.physicaldrives:
-                self.get_drives(options, val["PhysicalDrives"], physical=True)
+                try:
+                    self.get_drives(options, val["PhysicalDrives"], physical=True)
+                except KeyError, excp:
+                    if excp.message == "PhysicalDrives":
+                        raise IncompatableServerTypeError("Cannot "\
+                            "configure physical drives using this controller.")
 
             if options.logicaldrives:
                 self.get_drives(options, val["LogicalDrives"], logical=True)
@@ -249,6 +259,11 @@ class SmartArrayCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -267,9 +282,9 @@ class SmartArrayCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) or not client:
+        if inputline or not client:
             runlogin = True
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
 
         if runlogin:

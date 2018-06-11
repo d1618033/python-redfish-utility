@@ -35,7 +35,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                 '\n\texample: disableilofunctionality\n\n\tWARNING: this will' \
                 ' render iLO unable to respond to network operations.',\
             summary="disables iLO's accessibility via the network and resets "\
-            "iLO. WARINING: This should be used with caution as it will "\
+            "iLO. WARNING: This should be used with caution as it will "\
             "render iLO unable to respond to further network operations "\
             "(including REST operations) until iLO is re-enabled using the"\
             " RBSU menu.",\
@@ -44,9 +44,9 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
 
     def run(self, line):
         """ Main DisableIloFunctionalityCommand function
@@ -62,7 +62,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 0:
+        if args:
             raise InvalidCommandLineError("disableilofunctionality command " \
                                                         "takes no arguments.")
 
@@ -70,7 +70,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
 
         self.selobj.selectfunction("Chassis.")
         chassistype = self.getobj.getworkerfunction("ChassisType", options, \
-                                                    "ChassisType", results=True)
+									"ChassisType", results=True, uselist=True)
 
         if chassistype['ChassisType'].lower() == 'blade':
             raise IncompatableServerTypeError("disableilofunctionality command"\
@@ -155,8 +155,8 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) or not client:
-            if not len(inputline):
+        if inputline or not client:
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
         elif not client:

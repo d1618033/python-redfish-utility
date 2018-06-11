@@ -52,7 +52,7 @@ class DownloadComponentCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='downloadcomp', \
-            usage='downloadcomp [COMPONENT PATH] [OPTIONS]\n\n\tRun to ' \
+            usage='downloadcomp [COMPONENT URI] [OPTIONS]\n\n\tRun to ' \
                 'download the file from path\n\texample: downloadcomp ' \
                 '/fwrepo/filename.exe --outdir <output location>', \
             summary='Downloads components/binaries from the iLO Repository.', \
@@ -61,8 +61,8 @@ class DownloadComponentCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Wrapper function for download command main function
@@ -79,9 +79,8 @@ class DownloadComponentCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -100,7 +99,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         if len(args) > 1:
             raise InvalidCommandLineError("Download component only takes 1 " \
                                                 "component path argument.\n")
-        elif len(args) == 0:
+        elif not args:
             raise InvalidCommandLineError("Download component missing " \
                                                             "component path.\n")
 
@@ -139,6 +138,11 @@ class DownloadComponentCommand(RdmcCommandBase):
 
         if not os.path.exists(os.path.join(os.path.split(destination)[0])):
             raise InvalidFileInputError("Invalid output file location.")
+        if not os.access(os.path.join(os.path.split(destination)[0]), os.W_OK):
+            raise InvalidFileInputError("File location is not writable.")
+        if os.access(destination, os.F_OK) and not os.access(destination, \
+                                                                 os.W_OK):
+            raise InvalidFileInputError("Existing File cannot be overwritten.")
 
         if filepath[0] != '/':
             filepath = '/' + filepath
@@ -173,6 +177,11 @@ class DownloadComponentCommand(RdmcCommandBase):
 
             if not os.path.exists(os.path.join(os.path.split(destination)[0])):
                 raise InvalidFileInputError("Invalid output file location.")
+            if not os.access(os.path.join(os.path.split(destination)[0]), os.W_OK):
+                raise InvalidFileInputError("File location is not writable.")
+            if os.access(destination, os.F_OK) and not os.access(destination, \
+                                                                 os.W_OK):
+                raise InvalidFileInputError("Existing File cannot be overwritten.")
 
             ret = bs2.channel.dll.downloadComponent(ctypes.create_string_buffer(\
                                                 filename.encode('utf-8')), \
@@ -198,6 +207,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         :type options: options.
         """
         inputline = list()
+        client = None
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -224,9 +234,9 @@ class DownloadComponentCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
-                sys.stdout.write(u'Local login initiated...\n')
-
+        if not inputline and not client:
+            sys.stdout.write(u'Local login initiated...\n')
+        if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def sessionvalidation(self, options):
@@ -313,7 +323,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

@@ -40,7 +40,7 @@ class TypesCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def typesfunction(self, line, returntypes=False):
         """ Main types worker function
@@ -61,7 +61,7 @@ class TypesCommand(RdmcCommandBase):
         self.typesvalidation(options)
 
         try:
-            if len(args) == 0:
+            if not args:
                 typeslist = list()
                 typeslist = list(set(self._rdmc.app.types(options.fulltypes)))
                 typeslist.sort()
@@ -128,9 +128,9 @@ class TypesCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) or not client:
+        if inputline or not client:
             runlogin = True
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
         if options.includelogs:
             inputline.extend(["--includelogs"])

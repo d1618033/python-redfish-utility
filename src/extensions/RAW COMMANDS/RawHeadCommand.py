@@ -36,12 +36,12 @@ class RawHeadCommand(RdmcCommandBase):
             usage='rawhead [PATH]\n\n\tRun to to retrieve data from the ' \
                 'passed in path\n\texample: rawhead "/redfish/v1/systems/'\
                 '(system ID)"',\
-            summary='This is the raw form of the HEAD command.',\
+            summary='Raw form of the HEAD command.',\
             aliases=['rawhead'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw head worker function
@@ -60,9 +60,8 @@ class RawHeadCommand(RdmcCommandBase):
         url = None
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -71,7 +70,7 @@ class RawHeadCommand(RdmcCommandBase):
 
         if len(args) > 1:
             raise InvalidCommandLineError("Raw head only takes 1 argument.\n")
-        elif len(args) == 0:
+        elif not args:
             raise InvalidCommandLineError("Missing raw head input path.\n")
 
         if args[0].startswith('"') and args[0].endswith('"'):
@@ -242,7 +241,7 @@ class RawHeadCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

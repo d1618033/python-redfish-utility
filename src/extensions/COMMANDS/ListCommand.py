@@ -32,7 +32,7 @@ class ListCommand(RdmcCommandBase):
             usage='list [OPTIONS]\n\n\tDisplays the current values of the ' \
                     'properties within\n\ta selected type including'\
                     ' reserved properties\n\texample: list\n\n\tNOTE: If ' \
-                    'you wish not to get all the reserved properties\n\t     ' \
+                    'you wish to not list all the reserved properties\n\t     ' \
                     ' run the get command instead',\
             summary='Displays the current value(s) of a' \
                     ' property(ies) within a selected type including'\
@@ -41,9 +41,9 @@ class ListCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
 
     def run(self, line):
         """ Wrapper function for main list function
@@ -70,12 +70,12 @@ class ListCommand(RdmcCommandBase):
                     arg = newargs[0]
 
                 if not self.getobj.getworkerfunction(arg, options, line,\
-                                                newargs=newargs, uselist=True):
+                                                newargs=newargs, uselist=False):
                     raise NoContentsFoundForOperationError('No contents found '\
                                                         'for entry: %s\n' % arg)
         else:
             if not self.getobj.getworkerfunction(args, options, line, \
-                                                                uselist=True):
+                                                                uselist=False):
                 raise NoContentsFoundForOperationError('No contents found.')
 
         #Return code
@@ -117,7 +117,7 @@ class ListCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) and options.selector:
+        if inputline and options.selector:
             if options.filter:
                 inputline.extend(["--filter", options.filter])
             if options.includelogs:

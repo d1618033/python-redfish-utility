@@ -6,7 +6,7 @@ The following is a list of requirements for the server you want to manage with t
 
 - Local management: Gen9 server with a Windows OS or Linux OS (64–bit) installed (If you want to install the tool locally on the server).
 - Remote management: Gen9 server with or without an OS installed.
-- iLO 4 2.00 or later.
+- iLO 4 2.10 or later.
 - Before you run the tool on a Linux system, the **/tmp** folder must be configured to allow code to execute. If the **/tmp** folder is set to *no-execution*, the tool will not run.
 - The install packages are available for download from [http://www.hpe.com/info/resttool](http://www.hpe.com/info/resttool).
 

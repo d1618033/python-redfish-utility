@@ -43,11 +43,11 @@ class VirtualMediaCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line):
         """ Main iscsi configuration worker function
@@ -82,7 +82,9 @@ class VirtualMediaCommand(RdmcCommandBase):
         if self._rdmc.app.current_client.monolith.is_redfish:
             isredfish = True
             paths = self.getobj.getworkerfunction("@odata.id", options, \
-                    "@odata.id", results=True, multivals=True, uselist=True)
+                    "@odata.id", results=True, multivals=True, uselist=False)
+            ids = self.getobj.getworkerfunction("Id", options, \
+                    "Id", results=True, multivals=True, uselist=False)
 
             for path in paths:
                 paths[path] = paths[path]['@odata.id']
@@ -91,11 +93,17 @@ class VirtualMediaCommand(RdmcCommandBase):
             paths = self.getobj.getworkerfunction(\
                     "links", options, "links/self/href", \
                     newargs=['links', 'self', 'href'],\
-                    results=True, multivals=True, uselist=True)
-
+                    results=True, multivals=True, uselist=False)
+            ids = self.getobj.getworkerfunction("Id", options, \
+                    "Id", results=True, multivals=True, uselist=False)
             for path in paths:
                 paths[path] = paths[path]['links']['self']['href']
-
+        # To keep indexes consistent between versions
+        if not ids.keys()[0] == ids.values()[0].values()[0]:
+            finalpaths = {}
+            for path in paths:
+                finalpaths.update({int(ids[path].values()[0]): paths[path]})
+            paths = finalpaths
         if options.removevm:
             self.vmremovehelper(args, options, paths, isredfish, ilover)
         elif len(args) == 2:
@@ -205,7 +213,16 @@ class VirtualMediaCommand(RdmcCommandBase):
         images = {}
         count = 0
         mediatypes = self.getobj.getworkerfunction(\
-            "MediaTypes", options, "MediaTypes", results=True, multivals=True)
+            "MediaTypes", options, "MediaTypes", results=True, multivals=True,\
+                                                                 uselist=False)
+        ids = self.getobj.getworkerfunction("Id", options, \
+                    "Id", results=True, multivals=True, uselist=False)
+        # To keep indexes consistent between versions
+        if not ids.keys()[0] == ids.values()[0].values()[0]:
+            finalmet = {}
+            for mount in mediatypes:
+                finalmet.update({int(ids[mount].values()[0]): mediatypes[mount]})
+            mediatypes = finalmet
 
         for path in paths:
             count += 1
@@ -216,20 +233,19 @@ class VirtualMediaCommand(RdmcCommandBase):
 
         sys.stdout.write("Available Virtual Media Options:\n")
 
-        for item in mediatypes:
+        for image in images:
             media = ""
 
-            if item in images:
-                image = images[item]
+            if images[image]:
+                imagestr = images[image]
+            else:
+                imagestr = "None"
 
-                if not image:
-                    image = "None"
-
-            for medtypes in mediatypes[item]['MediaTypes']:
+            for medtypes in mediatypes[image]['MediaTypes']:
                 media += medtypes + " "
 
             sys.stdout.write("[%s] Media Types Available: %s Image Inserted:" \
-                                        " %s\n" %(str(item), str(media), image))
+                                        " %s\n" %(str(image), str(media), imagestr))
 
     def vmbootnextreset(self, args, paths):
         """Worker function to boot virtual media on next serverreset
@@ -315,6 +331,11 @@ class VirtualMediaCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except:
             if options.user or options.password or options.url:
                 if options.url:
@@ -333,7 +354,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

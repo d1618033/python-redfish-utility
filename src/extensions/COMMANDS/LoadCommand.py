@@ -27,7 +27,6 @@ from Queue import Queue
 from datetime import datetime
 from optparse import OptionParser
 
-import six
 import redfish.ris
 
 from redfish.ris.rmc_helper import LoadSkipSettingError
@@ -65,11 +64,11 @@ class LoadCommand(RdmcCommandBase):
         self.mpfilename = None
         self.queue = Queue()
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.comobj = rdmcObj.commandsDict["CommitCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main load worker function
@@ -131,14 +130,13 @@ class LoadCommand(RdmcCommandBase):
             results = False
 
             for loadcontent in loadcontents:
-                skip = False
+
 
                 for content, loaddict in loadcontent.iteritems():
                     inputlist = list()
 
                     if content == "Comments":
-                        skip = True
-                        break
+                        continue
 
                     inputlist.append(content)
                     if options.biospassword:
@@ -146,51 +144,17 @@ class LoadCommand(RdmcCommandBase):
                                                         options.biospassword])
 
                     self.selobj.selectfunction(inputlist)
+                    selector = self._rdmc.app.get_selector()
                     if self._rdmc.app.get_selector().lower() not in \
                                                                 content.lower():
                         raise InvalidCommandLineError("Selector not found.\n")
 
                     try:
                         for _, items in loaddict.iteritems():
-                            dicttolist = list(items.items())
-
-                            if len(dicttolist) < 1:
-                                continue
-
-                            multilevel = [isinstance(x[1], dict) for x in \
-                                                                    dicttolist]
-                            indices = [i for i, j in enumerate(multilevel) if j]
-
-                            if len(indices) > 0:
-                                for index in indices:
-                                    changes = []
-                                    if len(set(six.iterkeys(\
-                                                        dicttolist[index][1]))):
-                                        self.loadmultihelper(\
-                                                 dicttolist[index][0], \
-                                                 dicttolist[index][1], changes)
-
-                                    for change in changes:
-                                        if self._rdmc.app.loadset(\
-                                          dicttolist=None, \
-                                          latestschema=options.latestschema, \
-                                          uniqueoverride=options.uniqueoverride, \
-                                          newargs=change[0], val=change[0]):
-                                            results = True
-
-                                indices.sort(cmp=None, key=None, reverse=True)
-
-                                #Test validate thoroughly
-                                for index in indices:
-                                    del dicttolist[index]
-
-                            if len(dicttolist) < 1:
-                                continue
-
                             try:
-                                if self._rdmc.app.loadset(\
-                                      dicttolist=dicttolist, \
-                                      latestschema=options.latestschema,\
+                                if self._rdmc.app.loadset(selector=selector,\
+                                      seldict=items, \
+                                      latestschema=options.latestschema, \
                                       uniqueoverride=options.uniqueoverride):
                                     results = True
                             except LoadSkipSettingError, excp:
@@ -216,8 +180,6 @@ class LoadCommand(RdmcCommandBase):
                         raise redfish.ris.ValidationError(excp)
                     except Exception, excp:
                         raise excp
-                if skip:
-                    continue
 
                 try:
                     if results:
@@ -237,32 +199,6 @@ class LoadCommand(RdmcCommandBase):
             return ReturnCodes.LOAD_SKIP_SETTING_ERROR
 
         return ReturnCodes.SUCCESS
-
-    def loadmultihelper(self, sel, val, changes, keeplist=[]):
-        """ Load multi helper function
-
-        :param sel: current property
-        :type sel: string.
-        :param val: current value for property
-        :type val: string.
-        :param changes: current changes
-        :type changes: string.
-        """
-        results = list()
-
-        if isinstance(val, dict):
-            keeplist.append(sel)
-            for first, second in val.iteritems():
-                (results, finalval) = self.loadmultihelper(first, second, \
-                                                                changes, keeplist)
-                if not set(keeplist).issubset(set(results)):
-                    results = keeplist + results
-                    changes.append((results, finalval))
-        else:
-            results.append(sel + "=" + str(val))
-            finalval = val
-
-        return (results, finalval)
 
     def loadvalidation(self, options):
         """ Load method validation function
@@ -304,9 +240,9 @@ class LoadCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             runlogin = True
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
         if options.biospassword:
             inputline.extend(["--biospassword", options.biospassword])

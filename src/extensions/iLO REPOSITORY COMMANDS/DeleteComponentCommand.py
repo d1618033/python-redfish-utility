@@ -31,19 +31,19 @@ class DeleteComponentCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='deletecomp', \
-            usage='component [OPTIONS] \n\n\tRun to delete component(s) of ' \
-              'the currently logged in system.\n\n\tDelete a single '\
-              'component by uri.\n\texample: deletecomp /redfish/v1/' \
-              '<componentpath>\n\n\tDelete multiple components by id.\n\t' \
-              'example: deletecomp 377fg6c4,327cf4c7',\
+            usage='deletecomp [COMPONENT URI/ID] [OPTIONS] \n\n\tRun to ' \
+              'delete component(s) of the currently logged in system.\n\n\t'\
+              'Delete a single component by uri.\n\texample: deletecomp /' \
+              '/redfish/v1<componentpath>\n\n\tDelete multiple components by ' \
+              'id.\n\texample: deletecomp 377fg6c4,327cf4c7',\
             summary='Deletes components/binaries from the iLO Repository.', \
             aliases=['Deletecomp'], \
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main deletecomp worker function
@@ -124,6 +124,7 @@ class DeleteComponentCommand(RdmcCommandBase):
         :type options: list.
         """
         inputline = list()
+        client = None
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -150,8 +151,9 @@ class DeleteComponentCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
-                sys.stdout.write(u'Local login initiated...\n')
+        if not inputline and not client:
+            sys.stdout.write(u'Local login initiated...\n')
+        if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):

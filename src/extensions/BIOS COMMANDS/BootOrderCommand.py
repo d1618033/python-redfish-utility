@@ -32,8 +32,8 @@ class BootOrderCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='bootorder',\
-            usage='bootorder [BOOT ORDER]\n\n\tRun without arguments for ' \
-                'current boot order and one time boot options.\n\texample: ' \
+            usage='bootorder [BOOT ORDER] [OPTIONS]\n\n\tRun without arguments ' \
+                'for current boot order and one time boot options.\n\texample: ' \
                 'bootorder\n\n\tTo set the persistent boot order pick items ' \
                 'from\n\tthe "Current Persistent Boot Order" section.\n\t' \
                 'example: bootorder [5,4,3,2,1] --commit\n\n\tSetting partial' \
@@ -64,11 +64,11 @@ class BootOrderCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.getobj = rdmcObj.commandsDict["GetCommand"](rdmcObj)
-        self.setobj = rdmcObj.commandsDict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commandsDict["RebootCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line):
         """ Main boot order worker function """
@@ -97,28 +97,28 @@ class BootOrderCommand(RdmcCommandBase):
         bootoverride = None
         self.selobj.selectfunction("HpBios.")
         bootmode = self.getobj.getworkerfunction("BootMode", options, \
-                                                    "BootMode", results=True)
+                                    "BootMode", results=True, uselist=True)
 
         self.selobj.selectfunction("ComputerSystem.")
         onetimebootsettings = self.getobj.getworkerfunction("Boot", options, \
                 ['Boot/'+self.typepath.defs.bootoverridetargettype], \
                 newargs=['Boot', self.typepath.defs.bootoverridetargettype], \
-                results=True)
+                results=True, uselist=True)
 
         bootstatus = self.getobj.getworkerfunction("Boot", options, \
                                ['Boot/BootSourceOverrideEnabled'], \
                                newargs=['Boot', 'BootSourceOverrideEnabled'], \
-                               results=True)
+                               results=True, uselist=True)
 
         targetstatus = self.getobj.getworkerfunction("Boot", options, \
                                 ['Boot/BootSourceOverrideTarget'], \
                                 newargs=['Boot', 'BootSourceOverrideTarget'], \
-                                results=True)
+                                results=True, uselist=True)
 
         uefitargetstatus = self.getobj.getworkerfunction("Boot", options, \
                             ['Boot/UefiTargetBootSourceOverride'], \
                             newargs=['Boot', 'UefiTargetBootSourceOverride'], \
-                            results=True)
+                            results=True, uselist=True)
 
         currentsettings = self._rdmc.app.get_handler(\
                                             self.typepath.defs.systempath, \
@@ -129,7 +129,7 @@ class BootOrderCommand(RdmcCommandBase):
             uefionetimebootsettings = self.getobj.getworkerfunction("Boot", \
                   options, ['Boot/UefiTargetBootSourceOverrideSupported'], \
                   newargs=['Boot', 'UefiTargetBootSourceOverrideSupported'], \
-                  results=True)
+                  results=True, uselist=True)
         else:
             uefionetimebootsettings = None
 
@@ -138,7 +138,8 @@ class BootOrderCommand(RdmcCommandBase):
             self.selobj.selectfunction("HpServerBootSettings.")
             bootsettings = \
                     self.getobj.getworkerfunction("PersistentBootConfigOrder", \
-                          options, "PersistentBootConfigOrder", results=True)
+                          options, "PersistentBootConfigOrder", results=True, \
+                          uselist=True)
 
             bootsources = self._rdmc.app.get_handler(\
                                 '/rest/v1/systems/1/bios/Boot', \
@@ -164,7 +165,7 @@ class BootOrderCommand(RdmcCommandBase):
                 else:
                     newlist = "["
 
-                    for value in range(0, len(bootlist)):
+                    for value, _ in enumerate(bootlist):
                         try:
                             newlist += currentlist[int(bootlist[value]) -1]
                         except:
@@ -175,13 +176,13 @@ class BootOrderCommand(RdmcCommandBase):
 
                         removallist.remove(currentlist[int(bootlist[value]) -1])
 
-                        if not len(removallist) == 0:
+                        if removallist:
                             newlist += ","
 
-                    if len(removallist) == 0:
+                    if not removallist:
                         newlist += "]"
                     else:
-                        for value in range(0, len(removallist)):
+                        for value, _ in enumerate(removallist):
                             newlist += removallist[value]
 
                             if not value == len(removallist) - 1:
@@ -251,7 +252,7 @@ class BootOrderCommand(RdmcCommandBase):
                 if options.biospassword and newlist:
                     newlist += " --biospassword " + options.biospassword
 
-                if options.reboot:
+                if options.reboot and newlist:
                     newlist += ' --reboot ' + options.reboot
 
                 if newlist:
@@ -370,49 +371,7 @@ class BootOrderCommand(RdmcCommandBase):
                 self.selobj.selectfunction(self.typepath.defs.hpsecureboot)
                 self.setobj.run('ResetAllKeys=True --commit')
             else:
-                sys.stderr.write("DeletePK option is not available on rest.\n")
-
-    def bootordervalidation(self, options):
-        """ Boot order method validation function
-
-        :param options: command line options
-        :type options: list.
-        """
-        inputline = list()
-
-        if self._rdmc.app.config._ac__commit.lower() == 'true':
-            options.commit = True
-
-        try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
-
-            if options.biospassword:
-                self._rdmc.app.update_bios_password(options.biospassword)
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    inputline.extend(["-p", options.password])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
-
-        if len(inputline):
-            self.lobobj.loginfunction(inputline)
+                sys.stderr.write("DeletePK option is not available on Gen9.\n")
 
     def print_out_boot_order(self, content, onetimecontent, uefionetimecontent,\
                               bootmode, bootsources):
@@ -502,6 +461,48 @@ class BootOrderCommand(RdmcCommandBase):
                         self.print_boot_helper(item, indent+1)
 
         sys.stdout.write('\n\n')
+
+    def bootordervalidation(self, options):
+        """ Boot order method validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+        inputline = list()
+
+        if self._rdmc.app.config._ac__commit.lower() == 'true':
+            options.commit = True
+
+        try:
+            client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
+
+            if options.biospassword:
+                self._rdmc.app.update_bios_password(options.biospassword)
+        except:
+            if options.user or options.password or options.url:
+                if options.url:
+                    inputline.extend([options.url])
+                if options.user:
+                    inputline.extend(["-u", options.user])
+                if options.password:
+                    inputline.extend(["-p", options.password])
+            else:
+                if self._rdmc.app.config.get_url():
+                    inputline.extend([self._rdmc.app.config.get_url()])
+                if self._rdmc.app.config.get_username():
+                    inputline.extend(["-u", \
+                                  self._rdmc.app.config.get_username()])
+                if self._rdmc.app.config.get_password():
+                    inputline.extend(["-p", \
+                                  self._rdmc.app.config.get_password()])
+
+        if inputline:
+            self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

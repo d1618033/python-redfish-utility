@@ -25,17 +25,19 @@ import sys
 import time
 import json
 import logging
-if os.name == 'nt':
-    import _winreg
-    from win32con import HKEY_LOCAL_MACHINE
+
 from collections import OrderedDict
 from ctypes import create_string_buffer, c_char_p, byref
 
 import pyaes
-import versioning
 import redfish.ris
-
 import redfish.hpilo.risblobstore2 as risblobstore2
+
+import versioning
+
+if os.name == 'nt':
+    import _winreg
+    from win32con import HKEY_LOCAL_MACHINE
 
 #---------End of imports---------
 
@@ -152,6 +154,7 @@ class ReturnCodes(object):
     FAILED_TO_DOWNLOAD_COMPONENT = 101
     UPDATE_SERVICE_BUSY = 102
     FAILED_TO_UPLOAD_COMPONENT = 103
+    TASKQUEUE_ERROR = 104
 
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
@@ -235,6 +238,7 @@ class InvalidMSCfileInputError(RdmcError):
 class FirmwareUpdateError(RdmcError):
     """ Raised when there is an error while updating firmware """
     pass
+
 class FailureDuringCommitError(RdmcError):
     """ Raised when there is an error during commit """
     pass
@@ -306,6 +310,10 @@ class UnableToDecodeError(RdmcError):
 
 class UnabletoFindDriveError(RdmcError):
     """Raised when there is an issue finding required label"""
+    pass
+
+class TaskQueueError(RdmcError):
+    """ Raised when there is an issue with the current order of taskqueue """
     pass
 
 class UI(object):
@@ -496,28 +504,28 @@ class Encryption(object):
 
         :returns: returns True if FIPS mode is active, False otherwise
         """
-        FIPS = False
+        fips = False
         if os.name == 'nt':
             reg = _winreg.ConnectRegistry(None, HKEY_LOCAL_MACHINE)
             try:
                 reg = _winreg.OpenKey(reg, 'System\\CurrentControlSet\\Control\\'\
                                             'Lsa\\FipsAlgorithmPolicy')
                 _winreg.QueryInfoKey(reg)
-                value,_ = _winreg.QueryValueEx(reg, 'Enabled')
+                value, _ = _winreg.QueryValueEx(reg, 'Enabled')
                 if value:
-                    FIPS = True
+                    fips = True
             except:
-                FIPS = False
+                fips = False
         else:
             try:
-                file = open("/proc/sys/crypto/fips_enabled")
-                result = file.readline()
+                fipsfile = open("/proc/sys/crypto/fips_enabled")
+                result = fipsfile.readline()
                 if int(result) > 0:
-                    FIPS=True
-                file.close()
+                    fipsfile = True
+                fipsfile.close()
             except:
-                FIPS = False
-        return FIPS
+                fips = False
+        return fips
 
     def encrypt_file(self, filetxt, key):
         """ encrypt a file given a key
@@ -545,7 +553,7 @@ class Encryption(object):
         :type content: str.
         :param key: string to decrypt with
         :type key: str.
-        
+
         :returns: returns the decrypted file
         """
         if len(key.encode("utf8")) not in [16, 24, 32]:
@@ -560,14 +568,16 @@ class Encryption(object):
 
         return decryptedfile
 
-    def decode_credentials(self, credential):
+    @staticmethod
+    def decode_credentials(credential):
         """ decode an encoded credential
 
         :param credential: credential to be decoded
         :type credential: str.
 
-        :returns: returns the decoded credentials
+        :returns: returns the decoded credential
         """
+
         lib = risblobstore2.BlobStore2.gethprestchifhandle()
         credbuff = create_string_buffer(credential.encode('utf-8'))
         retbuff = create_string_buffer(61)
@@ -575,6 +585,34 @@ class Encryption(object):
         lib.decode_credentials.argtypes = [c_char_p]
 
         lib.decode_credentials(credbuff, byref(retbuff))
+
+        risblobstore2.BlobStore2.unloadchifhandle(lib)
+        try:
+            retbuff.value.encode('utf-8')
+            if not retbuff.value:
+                raise UnableToDecodeError("")
+        except:
+            raise UnableToDecodeError("Unable to decode credential %s." % credential)
+
+        return retbuff.value
+
+    @staticmethod
+    def encode_credentials(credential):
+        """ encode a credential
+
+        :param credential: credential to be decoded
+        :type credential: str.
+
+        :returns: returns the encoded credential
+        """
+
+        lib = risblobstore2.BlobStore2.gethprestchifhandle()
+        credbuff = create_string_buffer(credential.encode('utf-8'))
+        retbuff = create_string_buffer(61)
+
+        lib.encode_credentials.argtypes = [c_char_p]
+
+        lib.encode_credentials(credbuff, byref(retbuff))
 
         risblobstore2.BlobStore2.unloadchifhandle(lib)
         try:

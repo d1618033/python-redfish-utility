@@ -49,7 +49,7 @@ class LoginCommand(RdmcCommandBase):
         self.password = None
         self.biospassword = None
         self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def loginfunction(self, line, skipbuild=None):
         """ Main worker function for login class
@@ -70,9 +70,8 @@ class LoginCommand(RdmcCommandBase):
         self.loginvalidation(options, args)
 
         if options.encode:
-            encobj = Encryption()
-            self.username = encobj.decode_credentials(self.username)
-            self.password = encobj.decode_credentials(self.password)
+            self.username = Encryption.decode_credentials(self.username)
+            self.password = Encryption.decode_credentials(self.password)
 
         self._rdmc.app.getgen(url=self.url, username=self.username, \
                                                         password=self.password)
@@ -91,7 +90,7 @@ class LoginCommand(RdmcCommandBase):
             raise
 
         # Warning for cache enabled, since we save session in plain text
-        if self._rdmc.app.config.get_cache() and not skipbuild:
+        if not self._rdmc.encoding:
             sys.stdout.write(u"WARNING: Cache is activated. Session keys are" \
                                                     u" stored in plaintext.\n")
 
@@ -163,7 +162,7 @@ class LoginCommand(RdmcCommandBase):
         # Assignment of url in case no url is entered
         self.url = 'blobstore://.'
 
-        if len(args) > 0:
+        if args:
             # Any argument should be treated as an URL
             self.url = args[0]
 
@@ -279,7 +278,7 @@ class LoginCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

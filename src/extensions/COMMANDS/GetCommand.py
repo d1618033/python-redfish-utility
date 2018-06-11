@@ -19,6 +19,7 @@
 
 from optparse import OptionParser
 from collections import (OrderedDict)
+import collections
 
 import redfish.ris
 
@@ -45,9 +46,9 @@ class GetCommand(RdmcCommandBase):
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commandsDict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main get worker function
@@ -64,6 +65,7 @@ class GetCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.getvalidation(options)
+
         multiargs = False
         content = []
 
@@ -82,7 +84,8 @@ class GetCommand(RdmcCommandBase):
                 if len(args) > 1 and options.json:
                     multiargs = True
                     item = self.getworkerfunction(arg, options, line,\
-                                newargs=newargs, results=True, multivals=True)
+                                newargs=newargs, results=True, uselist=True, \
+                                                readonly=options.noreadonly, multivals=True)
 
                     if item:
                         content.append(item)
@@ -94,8 +97,8 @@ class GetCommand(RdmcCommandBase):
                             raise NoContentsFoundForOperationError('No ' \
                                        'contents found for entry: %s' % line[0])
                 else:
-                    if not self.getworkerfunction(arg, options, line,\
-                                                                newargs=newargs):
+                    if not self.getworkerfunction(arg, options, line, uselist=True,\
+                                        readonly=options.noreadonly, newargs=newargs):
                         if not newargs:
                             raise NoContentsFoundForOperationError('No ' \
                                            'contents found for entry: %s' % arg)
@@ -103,7 +106,8 @@ class GetCommand(RdmcCommandBase):
                             raise NoContentsFoundForOperationError('No ' \
                                        'contents found for entry: %s' % line[0])
         else:
-            if not self.getworkerfunction(args, options, line):
+            if not self.getworkerfunction(args, options, line, uselist=True, \
+                                          readonly=options.noreadonly):
                 raise NoContentsFoundForOperationError('No contents found')
 
         if multiargs and options.json:
@@ -115,7 +119,7 @@ class GetCommand(RdmcCommandBase):
         #Return code
         return ReturnCodes.SUCCESS
 
-    def getworkerfunction(self, args, options, line, newargs=None, \
+    def getworkerfunction(self, args, options, line, newargs=None, readonly=False,\
                                 results=None, uselist=False, multivals=False):
         """ main get worker function
 
@@ -127,16 +131,25 @@ class GetCommand(RdmcCommandBase):
         :type line: string.
         :param newargs: new style arguments
         :type newargs: list.
+        :param readonly: remove readonly properties
+        :type newargs: bool
         :param results: current results collected
         :type results: string.
         :param uselist: use reserved properties list to filter results
-        :type uselist: bool
+        :type uselist: boolean.
         :param multivals: multiple values
         :type multivals: boolean.
         """
         listitem = False
         somethingfound = False
-        contents = self._rdmc.app.get_save(args)
+        if readonly:
+            try:
+                contents = self._rdmc.app.get_save(args, remread=True)
+                uselist = False
+            except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
+                contents = self._rdmc.app.get_save(args)
+        else:
+            contents = self._rdmc.app.get_save(args)
 
         values = {}
         itemnum = 0
@@ -161,10 +174,8 @@ class GetCommand(RdmcCommandBase):
 
             content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
 
-            if not uselist:
-                for k in content.keys():
-                    if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
-                        del content[k]
+            if uselist:
+                self.removereserved(content)
 
             if len(content):
                 itemnum += 1
@@ -176,14 +187,18 @@ class GetCommand(RdmcCommandBase):
                     newlist = list()
 
                     for item in newargs:
+                        somethingfound = False
                         if isinstance(content, list):
+                            if not content:
+                                break
                             if len(content) > 1:
                                 argleft = [x for x in newargs if x not in \
                                                                         newlist]
 
-                                [self.getworkerhelper(results, content[x], \
+                                _ = [self.getworkerhelper(results, content[x], \
                                     newlist[:], argleft, jsono=options.json) \
                                                 for x in range(len(content))]
+                                somethingfound = True
                                 listitem = True
                                 break
                             else:
@@ -195,8 +210,8 @@ class GetCommand(RdmcCommandBase):
                                 content = content.get(key)
                                 somethingfound = True
                                 break
-                            else:
-                                somethingfound = False
+                        else:
+                            somethingfound = False
 
                         if not somethingfound:
                             return somethingfound
@@ -229,6 +244,27 @@ class GetCommand(RdmcCommandBase):
 
         return somethingfound
 
+    def removereserved(self, entry):
+        """ function to remove reserved properties
+
+        :param entry: dictionary to remove reserved properties from
+        :type entry: dict.
+        """
+
+        for key, val in entry.items():
+            if key.lower() in HARDCODEDLIST or '@odata' in key.lower():
+                del entry[key]
+            elif isinstance(val, list):
+                for item in entry[key]:
+                    if isinstance(item, dict):
+                        self.removereserved(item)
+                        if all([True if not test else False for test in entry[key]]):
+                            del entry[key]
+            elif isinstance(val, dict):
+                self.removereserved(val)
+                if all([True if not test else False for test in entry[key]]):
+                    del entry[key]
+
     def getworkerhelper(self, results, content, newlist, newargs, jsono=False):
         """ helper function for list items
 
@@ -243,6 +279,7 @@ class GetCommand(RdmcCommandBase):
         :param jsono: boolean to determine output style
         :type jsono: boolean.
         """
+        somethingfound = False
         innerresults = OrderedDict()
         listitem = False
         for item in newargs:
@@ -252,7 +289,7 @@ class GetCommand(RdmcCommandBase):
 
                 if len(content) > 1:
                     argleft = [x for x in newargs if x not in newlist]
-                    [self.getworkerhelper(results, content[x], newlist[:],\
+                    _ = [self.getworkerhelper(results, content[x], newlist[:],\
                                 argleft, jsono) for x in range(len(content))]
                     listitem = True
                     break
@@ -265,8 +302,8 @@ class GetCommand(RdmcCommandBase):
                     content = content.get(key)
                     somethingfound = True
                     break
-                else:
-                    somethingfound = False
+            else:
+                somethingfound = False
 
             if not somethingfound:
                 return somethingfound
@@ -298,13 +335,17 @@ class GetCommand(RdmcCommandBase):
 
         for item in content:
             for num, _ in item.iteritems():
-                try:
-                    final[num].update(item[num])
-                except:
-                    final[num] = item[num]
-
+                self.dict_merge(final, item)
         for num in final:
             UI().print_out_json(final[num])
+
+    def dict_merge(self, dct, merge_dct):
+        for key, _ in merge_dct.iteritems():
+            if (key in dct and isinstance(dct[key], dict)
+                    and isinstance(merge_dct[key], collections.Mapping)):
+                self.dict_merge(dct[key], merge_dct[key])
+            else:
+                dct[key] = merge_dct[key]
 
     def getvalidation(self, options):
         """ get method validation function
@@ -342,7 +383,7 @@ class GetCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline) and options.selector:
+        if inputline and options.selector:
             if options.filter:
                 inputline.extend(["--filter", options.filter])
             if options.includelogs:
@@ -470,4 +511,13 @@ class GetCommand(RdmcCommandBase):
             " server after this command is completed. Using this flag when"\
             " not logged in will have no effect",
             default=None,
+        )
+        customparser.add_option(
+            '--noreadonly',
+            dest='noreadonly',
+            action="store_true",
+            help="Optionally include this flag if you wish to only show"\
+            " properties that are not read-only. This is useful to see what "\
+            "is configurable with the selected type(s).",
+            default=False
         )

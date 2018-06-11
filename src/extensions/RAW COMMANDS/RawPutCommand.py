@@ -37,12 +37,12 @@ class RawPutCommand(RdmcCommandBase):
                 'v1/systems/(system ID)/bios/Settings/",\n\t    "body":{\n\t'
                 '\t"Attributes": {\n\t\t' \
                 '  "BaseConfig": "default"\n\t\t}\n\t    }\n\t}',\
-            summary='This is the raw form of the PUT command.',\
+            summary='Raw form of the PUT command.',\
             aliases=['rawput'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw put worker function
@@ -63,9 +63,8 @@ class RawPutCommand(RdmcCommandBase):
         results = None
 
         if options.encode and options.user and options.password:
-            encobj = Encryption()
-            options.user = encobj.decode_credentials(options.user)
-            options.password = encobj.decode_credentials(options.password)
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         if options.sessionid:
             url = self.sessionvalidation(options)
@@ -274,7 +273,7 @@ class RawPutCommand(RdmcCommandBase):
             '-e',
             '--enc',
             dest='encode',
-            action = 'store_true',
+            action='store_true',
             help=SUPPRESS_HELP,
             default=False,
         )

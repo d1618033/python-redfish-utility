@@ -20,7 +20,8 @@
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError
+                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, \
+                    IloLicenseError
 
 class FirmwareIntegrityCheckCommand(RdmcCommandBase):
     """ Reboot server that is currently logged in """
@@ -37,8 +38,8 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main firmware update worker function
@@ -54,7 +55,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 0:
+        if args:
             raise InvalidCommandLineError('fwintegritycheck command takes no ' \
                                                                     'arguments')
 
@@ -63,6 +64,14 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         if self.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('fwintegritycheck command is ' \
                                                     'only available on iLO 5.')
+
+        licenseres = self._rdmc.app.filter('HpeiLOLicense.', None, None)
+        try:
+            licenseres = licenseres[0]
+        except:
+            pass
+        if not licenseres.dict['LicenseFeatures']['FWScan']:
+            raise IloLicenseError("This command is not available with this iLO license.")
 
         select = self.typepath.defs.hpilofirmwareupdatetype
         results = self._rdmc.app.filter(select, None, None)
@@ -115,7 +124,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

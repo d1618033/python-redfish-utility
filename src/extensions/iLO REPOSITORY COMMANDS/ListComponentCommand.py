@@ -40,8 +40,8 @@ class ListComponentCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main listcomp worker function
@@ -99,6 +99,7 @@ class ListComponentCommand(RdmcCommandBase):
         :type options: list.
         """
         inputline = list()
+        client = None
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -125,8 +126,9 @@ class ListComponentCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
-                sys.stdout.write(u'Local login initiated...\n')
+        if not inputline and not client:
+            sys.stdout.write(u'Local login initiated...\n')
+        if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):

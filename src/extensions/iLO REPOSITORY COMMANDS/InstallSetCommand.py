@@ -17,6 +17,7 @@
 # -*- coding: utf-8 -*-
 """ Install Set Command for rdmc """
 
+import re
 import sys
 import json
 import datetime
@@ -55,8 +56,8 @@ class InstallSetCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main listcomp worker function
@@ -81,7 +82,9 @@ class InstallSetCommand(RdmcCommandBase):
         if args and args[0] in ['delete', 'invoke'] and not options.name:
             raise InvalidCommandLineError('Name option is required for ' \
                                           'delete and invoke commands.')
-
+        if options.name:
+            if options.name.startswith('"') and options.name.endswith('"'):
+                options.name = options.name[1:-1]
         if options.removeall:
             self.removeinstallsets()
         elif not args:
@@ -95,9 +98,9 @@ class InstallSetCommand(RdmcCommandBase):
         elif args[0].lower() == 'delete':
             self.deleteinstallset(options.name)
         elif args[0].lower() == 'invoke':
-            self.invokeinstallset(options.name)
+            self.invokeinstallset(options)
         else:
-            raise InvalidCommandLineError('Invalid command entered.')
+            raise InvalidCommandLineError('%s is not a valid command.' % args[0])
 
         return ReturnCodes.SUCCESS
 
@@ -116,7 +119,8 @@ class InstallSetCommand(RdmcCommandBase):
 
         if not name:
             name = str(datetime.datetime.now())
-
+            name = name.replace(':', '')
+            name = name.replace(' ', 'T')
         try:
             inputfile = open(setfile, 'r')
             sequences = json.loads(inputfile.read())
@@ -127,22 +131,26 @@ class InstallSetCommand(RdmcCommandBase):
 
         if listtype:
             body = {u"Name": name, u"Sequence": sequences}
-
-            filenamelist = [x['Filename'] for x in comps]
-
-            for sequence in sequences:
-                if sequence['Command'] == 'ApplyUpdate':
-                    if 'Filename' in sequence.keys():
-                        if not sequence['Filename'] in filenamelist:
-                            raise NoContentsFoundForOperationError('Component' \
-                                ' referenced in install set is not present on' \
-                                ' iLO Drive: %s' % sequence['Filename'])
-                elif sequence['Command'] == 'WaitTimeSeconds':
-                    sequence['WaitTimeSeconds'] = \
-                                                int(sequence['WaitTimeSeconds'])
         else:
             body = sequences
+            if "Sequence" in body:
+                sequences = body['Sequence']
+            else:
+                raise InvalidFileInputError("Invalid install set file.")
+            sequences = body["Sequence"]
 
+        filenamelist = [x['Filename'] for x in comps]
+
+        for sequence in sequences:
+            if sequence['Command'] == 'ApplyUpdate':
+                if 'Filename' in sequence.keys():
+                    if not sequence['Filename'] in filenamelist:
+                        raise NoContentsFoundForOperationError('Component' \
+                            ' referenced in install set is not present on' \
+                            ' iLO Drive: %s' % sequence['Filename'])
+            elif sequence['Command'] == 'WaitTimeSeconds':
+                sequence['WaitTimeSeconds'] = \
+                                            int(sequence['WaitTimeSeconds'])
         for setvar in sets:
             if setvar['Name'] == body['Name']:
                 raise InvalidCommandLineError('Install set name is already ' \
@@ -150,12 +158,13 @@ class InstallSetCommand(RdmcCommandBase):
 
         self._rdmc.app.post_handler(path, body)
 
-    def invokeinstallset(self, name):
+    def invokeinstallset(self, options):
         """Deletes the named set
         :param name: string of the install set name to delete
         :type name: str.
         """
         path = None
+        name = options.name
         sets = self._rdmc.app.getcollectionmembers(\
                                        '/redfish/v1/UpdateService/InstallSets/')
 
@@ -170,7 +179,8 @@ class InstallSetCommand(RdmcCommandBase):
 
         sys.stdout.write('Invoking install set:%s\n' % name)
 
-        self._rdmc.app.post_handler(path, {})
+        payload = self.checkpayloadoptions(options)
+        self._rdmc.app.post_handler(path, payload)
 
     def deleteinstallset(self, name):
         """Deletes the named set
@@ -212,17 +222,17 @@ class InstallSetCommand(RdmcCommandBase):
         sets = self._rdmc.app.getcollectionmembers(\
                                        '/redfish/v1/UpdateService/InstallSets/')
         if not options.json:
-            sys.stdout.write('Install Sets:\n\n')
+            sys.stdout.write('Install Sets:\n')
 
         if not sets:
             sys.stdout.write('No install sets found.\n')
         elif not options.json:
             for setvar in sets:
                 if setvar['IsRecovery']:
-                    recovery = "Recovery Set"
+                    recovery = "[Recovery Set]"
                 else:
                     recovery = ""
-                sys.stdout.write('%s: [%s]\n' % (setvar['Name'], recovery))
+                sys.stdout.write('\n%s: %s\n' % (setvar['Name'], recovery))
 
                 if not 'Sequence' in setvar.keys():
                     sys.stdout.write('\tNo Sequences in set.\n')
@@ -266,6 +276,40 @@ class InstallSetCommand(RdmcCommandBase):
 
         return listtype
 
+    def checkpayloadoptions(self, options):
+        """ checks for payload options and adds needed ones to payload
+
+        :param options: command line options
+        :type options: list.
+        """
+
+        payload = {}
+        if options.exafter:
+            self.checktime(options.exafter)
+            payload["Expire"] = options.exafter
+        if options.safter:
+            self.checktime(options.safter)
+            payload["StartAfter"] = options.safter
+        if options.tover:
+            payload["TPMOverride"] = True
+        if options.uset:
+            payload["UpdateRecoverySet"] = True
+        if options.ctakeq:
+            payload["ClearTaskQueue"] = True
+
+        return payload
+
+    def checktime(self, timestr):
+        """ check the time string for valid format
+
+        :param timestr: time string to check
+        :type timestr: string.
+        """
+        rfdtregex = '\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ?'
+        if not re.match(rfdtregex, timestr):
+            raise InvalidCommandLineError('Invalid redfish date-time format. '\
+                'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
+
     def installsetvalidation(self, options):
         """ installset validation function
 
@@ -299,7 +343,7 @@ class InstallSetCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-            if not len(inputline):
+            if not inputline:
                 sys.stdout.write(u'Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
 
@@ -342,7 +386,6 @@ class InstallSetCommand(RdmcCommandBase):
             default=None,
         )
         customparser.add_option(
-            '-r',
             '--removeall',
             action='store_true',
             dest='removeall',
@@ -357,5 +400,46 @@ class InstallSetCommand(RdmcCommandBase):
             help="Optionally include this flag if you wish to change the"\
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
+            default=False
+        )
+        customparser.add_option(
+            '--expire',
+            dest='exafter',
+            help="Optionally include this flag if you wish to set the"\
+            " time for installset to expire. ISO 8601 Redfish-style time "\
+            "string to be written after which iLO will automatically change "\
+            "state to Expired",
+            default=None
+        )
+        customparser.add_option(
+            '--startafter',
+            dest='safter',
+            help="Optionally include this flag if you wish to set the"\
+            " earliest execution time for installset. ISO 8601 Redfish-style "\
+            "time string to be used.",
+            default=None
+        )
+        customparser.add_option(
+            '--tpmover',
+            dest='tover',
+            action="store_true",
+            help="If set then the TPMOverrideFlag is passed in on the "\
+            "associated flash operations",
+            default=False
+        )
+        customparser.add_option(
+            '--updaterecoveryset',
+            dest='uset',
+            action="store_true",
+            help="If set then the components in the flash operations are used"\
+            " to replace matching contents in the Recovery Set.",
+            default=False
+        )
+        customparser.add_option(
+            '--cleartaskqueue',
+            dest='ctakeq',
+            action="store_true",
+            help="This option allows previous items in the task queue to"\
+            " be cleared before the Install Set is invoked",
             default=False
         )

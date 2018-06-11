@@ -20,6 +20,9 @@
 import sys
 
 from optparse import OptionParser
+
+from redfish.ris.rmc_helper import IloResponseError
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
@@ -37,8 +40,7 @@ class IloResetCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = self._rdmc.app.typepath
-        self.lobobj = rdmcObj.commandsDict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commandsDict["LogoutCommand"](rdmcObj)
+        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main ilo reset worker function
@@ -91,9 +93,13 @@ class IloResetCommand(RdmcCommandBase):
 
         body = {"Action": action}
 
-        self._rdmc.app.post_handler(put_path, body)
-        self.logoutobj.run("")
-
+        postres = self._rdmc.app.post_handler(put_path, body, silent=True, \
+                                                    service=True, response=True)
+        if postres.status == 200:
+            sys.stdout.write("A management processor reset is in progress.\n")
+        else:
+            sys.stderr.write("An error occured during iLO reset.\n")
+            raise IloResponseError("")
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -108,6 +114,11 @@ class IloResetCommand(RdmcCommandBase):
 
         try:
             client = self._rdmc.app.get_current_client()
+            if options.user and options.password:
+                if not client.get_username():
+                    client.set_username(options.user)
+                if not client.get_password():
+                    client.set_password(options.password)
         except Exception:
             if options.user or options.password or options.url:
                 if options.url:
@@ -126,7 +137,7 @@ class IloResetCommand(RdmcCommandBase):
                     inputline.extend(["-p", \
                                   self._rdmc.app.config.get_password()])
 
-        if len(inputline):
+        if inputline:
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \
