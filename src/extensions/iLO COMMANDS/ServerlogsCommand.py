@@ -1076,6 +1076,7 @@ class ServerlogsCommand(RdmcCommandBase):
         val = u"ComputerSystem."
         filtereddatainstance = self._rdmc.app.filter(query=val, sel=sel, \
                                                                     val=val)
+        snum = None
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
@@ -1083,10 +1084,15 @@ class ServerlogsCommand(RdmcCommandBase):
             if not filtereddictslists:
                 raise NoContentsFoundForOperationError("")
         except Exception:
-            raise NoContentsFoundForOperationError(u"Unable to retrieve " \
+            try:
+                resp = self._rdmc.app.get_handler(self.typepath.defs.systempath,\
+                    silent=True, service=True, uncache=True)
+                snum = resp.dict[u"SerialNumber"] if resp else snum
+            except:
+                raise NoContentsFoundForOperationError(u"Unable to retrieve " \
                                                             "log instance.")
 
-        snum = filtereddictslists[0][u"SerialNumber"]
+        snum = filtereddictslists[0][u"SerialNumber"] if not snum else snum
         snum = u'UNKNOWN' if snum.isspace() else snum
         timenow = (str(datetime.datetime.now()).split()[0]).split('-')
         todaysdate = ''.join(timenow)

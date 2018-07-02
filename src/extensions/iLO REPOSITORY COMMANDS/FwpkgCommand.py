@@ -115,7 +115,7 @@ class FwpkgCommand(RdmcCommandBase):
                                   "provided is a valid .fwpkg file type.")
         try:
             self.taskqueuecheck()
-        except TaskQueueError, excp:
+        except TaskQueueError as excp:
             if options.ignore:
                 sys.stderr.write(str(excp)+'\n')
             else:
@@ -211,7 +211,7 @@ class FwpkgCommand(RdmcCommandBase):
         comptype = _get_comp_type(payloaddata)
 
         if comptype == 'C':
-            imagefiles = [pkgfile]
+            imagefiles = [self.type_c_change(tempdir, pkgfile)]
         else:
             for device in payloaddata['Devices']['Device']:
                 for firmwareimage in device['FirmwareImages']:
@@ -220,12 +220,44 @@ class FwpkgCommand(RdmcCommandBase):
 
         return imagefiles, tempdir, comptype
 
+    def type_c_change(self, tdir, pkgloc):
+        """ Special changes for type C 
+
+        :param tempdir: path to temp directory
+        :type tempdir: string.
+        :param components: components to upload
+        :type components: list.
+
+        :returns: The location of the type C file to upload
+        :rtype: string.
+        """
+
+        shutil.copy(pkgloc, tdir)
+
+        fwpkgfile = os.path.split(pkgloc)[1]
+        zipfile = fwpkgfile[:-6] + '.zip'
+        zipfileloc = os.path.join(tdir, zipfile)
+
+        os.rename(os.path.join(tdir, fwpkgfile), zipfileloc)
+        
+        return zipfileloc
+
     def applyfwpkg(self, options, tempdir, components):
-        """ Apply the component to iLO """
+        """ Apply the component to iLO 
+
+        :param options: command line options
+        :type options: list.
+        :param tempdir: path to temp directory
+        :type tempdir: string.
+        :param components: components to upload
+        :type components: list.
+        """
 
         for component in components:
-            taskqueuecommand = ' create %s' % component
-            if component.endswith('.fwpkg'):
+            taskqueuecommand = ' create %s ' % os.path.basename(component)
+            if options.tover:
+                taskqueuecommand = ' create %s --tpmover' % component
+            if component.endswith('.fwpkg') or component.endswith('.zip'):
                 uploadcommand = '--component %s' % component
             else:
                 uploadcommand = '--component %s' % tempdir + '\\' + component
@@ -233,7 +265,7 @@ class FwpkgCommand(RdmcCommandBase):
             if options.forceupload:
                 uploadcommand += ' --forceupload'
 
-            sys.stdout.write("Uploading firmware: %s\n" % component)
+            sys.stdout.write("Uploading firmware: %s\n" % os.path.basename(component))
             ret = self.uploadobj.run(uploadcommand)
 
             if ret != 0:
@@ -277,7 +309,7 @@ class FwpkgCommand(RdmcCommandBase):
                                   self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
@@ -327,4 +359,12 @@ class FwpkgCommand(RdmcCommandBase):
             help='Add this flag to ignore all checks to the taskqueue '\
                     'before attempting to process the .fwpkg file.',
             default=False,
+        )
+        customparser.add_option(
+            '--tpmover',
+            dest='tover',
+            action="store_true",
+            help="If set then the TPMOverrideFlag is passed in on the "\
+            "associated flash operations",
+            default=False
         )
