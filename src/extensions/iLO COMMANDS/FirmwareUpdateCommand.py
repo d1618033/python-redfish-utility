@@ -20,11 +20,11 @@
 import sys
 import time
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, FirmwareUpdateError, \
-                    NoContentsFoundForOperationError
+                    NoContentsFoundForOperationError, Encryption
 
 class FirmwareUpdateCommand(RdmcCommandBase):
     """ Reboot server that is currently logged in """
@@ -59,6 +59,11 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if len(args) == 1:
+
+            if options.encode and options.user and options.password:
+                options.user = Encryption.decode_credentials(options.user)
+                options.password = Encryption.decode_credentials(options.password)
+
             self.firmwareupdatevalidation(options)
         else:
             raise InvalidCommandLineError("Invalid number of parameters." \
@@ -265,4 +270,12 @@ class FirmwareUpdateCommand(RdmcCommandBase):
             help="Use this flag if the server you are currently logged into"\
             " has a TPM chip installed.",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

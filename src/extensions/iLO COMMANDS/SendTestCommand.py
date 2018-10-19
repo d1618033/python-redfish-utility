@@ -17,10 +17,10 @@
 # -*- coding: utf-8 -*-
 """ SendTest Command for rdmc """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class SendTestCommand(RdmcCommandBase):
     """Send syslog test to the logged in server """
@@ -62,6 +62,10 @@ class SendTestCommand(RdmcCommandBase):
         body = None
         path = None
         actionitem = None
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.sendtestvalidation(options)
 
@@ -190,4 +194,12 @@ class SendTestCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

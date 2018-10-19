@@ -25,7 +25,7 @@ import subprocess
 
 from Queue import Queue
 from datetime import datetime
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
@@ -83,6 +83,10 @@ class LoadCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.loadvalidation(options)
         returnvalue = False
@@ -532,7 +536,6 @@ class LoadCommand(RdmcCommandBase):
             default=None
         )
         customparser.add_option(
-            '-e',
             '--encryption',
             dest='encryption',
             help="Optionally include this flag to encrypt/decrypt a file "\
@@ -546,4 +549,12 @@ class LoadCommand(RdmcCommandBase):
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

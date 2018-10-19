@@ -28,14 +28,14 @@ from cStringIO import StringIO
 
 from datetime import datetime
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
                     InvalidFileFormattingError, UnableToDecodeError, \
-                    PathUnavailableError, InvalidFileInputError
+                    PathUnavailableError, InvalidFileInputError, Encryption
 
 class IPProfilesCommand(RdmcCommandBase):
     """ Raw form of the get command """
@@ -82,6 +82,10 @@ class IPProfilesCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.validation(options)
 
@@ -562,4 +566,12 @@ class IPProfilesCommand(RdmcCommandBase):
             action='store_true',
             help='Copies all the ip profile into the job queue and start it',
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

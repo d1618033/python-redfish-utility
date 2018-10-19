@@ -20,11 +20,11 @@
 import sys
 import time
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from six.moves import input
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class RebootCommand(RdmcCommandBase):
     """ Reboot server that is currently logged in """
@@ -72,6 +72,11 @@ class RebootCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if len(args) < 2:
+
+            if options.encode and options.user and options.password:
+                options.user = Encryption.decode_credentials(options.user)
+                options.password = Encryption.decode_credentials(options.password)
+
             self.rebootvalidation(options)
         else:
             raise InvalidCommandLineError("Invalid number of parameters." \
@@ -299,5 +304,13 @@ class RebootCommand(RdmcCommandBase):
             dest='confirm',
             action="store_true",
             help="Optionally include to request user confirmation for reboot.",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

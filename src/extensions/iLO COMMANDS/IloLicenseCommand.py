@@ -17,10 +17,10 @@
 # -*- coding: utf-8 -*-
 """ Add License Command for rdmc """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS
+                    InvalidCommandLineErrorOPTS, Encryption
 
 class IloLicenseCommand(RdmcCommandBase):
     """ Add an iLO license to the server """
@@ -52,6 +52,10 @@ class IloLicenseCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.addlicensevalidation(options)
 
@@ -134,4 +138,12 @@ class IloLicenseCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

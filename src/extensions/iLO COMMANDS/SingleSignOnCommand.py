@@ -17,10 +17,10 @@
 # -*- coding: utf-8 -*-
 """ Single Sign On Command for rdmc """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-            InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+            InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class SingleSignOnCommand(RdmcCommandBase):
     """ Commands Single Sign On actions to the server """
@@ -58,6 +58,10 @@ class SingleSignOnCommand(RdmcCommandBase):
         if not len(args) == 2:
             raise InvalidCommandLineError("singlsignon command only takes "\
                                                                 "2 parameters.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.singlesignonvalidation(options)
 
@@ -204,4 +208,12 @@ class SingleSignOnCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

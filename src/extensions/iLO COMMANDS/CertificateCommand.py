@@ -19,11 +19,11 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
             InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, \
-            InvalidFileInputError, IncompatibleiLOVersionError
+            InvalidFileInputError, IncompatibleiLOVersionError, Encryption
 
 __filename__ = 'certificate.txt'
 
@@ -78,6 +78,10 @@ class CertificateCommand(RdmcCommandBase):
         elif not 'csr' in args[0].lower() and not len(args) == 2:
             raise InvalidCommandLineError("This certificate command only " \
                                                         "takes 2 parameters.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.certificatesvalidation(options)
 
@@ -377,4 +381,12 @@ class CertificateCommand(RdmcCommandBase):
             " filename is %s." % __filename__,
             action="append",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

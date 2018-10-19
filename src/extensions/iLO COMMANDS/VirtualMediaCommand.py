@@ -19,10 +19,10 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                                InvalidCommandLineErrorOPTS, IloLicenseError
+                                InvalidCommandLineErrorOPTS, IloLicenseError, Encryption
 
 class VirtualMediaCommand(RdmcCommandBase):
     """ Changes the iscsi configuration for the server that is currently """ \
@@ -67,6 +67,11 @@ class VirtualMediaCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid number of parameters. " \
                 "virtualmedia command takes a maximum of 2 parameters.")
         else:
+
+            if options.encode and options.user and options.password:
+                options.user = Encryption.decode_credentials(options.user)
+                options.password = Encryption.decode_credentials(options.password)
+
             self.virtualmediavalidation(options)
 
         resp = self._rdmc.app.get_handler(\
@@ -414,4 +419,12 @@ class VirtualMediaCommand(RdmcCommandBase):
             "automatically on the second server reboot so that the server "\
             "does not boot to this image twice.",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

@@ -19,11 +19,11 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, Encryption, \
                                                     InfoMissingEntriesError
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
@@ -65,6 +65,10 @@ class InfoCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.infovalidation(options)
 
@@ -302,4 +306,12 @@ class InfoCommand(RdmcCommandBase):
             "requested by the file. Note: May cause errors in some data "\
             "retrieval due to difference in schema versions.",
             default=None
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

@@ -39,6 +39,8 @@ def getData():
 
 	return datalist
 
+compileall.compile_dir('.', force=True, quiet=True)
+
 a = Analysis(['.//src//rdmc.py'],
              pathex=[],
              binaries=None,

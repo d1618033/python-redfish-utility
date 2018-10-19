@@ -21,9 +21,9 @@ import sys
 import ast
 import copy
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
                     InvalidCommandLineErrorOPTS, BootOrderMissingEntriesError,\
                     InvalidOrNothingChangedSettingsError
 
@@ -81,6 +81,9 @@ class BootOrderCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if len(args) < 2:
+            if options.encode and options.user and options.password:
+                options.user = Encryption.decode_credentials(options.user)
+                options.password = Encryption.decode_credentials(options.password)
             self.bootordervalidation(options)
         else:
             raise InvalidCommandLineError("Invalid number of parameters." \
@@ -594,4 +597,12 @@ class BootOrderCommand(RdmcCommandBase):
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

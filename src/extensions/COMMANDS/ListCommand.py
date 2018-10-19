@@ -16,12 +16,12 @@
 
 # -*- coding: utf-8 -*-
 """ List Command for RDMC """
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS,\
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
                                 NoContentsFoundForOperationError
 
 class ListCommand(RdmcCommandBase):
@@ -58,6 +58,10 @@ class ListCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.listvalidation(options)
 
@@ -245,4 +249,12 @@ class ListCommand(RdmcCommandBase):
             " your login information, you can still specify the path flag"\
             " there.  ",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

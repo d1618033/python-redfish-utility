@@ -19,9 +19,9 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
 
 class SmartArrayCommand(RdmcCommandBase):
@@ -71,6 +71,10 @@ class SmartArrayCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.smartarrayvalidation(options)
 
@@ -354,4 +358,12 @@ class SmartArrayCommand(RdmcCommandBase):
             dest='ldrive',
             help="""Use this flag to select the corresponding logical disk.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

@@ -19,12 +19,12 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
         InvalidCommandLineErrorOPTS, UI, InvalidOrNothingChangedSettingsError
 
 class SetCommand(RdmcCommandBase):
@@ -76,6 +76,10 @@ class SetCommand(RdmcCommandBase):
                                         not self._rdmc.app.config.get_cache():
             raise InvalidCommandLineError("The 'set' command is not useful in "\
                                       "non-interactive and non-cache modes.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.setvalidation(options)
 
@@ -403,4 +407,12 @@ class SetCommand(RdmcCommandBase):
             help="Override the measures stopping the tool from writing "\
             "over items that are system unique.",
             default=None
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

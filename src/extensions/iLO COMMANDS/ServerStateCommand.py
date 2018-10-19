@@ -19,10 +19,10 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class ServerStateCommand(RdmcCommandBase):
     """ Returns the current state of the server that  is currently logged in """
@@ -57,6 +57,10 @@ class ServerStateCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("Invalid number of parameters, "\
                             "serverstate command does not take any parameters.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.serverstatevalidation(options)
 
@@ -143,4 +147,12 @@ class ServerStateCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

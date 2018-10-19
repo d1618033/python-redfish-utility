@@ -19,11 +19,10 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class DeleteLogicalDriveCommand(RdmcCommandBase):
     """ Delete logical drive command """
@@ -59,6 +58,10 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.deletelogicaldrivevalidation(options)
 
@@ -298,5 +301,13 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
             help="""Use this flag to override the "are you sure?" text when """ \
                 """deleting a logical drive.""",
             action="store_true",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

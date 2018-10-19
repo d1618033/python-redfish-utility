@@ -21,12 +21,12 @@ import sys
 import copy
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import jsondiff
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
                             InvalidCommandLineErrorOPTS, UI
 
 class PendingChangesCommand(RdmcCommandBase):
@@ -62,6 +62,11 @@ class PendingChangesCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("Pending command does not take any " \
                                                                 "arguments.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         self.pendingvalidation(options)
 
         self.pendingfunction()
@@ -215,4 +220,12 @@ class PendingChangesCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

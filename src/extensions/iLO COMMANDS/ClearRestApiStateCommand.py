@@ -18,11 +18,11 @@
 """ Clear Rest API State Command for rdmc """
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                    NoContentsFoundForOperationError, Encryption
 
 class ClearRestApiStateCommand(RdmcCommandBase):
     """ Clear the rest api state of the server """
@@ -59,6 +59,10 @@ class ClearRestApiStateCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("clearrestapistate command takes no "\
                                           "arguments.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.clearrestapistatevalidation(options)
 
@@ -164,4 +168,12 @@ class ClearRestApiStateCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

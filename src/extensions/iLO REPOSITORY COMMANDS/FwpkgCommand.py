@@ -24,13 +24,13 @@ import random
 import shutil
 import zipfile
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from string import ascii_lowercase
 
 
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes,\
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
                         InvalidFileInputError, UploadError, TaskQueueError
 
@@ -97,6 +97,10 @@ class FwpkgCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         self.fwpkgvalidation(options)
 
         if self.typepath.defs.isgen9:
@@ -129,7 +133,10 @@ class FwpkgCommand(RdmcCommandBase):
             if comptype == 'A':
                 message = "Firmware will flash and does not require a reboot.\n"
             elif comptype == 'B':
-                message = "A reboot is required for this firmware to take affect.\n"
+                message = "A reboot is required for this firmware to take effect.\n"\
+                            "In order to properly take effect firmware must complete flashing "\
+                            "before a reboot is applied. Please use iLOrest command: "\
+                            "taskqueue to monitor flashing process.\n"
             elif comptype == 'C':
                 message = "This firmware will flash on reboot.\n"
             sys.stdout.write(message)
@@ -202,7 +209,7 @@ class FwpkgCommand(RdmcCommandBase):
         files = os.listdir(tempdir)
 
         if 'payload.json' in files:
-            with open(tempdir+'\\'+'payload.json', "r") as pfile:
+            with open(os.path.join(tempdir,'payload.json'), "r") as pfile:
                 data = pfile.read()
             payloaddata = json.loads(data)
         else:
@@ -260,7 +267,7 @@ class FwpkgCommand(RdmcCommandBase):
             if component.endswith('.fwpkg') or component.endswith('.zip'):
                 uploadcommand = '--component %s' % component
             else:
-                uploadcommand = '--component %s' % tempdir + '\\' + component
+                uploadcommand = '--component %s' % os.path.join(tempdir, component)
 
             if options.forceupload:
                 uploadcommand += ' --forceupload'
@@ -367,4 +374,12 @@ class FwpkgCommand(RdmcCommandBase):
             help="If set then the TPMOverrideFlag is passed in on the "\
             "associated flash operations",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

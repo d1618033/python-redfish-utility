@@ -17,11 +17,11 @@
 # -*- coding: utf-8 -*-
 """ ESKM Command for rdmc """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                    NoContentsFoundForOperationError, Encryption
 
 class ESKMCommand(RdmcCommandBase):
     """ Commands ESKM available actions """
@@ -56,6 +56,11 @@ class ESKMCommand(RdmcCommandBase):
         if not len(args) == 1:
             raise InvalidCommandLineError("eskm command only takes" \
                                                             " one parameter.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
 
         self.eskmvalidation(options)
 
@@ -165,4 +170,12 @@ class ESKMCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

@@ -21,13 +21,13 @@ import sys
 import json
 import getpass
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 from redfish.ris.rmc_helper import ValidationError
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class IloAccountsCommand(RdmcCommandBase):
     """ command to manipulate/add ilo user accounts """
@@ -81,6 +81,10 @@ class IloAccountsCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid number of parameters for "\
                                                                 "this command.")
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         self.iloaccountsvalidation(options)
 
         redfish = self._rdmc.app.current_client.monolith.is_redfish
@@ -104,7 +108,7 @@ class IloAccountsCommand(RdmcCommandBase):
         outdict = dict()
         if not args:
             if not options.json:
-                sys.stdout.write("iLO Account info: \n[Id]LoginName: "\
+                sys.stdout.write("iLO Account info: \n[Id]LoginName (Username): "\
                                 "\nPrivileges\n-----------------\n")
             for acct in sorted(results, key=lambda k: int(k['Id'])):
                 privstr = ""
@@ -118,7 +122,7 @@ class IloAccountsCommand(RdmcCommandBase):
                 if not options.json:
                     for priv in privs:
                         privstr += priv + '=' + str(privs[priv]) + '\n'
-                    sys.stdout.write("[%s] %s:\n%s\n%s\n" % (acct['Id'], \
+                    sys.stdout.write("[%s] %s (%s):\n%s\n%s\n" % (acct['Id'], acct['UserName'],\
                                     acct['Oem'][self.typepath.defs.\
                                                 oemhp]['LoginName'], service, privstr))
                 keyval = '['+str(acct['Id'])+'] '+acct['Oem'][self.typepath.\
@@ -152,7 +156,8 @@ class IloAccountsCommand(RdmcCommandBase):
                         else:
                             path = acct['links']['self']['href']
                             break
-
+                if options.encode:
+                    args[2] = Encryption.decode_credentials(args[2])
                 body = {'Password': args[2]}
 
                 if path and body:
@@ -180,6 +185,10 @@ class IloAccountsCommand(RdmcCommandBase):
 
             privs = self.getprivs(options)
             path = self.typepath.defs.accountspath
+
+            if options.encode:
+                args[0] = Encryption.decode_credentials(args[0])
+                args[2] = Encryption.decode_credentials(args[2])
 
             body = {"UserName": args[0], "Password": args[2], "Oem": {self.\
                                         typepath.defs.oemhp: {"Privileges": \
@@ -447,4 +456,12 @@ class IloAccountsCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

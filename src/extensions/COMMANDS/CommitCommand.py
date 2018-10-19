@@ -19,8 +19,8 @@
 
 import sys
 
-from optparse import OptionParser
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
+from optparse import OptionParser, SUPPRESS_HELP
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
                         NoChangesFoundOrMadeError, NoCurrentSessionEstablished
 
 from rdmc_base_classes import RdmcCommandBase
@@ -52,6 +52,11 @@ class CommitCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         self.commitvalidation(options)
 
         sys.stdout.write(u"Committing changes...\n")
@@ -146,4 +151,12 @@ class CommitCommand(RdmcCommandBase):
             " flag if second-level BIOS authentication is needed for the"\
             " command to execute.",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

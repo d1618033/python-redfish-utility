@@ -17,13 +17,13 @@
 # -*- coding: utf-8 -*-
 """ Get Command for RDMC """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from collections import (OrderedDict)
 import collections
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, \
+from rdmc_helper import ReturnCodes, Encryption, \
                     InvalidCommandLineErrorOPTS, UI, \
                     NoContentsFoundForOperationError
 
@@ -63,6 +63,10 @@ class GetCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.getvalidation(options)
 
@@ -520,4 +524,12 @@ class GetCommand(RdmcCommandBase):
             " properties that are not read-only. This is useful to see what "\
             "is configurable with the selected type(s).",
             default=False
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

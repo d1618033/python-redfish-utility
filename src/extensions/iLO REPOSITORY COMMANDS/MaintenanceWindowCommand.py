@@ -21,14 +21,14 @@ import re
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from random import randint
 
 from redfish.ris.rmc_helper import ValidationError
 
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes,\
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
                         NoContentsFoundForOperationError
 
@@ -70,6 +70,10 @@ class MaintenanceWindowCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.maintenancewindowvalidation(options)
 
@@ -323,10 +327,17 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             default=None
         )
         customparser.add_option(
-            '-e',
             '--expire',
             dest='expire',
             help="Optionally include this flag if you would like to add a "\
             "time the maintenance window expires.",
             default=None
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

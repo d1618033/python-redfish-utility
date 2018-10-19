@@ -19,9 +19,9 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                                                     InvalidCommandLineErrorOPTS
 
 class FactoryResetControllerCommand(RdmcCommandBase):
@@ -54,6 +54,10 @@ class FactoryResetControllerCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.factoryresetcontrollervalidation(options)
 
@@ -168,4 +172,12 @@ class FactoryResetControllerCommand(RdmcCommandBase):
             dest='controller',
             help="""Use this flag to select the corresponding controller.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

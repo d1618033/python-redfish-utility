@@ -17,11 +17,11 @@
 # -*- coding: utf-8 -*-
 """ Firmware Update Command for rdmc """
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, \
-                    IloLicenseError
+                    IloLicenseError, Encryption
 
 class FirmwareIntegrityCheckCommand(RdmcCommandBase):
     """ Reboot server that is currently logged in """
@@ -58,6 +58,11 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError('fwintegritycheck command takes no ' \
                                                                     'arguments')
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
 
         self.firmwareintegritycheckvalidation(options)
 
@@ -159,4 +164,12 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

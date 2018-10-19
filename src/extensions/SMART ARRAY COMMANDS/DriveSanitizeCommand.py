@@ -19,9 +19,9 @@
 
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                         InvalidCommandLineErrorOPTS
 
 class DriveSanitizeCommand(RdmcCommandBase):
@@ -55,6 +55,10 @@ class DriveSanitizeCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.drivesanitizevalidation(options)
 
@@ -257,5 +261,13 @@ class DriveSanitizeCommand(RdmcCommandBase):
             help="""Use this flag to sanitize all physical drives on a """ \
                 """controller.""",
             action="store_true",
+            default=False,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
             default=False,
         )

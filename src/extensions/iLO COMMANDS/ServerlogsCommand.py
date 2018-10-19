@@ -31,7 +31,7 @@ import itertools
 import subprocess
 
 from Queue import Queue
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 from redfish.rest.v1 import SecurityStateError
 import redfish.hpilo.risblobstore2 as risblobstore2
@@ -42,7 +42,7 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 NoContentsFoundForOperationError, IncompatibleiLOVersionError,\
                 InvalidCListFileError, PartitionMoutingError, \
                 MultipleServerConfigError, UnabletoFindDriveError, \
-                InvalidMSCfileInputError
+                InvalidMSCfileInputError, Encryption
 
 if os.name == 'nt':
     import win32api
@@ -109,6 +109,10 @@ class ServerlogsCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.serverlogsvalidation(options)
 
@@ -753,8 +757,8 @@ class ServerlogsCommand(RdmcCommandBase):
         self.abspath = os.path.join(abspath, 'data')
 
         self.updateiloversion()
-        allfiles = self.getfilenames(options=options)
         cfilelist = self.getclistfilelisting()
+        allfiles = self.getfilenames(options=options, cfilelist=cfilelist)
         self.getdatfilelisting(cfilelist=cfilelist, allfile=allfiles)
         self.createahsfile(ahsfile=self.getahsfilename(options))
 
@@ -801,6 +805,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param allfile: all files within blackbox
         :type allfile: list
         """
+        allfile = list(set(allfile)|set(cfilelist))
         for files in allfile:
             if files.startswith((".", "..")):
                 continue
@@ -818,8 +823,8 @@ class ServerlogsCommand(RdmcCommandBase):
             filesize = os.stat(os.path.join(self.abspath, files)).st_size
             self.lib.gendatlisting(files, bisrequiredfile, filesize)
 
-    def getfilenames(self, options=None):
-        """Get all file names from the blacbox directory."""
+    def getfilenames(self, options=None, cfilelist=None):
+        """Get all file names from the blackbox directory."""
         datelist = list()
         allfiles = list()
 
@@ -840,8 +845,8 @@ class ServerlogsCommand(RdmcCommandBase):
                                                 endswith(("'", '"')):
                 instring = instring[1:-1]
             try:
-                (strdatestr, enddatestr) = map(lambda e: e.split('-'), \
-                                    instring.split("from=")[-1].split("&&to="))
+                (strdatestr, enddatestr) = [e.split('-') for e in \
+                                            instring.split("from=")[-1].split("&&to=")]
                 strdate = datetime.date(int(strdatestr[0]),\
                                       int(strdatestr[1]), int(strdatestr[2]))
                 enddate = datetime.date(int(enddatestr[0]),\
@@ -851,7 +856,7 @@ class ServerlogsCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Cannot parse customized AHSinput.")
 
         atleastonefile = False
-        for files in filenames:
+        for files in list(filenames):
             if not files.endswith("bb"):
                 #Check the logic for the non bb files
                 allfiles.append(files)
@@ -859,6 +864,10 @@ class ServerlogsCommand(RdmcCommandBase):
 
             if options.downloadallahs:
                 atleastonefile = True
+            if files in ("ilo_boot_support.zbb", "sys_boot_support.zbb"):
+                allfiles.append(files)
+                filenames.append(files)
+                continue
             filenoext = files.rsplit(".", 1)[0]
             filesplit = filenoext.split("-")
 
@@ -873,6 +882,8 @@ class ServerlogsCommand(RdmcCommandBase):
                     atleastonefile = True
             except:
                 pass
+
+        _ = [cfilelist.remove(fil) for fil in list(cfilelist) if fil not in allfiles]
 
         if options.downloadallahs:
             strdate = min(datelist) if datelist else strdate
@@ -987,7 +998,7 @@ class ServerlogsCommand(RdmcCommandBase):
                     if not os.path.exists(dirpath):
                         try:
                             os.makedirs(dirpath)
-                        except Exception, excp:
+                        except Exception as excp:
                             raise excp
 
                     pmount = subprocess.Popen(['mount', device.device_node, \
@@ -1277,4 +1288,12 @@ class ServerlogsCommand(RdmcCommandBase):
             help="""used to indicate the logs to be downloaded on multiple servers. """\
             """Allowable values: IEL, IML, AHS, all or combination of any two.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

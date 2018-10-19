@@ -18,11 +18,11 @@
 """ Factory Defaults Command for rdmc """
 import sys
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError
+                    NoContentsFoundForOperationError, Encryption
 
 class FactoryDefaultsCommand(RdmcCommandBase):
     """ Reset server to factory default settings """
@@ -58,6 +58,11 @@ class FactoryDefaultsCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("factorydefaults command takes no "\
                                                                 "arguments.")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
 
         self.factorydefaultsvalidation(options)
 
@@ -167,4 +172,12 @@ class FactoryDefaultsCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )

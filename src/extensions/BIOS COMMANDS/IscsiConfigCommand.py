@@ -21,12 +21,12 @@ import re
 import sys
 import json
 
-from optparse import OptionParser
+from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
                 InvalidCommandLineErrorOPTS, NicMissingOrConfigurationError,\
                 BootOrderMissingEntriesError
 
@@ -82,6 +82,10 @@ class IscsiConfigCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         self.iscsiconfigurationvalidation(options)
 
@@ -797,4 +801,12 @@ class IscsiConfigCommand(RdmcCommandBase):
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
+        )
+        customparser.add_option(
+            '-e',
+            '--enc',
+            dest='encode',
+            action='store_true',
+            help=SUPPRESS_HELP,
+            default=False,
         )
