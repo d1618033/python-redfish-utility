@@ -42,7 +42,7 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                 NoContentsFoundForOperationError, IncompatibleiLOVersionError,\
                 InvalidCListFileError, PartitionMoutingError, \
                 MultipleServerConfigError, UnabletoFindDriveError, \
-                InvalidMSCfileInputError, Encryption
+                InvalidMSCfileInputError, Encryption, LOGGER
 
 if os.name == 'nt':
     import win32api
@@ -192,6 +192,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :type outputdir: string.
         """
         self.logoutobj.run("")
+        LOGGER.info("Validating input server collection file.")
         data = self.validatempfile(mpfile=mpfile, options=options)
 
         if not data:
@@ -321,7 +322,8 @@ class ServerlogsCommand(RdmcCommandBase):
                             line = str(line).replace("\n", "")
                             self.queue.put(linelist)
                             data.append(linelist)
-        except Exception, excp:
+        except Exception as excp:
+            LOGGER.info("{}".format(str(excp)))
             raise excp
 
         if data:
@@ -356,6 +358,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param path: path to post maintainence log
         :type path: str
         """
+        LOGGER.info("Adding maintenance logs")
         if options.mainmes is None:
             raise InvalidCommandLineErrorOPTS("")
 
@@ -383,6 +386,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param path: path to post clear log action
         :type path: str
         """
+        LOGGER.info("Clearing logs.")
         if path and self.typepath.defs.isgen9:
             if path.endswith(u"/Entries"):
                 path = path[:-len(u"/Entries")]
@@ -411,6 +415,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :type path: str
         """
         if path:
+            LOGGER.info("Getting data from {}".format(str(path)))
             if options.service == 'AHS':
                 data = self._rdmc.app.get_handler(path, silent=True, \
                                                         uncache=True)
@@ -483,6 +488,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
+        LOGGER.info("Obtaining IML path for download.")
         path = ""
         sel = self.typepath.defs.typestring
         val = self.typepath.defs.logservicetype
@@ -586,6 +592,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
+        LOGGER.info("Obtaining AHS path for download.")
         path = ""
 
         if options.filename:
@@ -693,6 +700,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param data: log data
         :type data: dict
         """
+        LOGGER.info("Saving/Writing data...")
         if data:
             data = self.filterdata(data=data, tofilter=options.filter)
             if options.service == 'AHS':
@@ -718,9 +726,9 @@ class ServerlogsCommand(RdmcCommandBase):
         """
         try:
             self.downloadahslocalworker(options)
-        except Exception, excp:
+        except:
             self.unmountbb()
-            raise excp
+            raise
         return
 
     def downloadahslocalworker(self, options):
@@ -729,6 +737,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
+        LOGGER.info("Entering AHS local download functions...")
         self.dontunmount = True
 
         if self.typepath.ilogen < 4:
@@ -754,7 +763,10 @@ class ServerlogsCommand(RdmcCommandBase):
             (manual_ovr, abspath) = self.getbbabspath()
             self.dontunmount = False
 
+        LOGGER.info("Blackbox folder path:{}".format(','.join(next(os.walk\
+                                                (abspath))[2])))
         self.abspath = os.path.join(abspath, 'data')
+        LOGGER.info("Blackbox data files path:{}".format(self.abspath))
 
         self.updateiloversion()
         cfilelist = self.getclistfilelisting()
@@ -770,6 +782,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def updateiloversion(self):
         """Update iloversion to create appropriate headers."""
+        LOGGER.info("Updating iloversion to format data appropriately")
         self.lib.updateiloversion.argtypes = [ctypes.c_float]
         self.lib.updateiloversion(float('2.'+str(self.typepath.ilogen)))
 
@@ -779,6 +792,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param ahsfile: ahsfilename
         :type ahsfile: str
         """
+        LOGGER.info("Creating AHS file from the formatted data.")
         self.clearahsfile(ahsfile=ahsfile)
         self.lib.setAHSFilepath.argtypes = [ctypes.c_char_p]
         self.lib.setAHSFilepath(os.path.abspath(ahsfile))
@@ -792,6 +806,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param ahsfile: ahsfilename
         :type ahsfile: str
         """
+        LOGGER.info("Clear redundant AHS file in current folder.")
         try:
             os.remove(ahsfile)
         except:
@@ -805,7 +820,9 @@ class ServerlogsCommand(RdmcCommandBase):
         :param allfile: all files within blackbox
         :type allfile: list
         """
+        LOGGER.info("Reading Blackbox to determine data files.")
         allfile = list(set(allfile)|set(cfilelist))
+        LOGGER.info("Final filelist {0}".format(str(allfile)))
         for files in allfile:
             if files.startswith((".", "..")):
                 continue
@@ -825,6 +842,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def getfilenames(self, options=None, cfilelist=None):
         """Get all file names from the blackbox directory."""
+        LOGGER.info("Obtaining all relevant file names from Blackbox.")
         datelist = list()
         allfiles = list()
 
@@ -867,6 +885,7 @@ class ServerlogsCommand(RdmcCommandBase):
             if files in ("ilo_boot_support.zbb", "sys_boot_support.zbb"):
                 allfiles.append(files)
                 filenames.append(files)
+                LOGGER.info("{0}, number of files{1}".format(files, len(filenames)))
                 continue
             filenoext = files.rsplit(".", 1)[0]
             filesplit = filenoext.split("-")
@@ -883,7 +902,7 @@ class ServerlogsCommand(RdmcCommandBase):
             except:
                 pass
 
-        _ = [cfilelist.remove(fil) for fil in list(cfilelist) if fil not in allfiles]
+        _ = [cfilelist.remove(fil) for fil in list(cfilelist) if fil not in filenames]
 
         if options.downloadallahs:
             strdate = min(datelist) if datelist else strdate
@@ -891,6 +910,9 @@ class ServerlogsCommand(RdmcCommandBase):
         else:
             strdate = max(min(datelist), strdate) if datelist else strdate
             enddate = min(max(datelist), enddate) if datelist else enddate
+
+        LOGGER.info("All filenames: {0}; Download files: {1}".format(\
+                                                str(filenames), str(allfiles)))
 
         if atleastonefile:
             self.updateminmaxdate(strdate=strdate, enddate=enddate)
@@ -907,6 +929,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param enddate: ending date of ahs logs
         :type enddate: datetime obj
         """
+        LOGGER.info("Updating min and max dates for download.")
         self.lib.updateMinDate.argtypes = [ctypes.c_int, \
                                                     ctypes.c_int, ctypes.c_int]
         self.lib.updateMinDate(strdate.year, strdate.month, strdate.day)
@@ -916,6 +939,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def getclistfilelisting(self):
         """Get files present within clist.pkg ."""
+        LOGGER.info("Getting all config files that are required.")
         sclistpath = os.path.join(self.abspath, "clist.pkg")
         cfilelist = []
         if os.path.isfile(sclistpath):
@@ -943,11 +967,13 @@ class ServerlogsCommand(RdmcCommandBase):
 
                 count = count-1
                 revcount = revcount+1
+        LOGGER.info("CLIST files {0}".format(str(cfilelist)))
 
         return cfilelist
 
     def getbbabspath(self):
         """Get blackbox folder path."""
+        LOGGER.info("Obtaining the absolute path of blackbox.")
         count = 0
 
         while count < 20:
@@ -988,6 +1014,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def manualmountbb(self):
         """Manually mount blackbox when after fixed time."""
+        LOGGER.info("Manually mounting the blackbox.")
 
         try:
             context = pyudev.Context()
@@ -1018,12 +1045,14 @@ class ServerlogsCommand(RdmcCommandBase):
         :param dirpath: mounted directory path
         :type dirpath: str
         """
+        LOGGER.info("Manually unmounting the blackbox.")
         pmount = subprocess.Popen(['umount', dirpath], stdout=subprocess.PIPE, \
                                                         stderr=subprocess.PIPE)
         _, _ = pmount.communicate()
 
     def mountbb(self):
         """Mount blackbox."""
+        LOGGER.info("Mounting blackbox...")
         bs2 = risblobstore2.BlobStore2()
         bs2.mount_blackbox()
         bs2.channel.close()
@@ -1037,6 +1066,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
     def get_available_drives(self):
         """Obtain all drives"""
+        LOGGER.info("Unmounting blackbox...")
         if 'Windows' not in platform.system():
             return []
 
@@ -1053,6 +1083,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param tofilter: command line filter option
         :type tofilter: str
         """
+        LOGGER.info("Filtering logs based on requsted options.")
         if tofilter and data:
             try:
                 if (str(tofilter)[0] == str(tofilter)[-1])\
@@ -1082,6 +1113,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
+        LOGGER.info("Obtaining Serialnumber from iLO for AHS filename.")
 
         sel = self.typepath.defs.typestring
         val = u"ComputerSystem."
