@@ -21,8 +21,8 @@ import sys
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError, Encryption
+                    InvalidCommandLineErrorOPTS, Encryption, \
+                    NoContentsFoundForOperationError
 
 class ClearRestApiStateCommand(RdmcCommandBase):
     """ Clear the rest api state of the server """
@@ -31,10 +31,11 @@ class ClearRestApiStateCommand(RdmcCommandBase):
             name='clearrestapistate',\
             usage='clearrestapistate [OPTIONS]\n\n\t'\
                 'Clears the persistent rest api state.\n\texample: ' \
-                'clearrestapistate',\
+                'clearrestapistate\n\n\tNote: Some types such as Bios, '\
+                'Iscsi, and SmartStorageConfig will be unavailable until '\
+                'a system reboot occurs after running this command.',\
             summary='Clears the persistent state of the REST API. Some '\
-            'portions of the API may not be available until after the '\
-            'server reboots.',\
+            'portions of the API may not be available until after the server reboots.',\
             aliases=None,\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -57,17 +58,12 @@ class ClearRestApiStateCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("clearrestapistate command takes no "\
-                                          "arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
+            raise InvalidCommandLineError("clearrestapistate command takes no arguments.")
 
         self.clearrestapistatevalidation(options)
 
         select = 'Manager.'
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -91,8 +87,7 @@ class ClearRestApiStateCommand(RdmcCommandBase):
                     body = {"Action": action}
                     break
         except:
-            body = {"Action": "ClearRestApiState", \
-                                "Target": "/Oem/Hp"}
+            body = {"Action": "ClearRestApiState", "Target": "/Oem/Hp"}
         self._rdmc.app.post_handler(path, body)
 
         return ReturnCodes.SUCCESS
@@ -105,6 +100,10 @@ class ClearRestApiStateCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -125,15 +124,13 @@ class ClearRestApiStateCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \

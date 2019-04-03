@@ -20,14 +20,14 @@
 import sys
 import json
 
-from optparse import OptionParser, SUPPRESS_HELP
 from random import randint
+from optparse import OptionParser, SUPPRESS_HELP
+
+from redfish.ris.rmc_helper import IdTokenError
 
 from rdmc_base_classes import RdmcCommandBase
-
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
-                        InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
-                        NoContentsFoundForOperationError
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
+                        InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption
 
 class UpdateTaskQueueCommand(RdmcCommandBase):
     """ Main download command class """
@@ -68,10 +68,6 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.updatetaskqueuevalidation(options)
 
         if self.typepath.defs.isgen9:
@@ -85,7 +81,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         elif not args:
             self.printqueue(options)
         elif args[0].lower() == 'create':
-            self.createtask(args[1:])
+            self.createtask(args[1:], options)
         else:
             raise InvalidCommandLineError('Invalid command entered.')
 
@@ -101,7 +97,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         sys.stdout.write('Deleting all update tasks...\n')
 
         for task in tasks:
-            sys.stdout.write('Deleting: %s\n'% task['Name'])
+            sys.stdout.write('Deleting: %s\n'% task['Name'].encode("ascii", "ignore"))
             self._rdmc.app.delete_handler(task['@odata.id'])
 
     def cleanqueue(self):
@@ -115,15 +111,32 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
         for task in tasks:
             if task['State'] == 'Complete' or task['State'] == 'Exception':
-                sys.stdout.write('Deleting %s...\n'% task['Name'])
+                sys.stdout.write('Deleting %s...\n'% task['Name'].encode("ascii", "ignore"))
                 self._rdmc.app.delete_handler(task['@odata.id'])
 
-    def createtask(self, tasks):
+    def createtask(self, tasks, options):
         """ Creates a task in the update task queue
 
         :param tasks: arguments for creating tasks
         :type tasks: list.
+        :param options: command line options
+        :type options: list.
         """
+
+        tpmflag = False
+        try:
+
+            results = self._rdmc.app.get_handler(self.typepath.defs.biospath)
+            contents = results.dict if self.typepath.defs.isgen9 else results.dict["Attributes"]
+            tpmstate = contents["TpmState"]
+            if not "Not" in tpmstate or not "Disabled" in tpmstate:
+                if options.tover:
+                    tpmflag = True
+                else:
+                    raise IdTokenError('')
+        except:
+            pass
+
         path = '/redfish/v1/UpdateService/UpdateTaskQueue/'
         comps = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/'\
                                                     'ComponentRepository/')
@@ -136,14 +149,14 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                 newtask = {'Name': 'Wait-%s %s seconds' % (str(randint(0, \
                            1000000)), str(usedcomp)), 'Command': 'Wait', \
                            'WaitTimeSeconds':usedcomp, 'UpdatableBy':[\
-                                                  'RuntimeAgent', 'Uefi']}
+                              'RuntimeAgent', 'Uefi'], 'TPMOverride': tpmflag}
             except:
                 pass
 
             if task.lower() == 'reboot':
                 newtask = {'Name': 'Reboot-%s' % str(randint(0, 1000000)), \
                           'Command': 'ResetServer', 'UpdatableBy': \
-                          ['RuntimeAgent']}
+                          ['RuntimeAgent'], 'TPMOverride': tpmflag}
             elif not newtask:
                 try:
                     for comp in comps:
@@ -158,11 +171,11 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                            'referenced is not present on iLO Drive: %s' % task)
 
                 newtask = {'Name': 'Update-%s %s' % (str(randint(0, 1000000)), \
-                        usedcomp['Name']), 'Command': 'ApplyUpdate',\
+                        usedcomp['Name'].encode("ascii", "ignore")), 'Command': 'ApplyUpdate',\
                       'Filename': usedcomp['Filename'], 'UpdatableBy': usedcomp\
                       ['UpdatableBy'], 'TPMOverride': True}
 
-            sys.stdout.write('Creating task: "%s"\n' % newtask['Name'])
+            sys.stdout.write('Creating task: "%s"\n' % newtask['Name'].encode("ascii", "ignore"))
 
             self._rdmc.app.post_handler(path, newtask)
 
@@ -183,13 +196,13 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
         if not options.json:
             for task in tasks:
-                sys.stdout.write('Task %s:\n'%task['Name'])
+                sys.stdout.write('Task %s:\n'%task['Name'].encode("ascii", "ignore"))
 
-                if 'Filename' in task.keys():
+                if 'Filename' in list(task.keys()):
                     sys.stdout.write('\tCommand: %s\n\tFilename: %s\n\t'\
                         'State:%s\n'% (task['Command'], task['Filename'], \
                                                             task['State']))
-                elif 'WaitTimeSeconds' in task.keys():
+                elif 'WaitTimeSeconds' in list(task.keys()):
                     sys.stdout.write('\tCommand: %s %s seconds\n\tState:%s\n'%(\
                                 task['Command'], str(task['WaitTimeSeconds']),\
                                     task['State']))
@@ -213,6 +226,10 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         inputline = list()
         client = None
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -232,14 +249,12 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
@@ -298,6 +313,14 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             help="Optionally include this flag if you wish to change the"\
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
+            default=False
+        )
+        customparser.add_option(
+            '--tpmover',
+            dest='tover',
+            action="store_true",
+            help="If set then the TPMOverrideFlag is passed in on the "\
+            "associated flash operations",
             default=False
         )
         customparser.add_option(

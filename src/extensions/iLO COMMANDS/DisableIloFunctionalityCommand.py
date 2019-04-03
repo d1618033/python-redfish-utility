@@ -17,13 +17,13 @@
 # -*- coding: utf-8 -*-
 """ iLO Functionality Command for rdmc """
 import sys
+import json
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError, \
-                    IncompatableServerTypeError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                    NoContentsFoundForOperationError, IncompatableServerTypeError, Encryption
 
 class DisableIloFunctionalityCommand(RdmcCommandBase):
     """ Disables iLO functionality to the server """
@@ -33,7 +33,8 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             usage='disableilofunctionality [OPTIONS]\n\n\t'\
                 'Disable iLO functionality on the current logged in server.' \
                 '\n\texample: disableilofunctionality\n\n\tWARNING: this will' \
-                ' render iLO unable to respond to network operations.',\
+                ' render iLO unable to respond to network operations.\n\n\t'\
+                'Add the --force flag to ignore critical task checking.',\
             summary="disables iLO's accessibility via the network and resets "\
             "iLO. WARNING: This should be used with caution as it will "\
             "render iLO unable to respond to further network operations "\
@@ -54,6 +55,7 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
         :param line: string of arguments passed in
         :type line: str.
         """
+
         try:
             (options, args) = self._parse_arglist(line)
         except:
@@ -63,25 +65,12 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("disableilofunctionality command " \
-                                                        "takes no arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
+            raise InvalidCommandLineError("disableilofunctionality command takes no arguments.")
 
         self.ilofunctionalityvalidation(options)
 
-        self.selobj.selectfunction("Chassis.")
-        chassistype = self.getobj.getworkerfunction("ChassisType", options, \
-									"ChassisType", results=True, uselist=True)
-
-        if chassistype['ChassisType'].lower() == 'blade':
-            raise IncompatableServerTypeError("disableilofunctionality command"\
-                                    " is not available on blade server types.")
-
         select = 'Manager.'
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -94,6 +83,10 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Manager. not found.")
 
         bodydict = results.resp.dict['Oem'][self.typepath.defs.oemhp]
+        if bodydict['iLOFunctionalityRequired']:
+            raise IncompatableServerTypeError("disableilofunctionality"\
+                " command is not available. iLO functionality is required"\
+                " and can not be disabled on this platform.")
 
         try:
             for item in bodydict['Actions']:
@@ -110,20 +103,61 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             body = {"Action": "iLOFunctionality", \
                                 "Target": "/Oem/Hp"}
 
-        sys.stdout.write(u"Disabling iLO functionality. iLO will be unavailable"\
-                         " on the logged in server until it is re-enabled "\
-                         "manually.\n")
+        if self.ilodisablechecks(options):
 
-        results = self._rdmc.app.post_handler(path, body, silent=True, service=True, \
-                                    response=True)
+            sys.stdout.write("Disabling iLO functionality. iLO will be "\
+                             "unavailable on the logged in server until it is "\
+                             "re-enabled manually.\n")
 
-        if results.status == 200:
-            sys.stdout.write(u"[%d] The operation completed " \
-                                            "successfully.\n" % results.status)
+            results = self._rdmc.app.post_handler(path, body, silent=True, \
+                                    service=True, response=True)
+
+            if results.status == 200:
+                sys.stdout.write("[%d] The operation completed successfully.\n" % results.status)
+            else:
+                sys.stdout.write("[%d] iLO responded with the following info: \n" % results.status)
+                json_payload = json.loads(results._http_response.data)
+                try:
+                    sys.stdout.write("%s" % json_payload['error']\
+                                     ['@Message.ExtendedInfo'][0]['MessageId'])
+                except:
+                    sys.stdout.write("An invalid or incomplete response was"\
+                                     " received: %s\n" % json_payload)
+
         else:
-            sys.stdout.write(u"[%d] No message returned by iLO.\n" % results.status)
+            sys.stdout.write("iLO is currently performing a critical task and "\
+                             "can not be safely disabled at this time. Please try again later.\n")
 
         return ReturnCodes.SUCCESS
+
+    def ilodisablechecks(self, options):
+        """ Verify it is safe to actually disable iLO
+
+        :param options: command line options
+        :type options: values, attributes of class obj
+        """
+
+        if options.force:
+            sys.stdout.write('Force Enabled: Ignoring critical operation/mode checking.\n')
+            return True
+
+        else:
+            keyword_list = 'idle', 'complete'
+
+            try:
+                results = self._rdmc.app.select(selector='UpdateService.')[0]
+            except:
+                raise NoContentsFoundForOperationError("UpdateService. not found.")
+
+            try:
+                state = results.resp.dict['Oem']['Hpe']['State'].lower()
+                for val in keyword_list:
+                    if val in state:
+                        return True
+                return False
+
+            except:
+                raise NoContentsFoundForOperationError("iLO state not identified")
 
     def ilofunctionalityvalidation(self, options):
         """ ilofunctionalityvalidation method validation function
@@ -133,6 +167,10 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -153,15 +191,13 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
         elif not client:
             raise InvalidCommandLineError("Please login or pass credentials" \
@@ -194,7 +230,14 @@ class DisableIloFunctionalityCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="""Use the provided iLO password to log in.""",
+            help="Use the provided iLO password to log in.",
+            default=None,
+        )
+        customparser.add_option(
+            '--force',
+            dest='force',
+            help="Ignore any critical task checking and force disable iLO.",
+            action="store_true",
             default=None,
         )
         customparser.add_option(

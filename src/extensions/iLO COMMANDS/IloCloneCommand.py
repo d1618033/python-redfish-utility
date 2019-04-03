@@ -21,13 +21,13 @@ import os
 import sys
 import json
 import time
-import urllib
 import getpass
-
-from optparse import OptionParser, SUPPRESS_HELP
-from collections import (OrderedDict)
-
 import redfish.ris
+
+from six.moves import input
+from collections import (OrderedDict)
+from six.moves.urllib.request import urlopen
+from optparse import OptionParser, SUPPRESS_HELP
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError,\
@@ -48,7 +48,11 @@ class IloCloneCommand(RdmcCommandBase):
                 'only available in local mode.\n\t      During clone load,'\
                 ' login using an ilo account with\n\t      full privileges '\
                 '(such as the Administrator account)\n\t      to ensure all '\
-                'items are cloned successfully.',\
+                'items are cloned successfully.\n\t      The json file created by the save '\
+                'command is tailored \n\t      for the iLO clone command. Manipulating '\
+                'the file may cause\n\t      errors when running the load command.\n\n\t'\
+                'WARNING: iloclone command is being deprecated and will be removed in a\n\t\t'\
+                ' future version. Use the serverclone command instead.',\
             summary='Clone the iLO config of the currently logged in server ' \
                 'and copy it to the server in the arguments.',\
             aliases=['iloclone'],\
@@ -76,11 +80,8 @@ class IloCloneCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+        sys.stdout.write("WARNING: \'iloclone\' command is being deprecated and will be removed "\
+                         "in a future release. Please use the \'serverclone\' command instead.\n")
         self.clonevalidation(options)
 
         isredfish = self._rdmc.app.current_client.monolith.is_redfish
@@ -89,7 +90,7 @@ class IloCloneCommand(RdmcCommandBase):
 
         if not self.typepath.flagiften:
             raise IncompatibleiLOVersionError("iloclone command is only " \
-                                                "available on iLO5 systems.")
+                                                "available on iLO 5 systems.")
 
         if len(args) == 2:
             myfile = args[1]
@@ -105,7 +106,7 @@ class IloCloneCommand(RdmcCommandBase):
 
             while True:
                 if not testing:
-                    ans = raw_input("Are you sure you would like to continue? "\
+                    ans = input("Are you sure you would like to continue? "\
                                 "All user settings will be erased. (y/n)")
                 else:
                     break
@@ -160,8 +161,7 @@ class IloCloneCommand(RdmcCommandBase):
 
         self.selobj.run(self.typepath.defs.resourcedirectorytype)
 
-        
-        for item in self._rdmc.app.current_client.monolith.itertype(self.\
+        for item in self._rdmc.app.current_client.monolith.iter(self.\
                                         typepath.defs.resourcedirectorytype):
             respobj = item.resp.obj
             break
@@ -180,57 +180,54 @@ class IloCloneCommand(RdmcCommandBase):
                     method = 'POST'
 
                 for resource in respobj['Instances']:
-                    if typestring in resource.iterkeys() and item in \
+                    if typestring in iter(resource.keys()) and item in \
                                                         resource[typestring]:
                         path = resource[href]
 
-                        try:
-                            if item == self.typepath.defs.biostype \
-                                            or item == 'HpeServerBootSettings.':
-                                if not path.lower().endswith('/settings/'):
-                                    continue
-                            elif self.typepath.defs.hpilossotype in \
-                                                            resource[typestring]:
-                                self.configure_sso(clone, path, options)
+                        if item == self.typepath.defs.biostype \
+                                        or item == 'HpeServerBootSettings.':
+                            if not path.lower().endswith('/settings/'):
+                                continue
+                        elif self.typepath.defs.hpilossotype in \
+                                                        resource[typestring]:
+                            self.configure_sso(clone, path, options)
 
-                            data = self._rdmc.app.get_handler(path, \
-                                                               silent=True).dict
+                        data = self._rdmc.app.get_handler(path, \
+                                                           silent=True).dict
 
-                            if data and method.lower() == 'patch':
-                                data = self.patch_helper(data, options.uniqueoverride)
+                        if data and method.lower() == 'patch':
+                            data = self.patch_helper(data, options.uniqueoverride)
 
-                                if item == 'EthernetInterface.':
-                                    if '/systems/' in path.lower():
-                                        continue
-
-                                    data = self.patch_ei(data)
-                                elif item == self.typepath.defs.hpeskmtype:
-                                    data = self.patch_eskm(data)
-                                elif item == 'ComputerSystem.':
-                                    if "Boot" in data:
-                                        del data["Boot"]
-
-                                    if "IndicatorLED" in data:
-                                        del data["IndicatorLED"]
-
-                                if not data:
+                            if item == 'EthernetInterface.':
+                                if '/systems/' in path.lower():
                                     continue
 
-                            elif data and method.lower() == 'post':
-                                data = self.post_helper(data, path, clone, \
-                                                                testing=testing)
+                                data = self.patch_ei(data)
+                            elif item == self.typepath.defs.hpeskmtype:
+                                data = self.patch_eskm(data)
+                            elif item == 'ComputerSystem.':
+                                if "Boot" in data:
+                                    del data["Boot"]
 
-                            if data:
-                                if isinstance(data, list):
-                                    clone.append({path: data})
-                                else:
-                                    clone.append({path: {method: data}})
+                                if "IndicatorLED" in data:
+                                    del data["IndicatorLED"]
 
-                        except Exception, excp:
-                            raise excp
+                            if not data:
+                                continue
+
+                        elif data and method.lower() == 'post':
+                            data = self.post_helper(data, path, clone, \
+                                                            testing=testing)
+
+                        if data:
+                            if isinstance(data, list):
+                                clone.append({path: data})
+                            else:
+                                clone.append({path: {method: data}})
+
             #Actions
             for resource in respobj['Instances']:
-                if typestring in resource.iterkeys():
+                if typestring in iter(resource.keys()):
                     path = resource[href]
 
                     if 'Manager.' in resource[typestring] and not testing:
@@ -261,7 +258,7 @@ class IloCloneCommand(RdmcCommandBase):
          :type testing: bool
          """
         clone = self.load_clone(myfile, options)
-        if self._rdmc.app.current_client.base_url == "blobstore://":
+        if self._rdmc.app.current_client.get_base_url() == "blobstore://.":
             logininfo = ""
             ping = True
         elif options.url and options.user and options.password:
@@ -278,15 +275,15 @@ class IloCloneCommand(RdmcCommandBase):
                 for path in item:
                     if item and item[path] and isinstance(item, dict):
                         if isinstance(item[path], list) or 'POST' in \
-                                                            item[path].keys():
+                                                        list(item[path].keys()):
                             if isinstance(item[path], list):
                                 for instance in item[path]:
-                                    sys.stdout.write('\nPosting: ' + path + '\n')
+                                    sys.stdout.write('\nPosting: ' + path +'\n')
 
                                     try:
                                         self._rdmc.app.post_handler(path, \
                                                             instance["POST"])
-                                    except Exception, excp:
+                                    except Exception as excp:
                                         sys.stderr.write('Error.\n')
                                 continue
 
@@ -301,10 +298,10 @@ class IloCloneCommand(RdmcCommandBase):
                                         self._rdmc.app.post_handler(path,\
                                             item[path]['POST'], service=True, \
                                             silent=True)
-                                    except Exception, excp:
+                                    except Exception as excp:
                                         sys.stderr.write('Error posting to ' \
                                                             'factory defaults.')
-                            except Exception, excp:
+                            except Exception as excp:
                                 sys.stderr.write(str(excp) + '\n')
 
                             if 'resettofactorydefaults' in path.lower():
@@ -326,10 +323,15 @@ class IloCloneCommand(RdmcCommandBase):
                                 try:
                                     self._rdmc.app.post_handler(path, \
                                                             item[path]["POST"])
-                                except Exception, excp:
+                                except Exception as excp:
                                     sys.stderr.write('Error.\n')
 
-                        elif 'PATCH' in item[path].keys():
+                        elif 'PATCH' in list(item[path].keys()):
+                            item[path]['PATCH'] = self.patch_helper(item[path]\
+                                                    ['PATCH'], \
+                                                    options.uniqueoverride, \
+                                                    True, True)
+
                             if isinstance(item[path]['PATCH'], list):
                                 for instance in item[path]['PATCH']:
                                     sys.stdout.write('\nPatching: ' + path + \
@@ -370,7 +372,7 @@ class IloCloneCommand(RdmcCommandBase):
         :type testing: bool
         """
         if 'LicenseService' in path:
-            data = self.post_license(data, path)
+            data = self.post_license(path)
         elif 'AccountService' in path:
             data = self.post_accounts(data, clone, testing=testing)
         elif 'FederationGroups' in path:
@@ -378,42 +380,108 @@ class IloCloneCommand(RdmcCommandBase):
 
         return data
 
-    def patch_helper(self, body, removeunique):
+    def patch_helper(self, body, removeunique, removereadonly=True, delete2=False):
         """ helper to remove some properties before patching
 
-        :param body: body of the post
+        :param body: body of the patch
         :type body: dict
         :param removeunique: flag to remove unique properties
         :type removeunique: bool.
+        :param removereadonly: flag to rdmc.app.remove_readonly, for enabling
+        /disabling readonly data in dictionary
+        :type removereadonly: bool.
+        :param delete2: flag for running json_traversal_delete. Intended for
+        backwards compatibility
+        :type delete2: bool.
         """
-        removelist = ['actions', 'availableactions', 'status', 'links']
 
-        values = OrderedDict(sorted(body.items(), key=lambda x: x[0]))
-        for dictentry in values.keys():
+        #list for remvoing entire property
+        removelist = ['actions', 'availableactions', 'status', 'links', 'users']
+
+        #list for removing illegal property entries (None, "", '', [], etc.)
+        #removeillegalentrieslist = ['Users', 'TrapCommunities', 'CustomKeySequence']
+
+        #values = OrderedDict(sorted(list(body.items()), key=lambda x: x[0]))
+        for dictentry in body.keys():
             if dictentry.lower() in removelist:
-                del values[dictentry]
+                del body[dictentry]
 
-        try:
-            for dictentry in values['Oem'][self.typepath.defs.oemhp].keys():
-                if dictentry.lower() in removelist:
-                    del values['Oem'][self.typepath.defs.\
-                                      oemhp][dictentry]
-        except:
-            pass
+        if removereadonly:
+            body = self._rdmc.app.removereadonlyprops(body, removeunique)
 
-        values = self._rdmc.app.remove_readonly(values, removeunique)
-
+        #special removal conditions block
         try:
             #special power case
-            if values['Oem'][self.typepath.defs.oemhp]\
+            if body['Oem'][self.typepath.defs.oemhp]\
                             ['SNMPPowerThresholdAlert']['ThresholdWatts'] < 74:
-                del values['Oem'][self.typepath.defs.oemhp]\
+                del body['Oem'][self.typepath.defs.oemhp]\
                                 ['SNMPPowerThresholdAlert']['ThresholdWatts']
-        # fix any extra caveats here
+            #special case for bios settings EnabledCores Per Proc.
+            if body['Attributes']['EnabledCoresPerProc'] < 1:
+                del body['Attributes']['EnabledCoresPerProc']
+            # fix any extra caveats here
+
         except:
             pass
 
-        return values
+        if delete2:
+            try:
+                self.json_traversal_delete(data=body)
+                    
+            except Exception as exp:
+                sys.stdout.write("An exception occured while processing.\n")
+
+        return body
+
+    def json_traversal_delete(self, data, old_key=None, _iter=None, remove_list=None):
+        """
+        Recursive function to traverse a dictionary and delete things which
+        match elements in the remove_list
+
+        :param data: to be truncated
+        :type data: list or dict
+        :param old_key: key from previous recursive call (higher in stack)
+        :type old_key: dictionary key
+        :param _iter: iterator tracker for list (tracks iteration across
+        recursive calls)
+        :type _iter: numerical iterator
+        :param remove_list: list of items to be removed
+        :type: list
+        :returns: none
+        """
+
+        if not remove_list:
+            remove_list = ["NONE", None, "", {}, [], "::", "0.0.0.0", "Unknown"]
+        list_quick_scan = False
+
+        if isinstance(data, list):
+            if _iter is None:
+                for i in range(len(data)):
+                    if i is (len(data) - 1):
+                        list_quick_scan = True
+
+                    self.json_traversal_delete(data[i], old_key, i)
+
+                if list_quick_scan:
+                    for j in remove_list:
+                        for _ in range(data.count(j)):
+                            data.remove(j)
+
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                if (isinstance(value, dict) and len(value) < 1) or (isinstance(value, list)\
+                        and len(value) < 1) or None or value in remove_list:
+                    del data[key]
+
+                else:
+                    self.json_traversal_delete(value, key)
+                    #would be great to not need this section; however,
+                    #since recursive deletion is not possible, this is needed
+                    #if you can figure out how to pass by reference then fix me!
+                    if (isinstance(value, dict) and len(value) < 1) or \
+                        (isinstance(value, list) and len(value) < 1) or None or value in\
+                        remove_list:
+                        del data[key]
 
     def patch_eskm(self, values):
         """ helper for patching eskm
@@ -435,9 +503,9 @@ class IloCloneCommand(RdmcCommandBase):
                 eskmfound = True
 
             if eskmfound:
-                loginname = raw_input("Please input ESKM LoginName"\
+                loginname = input("Please input ESKM LoginName"\
                         " (leave blank if ESKM is not being used):\n")
-                password = raw_input("Please input ESKM Password"\
+                password = input("Please input ESKM Password"\
                         " (leave blank if ESKM is not being used):\n")
 
                 if loginname and password:
@@ -450,13 +518,13 @@ class IloCloneCommand(RdmcCommandBase):
         if not eskmfound:
             del values['KeyManagerConfig']
 
-        for value in values.keys():
+        for value in list(values.keys()):
             if not values[value]:
                 removelist.append(value)
 
         if 'PrimaryKeyServerAddress' in removelist and \
                                     'SecondaryKeyServerAddress' in removelist:
-            if 'KeyServerRedundancyReq' in values.keys():
+            if 'KeyServerRedundancyReq' in list(values.keys()):
                 if 'KeyServerRedundancyReq' not in removelist:
                     removelist.append('KeyServerRedundancyReq')
 
@@ -471,14 +539,14 @@ class IloCloneCommand(RdmcCommandBase):
         :param data: dictionary with ethernet interface values
         :type data: dict
         """
-        if 'Oem' not in data.keys():
+        if 'Oem' not in list(data.keys()):
             return data
 
-        dhcpsettingsv4 = data['Oem'][self.typepath.defs.oemhp]["DHCPv4"]
+        dhcpsettingsv4 = data['Oem'][self.typepath.defs.oemhp]['DHCPv4']
         v4vals = data['Oem'][self.typepath.defs.oemhp]['IPv4']
 
         try:
-            dhcpsettingsv6 = data['Oem'][self.typepath.defs.oemhp]["DHCPv6"]
+            dhcpsettingsv6 = data['Oem'][self.typepath.defs.oemhp]['DHCPv6']
             v6vals = data['Oem'][self.typepath.defs.oemhp]['IPv6']
         except:
             dhcpsettingsv6 = None
@@ -495,17 +563,28 @@ class IloCloneCommand(RdmcCommandBase):
 
         if dhcpsettingsv4['UseWINSServers']:
             del v4vals['WINSServers']
+        
+        #if the ClientIDType is custom and we are missing the ClientID then this property can
+        #not be set.
+        if 'ClientIdType' in dhcpsettingsv4.keys():
+            if dhcpsettingsv4['ClientIdType'] == 'Custom' and 'ClientID' not in \
+                                                                            dhcpsettingsv4.keys():
+                del data['Oem'][self.typepath.defs.oemhp]['DHCPv4']['ClientIdType']
+            
 
         if data['AutoNeg'] or data['AutoNeg'] is None:
             del data['FullDuplex']
             del data['SpeedMbps']
 
-        if 'FrameSize' in data.keys():
+        if 'FrameSize' in list(data.keys()):
             del data['FrameSize']
 
-        del data['MACAddress']
-        del data['IPv4Addresses']
-        del v4vals['StaticRoutes']
+        try:
+            del data['MACAddress']
+            del data['IPv4Addresses']
+            del v4vals['StaticRoutes']
+        except:
+            pass
 
         if dhcpsettingsv6:
             del data['IPv6StaticAddresses']
@@ -568,11 +647,9 @@ class IloCloneCommand(RdmcCommandBase):
         else:
             raise NoContentsFoundForOperationError
 
-    def post_license(self, clone, path):
+    def post_license(self, path):
         """ helper to format license posts
 
-        :param clone: clone config data
-        :type clone: list
         :param path: path to post
         :type path: str
         """
@@ -768,7 +845,7 @@ class IloCloneCommand(RdmcCommandBase):
 
             try:
                 if not certbody:
-                    urllib.urlopen(options.ssocert).close()
+                    urlopen(options.ssocert).close()
                     certbody = {'POST': {"Action": "ImportCertificate", \
                                 "CertType": "ImportCertUri", \
                                 "CertInput": options.ssocert}}
@@ -881,7 +958,7 @@ class IloCloneCommand(RdmcCommandBase):
                             time.sleep(10)
 
                         self._rdmc.app.login(is_redfish=True)
-                        self._rdmc.app.select(self.typepath.defs.biostype)
+                        self._rdmc.app.select(selector=self.typepath.defs.biostype)
                         time.sleep(10)
                         self._rdmc.app.logout()
                         return
@@ -911,6 +988,10 @@ class IloCloneCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()

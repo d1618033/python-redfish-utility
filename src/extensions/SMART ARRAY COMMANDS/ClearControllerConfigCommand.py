@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class ClearControllerConfigCommand(RdmcCommandBase):
     """ Drive erase/sanitize command """
@@ -53,23 +53,17 @@ class ClearControllerConfigCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.clearcontrollerconfigvalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
 
         if not options.controller:
-            raise InvalidCommandLineError('You must include a controller '\
-                                                                'to select.')
+            raise InvalidCommandLineError('You must include a controller to select.')
 
         if options.controller:
             controllist = []
-            contentsholder = {"Actions": [{"Action": \
-                                    "ClearConfigurationMetadata"}], \
+            contentsholder = {"Actions": [{"Action": "ClearConfigurationMetadata"}], \
                                                         "DataGuard": "Disabled"}
 
             if options.controller.isdigit() and not options.controller == '0':
@@ -79,8 +73,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                     pass
             else:
                 for control in content:
-                    if options.controller.lower() == \
-                                                    control["Location"].lower():
+                    if options.controller.lower() == control["Location"].lower():
                         controllist.append(control)
 
             if not controllist:
@@ -88,8 +81,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                                         "found in the current inventory list.")
             else:
                 for controller in controllist:
-                    self._rdmc.app.patch_handler(controller["@odata.id"], \
-                                                                contentsholder)
+                    self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -103,6 +95,10 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         client = None
         inputline = list()
         runlogin = False
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -123,16 +119,14 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

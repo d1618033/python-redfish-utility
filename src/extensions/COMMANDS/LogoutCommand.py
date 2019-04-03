@@ -31,8 +31,7 @@ class LogoutCommand(RdmcCommandBase):
             name='logout',\
             usage='logout\n\n\tRun to end the current session and disconnect' \
                     ' from the server\n\texample: logout',\
-            summary='Ends the current session and disconnects from the' \
-                    ' server.',\
+            summary='Ends the current session and disconnects from the server.',\
             aliases=[],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -75,9 +74,9 @@ class LogoutCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            sys.stdout.write(u"Logging session out.\n")
+            sys.stdout.write("Logging session out.\n")
             self.logoutfunction(line)
-        except Exception, excp:
+        except Exception as excp:
             raise excp
 
         #Return code
@@ -103,7 +102,7 @@ class LogoutCommand(RdmcCommandBase):
             '-p',
             '--password',
             dest='password',
-            help="Pass this flag along with the username flag if you are"\
+            help="Pass this flag along with the user flag if you are"\
             "running in local higher security modes.""",
             default=None,
         )

@@ -20,9 +20,10 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                        InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class CreateLogicalDriveCommand(RdmcCommandBase):
     """ Create logical drive command """
@@ -64,28 +65,21 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.createlogicaldrivevalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
         if not options.controller:
-            raise InvalidCommandLineError('You must include a controller '\
-                                          'to select.')
+            raise InvalidCommandLineError('You must include a controller to select.')
         controllist = []
         if not args:
-            raise InvalidCommandLineError('Please choose customdrive or '\
-                                          'quickdrive creation.')
+            raise InvalidCommandLineError('Please choose customdrive or quickdrive creation.')
         elif args[0].lower() == 'customdrive' and not len(args) == 3:
             raise InvalidCommandLineError('customdrive takes 2 arguments')
         elif args[0].lower() == 'quickdrive' and not len(args) == 6:
             raise InvalidCommandLineError('quickdrive takes 5 arguments')
         elif not args[0] in ['quickdrive', 'customdrive']:
-            raise InvalidCommandLineError('Please choose customdrive or '\
-                                          'quickdrive creation.')
+            raise InvalidCommandLineError('Please choose customdrive or quickdrive creation.')
 
         if options.controller.isdigit() and not options.controller == '0':
             try:
@@ -106,8 +100,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                     controller['DataGuard'] = "Disabled"
 
                     self._rdmc.app.put_handler(controller["@odata.id"], \
-                                       controller, headers={'If-Match': \
-                                        self.getetag(controller['@odata.id'])})
+                            controller, headers={'If-Match': self.getetag(controller['@odata.id'])})
                     self._rdmc.app.reloadmonolith(controller["@odata.id"])
         #Return code
         return ReturnCodes.SUCCESS
@@ -138,8 +131,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                     try:
                         drivecount = int(args[1])
                     except:
-                        raise InvalidCommandLineError('Number of drives is not an ' \
-                                                                    'integer.')
+                        raise InvalidCommandLineError('Number of drives is not an integer.')
                 if self.raidvalidation(item.lower(), drivecount, options):
                     itemadded = True
                     newdrive["Raid"] = item
@@ -209,8 +201,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                         break
 
                 if not itemadded:
-                    raise InvalidCommandLineError('Invalid legacy boot ' \
-                                                                    'priority.')
+                    raise InvalidCommandLineError('Invalid legacy boot priority.')
 
             if options.capacityblocks:
                 try:
@@ -224,8 +215,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 try:
                     paritygroup = int(options.paritygroup)
                 except:
-                    raise InvalidCommandLineError('Parity group is not an ' \
-                                                                    'integer.')
+                    raise InvalidCommandLineError('Parity group is not an integer.')
 
                 newdrive["ParityGroupCount"] = paritygroup
 
@@ -244,8 +234,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 try:
                     blocksize = int(options.blocksize)
                 except:
-                    raise InvalidCommandLineError('Block size is not an ' \
-                                                                    'integer.')
+                    raise InvalidCommandLineError('Block size is not an integer.')
 
                 newdrive["BlockSizeBytes"] = blocksize
 
@@ -253,8 +242,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 try:
                     stripsize = int(options.stripsize)
                 except:
-                    raise InvalidCommandLineError('Strip size is not an ' \
-                                                                    'integer.')
+                    raise InvalidCommandLineError('Strip size is not an integer.')
 
                 newdrive["StripSizeBytes"] = stripsize
 
@@ -262,19 +250,16 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 try:
                     stripesize = int(options.stripesize)
                 except:
-                    raise InvalidCommandLineError('Stripe size is not an ' \
-                                                                    'integer.')
+                    raise InvalidCommandLineError('Stripe size is not an integer.')
 
                 newdrive["StripeSizeBytes"] = stripesize
         elif drivetype == 'quickdrive':
             try:
                 numdrives = int(args[1])
             except:
-                raise InvalidCommandLineError('Number of drives is not an ' \
-                                                                    'integer.')
+                raise InvalidCommandLineError('Number of drives is not an integer.')
 
-            newdrive["DataDrives"] = {"DataDriveCount": numdrives, \
-                                                "DataDriveMinimumSizeGiB": 0}
+            newdrive["DataDrives"] = {"DataDriveCount": numdrives, "DataDriveMinimumSizeGiB": 0}
             for item in mediatypelist:
                 if args[2].lower() == item.lower():
                     newdrive["DataDrives"]["DataDriveMediaType"] = item
@@ -312,10 +297,8 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         etag = None
         instance = self._rdmc.app.current_client.monolith.path(path)
         if instance:
-            templist = instance.resp.getheaders()
-            tempindex = [x[0] for x in templist].index('etag')
-            etag = templist[tempindex][1]
-
+            etag = instance.resp.getheader('etag') if 'etag' in instance.resp.getheaders() \
+                                            else instance.resp.getheader('ETag')
         return etag
 
     def raidvalidation(self, raidtype, numdrives, options):
@@ -331,10 +314,10 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         valid = True
 
         if raidtype == 'raid5':
-            if numdrives < 3 or options.stripsize:
+            if numdrives < 3:
                 valid = False
         elif raidtype == 'raid6':
-            if numdrives < 4 or options.stripsize:
+            if numdrives < 4:
                 valid = False
         elif raidtype == 'raid50':
             if numdrives < 6:
@@ -355,6 +338,10 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -374,16 +361,14 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

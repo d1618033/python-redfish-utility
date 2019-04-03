@@ -92,8 +92,7 @@ class RawDeleteCommand(RdmcCommandBase):
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    InvalidCommandLineError("Invalid format for --headers " \
-                                                                    "option.")
+                    InvalidCommandLineError("Invalid format for --headers option.")
 
         if currentsess and (args[0] in currentsess):
             self._rdmc.app.logout()
@@ -109,15 +108,15 @@ class RawDeleteCommand(RdmcCommandBase):
                 verbose=self._rdmc.opts.verbose, sessionid=options.sessionid, \
                 url=url, headers=headers, silent=options.silent, \
                 providerheader=options.providerid, service=options.service, \
-                username=options.user, password=options.password)
+                username=options.user, password=options.password, \
+                is_redfish=self._rdmc.opts.is_redfish)
 
             if returnresponse and results:
                 if options.getheaders:
-                    sys.stdout.write(json.dumps(dict(\
-                                 results._http_response.getheaders())) + "\n")
+                    sys.stdout.write(json.dumps(dict(results.getheaders())) + "\n")
 
                 if options.response:
-                    sys.stdout.write(results.text)
+                    sys.stdout.write(results.read)
             elif results.status == 404:
                 return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
             elif results.status != 200:
@@ -153,11 +152,9 @@ class RawDeleteCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
             self.lobobj.loginfunction(inputline, skipbuild=True)
 
@@ -250,8 +247,7 @@ class RawDeleteCommand(RdmcCommandBase):
             '--service',
             dest='service',
             action="store_true",
-            help="""Use this flag to enable service mode and increase """\
-                                                """the function speed""",
+            help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_option(

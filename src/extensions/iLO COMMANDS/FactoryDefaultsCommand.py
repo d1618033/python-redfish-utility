@@ -19,9 +19,9 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                     NoContentsFoundForOperationError, Encryption
 
 class FactoryDefaultsCommand(RdmcCommandBase):
@@ -56,13 +56,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("factorydefaults command takes no "\
-                                                                "arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+            raise InvalidCommandLineError("factorydefaults command takes no arguments.")
 
         self.factorydefaultsvalidation(options)
 
@@ -70,7 +64,7 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                                         "Current session will be terminated.\n")
 
         select = 'Manager.'
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -112,6 +106,10 @@ class FactoryDefaultsCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -131,11 +129,9 @@ class FactoryDefaultsCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

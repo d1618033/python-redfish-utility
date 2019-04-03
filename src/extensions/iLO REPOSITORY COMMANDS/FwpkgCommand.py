@@ -30,9 +30,9 @@ from string import ascii_lowercase
 
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption, \
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
-                        InvalidFileInputError, UploadError, TaskQueueError
+                        InvalidFileInputError, UploadError, TaskQueueError, FirmwareUpdateError
 
 def _get_comp_type(payload):
     """ Get's the component type and returns it
@@ -67,8 +67,8 @@ class FwpkgCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self, \
             name='flashfwpkg', \
             usage='flashfwpkg [FWPKG PATH] [OPTIONS]\n\n\tRun to upload and flash ' \
-              'components from fwpkg files.\n\n\tUpload component and add a task'\
-              ' to flash.\n\texample: flashfwpkg component.fwpkg.\n\n\t'
+              'components from fwpkg files.\n\n\tUpload component and flashes it or sets a task'\
+              'queue to flash.\n\texample: flashfwpkg component.fwpkg.\n\n\t'
               'Skip extra checks before adding taskqueue. (Useful when adding '
               'many flashfwpkg taskqueue items in sequence.)\n\texample: fwpkg '\
               'component.fwpkg --ignorechecks',\
@@ -82,6 +82,7 @@ class FwpkgCommand(RdmcCommandBase):
         self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
         self.uploadobj = rdmcObj.commands_dict["UploadComponentCommand"](rdmcObj)
         self.taskqueueobj = rdmcObj.commands_dict["UpdateTaskQueueCommand"](rdmcObj)
+        self.fwupdateobj = rdmcObj.commands_dict["FirmwareUpdateCommand"](rdmcObj)
 
     def run(self, line):
         """ Main fwpkg worker function
@@ -96,10 +97,6 @@ class FwpkgCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
 
         self.fwpkgvalidation(options)
 
@@ -117,40 +114,44 @@ class FwpkgCommand(RdmcCommandBase):
         if not args[0].endswith('.fwpkg'):
             InvalidFileInputError("Invalid file type. Please make sure the file "\
                                   "provided is a valid .fwpkg file type.")
-        try:
-            self.taskqueuecheck()
-        except TaskQueueError as excp:
-            if options.ignore:
-                sys.stderr.write(str(excp)+'\n')
-            else:
-                raise excp
+
         try:
             components, tempdir, comptype = self.preparefwpkg(self, args[0])
             if comptype == 'D':
                 raise InvalidFileInputError("Unable to flash this fwpkg file.")
-            self.applyfwpkg(options, tempdir, components)
+            elif comptype == 'C':
+                try:
+                    self.taskqueuecheck()
+                except TaskQueueError as excp:
+                    if options.ignore:
+                        sys.stderr.write(str(excp)+'\n')
+                    else:
+                        raise excp
+            self.applyfwpkg(options, tempdir, components, comptype)
 
             if comptype == 'A':
-                message = "Firmware will flash and does not require a reboot.\n"
+                message = "Firmware has successfully been flashed.\n"
+                if 'ilo' in args[0].lower():
+                    message += "iLO will reboot to complete flashing. Session will be"\
+                                " terminated.\n"
             elif comptype == 'B':
-                message = "A reboot is required for this firmware to take effect.\n"\
-                            "In order to properly take effect firmware must complete flashing "\
-                            "before a reboot is applied. Please use iLOrest command: "\
-                            "taskqueue to monitor flashing process.\n"
+                message = "Firmware has successfully been flashed and a reboot is required for "\
+                                                                "this firmware to take effect.\n"
             elif comptype == 'C':
-                message = "This firmware will flash on reboot.\n"
+                message = "This firmware is set to flash on reboot.\n"
             sys.stdout.write(message)
         finally:
             if tempdir:
                 shutil.rmtree(tempdir)
-
+            if 'ilo' in args[0].lower():
+                self.logoutobj.run("")
         return ReturnCodes.SUCCESS
 
     def taskqueuecheck(self):
         """ Check taskqueue for potential issues before starting """
 
         select = "ComputerSystem."
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select, rel=True)
 
         try:
             results = results[0]
@@ -195,8 +196,7 @@ class FwpkgCommand(RdmcCommandBase):
         payloaddata = None
         tempfoldername = ''.join(random.choice(ascii_lowercase) for i in range(12))
 
-        tempdir = os.path.join(self._rdmc.app.config.get_cachedir(), \
-                                                                tempfoldername)
+        tempdir = os.path.join(self._rdmc.app.config.get_cachedir(), tempfoldername)
         if not os.path.exists(tempdir):
             os.makedirs(tempdir)
         try:
@@ -209,7 +209,7 @@ class FwpkgCommand(RdmcCommandBase):
         files = os.listdir(tempdir)
 
         if 'payload.json' in files:
-            with open(os.path.join(tempdir,'payload.json'), "r") as pfile:
+            with open(os.path.join(tempdir, 'payload.json'), "r") as pfile:
                 data = pfile.read()
             payloaddata = json.loads(data)
         else:
@@ -228,7 +228,7 @@ class FwpkgCommand(RdmcCommandBase):
         return imagefiles, tempdir, comptype
 
     def type_c_change(self, tdir, pkgloc):
-        """ Special changes for type C 
+        """ Special changes for type C
 
         :param tempdir: path to temp directory
         :type tempdir: string.
@@ -242,15 +242,15 @@ class FwpkgCommand(RdmcCommandBase):
         shutil.copy(pkgloc, tdir)
 
         fwpkgfile = os.path.split(pkgloc)[1]
-        zipfile = fwpkgfile[:-6] + '.zip'
-        zipfileloc = os.path.join(tdir, zipfile)
+        zfile = fwpkgfile[:-6] + '.zip'
+        zipfileloc = os.path.join(tdir, zfile)
 
         os.rename(os.path.join(tdir, fwpkgfile), zipfileloc)
-        
+
         return zipfileloc
 
-    def applyfwpkg(self, options, tempdir, components):
-        """ Apply the component to iLO 
+    def applyfwpkg(self, options, tempdir, components, comptype):
+        """ Apply the component to iLO
 
         :param options: command line options
         :type options: list.
@@ -258,6 +258,8 @@ class FwpkgCommand(RdmcCommandBase):
         :type tempdir: string.
         :param components: components to upload
         :type components: list.
+        :param comptype: type of component. Either A,B,C, or D.
+        :type comptype: str.
         """
 
         for component in components:
@@ -271,15 +273,34 @@ class FwpkgCommand(RdmcCommandBase):
 
             if options.forceupload:
                 uploadcommand += ' --forceupload'
+            if comptype in ['A', 'B']:
+                uploadcommand += ' --update_target --update_repository'
 
             sys.stdout.write("Uploading firmware: %s\n" % os.path.basename(component))
-            ret = self.uploadobj.run(uploadcommand)
+            try:
+                self.uploadobj.run(uploadcommand)
+            except UploadError:
+                if comptype in ['A', 'B']:
+                    select = self.typepath.defs.hpilofirmwareupdatetype
+                    results = self._rdmc.app.select(selector=select)
 
-            if ret != 0:
-                raise UploadError('')
+                    try:
+                        results = results[0]
+                    except:
+                        pass
 
-            sys.stdout.write("Setting a taskqueue item to flash firmware.\n")
-            self.taskqueueobj.run(taskqueuecommand)
+                    if results:
+                        update_path = results.resp.request.path
+                        error = self._rdmc.app.get_handler(update_path, silent=True)
+                        self.fwupdateobj.printerrmsg(error)
+                    else:
+                        raise FirmwareUpdateError("Error occurred while updating the firmware.")
+                else:
+                    raise UploadError('Error uploading component.')
+
+            if comptype == 'C':
+                sys.stdout.write("Setting a taskqueue item to flash UEFI flashable firmware.\n")
+                self.taskqueueobj.run(taskqueuecommand)
 
     def fwpkgvalidation(self, options):
         """ fwpkg validation function
@@ -289,6 +310,10 @@ class FwpkgCommand(RdmcCommandBase):
         """
         inputline = list()
         client = None
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -309,11 +334,9 @@ class FwpkgCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
             sys.stdout.write('Local login initiated...\n')

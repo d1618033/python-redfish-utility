@@ -43,7 +43,7 @@ class IloResetCommand(RdmcCommandBase):
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
-        """ Main ilo reset worker function
+        """ Main iLO reset worker function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -56,19 +56,15 @@ class IloResetCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.iloresetvalidation(options)
 
-        sys.stdout.write(u'\nAfter iLO resets the session will be terminated.' \
+        sys.stdout.write('\nAfter iLO resets the session will be terminated.' \
                          '\nPlease wait for iLO to initialize completely ' \
                          'before logging in again.\n')
-        sys.stdout.write(u'This process may take up to 3 minutes.\n\n')
+        sys.stdout.write('This process may take up to 3 minutes.\n\n')
 
         select = "Manager."
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -116,6 +112,10 @@ class IloResetCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -135,11 +135,9 @@ class IloResetCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

@@ -10,31 +10,49 @@ The iLO repository commands are designed for use with HPE Gen10 servers.
 
 > Deletecomp example commands:
 
-> Delete a single component by URI.
+> To delete firmware by file name run the command with the file name as an argument. You can also delete multiple files by file name.
 
-> ![Deletecomp Example 1](images/examples/deletecomp_ex1.png "Deletecomp example 1")
+<pre>
+iLOrest > <font color="#01a982">deletecomp ilo5_137.bin</font>
+The operation completed successfully.
+Deleted ilo5_137.bin
+</pre>
 
+> To delete firmware by Id run the command with the file Ids as arguments. You can also delete a single file by Id.
 
-> Delete multiple components by ID.
+<pre>
+iLOrest > <font color="#01a982">deletecomp 30d2d7fa b5a00edc</font>
+The operation completed successfully.
+Deleted 30d2d7fa
+The operation completed successfully.
+Deleted b5a00edc
+</pre>
 
-> ![Deletecomp Example 2](images/examples/deletecomp_ex2.png "Deletecomp example 2")
+> To delete all firmware on the iLO repository run the command and include the `--all` option. 
 
-
-> Delete all components. 
-
-> ![Deletecomp Example 3](images/examples/deletecomp_ex3.png "Deletecomp example 3")
-
+<pre>
+iLOrest > <font color="#01a982">deletecomp --all</font>
+The operation completed successfully.
+</pre>
 
 #### Syntax
 
-deletecomp *[Optional Parameters]*
+deletecomp *[ID/Name(s)] [Optional Parameters]*
 
 #### Description
 
-Deletes components/binaries from the iLO repository.
+Deletes firmware from the iLO repository.
+
+<aside class="notice">
+You cannot delete firmware that is part of a task from the task queue or an install set.
+</aside>
 
 
 #### Parameters
+
+- **ID/Name(s)**
+
+The name or Id(s) of the components for deletion. Multiple components should be specified by a comma separated list without spaces.
 
 - **-h, --help**
 
@@ -54,7 +72,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **-a, --all**
 
-Delete all components.
+Delete all firmware.
 
 
 #### Inputs
@@ -69,24 +87,34 @@ None
 
 > Downloadcomp example commands:
 
-> Run to download the file from path.
+> To download a file run this command specifying the `file path` of the firmware.
 
-> ![Downloadcomp Example 1](images/examples/downloadcomp_ex3.png "Downloadcomp example 1")
+<pre>
+iLOrest > <font color="#01a982">downloadcomp /fwrepo/ilo5_137.bin</font>
+Downloading component, this may take a while...
+[200] The operation completed successfully.
+Download complete
+0 hour(s) 1 minute(s) 36 second(s)
+</pre>
 
 <aside class="warning">The output directory and files in that directory must be set to writable.</aside>
-<aside class="warning">Any file in the output directory with the same name as the downloading component will be overwritten.</aside>
+<aside class="warning">Any file in the output directory with the same name as the downloading firmware will be overwritten.</aside>
+
 
 
 #### Syntax
 
-downloadcomp *[Component Path] [Optional Parameters]*
+downloadcomp *[File Path] [Optional Parameters]*
 
 #### Description
 
-Downloads components/binaries from the iLO repository.
-
+Downloads firmware from the iLO repository.
 
 #### Parameters
+
+-**File Path**
+
+The path to the firmware to download.
 
 - **-h, --help**
 
@@ -111,6 +139,7 @@ Optionally include this flag if you would prefer to connect using a session id i
 - **--includelogs**         
 
 Optionally include logs in the data retrieval process.
+
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
@@ -119,26 +148,47 @@ Optionally include the logout flag to log out of the server after this command i
 
 output directory for saving the file.
 
-
 #### Inputs
 None
-
 
 #### Outputs
 None 
 
-
 ### Flashfwpkg command
+
+<aside class="notice">
+Some firmware can be flashed directly without a reboot, may require a reboot to take effect, or may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
+</aside>
 
 > flashfwpkg example commands:
 
-> Upload component and add a task to flash.
+> To upload firmware and flash (or stage for a flash) run the command with the `.fwpkg` file.
 
-> ![Flashfwpkg Example 1](images/examples/fwpkg_ex1.png "Flashfwpkg example 1")
+<pre>
+iLOrest > <font color="#01a982">fwpkg U32_1.46_10_02_2018.fwpkg</font>
+Uploading firmware: U32_1.46_10_02_2018.signed.flash
+[200] The operation completed successfully.
+Component U32_1.46_10_02_2018.signed.flash uploaded successfully
+Waiting for iLO UpdateService to finish processing the component
+0 hour(s) 1 minute(s) 28 second(s)
+Firmware has successfully been flashed and a reboot is required for this firmware to take effect.
+</pre>
 
-> Skip extra checks before adding taskqueue.
+> To skip checks for something blocking firmware updates also include the `--ignorechecks` option.
 
-> ![Flashfwpkg Example 2](images/examples/fwpkg_ex2.png "Flashfwpkg example 2")
+<pre>
+iLOrest > fwpkg ilo5_137.fwpkg <font color="#01a982">--ignorechecks</font>
+Uploading firmware: ilo5_137.bin
+[200] The operation completed successfully.
+Component ilo5_137.bin uploaded successfully
+Waiting for iLO UpdateService to finish processing the component
+0 hour(s) 0 minute(s) 55 second(s)
+Firmware has successfully been flashed.
+iLO will reboot to complete flashing. Session will be terminated.
+Logging session out.
+</pre>
+
+
 
 #### Syntax
 
@@ -148,8 +198,11 @@ flashfwpkg *[FWPKG PATH] [Optional Parameters]*
 
 Run to upload and flash fwpkg components using the iLO repository.
 
-
 #### Parameters
+
+- **FWPKG PATH**
+
+The path to the (.fwpkg) file for flashing or the (.fwpkg) file itself if it is in the current working directory.
 
 - **-h, --help**
 
@@ -157,7 +210,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **--url=URL**
 
-If you are not logged in yet , use this flag along with the provided iLO URL to login to the server.
+If you are not logged in yet, use this flag along with the provided iLO URL to login to the server.
 
 - **-u User, --user=USER**
 
@@ -175,35 +228,61 @@ Include this flag to force upload firmware with the same name already on the rep
 
 Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file. 
 
-
 #### Inputs
 None
 
 #### Outputs
 None
 
-
 ### Installset command
 
 > Installset example commands:
 
-> Add install set.
+> To list current install sets run the command without arguments.
 
-> ![Installset Example 1](images/examples/installset_ex1.png "Installset example 1")
+<pre>
+iLOrest > <font color="#01a982">installset</font>
+Install Sets:
 
+basic_update:
+        command1: ApplyUpdate ilo5_137.bin
+</pre>
 
->List install sets.
+>To add an install set run the command with the `add` argument followed by the install set json file. If using sequence type json file (see below) the `--name` option must be included.
 
-> ![Installset Example 2](images/examples/installset_ex2.png "Installset example 2")
+<pre>
+iLOrest > <font color="#01a982">installset add myinstallset.json</font>
+[201] The operation completed successfully.
+</pre>
 
+> To invoke an install set and have it start performing tasks run the command with the `invoke` argument followed by the `-n, --name` option specifying the name of the install set to invoke.
 
-> Delete install set.
+<pre>
+iLOrest > <font color="#01a982">installset invoke --name basic_update</font>
+Invoking install set:basic_update
+The operation completed successfully.
+</pre>
 
-> ![Installset Example 3](images/examples/installset_ex1.png "Installset example 3")
+> To delete an install set run the command with the `delete` argument followed by the `--name` specifying the name of the install set to delete.
 
-> Install sets can be added by either the complete JSON structure.
+<pre>
+iLOrest > <font color="#01a982">installset delete --name basic_update</font>
+Deleting install set: basic_update...
+The operation completed successfully.
+</pre>
 
-```
+> To remove all install sets run the command with the `--removeall` option.
+
+<pre>
+LOrest > installset <font color="#01a982">--removeall</font>
+Deleting all install sets...
+Deleting install set: basic_update
+The operation completed successfully.
+</pre>
+
+> Install sets can be added by either the complete JSON structure...
+
+``` json
 {
 	"Name": "installset name",
 	"Description": "installset description",
@@ -245,7 +324,7 @@ None
 
 > Or a list of sequences. 
 
-```
+``` json
 [
 		{
 			"Name": "Wait",
@@ -275,8 +354,7 @@ installset *[Optional Parameters]*
 
 #### Description
 
-Run to perform operations on install sets.
-
+Command to perform operations on install sets.
 
 #### Parameters
 
@@ -306,45 +384,58 @@ Remove all install sets.
 
 - **-j, --json**
 
-Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+Optionally include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
 - **--expire=EXAFTER**
 
-Optional: Include this flag to set the expiry time for installset. ISO 8601 Redfish-style time string to be written after which iLO will automatically change state to Expired.
+Optionally include this flag to set the expiry time for installset. ISO 8601 Redfish-style time string to be written after which iLO will automatically change state to Expired.
 
--**--startafter=SAFTER**
+- **--startafter=SAFTER**
 
-Optional: Insclude this flag to set the earliest execution time for installset. ISO 8601 Redfish-style time string to be used.
+Optionally include this flag to set the earliest execution time for installset. ISO 8601 Redfish-style time string to be used.
 
--**--	tpmover**
+- **--tpmover**
 
 Use this flag if the server you are currently logged into has a TPM chip installed.
 
--**--updaterecoveryset**
+- **--updaterecoveryset**
 
 If set then the components in the flash operations are used to replace matching contents in the Recovery Set.
 
--**--cleartaskqueue**
+- **--cleartaskqueue**
 
 This option clears previous items in the task queue before the Install Set is invoked.
 
 #### Inputs
 None
 
-
 #### Outputs
 None 
-
-
 
 ### Listcomp command
 
 > Listcomp example commands:
 
-> Run to list the components of the currently logged in system.
+> To list the firmware on the iLO repository of the currently logged in system run the command without arguments.
 
-> ![Listcomp Example 1](images/examples/listcomp_ex1.png "Listcomp example 1")
+<pre>
+iLOrest > <font color="#01a982">listcomp</font>
+Id: ca3bcc4b
+Name: iLO 5
+Version: 1.30
+Locked:Yes
+Component Uri:/fwrepo/ilo5_130.bin
+File Path: ilo5_130.bin
+SizeBytes: 33556520
 
+Id: 30d2d7fa
+Name: iLO 5
+Version: 1.37
+Locked:No
+Component Uri:/fwrepo/ilo5_137.bin
+File Path: ilo5_137.bin
+SizeBytes: 33556520
+</pre>
 
 #### Syntax
 
@@ -352,8 +443,7 @@ listcomp *[Optional Parameters]*
 
 #### Description
 
-Run to list the components ofthe currently logged in system.
-
+Command to list the firmware on the iLO repository of the currently logged in system.
 
 #### Parameters
 
@@ -369,32 +459,52 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
+- **-j, --json**
+
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
 #### Inputs
 None 
 
-
 #### Outputs
-None 
-
+None
 
 ### Maintenancewindow command
 
 > maintenancewindow example commands:
 
-> Print the current maintenancewindows on the system.
+> To list the current maintenancewindows on the system run the command without arguments.
 
-> ![Maintenancewindow Example 1](images/examples/maintenancewindow_ex1.png "Maintenancewindow example 1")
+<pre>
+iLOrest > <font color="#01a982">maintenancewindow</font>
+MW-147746:
+        Description: No description.
+        Start After: 2015-11-21T00:00:00Z
+        Expires at: No expire time set.
+</pre>
 
+> To Create a new maintenance window run the command with the `add` keyword followed by the time the maintenance window should start. If you do not supply a name for your maintenance window one will be randomly generated for you.
 
-> Create a new maintenance window with startup time 1998-11-21T00:00:00 and user defined expire time, name, and description.
+<pre>
+iLOrest > <font color="#01a982">maintenancewindow add 2018-11-21T00:00:00</font>
+[201] The operation completed successfully.
+</pre>
 
-> ![Maintenancewindow Example 2](images/examples/maintenancewindow_ex2.png "Maintenancewindow example 2")
+> To optionally specify an expire time (`-e, --expire`), maintenance window name (`-n, --name`), and/or description (`--description`) include their respective options.
 
+<pre>
+iLOrest > maintenancewindow add 2019-11-21T00:00:00 <font color="#01a982">--expire=2019-11-22T00:00:00 --name=MyMaintenanceWindow --description "My maintenance window description."</font>
+[201] The operation completed successfully.
+</pre>
 
-> Delete maintenance windows by ID or name. 
+> To delete a maintenance window run the command with the `delete` keyword followed by the name of the maintenance window you wish to delete. 
 
-> ![Maintenancewindow Example 3](images/examples/maintenancewindow_ex3.png "Maintenancewindow example 3")
+<pre>
+iLOrest > <font color="#01a982">maintenancewindow delete MyMaintenanceWindow</font>
+Deleting MyMaintenanceWindow
+The operation completed successfully.
+</pre>
+
 
 
 #### Syntax
@@ -403,7 +513,7 @@ maintenancewindow *[Optional Parameters]*
 
 #### Description
 
-Run to add, remove, or delete maintenance windows from the iLO repository.
+Command to add, remove, or delete maintenance windows from the iLO repository.
 
 
 #### Parameters
@@ -426,27 +536,25 @@ If you are not logged in yet , use this flag along with the provided iLO URL to 
 
 - **-j, --json**
 
-Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+Optionally include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
 - **-description=DESCRIPTION**
 
-Optional: Include this flag to add a description to the maintenance window created by you.
+Optionally include this flag to add a description to the maintenance window created by you.
 
 - **-n NAME, --name=NAME**
 
-Optional: Include this flag to name the maintenance window created by you. If a name is not specified, system will add a unique name.
+Optionally include this flag to name the maintenance window created by you. If a name is not specified, system will add a unique name.
 
 - **-e EXPIRE, --expire=EXPIRE**
 
-Optional: Include this flag to add the time a maintenance window expires.
+Optionally include this flag to add the time a maintenance window expires.
 
 #### Inputs
 None
 
-
 #### Outputs
 None
-
 
 ### Makeinstallset command
 
@@ -454,11 +562,108 @@ None
 
 > Run without logging in for basic guidance on making an install set.
 
-> ![Makeinstallset Example 1](images/examples/minstallset_ex1.png "Makeinstallset example 1")
+<pre>
+iLOrest > <font color="#01a982">makeinstallset</font>
+Warning: This command will run in interactive mode.
+Entering new shell, type backout to leave!
+Running in basic guidance mode.
+Enter a name for this command: command1
+
+Possible Commands: ApplyUpdate, ResetServer, ResetBmc, Wait
+Enter Command for command1: ApplyUpdate
+
+Unique filename of component on iLO repository
+Enter Filename for command1: ilo5_130.bin
+
+Possible Update parameter(s):
+Bmc: Updatable by iLO
+Uefi: Updatable by Uefi
+RuntimeAgent: Updatable by runtime agent such as SUM/SUT
+Enter UpdatableBy for command1: Bmc
+
+Enter a name for this command: backout
+Is this a recovery installset? no
+Enter installset name: basic_update
+Enter description for the installset:
+{
+  "Sequence": [
+    {
+      "UpdatableBy": [
+        "Bmc"
+      ],
+      "Command": "ApplyUpdate",
+      "Name": "command1",
+      "Filename": "ilo5_130.bin"
+    }
+  ],
+  "IsRecovery": false,
+  "Name": "basic_update",
+  "Description": ""
+}
+installset saved to myinstallset.json
+</pre>
 
 > Run while logged into a system for guidance based on the current components on that system.
 
-> ![Makeinstallset Example 2](images/examples/minstallset_ex2.png "Makeinstallset example 2")
+<pre>
+iLOrest > <font color="#01a982">makeinstallset</font>
+Warning: This command will run in interactive mode.
+Entering new shell, type backout to leave!
+Running in logged in mode.
+Enter a name for this command: update iLO
+
+Possible Commands: ApplyUpdate, ResetServer, ResetBmc, Wait
+Enter Command for update iLO: ApplyUpdate
+
+Unique filename of component on iLO repository
+Components currently in the repository that have not been added to the installset:
+[1] iLO 5
+[2] HP Lights-Out Online Configuration Utility for Windows x64 E...
+[3] System BIOS - U30
+Select the number of the component you want to add to the install set: 1
+
+Enter a name for this command: update bios
+
+Possible Commands: ApplyUpdate, ResetServer, ResetBmc, Wait
+Enter Command for update bios: ApplyUpdate
+
+Unique filename of component on iLO repository
+Components currently in the repository that have not been added to the installset:
+[1] HP Lights-Out Online Configuration Utility for Windows x64 E...
+[2] System BIOS - U30
+Select the number of the component you want to add to the install set: 2
+
+Enter a name for this command: backout
+Is this a recovery installset? no
+Enter installset name: update fw
+Enter description for the installset:
+{
+  "Sequence": [
+    {
+      "UpdatableBy": [
+        "Bmc"
+      ],
+      "Command": "ApplyUpdate",
+      "Name": "update iLO",
+      "Filename": "ilo5_137.bin"
+    },
+    {
+      "UpdatableBy": [
+        "Bmc"
+      ],
+      "Command": "ApplyUpdate",
+      "Name": "update bios",
+      "Filename": "U30_1.46_10_02_2018.signed.flash"
+    }
+  ],
+  "IsRecovery": false,
+  "Name": "update fw",
+  "Description": ""
+}
+installset saved to myinstallset.json
+</pre>
+
+
 
 #### Syntax
 
@@ -469,7 +674,7 @@ makeinstallset *[Optional Parameters]*
 Run to make installsets for iLO. 
 If not logged into the server, the command will provide basic guidance on making an installset.
 If logged into the server, the command will provide guidance based on the current components on the system.
-<aside class="notice">When using this command on a logged in sever, for best results, make sure to upload the components before running this command.</aside>
+<aside class="notice">When using this command on a logged in sever, for best results, upload the components before running this command.</aside>
 
 #### Parameters
 
@@ -484,33 +689,60 @@ Include this flag to use a different filename than the default one. The default 
 #### Inputs
 None
 
-
 #### Outputs
 None
-
 
 ### Taskqueue command
 
 > Taskqueue example commands:
 
-> Create new wait task for 60 secs.
+> To create new wait task queue task include the `create` keyword followed by the amount of time to wait.
 
-> ![Taskqueue Example 1](images/examples/taskqueue_ex1.png "Taskqueue example 1")
+<pre>
+iLOrest > <font color="#01a982">taskqueue create 60</font>
+[200] The operation completed successfully.
+Creating task: "Wait-703879 60 seconds"
+[201] The operation completed successfully.
+</pre>
 
+> To create a new firmware task queue task include the `create` keyword followed by the name of a firmware file that is already in the iLO repository.
 
-> Create new component task.
+<pre>
+iLOrest > <font color="#01a982">taskqueue create ilo5_137.bin</font>
+[200] The operation completed successfully.
+Creating task: "Update-740856 iLO 5"
+[201] The operation completed successfully.
+</pre>
 
-> ![Taskqueue Example 2](images/examples/taskqueue_ex2.png "Taskqueue example 2")
+> To view the current update task queue runt the command with no arguments.
 
+<pre>
+iLOrest > <font color="#01a982">taskqueue</font>
 
-> Print update task queue.
+Current Update Task Queue:
 
-> ![Taskqueue Example 3](images/examples/taskqueue_ex3.png "Taskqueue example 3")
+Task Wait-703879 60 seconds:
+        Command: Wait 60 seconds
+        State:Pending
 
+Task Update-740856 iLO 5:
+        Command: ApplyUpdate
+        Filename: ilo5_137.bin
+        State:Pending
 
-> Delete all tasks from update task queue.
+</pre>
 
-> ![Taskqueue Example 4](images/examples/taskqueue_ex4.png "Taskqueue example 4")
+> To delete all tasks from the update task queue run the command with the `--resetqueue` option.
+
+<pre>
+iLOrest > <font color="#01a982">taskqueue --resetqueue</font>
+Deleting all update tasks...
+Deleting: Wait-703879 60 seconds
+The operation completed successfully.
+Deleting: Update-740856 iLO 5
+The operation completed successfully.
+</pre>
+
 
 
 #### Syntax
@@ -519,8 +751,7 @@ taskqueue *[Optional Parameters]*
 
 #### Description
 
-Run to add or remove tasks from the task queue. Added tasks are appended to the end of the queue.
-
+Command to add or remove tasks from the task queue. Added tasks are appended to the end of the queue.
 
 #### Parameters
 
@@ -544,21 +775,34 @@ Remove all update tasks in the queue.
 
 Clean up all finished or errored tasks - leave pending.
 
+- **-j, --json**
+
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+- **--tpmover**
+
+Include this flag when updating firmware if you have a TPM installed.
+
 #### Inputs
 None 
 
-
 #### Outputs
 None 
-
 
 ### Uploadcomp command
 
 > Uploadcomp example commands:
 
-> Upload component to the iLO repository.
+> To upload firmware to the iLO repository run the command with the `--component` option specifying the firmware file to upload.
 
-> ![Uploadcomp Example 1](images/examples/uploadcomp_ex2.png "Uploadcomp example 1")
+<pre>
+iLOrest > <font color="#01a982">uploadcomp --component ilo5_137.bin</font>
+[200] The operation completed successfully.
+Component ilo5_137.bin uploaded successfully
+Waiting for iLO UpdateService to finish processing the component
+0 hour(s) 1 minute(s) 43 second(s)
+</pre>
+
 
 
 #### Syntax
@@ -567,8 +811,7 @@ uploadcomp *[Optional Parameters]*
 
 #### Description
 
-Run to upload the component on to iLO repository.
-
+Command to upload firmware on to iLO repository.
 
 #### Parameters
 
@@ -606,7 +849,7 @@ Component or binary file path to upload to the update service.
 
 - **--compsig=COMPONENTSIG**
 
-Component signature file path needed by iLO to authenticate the component file. If not provided will try to find the signature file from component file path.
+Component signature file path needed by iLO to authenticate the component file. If not provided, the command will try to find the signature file from component file path.
 
 - **--forceupload**
 
@@ -614,12 +857,11 @@ Add this flag to force upload components with the same name already on the repos
 
 - **--update_repository**
 
-If true uploads the component/binary on to the Repository, Default[True].
+If true, uploads the component/binary on to the Repository. The default is set to True.
 
 - **--update_target**
 
-If true the uploaded component/binary will be flashed, Default[False].
-
+If true, the uploaded component/binary will be flashed. The default is set to False.
 
 #### Inputs
 None 

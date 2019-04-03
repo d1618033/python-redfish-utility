@@ -27,8 +27,7 @@ class ExitCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='exit',\
-            usage='exit\n\n\tRun to exit from the interactive shell\n\t' \
-            'example: exit',\
+            usage='exit\n\n\tRun to exit from the interactive shell\n\texample: exit',\
             summary='Exits from the interactive shell.',\
             aliases=['quit'])
 
@@ -51,7 +50,7 @@ class ExitCommand(RdmcCommandBase):
 
         if not args or not line:
             self.logoutobj.run("")
-            sys.stdout.write(u'Bye for now\n')
+            sys.stdout.write('Bye for now\n')
 
             #System exit
             sys.exit(ReturnCodes.SUCCESS)

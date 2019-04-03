@@ -1,0 +1,67 @@
+{
+    "path": "/redfish/v1/Managers/1",
+    "body": {
+        "Oem": { 
+            "Hpe": { 
+                "IntegratedRemoteConsole":{
+                    "HotKeys":[
+                        {
+                            "KeySequence":[
+                                "L_CTRL",
+                                "t",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        },
+                        {
+                            "KeySequence":[
+                                "L_CTRL",
+                                "u",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        },
+                        {
+                            "KeySequence":[
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        },
+                        {
+                            "KeySequence":[
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        },
+                        {
+                            "KeySequence":[
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        },
+                        {
+                            "KeySequence":[
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE",
+                                "NONE"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+     }
+}

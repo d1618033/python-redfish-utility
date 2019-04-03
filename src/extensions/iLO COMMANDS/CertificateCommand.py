@@ -43,10 +43,12 @@ class CertificateCommand(RdmcCommandBase):
             'are extracted base on their position in the arguments ' \
             'list.\n\n\tGet certificate signing request.\n\texample: '\
             'certificate getcsr\n\n\tNOTE: Use the singlesignon command '
-            'to import single sign on certificates',\
+            'to import single sign on certificates.\n\n\tNOTE: Use quotes to include '\
+            'parameters which contain whitespace when generating a CSR.\n\texample: '\
+            'certificate csr \"Hewlett Packard Enterprise\" \"iLORest Group\" \"CName\"'\
+            '\n\t\t\"United States\" \"Texas\" \"Houston\"',\
             summary="Command for importing both iLO and login authorization "\
-                "certificates as well as generating iLO certificate signing "\
-                "requests",\
+                "certificates as well as generating iLO certificate signing requests",\
             aliases=["certificate"],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -69,19 +71,14 @@ class CertificateCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if args[0].lower() == 'getcsr' and not len(args) == 1:
-            raise InvalidCommandLineError("This certificate command only " \
-                                                        "takes 1 parameter.")
+        if not args:
+            raise InvalidCommandLineError("This command requires arguments.")
+        elif args[0].lower() == 'getcsr' and not len(args) == 1:
+            raise InvalidCommandLineError("This certificate command only takes 1 parameter.")
         elif args[0].lower() == 'csr' and not len(args) == 7:
-            raise InvalidCommandLineError("This certificate command takes "\
-                                                                "7 parameters.")
+            raise InvalidCommandLineError("This certificate command takes 7 parameters.")
         elif not 'csr' in args[0].lower() and not len(args) == 2:
-            raise InvalidCommandLineError("This certificate command only " \
-                                                        "takes 2 parameters.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
+            raise InvalidCommandLineError("This certificate command only takes 2 parameters.")
 
         self.certificatesvalidation(options)
 
@@ -96,8 +93,7 @@ class CertificateCommand(RdmcCommandBase):
         elif args[0].lower() == 'tls':
             self.importtlshelper(args)
         else:
-            raise InvalidCommandLineError("Invalid argument for certificates"\
-                                                                    " command.")
+            raise InvalidCommandLineError("Invalid argument for certificates command.")
 
         return ReturnCodes.SUCCESS
 
@@ -109,7 +105,7 @@ class CertificateCommand(RdmcCommandBase):
         """
 
         select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -136,9 +132,9 @@ class CertificateCommand(RdmcCommandBase):
         except:
             action = "GenerateCSR"
 
-        body = {"Action": action, "OrgName":args[1], "OrgUnit":args[2],\
-                "CommonName": args[3], "Country": args[4], "State": args[5],\
-                                                     "City": args[6]}
+        body = {"Action": action, "OrgName":args[1].strip('\"'), "OrgUnit":args[2].strip('\"'),\
+                "CommonName": args[3].strip('\"'), "Country": args[4].strip('\"'), \
+                "State": args[5].strip('\"'), "City": args[6].strip('\"')}
 
         sys.stdout.write("iLO is creating a new certificate signing request"\
                          " This process can take up to 10 minutes.\n")
@@ -153,7 +149,7 @@ class CertificateCommand(RdmcCommandBase):
         """
 
         select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -163,11 +159,13 @@ class CertificateCommand(RdmcCommandBase):
         if results:
             try:
                 csr = results.resp.dict['CertificateSigningRequest']
-            except:
-                raise NoContentsFoundForOperationError('Unable to find ' \
-                                       'certificate. If you just generated a ' \
-                                       'new certificate signing request the ' \
-                                       'process may take up to 10 minutes.')
+                if not csr:
+                    raise ValueError
+            except (KeyError, ValueError):
+                raise NoContentsFoundForOperationError('Unable to find a valid certificate. If '\
+                                                       'you just generated a new certificate '\
+                                                       'signing request the process may take '\
+                                                       'up to 10 minutes.')
 
             if not options.filename:
                 filename = __filename__
@@ -198,7 +196,7 @@ class CertificateCommand(RdmcCommandBase):
             raise InvalidFileInputError("Error loading the specified file.")
 
         select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -234,11 +232,10 @@ class CertificateCommand(RdmcCommandBase):
         :type args: list.
         """
         if not self.typepath.flagiften:
-            raise IncompatibleiLOVersionError("This certificate is not " \
-                                                    "available on this system.")
+            raise IncompatibleiLOVersionError("This certificate is not available on this system.")
 
         select = 'HpeCertAuth.'
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -267,8 +264,7 @@ class CertificateCommand(RdmcCommandBase):
         :type args: list.
         """
         if not self.typepath.flagiften:
-            raise IncompatibleiLOVersionError("This certificate is not " \
-                                                    "available on this system.")
+            raise IncompatibleiLOVersionError("This certificate is not available on this system.")
 
         tlsfile = args[1]
 
@@ -280,7 +276,7 @@ class CertificateCommand(RdmcCommandBase):
             raise InvalidFileInputError("Error loading the specified file.")
 
         select = 'HpeCertAuth.'
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -311,6 +307,10 @@ class CertificateCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -330,11 +330,9 @@ class CertificateCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

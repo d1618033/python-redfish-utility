@@ -1,6 +1,6 @@
-# Macro Commands and Script Examples
+# Use case Examples and Macro Commands
 
-The command catalog provided by the RESTful Interface Tool enables a wide variety of options to manipulate and work with the server. Multiple commands chained together have the potential to provide higher-level functionality and meet any needs that arise depending on the task at hand. Some of the more common commands, such as the `bootorder` command, have already been built into the command catalog. The `bootorder` example below shows how the available commands in the command catalog can be combined to manipulate the order of boot devices:
+The command catalog provided by the RESTful Interface Tool enables a wide variety of options to manipulate and work with the server. Multiple commands chained together have the potential to provide higher-level functionality and meet any needs that arise depending on the task at hand. Some of the more common commands, such as the `bootorder` command, have already been built into the command catalog. The `bootorder` example below shows how the available commands in the command catalog can be combined to manipulate the order of boot devices.
 
 ## Changing Bootorder example
 
@@ -18,7 +18,7 @@ Next the `select` and `get` commands are used to retrieve the `BootSourceOverrid
 
 ![Bootorder Example 3](images/BootOrder_3.png "BootOrder example 3")
 
-If the `bootmode` retrieved earlier was UEFI, then the `UefiTargetBootSourceOverrideSupported` property (one time boot settings) is retrieved with the get command. If the `bootmode` was not UEFI, then the one time boot settings would have been set to `None`.
+If the `bootmode` retrieved earlier is UEFI, then the `UefiTargetBootSourceOverrideSupported` property (one time boot settings) is retrieved with the get command. If the `bootmode` is not UEFI, then the one time boot settings would have been set to `None`.
 
 ![Bootorder Example 4](images/BootOrder_4.png "BootOrder example 4")
 
@@ -30,13 +30,13 @@ Then, using this information along with the specified boot order provided in the
 
 ![Bootorder Example 6](images/BootOrder_6.png "BootOrder example 6")
 
-Once the changes have been made to the boot order, the changes are finally committed with the `commit` command, which also logs the user out.
+After making all the changes to the boot order, the changes are finally committed with the commit command.
 
-All of the commands shown here are executed the same way in the actual `bootorder` command, and were called in this same order to execute the `bootorder` command. You can write your own scripts to combine commands just like bootorder did, to use the provided commands in the RESTful Interface Tool for higher level functionality.
+All of the commands shown here are executed the same way in the actual `bootorder` command, and are called in the same order to execute the `bootorder` command. You can write your own scripts to combine commands just like bootorder did, to use the provided commands in the RESTful Interface Tool for higher level functionality.
 
 ## Changing BIOS Administrator Password example
 
-Another command that has not been implemented in the RESTful Interface Tool but could easily be set up as a macro is changing the administrator password for second-level BIOS authentication. This example shows how to write such a command as well as serves to explain how the BIOS password works.
+This example shows how the set password command on a Gen9 system is just a few set commands.
 
 The `Bios` type has two properties that both need to be used to change the administrator password, `AdminPassword` and `OldAdminPassword`. `AdminPassword` is the new password you want to change to, and `OldAdminPassword` is the current password you have.
 
@@ -68,7 +68,7 @@ Then when you log into the server again, the BIOS password will have been update
 
 > **Above:** When the server is rebooted, the **TpmState** is changed from **PresentEnabled** to **PresentDisabled**.
 
-If you need to disable TPM on a group of servers, you can use a set of commands in RESTful Interface Tool. For example, you are installing SPPs and OSs on bare-metal servers, and you need to disable TPM prior to starting installation.
+If you need to disable TPM on a group of servers, you can use a set of commands in RESTful Interface Tool. For example, if you are installing SPPs and OSs on bare-metal servers, and you need to disable TPM prior to starting installation.
 
 
 ### Enable the TPM on servers
@@ -83,17 +83,15 @@ To enable the TPM, you can set the `TpmState` to `PresentEnabled`. **See side ex
 
 ## Finding iLO MAC address
 
-Finding the iLO MAC address is not implemented in the restful interface tool but is easily reached by a set of `select` and `list` commands
+Finding the iLO MAC address is not implemented in the RESTful Interface Tool, but is easily reached by a set of `select` and `list` commands
 
 ![MAC Address Example 1](images/MacAddress1.png "Mac Address example 1")
 
-First login to the server. Then `select` the `EthernetInterfaces.` type
+First login to the server. Then `select` the `EthernetInterfaces.` type.
 
 ![MAC Address Example 2](images/MacAddress2.png "Mac Address example 2")
 
 Now using the `list` command, list the `name`, `macaddress`, and `status` values with the filter of the value `Name` starting with Manager.
-
-<aside class="notice">the --filter flag is case-sensitive.</aside>
 
 
 ## Setting Active iLO NIC
@@ -165,48 +163,6 @@ To get the encryption settings, first login to the server
 Then `select` the `HpeSmartStorageArrayControllerCollection` type. If on a `Gen9` server select `HpSmartStorageArrayControllerCollection` instead.
 
 In the provided example, many of the resources for the encryption setting are not available. If available there will be values of `Name`, `Model`, `SerialNumber`, `EncryptionBootPasswordSet`, `EncryptionCryptoOfficerPasswordSet`, `EncrpytionLocalKeyCacheEnabled`, `EncryptionMixedVolumesEnabled`,`EncryptionPhyiscalDriveCount`,`EncryptionRecoveryParamsSet`,`EncryptionStandaloneModeEnabled`, and/or `EncryptionUserPasswordSet`.
-
-## Using the Parallel Distributed Shell (PDSH) to execute commands in parallel example
-
-> Run the following command to start an iLOrest session in 10 different iLO servers:
-
-```
-pdsh -R exec -w server[1-10] ilorest --cache-dir %h login ilo-%h -u username -p password.
-```
-
-The PDSH allows you to efficiently send a single iLOrest command toward multiple managed iLOs in parallel. This is done by using the iLOrest tool option, `--cache-dir`, .to cache each managed servers’ data locally in separate directories.
-
-The **-R exec** part of the example finds and locally executes the iLOrest executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, … 10`.
-
-> When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, the iLOrest tool saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2 the data is cached in directory server2.
-
-```
-ilorest --cache-dir server1 login ilo-server1 -u username -p password
-
-ilorest --cache-dir server2 login ilo-server2 -u username -p password
-
-ilorest --cache-dir server3 login ilo-server3 -u username -p password
-
-ilorest --cache-dir server4 login ilo-server4 -u username -p password
-
-ilorest --cache-dir server5 login ilo-server5 -u username -p password
-
-ilorest --cache-dir server6 login ilo-server6 -u username -p password
-
-ilorest --cache-dir server7 login ilo-server7 -u username -p password
-
-ilorest --cache-dir server8 login ilo-server8 -u username -p password
-
-ilorest --cache-dir server9 login ilo-server9 -u username -p password
-
-ilorest --cache-dir server10 login ilo-server10 -u username -p password
-```
-
-> Now that an iLOrest session is created on each iLO, you can **select**, **set**, or **get** information from them.
-
-```
-pdsh -R exec --cache-dir server[1-10] ilorest <select, list, get or set> <Type or property>.
-```
 
 ## Updating the HPE iLO license key
 
@@ -284,7 +240,7 @@ pause
 
 This is a batch file that logs into a remote server, selects the `Bios` type, and gets the `BootMode` value.
 
-## Saving and loading a file using file-based editing mode
+## Saving and Loading a File Using File-Based Editing Mode
 
 ```
 :: saveload.bat [SELECTOR] [FILENAME]
@@ -311,7 +267,7 @@ pause
 ilorest.exe load -f %2
 ```
 
-This is a file-based edit mode helper for RESTful Interface Tool
+This is a file-based edit mode helper for RESTful Interface Tool.
 
 1. Run to download selected type to a file called `ilorest.json.`
 
@@ -376,7 +332,7 @@ ilorest.exe set SecureBootEnable=%1 --url %2 -u %3 -p %4 --selector HpSecureBoot
 pause
 ```
 
-This is a batch file that enables you to change secure boot settings quickly
+This is a batch file that enables you to change the secure boot settings quickly.
 
 **Usage:**
 

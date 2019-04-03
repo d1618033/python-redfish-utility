@@ -4,13 +4,17 @@
 
 This section covers commands related to the configuration of Scalable Persistent Memory.
 
+<aside class="warning">
+HPE Scalable Persistent Memory commands have been depreciated and removed in iLOrest version 2.4.
+</aside>
+
 ### Show Scalable Persistent Memory configuration command
 
 > Example: Display the current Scalable Persistent Memory configuration.
 
 
-```
-iLOrest > showscalablepmemconfig
+<pre>
+iLOrest > <font color="#01a982">showscalablepmemconfig</font>
 
 Overall Allocated Scalable Persistent Memory
 --------------------------------------------
@@ -34,13 +38,13 @@ Size        Type               Location                Operation
 
 
 
-```
+</pre>
 
 > Example: Display the available Scalable Persistent Memory capacity.
 
 
-```
-iLOrest > showscalablepmemconfig --available
+<pre>
+iLOrest > <font color="#01a982">showscalablepmemconfig --available</font>
 
 Available Scalable Persistent Memory
 ------------------------------------
@@ -61,7 +65,7 @@ Processors   Available For Scalable PMEM
   1,2           536 GiB 
 
 
-```
+</pre>
 
 #### Syntax
 
@@ -94,13 +98,13 @@ Optionally include this flag to change the output to JSON format.
 > Example: Enable Scalable Persistent Memory functionality.
 
 
-```
-iLOrest > enablescalablepmem
+<pre>
+iLOrest > <font color="#01a982">enablescalablepmem</font>
 
 The Scalable Persistent Memory feature has been set to: Enabled
 
 
-```
+</pre>
 
 #### Syntax
 
@@ -129,8 +133,8 @@ Disable the Scalable Persistent Memory feature. Warning: any pending configurati
 > Example: Display the supported Scalable Persistent Memory backup devices.
 
 
-```
-iLOrest > showbackupdevices
+<pre>
+iLOrest > <font color="#01a982">showbackupdevices</font>
 
 Scalable Persistent Memory Backup Storage Devices
 -------------------------------------------------
@@ -145,7 +149,7 @@ ID     Location        Model        Type       Size    Status   Life PMEM Use  O
 Scalable Persistent Memory supported: 786 GiB
 
 
-```
+</pre>
 
 #### Syntax
 
@@ -174,8 +178,8 @@ None
 > Example: Set the backup devices 2@1 and 2@2
 
 
-```
-iLOrest > setbackupdevices --device=2@1 --device=2@2
+<pre>
+iLOrest > <font color="#01a982">setbackupdevices --device=2@1 --device=2@2</font>
 
 ID     Location        Model        Type       Size    Status   Life PMEM Use  Operation           
 ---------------------------------------------------------------------------------------------------
@@ -189,7 +193,7 @@ Scalable Persistent Memory supported: 786 GiB
 
 *** The pending configuration operations require a restart to take effect ***
 
-```
+</pre>
 
 #### Syntax
 
@@ -224,8 +228,8 @@ Remove all currently-configured backup devices
 > Example: Create a 100 GiB logical NVDIMM on processor 1.
 
 
-```
-iLOrest > createlogicalnvdimm --processor=1 --size=100
+<pre>
+iLOrest > <font color="#01a982">createlogicalnvdimm --processor=1 --size=100</font>
 
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
@@ -238,13 +242,13 @@ Estimated total backup boot time for this configuration: 1m 33s
 *** The pending configuration operations require a restart to take effect ***
 
 
-```
+</pre>
 
 > Example: Create a 100 GiB spanned logical NVDIMM on processors 1 and 2.
 
 
-```
-iLOrest > createlogicalnvdimm --processors=1,2 --size=100
+<pre>
+iLOrest > <font color="#01a982">createlogicalnvdimm --processors=1,2 --size=100</font>
 
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
@@ -258,7 +262,7 @@ Estimated total backup boot time for this configuration: 2m 3s
 *** The pending configuration operations require a restart to take effect ***
 
 
-```
+</pre>
 
 #### Syntax
 
@@ -297,8 +301,8 @@ Use to create a spanned logical NVDIMM.  Specify the pair of processors (auto or
 > Example: Remove a logical NVDIMM on processor 1, index 1.
 
 
-```
-iLOrest > removelogicalnvdimm --processor=1 --index=1
+<pre>
+iLOrest > <font color="#01a982">removelogicalnvdimm --processor=1 --index=1</font>
 
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
@@ -319,13 +323,13 @@ The pending configuration changes can be discarded by running:
 
 *** Any data that needs to be preserved should be backed up before restarting ***
 
-```
+</pre>
 
 > Example: Remove a spanned logical NVDIMM from processors 1 and 2.
 
 
-```
-iLOrest > removelogicalnvdimm --processors=1,2
+<pre>
+iLOrest > <font color="#01a982">removelogicalnvdimm --processors=1,2</font>
 
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
@@ -346,7 +350,7 @@ The pending configuration changes can be discarded by running:
 
 *** Any data that needs to be preserved should be backed up before restarting ***
 
-```
+</pre>
 
 #### Syntax
 
@@ -384,8 +388,8 @@ Specify the pair of processors of the spanned logical NVDIMM to remove (1,2).
 > Example: Remove a logical NVDIMM and revert the changes.
 
 
-```
-iLOrest > removelogicalnvdimm --processor=1 --index=1
+<pre>
+iLOrest > <font color="#01a982">removelogicalnvdimm --processor=1 --index=1</font>
 
 Size        Type               Location                Operation    
 --------------------------------------------------------------------
@@ -406,11 +410,11 @@ The pending configuration changes can be discarded by running:
 
 *** Any data that needs to be preserved should be backed up before restarting ***
 
-```
+</pre>
 
 
-```
-iLOrest > revertscalablepmemconfig
+<pre>
+iLOrest > <font color="#01a982">revertscalablepmemconfig</font>
 
 Logical NVDIMMs
 ---------------
@@ -438,7 +442,7 @@ Estimated total backup boot time for this configuration: 1m 41s
 
 
 
-```
+</pre>
 
 #### Syntax
 
@@ -464,8 +468,8 @@ None
 > Example: Replace a backup device (existing device 2@1 with new device 2@2).
 
 
-```
-iLOrest > replacebackupdevice 2@1 2@2
+<pre>
+iLOrest > <font color="#01a982">replacebackupdevice 2@1 2@2</font>
 
 ID     Location        Model        Type       Size    Status   Life PMEM Use  Operation           
 ---------------------------------------------------------------------------------------------------
@@ -479,7 +483,7 @@ Scalable Persistent Memory supported: 393 GiB
 
 *** The pending configuration operations require a restart to take effect ***
 
-```
+</pre>
 
 #### Syntax
 
@@ -513,21 +517,21 @@ The new backup device to use as a replacement, e.g. '2@1'
 
 > Example: Simulate the selection of backup storage devices to support 900 GiB of Scalable Persistent Memory.
 
-```
-iLOrest > autoselectbackupdevices --size=900
+<pre>
+iLOrest > <font color="#01a982">autoselectbackupdevices --size=900</font>
 
 The following backup devices have been automatically selected for Scalable PMEM:
 [1] Box 2 Bay 1     (800 GB)
 [2] Box 2 Bay 2     (800 GB)
 [3] Box 3 Bay 3     (800 GB)
 
-```
+</pre>
 
 > Example: Auto-select enough backup storage devices to support 1024 GiB of Scalable Persistent Memory.
 
 
-```
-iLOrest > autoselectbackupdevices --size=1024 --confirm
+<pre>
+iLOrest > <font color="#01a982">autoselectbackupdevices --size=1024 --confirm</font>
 
 The following backup devices have been automatically selected for Scalable PMEM:
 [1] Box 2 Bay 1     (800 GB)
@@ -547,7 +551,7 @@ Scalable Persistent Memory supported: 1180 GiB
 
 *** The pending configuration operations require a restart to take effect ***
 
-```
+</pre>
 
 #### Syntax
 

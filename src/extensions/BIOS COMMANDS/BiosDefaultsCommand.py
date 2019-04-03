@@ -20,9 +20,10 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class BiosDefaultsCommand(RdmcCommandBase):
     """ Set BIOS settings back to default for the server that is currently
@@ -30,12 +31,14 @@ class BiosDefaultsCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='biosdefaults',\
-            usage='biosdefaults [OPTIONS]\n\n\tRun to set the currently' \
-                ' logged in server to default BIOS settings\n\texample: ' \
-                'biosdefaults\n\n\tRun to set the currently logged in server'\
-                ' to user defaults\n\texample: biosdefaults --userdefaults',\
-            summary='Set the currently logged in server to default BIOS' \
-                                                        ' settings.',\
+            usage="biosdefaults [OPTIONS]\n\n\tRun to set the currently" \
+                " logged in server's Bios. type settings to defaults\n\texample: "\
+                "biosdefaults\n\n\tRun to set the currently logged in server's "\
+                "Bios. type settings to user defaults\n\texample: biosdefaults "\
+                "--userdefaults\n\n\tRun to set the currently logged in server "\
+                "to manufacturing defaults, including boot order and secure boot."
+                "\n\texample: biosdefaults --manufacturingdefaults",\
+            summary='Set the currently logged in server to default BIOS settings.',\
             aliases=['biosdefaults'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -55,14 +58,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.defaultsvalidation(options)
 
-        sys.stdout.write(u'Resetting the currently logged in server\'s BIOS' \
-                                                    ' settings to defaults.\n')
+        sys.stdout.write('Resetting the currently logged in server\'s BIOS settings to defaults.\n')
 
         put_path = self.typepath.defs.biospath
         body = None
@@ -97,10 +95,13 @@ class BiosDefaultsCommand(RdmcCommandBase):
                                         optionalpassword=options.biospassword)
 
         if not body and options.manufdefaults:
-            self.setobj.run("RestoreManufacturingDefaults=Yes "\
-                                                "--selector=HpBios. --commit")
+            setstring = "RestoreManufacturingDefaults=Yes --selector=HpBios. --commit"
+            if options.reboot:
+                setstring += " --reboot=%s" % options.reboot
 
-        if options.reboot:
+            self.setobj.run(setstring)
+
+        elif options.reboot:
             self.rebootobj.run(options.reboot)
 
         #Return code
@@ -110,6 +111,10 @@ class BiosDefaultsCommand(RdmcCommandBase):
         """ BIOS defaults method validation function """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -130,11 +135,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                        self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                        self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -178,7 +181,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(
@@ -201,8 +204,8 @@ class BiosDefaultsCommand(RdmcCommandBase):
             '--manufacturingdefaults',
             dest='manufdefaults',
             action="store_true",
-            help="Sets bios to manufacturer defaults instead of factory "\
-                                                                "defaults.",
+            help="Reset all configuration settings to manufacturing defaults, "\
+                                        "including boot order and secure boot.",
             default=False
         )
         customparser.add_option(

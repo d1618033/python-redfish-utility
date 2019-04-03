@@ -2,11 +2,11 @@
 
 ## Accessing Hewlett Packard Enterprise Support
 
-- For live assistance, go to the **Contact Hewlett Packard Enterprise Worldwide** website:
+- For live assistance, go to the **Contact Hewlett Packard Enterprise Worldwide** website.
 
 [http://www.hpe.com/assistance](http://www.hpe.com/assistance)
 
-- To access documentation and support services, go to the **Hewlett Packard Enterprise Support Center** website:
+- To access documentation and support services, go to the **Hewlett Packard Enterprise Support Center** website.
 
 [http://www.hpe.com/support/hpesc](http://www.hpe.com/support/hpesc)
 
@@ -34,19 +34,13 @@
 
 - To download product updates, go to either of the following:
 
-- Hewlett Packard Enterprise Support Center **Get connected with updates** page:
+  - Hewlett Packard Enterprise Support Center **Get connected with updates** page: [http://www.hpe.com/support/e-updates](http://www.hpe.com/support/e-updates)
 
-[http://www.hpe.com/support/e-updates](http://www.hpe.com/support/e-updates)
+  - Software Depot website: [http://www.hpe.com/support/softwaredepot](http://www.hpe.com/support/softwaredepot)
 
-- Software Depot website:
+- To view and update your entitlements and to link your contracts and warranties with your profile, go to the Hewlett Packard Enterprise Support Center **More Information on the Access to Support Materials** page. [http://www.hpe.com/support/AccessToSupportMaterials](http://www.hpe.com/support/AccessToSupportMaterials)
 
-[http://www.hpe.com/support/softwaredepot](http://www.hpe.com/support/softwaredepot)
-
-- To view and update your entitlements, and to link your contracts and warranties with your profile, go to the Hewlett Packard Enterprise Support Center **More Information on Access to Support Materials** page:
-
-[http://www.hpe.com/support/AccessToSupportMaterials](http://www.hpe.com/support/AccessToSupportMaterials)
-
-<aside class="notice">Access to some updates might require product entitlement when accessed through the <b>Hewlett Packard Enterprise Support Center</b>. You must have an HP Passport set up with relevant entitlements.</aside>
+<aside class="notice">Access to some updates might require product entitlement when accessed through the <b>Hewlett Packard Enterprise Support Center</b>. You must have an HPE Passport set up with relevant entitlements.</aside>
 
 
 ## Websites and documents
@@ -105,11 +99,11 @@ U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://ww
 - [HPE Insight Remote Support and Insight Online Setup Guide for HPE ProLiant Servers and HPE BladeSystem c-Class Enclosures](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03508827)
 - [HPE iLO Federation User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04149067)
 
-## Customer self repair
+## Customer self-repair
 
 **Hewlett Packard Enterprise customer self repair** (CSR) programs allow you to repair your product. If a CSR part needs to be replaced, it will be shipped directly to you so that you can install it at your convenience. Some parts do not qualify for CSR. Your Hewlett Packard Enterprise authorized service provider will determine whether a repair can be accomplished by CSR.
 
-For more information about CSR, contact your local service provider or go to the CSR website:
+For more information about CSR, contact your local service provider or go to the CSR website.
 
 [www.hpe.com/support/selfrepair](http://www.hpe.com/support/selfrepair)
 
@@ -117,7 +111,7 @@ For more information about CSR, contact your local service provider or go to the
 
 Remote support is available with supported devices as part of your warranty or contractual support agreement. It provides intelligent event diagnosis, and automatic, secure submission of hardware event notifications to Hewlett Packard Enterprise, which will initiate a fast and accurate resolution based on your product’s service level. Hewlett Packard Enterprise strongly recommends that you register your device for remote support.
 
-For more information and device support details, go to the following website:
+For more information and device support details, go to the following website.
 
 [www.hpe.com/info/insightremotesupport/docs](http://www.hpe.com/info/insightremotesupport/docs)
 

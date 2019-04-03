@@ -29,14 +29,16 @@ import logging
 from collections import OrderedDict
 from ctypes import create_string_buffer, c_char_p, byref
 
+import six
 import pyaes
+
 import redfish.ris
 import redfish.hpilo.risblobstore2 as risblobstore2
 
 import versioning
 
 if os.name == 'nt':
-    import _winreg
+    from six.moves import winreg
     from win32con import HKEY_LOCAL_MACHINE
 
 #---------End of imports---------
@@ -122,7 +124,7 @@ class ReturnCodes(object):
     BIRTHCERT_PARSE_ERROR = 57
     INCOMPATIBLE_SERVER_TYPE = 58
     ILO_LICENSE_ERROR = 59
-    ACCOUNT_EXISTS_ERROR = 60
+    RESOURCE_EXISTS_ERROR = 60
 
     # ****** RMC/RIS ERRORS ******
     RIS_VALUE_CHANGED_ERROR = 61
@@ -266,7 +268,7 @@ class IloLicenseError(RdmcError):
     """Raised when the proper iLO license is not available for a command"""
     pass
 
-class AccountExists(RdmcError):
+class ResourceExists(RdmcError):
     """Raised when the account to be added already exists"""
     pass
 
@@ -322,61 +324,61 @@ class UI(object):
 
     def command_not_found(self, excp):
         """ Called when command was not found """
-        sys.stderr.write(u"\nCommand '%s' not found. Use the help command to " \
+        sys.stderr.write("\nCommand '%s' not found. Use the help command to " \
                                 "see a list of available commands\n" % excp)
 
     def command_not_enabled(self, excp):
         """ Called when command has not been enabled """
-        sys.stderr.write(u"\nCommand has not been enabled: %s\n" % excp)
+        sys.stderr.write("\nCommand has not been enabled: %s\n" % excp)
 
     def invalid_commmand_line(self, excp):
         """ Called when user entered invalid command line entries """
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def standard_blob_error(self, excp):
         """ Called when user error encountered with blob """
-        sys.stderr.write(u"Error: Blob operation failed with error code %s\n" \
+        sys.stderr.write("Error: Blob operation failed with error code %s\n" \
                                                                         % excp)
 
     def invalid_file_formatting(self, excp):
         """ Called when file formatting is unrecognizable """
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def user_not_admin(self):
         """ Called when file formatting in unrecognizable """
-        sys.stderr.write(u"Both remote and local mode is accessible when %s " \
+        sys.stderr.write("Both remote and local mode is accessible when %s " \
              "is run as administrator. Only remote mode is available for non-" \
              "admin user groups.\n" % versioning.__longname__)
 
     def no_contents_found_for_operation(self, excp):
         """ Called when no contents were found for the current operation"""
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def nothing_selected(self):
         """ Called when nothing has been select yet """
-        sys.stderr.write(u"No type currently selected. Please use the" \
+        sys.stderr.write("No type currently selected. Please use the" \
                          " 'types' command to\nget a list of types, or input" \
                          " your type by using the '--selector' flag.\n")
 
     def nothing_selected_filter(self):
         """ Called when nothing has been select after a filter set """
-        sys.stderr.write(u"Nothing was found to match your provided filter.\n")
+        sys.stderr.write("Nothing was found to match your provided filter.\n")
 
     def nothing_selected_set(self):
         """ Called when nothing has been select yet """
-        sys.stderr.write(u"Nothing is selected or selection is read-only.\n")
+        sys.stderr.write("Nothing is selected or selection is read-only.\n")
 
     def no_differences_found(self, excp):
         """ Called when no difference is found in the current configuration """
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def multiple_server_config_fail(self, excp):
         """Called when one or more servers failed to load given configuration"""
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def multiple_server_config_input_file(self, excp):
         """Called when servers input file has incorrect information"""
-        sys.stderr.write(u"Error: %s\n" % excp)
+        sys.stderr.write("Error: %s\n" % excp)
 
     def invalid_credentials(self, timeout):
         """ Called user has entered invalid credentials
@@ -384,18 +386,18 @@ class UI(object):
         :param timeout: timeout given for failed login attempt
         :type timeout: int.
         """
-        sys.stderr.write(u"Validating...")
+        sys.stderr.write("Validating...")
 
         for _ in range(0, (int(str(timeout))+10)):
             time.sleep(1)
             sys.stderr.write(".")
 
-        sys.stderr.write(u"\nError: Could not authenticate. Invalid " \
+        sys.stderr.write("\nError: Could not authenticate. Invalid " \
                          "credentials, or bad username/password.\n")
 
     def bios_unregistered_error(self):
         """ Called when ilo/bios unregistered error occurs """
-        sys.stderr.write(u"\nERROR 100: Bios provider is unregistered. Please" \
+        sys.stderr.write("\nERROR 100: Bios provider is unregistered. Please" \
                      " refer to the documentation for details on this issue.\n")
 
     def error(self, msg, inner_except=None):
@@ -420,11 +422,11 @@ class UI(object):
 
     def printmsg(self, excp):
         """ Used for general print out handling """
-        sys.stderr.write(u"%s\n" % excp)
+        sys.stderr.write("%s\n" % excp)
 
     def retries_exhausted_attemps(self):
         """ Called when url retries have been exhausted """
-        sys.stderr.write(u"\nError: Could not reach URL. Retries have been" \
+        sys.stderr.write("\nError: Could not reach URL. Retries have been" \
                          " exhausted.\n")
 
     def print_out_json(self, content):
@@ -443,7 +445,7 @@ class UI(object):
         :param content: content to be printed out
         :type content: str.
         """
-        content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
+        content = OrderedDict(sorted(list(content.items()), key=lambda x: x[0]))
         sys.stdout.write(json.dumps(content, indent=2, \
                                                 cls=redfish.ris.JSONEncoder))
         sys.stdout.write('\n')
@@ -478,7 +480,7 @@ class UI(object):
                 if content.index(item) != (len(content) - 1):
                     sys.stdout.write(space)
         elif isinstance(content, dict):
-            for key, value in content.iteritems():
+            for key, value in content.items():
                 if space and not enterloop:
                     sys.stdout.write(space)
 
@@ -487,11 +489,11 @@ class UI(object):
                 self.pretty_human_readable(value, indent,
                                            (start + len(key) + 2))
         else:
-            content = content if isinstance(content, basestring) \
+            content = content if isinstance(content, six.string_types) \
                                                             else str(content)
 
-            content = '""' if len(content) == 0 else content
-            sys.stdout.write(content.encode('utf-8'))
+            content = '""' if not content else content
+            sys.stdout.write(content)
 
 class Encryption(object):
     """ Encryption/Decryption object """
@@ -506,12 +508,12 @@ class Encryption(object):
         """
         fips = False
         if os.name == 'nt':
-            reg = _winreg.ConnectRegistry(None, HKEY_LOCAL_MACHINE)
+            reg = winreg.ConnectRegistry(None, HKEY_LOCAL_MACHINE)
             try:
-                reg = _winreg.OpenKey(reg, 'System\\CurrentControlSet\\Control\\'\
+                reg = winreg.OpenKey(reg, 'System\\CurrentControlSet\\Control\\'\
                                             'Lsa\\FipsAlgorithmPolicy')
-                _winreg.QueryInfoKey(reg)
-                value, _ = _winreg.QueryValueEx(reg, 'Enabled')
+                winreg.QueryInfoKey(reg)
+                value, _ = winreg.QueryValueEx(reg, 'Enabled')
                 if value:
                     fips = True
             except:
@@ -536,13 +538,13 @@ class Encryption(object):
         :type key: str.
         """
         if Encryption.check_fips_mode_os():
-            raise CommandNotEnabledError("Encrypting of files is not available in FIPS mode.")
+            raise CommandNotEnabledError("Encrypting of files is not available"\
+                                         " in FIPS mode.")
         filetxt = str(filetxt)
         if len(key.encode("utf8")) not in [16, 24, 32]:
             raise InvalidKeyError("")
         else:
-            encryptedfile = pyaes.AESModeOfOperationCTR(key).encrypt(\
-                                                        filetxt.encode("utf8"))
+            encryptedfile = pyaes.AESModeOfOperationCTR(key).encrypt(filetxt.encode("utf8"))
 
         return encryptedfile
 
@@ -563,8 +565,8 @@ class Encryption(object):
             try:
                 json.loads(decryptedfile)
             except:
-                raise UnableToDecodeError("Unable to decrypt the file, make sure the key is the "\
-                       "same as used in encryption.")
+                raise UnableToDecodeError("Unable to decrypt the file, make "\
+                        "sure the key is the same as used in encryption.")
 
         return decryptedfile
 
@@ -580,7 +582,7 @@ class Encryption(object):
 
         lib = risblobstore2.BlobStore2.gethprestchifhandle()
         credbuff = create_string_buffer(credential.encode('utf-8'))
-        retbuff = create_string_buffer(61)
+        retbuff = create_string_buffer(128)
 
         lib.decode_credentials.argtypes = [c_char_p]
 
@@ -592,7 +594,8 @@ class Encryption(object):
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except:
-            raise UnableToDecodeError("Unable to decode credential %s." % credential)
+            raise UnableToDecodeError("Unable to decode credential %s."\
+                                       % credential)
 
         return retbuff.value
 
@@ -600,7 +603,7 @@ class Encryption(object):
     def encode_credentials(credential):
         """ encode a credential
 
-        :param credential: credential to be decoded
+        :param credential: credential to be encoded
         :type credential: str.
 
         :returns: returns the encoded credential
@@ -608,7 +611,7 @@ class Encryption(object):
 
         lib = risblobstore2.BlobStore2.gethprestchifhandle()
         credbuff = create_string_buffer(credential.encode('utf-8'))
-        retbuff = create_string_buffer(61)
+        retbuff = create_string_buffer(128)
 
         lib.encode_credentials.argtypes = [c_char_p]
 
@@ -620,6 +623,7 @@ class Encryption(object):
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except:
-            raise UnableToDecodeError("Unable to decode credential %s." % credential)
+            raise UnableToDecodeError("Unable to decode credential %s."\
+                                       % credential)
 
         return retbuff.value

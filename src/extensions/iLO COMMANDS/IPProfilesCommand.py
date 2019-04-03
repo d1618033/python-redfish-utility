@@ -17,25 +17,27 @@
 # -*- coding: utf-8 -*-
 """ RawGet Command for rdmc """
 
-import sys
 import os
-import json
 import re
+import sys
+import json
 import time
-import base64
 import gzip
-from cStringIO import StringIO
+import base64
 
 from datetime import datetime
-
 from optparse import OptionParser, SUPPRESS_HELP
+
+import six
+
+from six import StringIO
 
 import redfish
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
-                    InvalidFileFormattingError, UnableToDecodeError, \
-                    PathUnavailableError, InvalidFileInputError, Encryption
+                    InvalidFileFormattingError, UnableToDecodeError, Encryption, \
+                    PathUnavailableError, InvalidFileInputError, NoContentsFoundForOperationError
 
 class IPProfilesCommand(RdmcCommandBase):
     """ Raw form of the get command """
@@ -48,14 +50,14 @@ class IPProfilesCommand(RdmcCommandBase):
                     '\n\n\tAdds a new ipprofile from the provided json file.'\
                     '\n\tNOTE: Path can be absolute or from the '\
                     'same path you launch iLOrest.'\
-                    '\n\texample: ipprofiles path'\
+                    '\n\texample: ipprofiles <file path>'\
                     '\n\n\tDelete an ipprofile or list of profiles.\n\t'
                     'Provide the unique key that corresponds to the ipprofile'\
                     ' data you want to delete.\n\tSeveral keys can be comma-separated'\
                     ' with no space in between to delete more than one profile. '\
                     '\n\texample: ipprofiles -d key1,key2,key3...'\
-                    '\n\n\tCopies all the ip profiles into the ip job queue .'\
-                    'and start it\n\texample: ipprofiles --start',\
+                    '\n\n\tCopies ip profile with the specified job key into the ip job queue.'\
+                    'and starts it.\n\texample: ipprofiles --start=<job key>',\
             summary='This is used to manage hpeipprofile data store.',\
             aliases=['ipprofiles'],\
             optparser=OptionParser())
@@ -83,13 +85,11 @@ class IPProfilesCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.validation(options)
 
         self.ipprofileworkerfunction(options, args)
+
+        return ReturnCodes.SUCCESS
 
     def ipprofileworkerfunction(self, options, args):
         """
@@ -122,38 +122,35 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
 
-        try:
-            results = self._rdmc.app.get_handler(self.path, \
-                verbose=self._rdmc.opts.verbose, silent=True)
-        except:
+        results = self._rdmc.app.get_handler(self.path, \
+            verbose=self._rdmc.opts.verbose, silent=True, response=True)
+        if results.status == 404:
             raise PathUnavailableError("The Intelligent Provisioning resource "\
-                                       "is not available on this system.")
-
-        j2python = json.loads(results.read)
-        for _, val in enumerate(j2python.keys()):
-            if isinstance(val, basestring):
-                result = self.decode_base64_string(str(j2python[val]))
-                if result is not None:
-                    j2python[val] = result
-
-        results.read = json.dumps(j2python, ensure_ascii=False)
+                                   "is not available on this system. You may need"\
+                                   " to run IP at least once to add the resource.")
 
         if results and results.status == 200:
+            j2python = json.loads(results.read)
+            for _, val in enumerate(j2python.keys()):
+                if isinstance(val, six.string_types):
+                    result = self.decode_base64_string(str(j2python[val]))
+                    if result is not None:
+                        j2python[val] = result
+
+            results.read = json.dumps(j2python, ensure_ascii=False)
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2,\
-                                                    cls=redfish.ris.JSONEncoder)
+                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder)
 
                     filehndl = open(options.filename[0], "w")
                     filehndl.write(output)
                     filehndl.close()
 
-                    sys.stdout.write(u"Results written out to '%s'.\n" % \
-                                                            options.filename[0])
+                    sys.stdout.write("Results written out to '%s'.\n" % options.filename[0])
                 else:
                     UI().print_out_json(results.dict)
         else:
-            return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
+            sys.stdout.write("No IP profiles found\n")
 
     def encodeandpatchipprofiledata(self, args):
         """
@@ -186,11 +183,11 @@ class IPProfilesCommand(RdmcCommandBase):
 
         j2python = json.loads(get_results.read)
         all_keys = options.del_key[0].split(',')
-        for ky in all_keys:
-            if isinstance(ky, basestring) and j2python.get(ky.strip(), False):
-                del j2python[ky.strip()]
+        for key in all_keys:
+            if isinstance(key, six.string_types) and j2python.get(key.strip(), False):
+                del j2python[key.strip()]
             else:
-                raise InvalidFileFormattingError(u"%s was not found .\n" % ky)
+                raise InvalidFileFormattingError("%s was not found .\n" % key)
 
         payload = {}
         payload["path"] = self.path
@@ -209,16 +206,16 @@ class IPProfilesCommand(RdmcCommandBase):
 
         ipprovider = self.hasipprovider()
         if ipprovider is None:
-            raise PathUnavailableError(u"System does not support this feature of IP.\n")
+            raise PathUnavailableError("System does not support this feature of IP.\n")
 
         ipjob = self.hasipjobs()
         if not ipjob:
-            raise InvalidFileFormattingError(u"System does not have any IP"\
-                                        u" profile to copy to the job queue.\n")
+            raise InvalidFileFormattingError("System does not have any IP"\
+                                        " profile to copy to the job queue.\n")
 
         current_state = self.inipstate(ipprovider)
         if current_state is None:
-            raise PathUnavailableError(u"System does not support this feature of IP.\n")
+            raise PathUnavailableError("System does not support this feature of IP.\n")
 
         later_state = False
         ipstate = current_state["InIP"]
@@ -228,8 +225,8 @@ class IPProfilesCommand(RdmcCommandBase):
             #if we are in ip, monitor should be fast, use 15 seconds
             later_status = self.monitorinipstate(ipprovider, 3)
             if  later_status:
-                self.copyjobtoipqueue(ipjob)
-                sys.stdout.write(u"Copy operation was successful...\n")
+                self.copyjobtoipqueue(ipjob, options.start_ip)
+                sys.stdout.write("Copy operation was successful...\n")
                 return ReturnCodes.SUCCESS
 
         if not isinstance(ipstate, bool):
@@ -239,32 +236,32 @@ class IPProfilesCommand(RdmcCommandBase):
             self.resetinipstate(ipprovider, current_state)
             later_status = self.monitorinipstate(ipprovider, 3)
             if  later_status:
-                self.copyjobtoipqueue(ipjob)
-                sys.stdout.write(u"Copy operation was successful...\n")
+                self.copyjobtoipqueue(ipjob, options.start_ip)
+                sys.stdout.write("Copy operation was successful...\n")
                 return ReturnCodes.SUCCESS
 
         try:
             self.bootorderobj.run("--onetimeboot=Utilities "\
                                                     "--reboot=ColdBoot --commit")
         except:
-            raise InvalidFileFormattingError(u"System failed to reboot")
+            raise InvalidFileFormattingError("System failed to reboot")
 
         #After reboot, login again
         self.validation(options)
 
         later_state = self.monitorinipstate(ipprovider)
         if later_state:
-            self.copyjobtoipqueue(ipjob)
-            sys.stdout.write(u"Copy operation was successful...\n")
+            self.copyjobtoipqueue(ipjob, options.start_ip)
+            sys.stdout.write("Copy operation was successful...\n")
         else:
-            raise InvalidFileFormattingError(u"\nSystem reboot took longer than 4 minutes."\
-                u"something is wrong. You need to physically check this system.\n")
+            raise InvalidFileFormattingError("\nSystem reboot took longer than 4 minutes."\
+                "something is wrong. You need to physically check this system.\n")
 
         return ReturnCodes.SUCCESS
 
     def resetinipstate(self, ipprovider, current_state):
         """
-        Regardless of revious value, sets InIP value to False
+        Regardless of previous value, sets InIP value to False
         :param ipprovider: url path of heip.
         :type ipprovider: string.
         :param current_state: the value of InIP.
@@ -285,8 +282,6 @@ class IPProfilesCommand(RdmcCommandBase):
         Monitor InIP value every 5 seconds until it turns true or time expires.
         :param ipprovider: url path of heip.
         :type ipprovider: string.
-        :param current_state: the value of InIP.
-        :type current_state: boolean or unknown value.
         :param timer: time it takes iLO to boot into F10 assuming we are in boot state.
         :type timer: int
         :return ipstate: boolean
@@ -295,16 +290,16 @@ class IPProfilesCommand(RdmcCommandBase):
         retry = timer # 48 * 5 = 4 minutes
         ipstate = False
         progress = self.progressbar()
-        sys.stdout.write(u'\n')
+        sys.stdout.write('\n')
         while retry > 0:
             time.sleep(5)
-            progress.next()
+            next(progress)
             status = self.inipstate(ipprovider)
             if isinstance(status['InIP'], bool) and status['InIP']:
                 ipstate = True
                 break
             retry = retry - 1
-        sys.stdout.write(u'\n')
+        sys.stdout.write('\n')
 
         return ipstate
 
@@ -313,31 +308,38 @@ class IPProfilesCommand(RdmcCommandBase):
         An on demand function use to output the progress while iLO is booting into F10.
         """
         while True:
-            yield sys.stdout.write(u'>>>')
+            yield sys.stdout.write('>>>')
 
-    def copyjobtoipqueue(self, ipjob):
+    def copyjobtoipqueue(self, ipjobs, jobkey):
         """
-        Copies HpeIpJobs to Job queue. Function assumes there is a job to copy.
+        Copies HpeIpJob to Job queue. Function assumes there is a job to copy.
         A check was already done to make sure we have a job to copy in hasipjobs()
-        :param ipjob: url path of heip.
-        :type ipjob: list of dictionary.
+        :param ipjobs: url path of heip.
+        :type ipjobs: list of dictionary.
+        :param jobkey: key of job to copy.
+        :type jokbey: str.
         """
 
-        get_results = self._rdmc.app.get_handler(self.ipjobs,\
+        get_results = self._rdmc.app.get_handler(self.path,\
                 verbose=self._rdmc.opts.verbose, silent=True)
 
         j2python = json.loads(get_results.read)
-
-        for ipj in ipjob:
-            ky = ipj.keys()[0]
-            j2python[ky] = ipj[ky]
-
+        copy_job = {}
+        for ipj in j2python:
+            if jobkey == ipj:
+                copy_job = j2python[ipj]
+                copy_job = json.loads(self.decode_base64_string(copy_job))
+                break
+        if not copy_job:
+            raise NoContentsFoundForOperationError("Job key does not match any ipprofile")
+        copy_job['log'] = [{"msg": "WAITINGTOBEPROCESSED", "percent": 0}]
+        copy_job['status'] = "waiting"
         payload = {}
         payload["path"] = self.ipjobs
-        payload["body"] = j2python
+        payload["body"] = copy_job
 
         self._rdmc.app.put_handler(payload["path"], payload["body"],\
-              verbose=self._rdmc.opts.verbose, silent=True)
+              verbose=self._rdmc.opts.verbose)
 
     def inipstate(self, ipprovider):
         """
@@ -354,7 +356,7 @@ class IPProfilesCommand(RdmcCommandBase):
 
             is_inip = None
             try:
-                if 'InIP' in result.keys():
+                if 'InIP' in list(result.keys()):
                     is_inip = result
             except KeyError:
                 pass
@@ -375,14 +377,14 @@ class IPProfilesCommand(RdmcCommandBase):
 
         j2python = json.loads(results.read)
         for _, val in enumerate(j2python.keys()):
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 result = self.decode_base64_string(str(j2python[val]))
                 if result is not None:
                     j2python[val] = result
 
         list_dict = []
 
-        for key, value in j2python.iteritems():
+        for key, value in j2python.items():
             if not re.match('@odata', key):
                 if len(key) >= 13 and key.isdigit():
                     list_dict.append({key:value}) # list of dict with valid key/value
@@ -403,8 +405,8 @@ class IPProfilesCommand(RdmcCommandBase):
 
         is_ipprovider = None
         try:
-            is_ipprovider = result['Oem']['Hpe']['Links']\
-                ['HpeIpProvider'].values()[0]
+            is_ipprovider = list(result['Oem']['Hpe']['Links']\
+                ['HpeIpProvider'].values())[0]
         except KeyError:
             pass
 
@@ -417,6 +419,10 @@ class IPProfilesCommand(RdmcCommandBase):
         :type options: list.
         """
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -437,13 +443,11 @@ class IPProfilesCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
-            self.lobobj.loginfunction(inputline, skipbuild=True)
+            self.lobobj.loginfunction(inputline)
 
     def decode_base64_string(self, str_b64):
         """
@@ -453,7 +457,7 @@ class IPProfilesCommand(RdmcCommandBase):
         """
 
         read_data = None
-        if isinstance(str_b64, basestring) and str_b64:
+        if isinstance(str_b64, six.string_types) and str_b64:
             try:
                 decoded_str = base64.decodestring(str(str_b64))
                 inbuffer = StringIO(decoded_str)
@@ -563,8 +567,7 @@ class IPProfilesCommand(RdmcCommandBase):
             '-s',
             '--start',
             dest='start_ip',
-            action='store_true',
-            help='Copies all the ip profile into the job queue and start it',
+            help='Copies the specified ip profile into the job queue and starts it',
             default=None,
         )
         customparser.add_option(

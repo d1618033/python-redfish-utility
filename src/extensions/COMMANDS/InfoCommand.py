@@ -23,8 +23,8 @@ from optparse import OptionParser, SUPPRESS_HELP
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, Encryption, \
-                                                    InfoMissingEntriesError
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, InfoMissingEntriesError,\
+                        Encryption
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 
@@ -37,11 +37,10 @@ class InfoCommand(RdmcCommandBase):
                     'information about a property within a selected type' \
                     '\n\texample: info property\n\n\tDisplays detailed ' \
                     'information for several properties\n\twithin a selected ' \
-                    'type\n\texample: info property property property\n\n\t' \
+                    'type\n\texample: info property property/sub-property property\n\n\t' \
                     'Run without arguments to display properties \n\tthat ' \
                     'are available for info command\n\texample: info',\
-            summary='Displays detailed information about a property' \
-                    ' within a selected type.',\
+            summary='Displays detailed information about a property within a selected type.',\
             aliases=[],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -66,57 +65,38 @@ class InfoCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.infovalidation(options)
 
         if args:
-            inforesp = ''
-
             for item in args:
-                newargs = list()
                 if self._rdmc.app.get_selector().lower().startswith('bios.') \
                                         and not 'attributes' in item.lower():
                     if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
                         item = "Attributes/" + item
 
-                if "/" in item:
-                    newargs = item.split("/")
-                    item = newargs[0]
-
-                (contents, outdata) = self._rdmc.app.info(selector=item, \
-                    dumpjson=options.json, autotest=autotest, newarg=newargs, \
-                                            latestschema=options.latestschema)
+                outdata = self._rdmc.app.info(selector=item, dumpjson=options.json, \
+                                                                latestschema=options.latestschema)
+                if autotest:
+                    return outdata
                 if outdata and options.json:
                     UI().print_out_json(outdata)
                 elif outdata:
                     sys.stdout.write(outdata)
 
-                if isinstance(contents, list) and not autotest:
-                    if 'none' in contents and inforesp != 'success':
-                        inforesp = 'none'
-                    elif 'Success' in contents:
-                        inforesp = 'success'
-
-                try:
-                    if not contents or inforesp == 'none':
-                        raise InfoMissingEntriesError("There are no valid "\
+                if not outdata:
+                    raise InfoMissingEntriesError("There are no valid "\
                             "entries for info in the current instance.")
-                except Exception, excp:
-                    raise excp
-
-                if len(args) > 1 and not item == args[-1]:
-                    sys.stdout.write("\n************************************"\
+                else:
+                    if len(args) > 1 and not item == args[-1]:
+                        sys.stdout.write("\n************************************"\
                                      "**************\n")
         else:
-            (results, outdata) = sorted(self._rdmc.app.info(selector=None,\
+            results = sorted(self._rdmc.app.info(selector=None,\
                    ignorelist=HARDCODEDLIST, latestschema=options.latestschema))
-            if outdata:
-                sys.stdout.write(outdata)
 
-            if results:
+            if results and autotest:
+                return results
+            elif results:
                 sys.stdout.write("Info options:\n")
                 for item in results:
                     sys.stdout.write("%s\n" % item)
@@ -145,6 +125,10 @@ class InfoCommand(RdmcCommandBase):
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -164,15 +148,11 @@ class InfoCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline and options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -181,8 +161,6 @@ class InfoCommand(RdmcCommandBase):
             inputline.extend(["--selector", options.selector])
             self.lobobj.loginfunction(inputline)
         elif options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -194,8 +172,6 @@ class InfoCommand(RdmcCommandBase):
             try:
                 inputline = list()
                 selector = self._rdmc.app.get_selector()
-                if options.filter:
-                    inputline.extend(["--filter", options.filter])
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
@@ -203,7 +179,7 @@ class InfoCommand(RdmcCommandBase):
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except:
+            except InvalidCommandLineErrorOPTS:
                 raise redfish.ris.NothingSelectedError
 
     def definearguments(self, customparser):
@@ -254,19 +230,6 @@ class InfoCommand(RdmcCommandBase):
             default=None,
         )
         customparser.add_option(
-            '--filter',
-            dest='filter',
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
-        )
-        customparser.add_option(
             '-j',
             '--json',
             dest='json',
@@ -288,14 +251,11 @@ class InfoCommand(RdmcCommandBase):
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
-            " will be /rest/v1. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " will be /redfish/v1/. Note: The path flag can only be specified"\
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
         )
         customparser.add_option(

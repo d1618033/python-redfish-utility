@@ -24,8 +24,8 @@ from optparse import OptionParser, SUPPRESS_HELP
 
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
-                        InvalidCommandLineErrorOPTS
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class ListComponentCommand(RdmcCommandBase):
     """ Main download command class """
@@ -57,10 +57,6 @@ class ListComponentCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.listcomponentvalidation(options)
 
         if self.typepath.defs.isgen9:
@@ -90,11 +86,11 @@ class ListComponentCommand(RdmcCommandBase):
             sys.stdout.write(str(json.dumps(jsonout, indent=2))+'\n')
         else:
             for comp in comps:
-                sys.stdout.write('Id: %s\nName: %s\nVersion: %s\nComponent '\
+                sys.stdout.write('Id: %s\nName: %s\nVersion: %s\nLocked:%s\nComponent '\
                                 'Uri:%s\nFile Path: %s\nSizeBytes: %s\n\n' % \
-                             (comp['Id'], comp['Name'], comp['Version'], \
-                              comp['ComponentUri'], comp['Filepath'], \
-                              str(comp['SizeBytes'])))
+                             (comp['Id'], comp['Name'].encode("ascii", "ignore"), comp['Version'], \
+                              'Yes' if comp['Locked'] else 'No', comp['ComponentUri'], \
+                              comp['Filepath'], str(comp['SizeBytes'])))
 
     def listcomponentvalidation(self, options):
         """ listcomp validation function
@@ -104,6 +100,10 @@ class ListComponentCommand(RdmcCommandBase):
         """
         inputline = list()
         client = None
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -124,14 +124,12 @@ class ListComponentCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
 

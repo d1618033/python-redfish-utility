@@ -1,6 +1,6 @@
 ## Higher Security Modes
 
-This section describes how to set higher security modes and how to use RESTful Interface Tool in these modes.
+This section describes how to set higher security modes and how to use the RESTful Interface Tool in these modes.
 <aside class="notice">These security settings are only available in HPE Gen10 servers.</aside>
 
 ### Setting iLO Higher Security Modes
@@ -24,6 +24,6 @@ To use RESTful Interface Tool locally in higher security modes, you must pass cr
 > ![Set Security 4](images/Security_4.png "Set Security 4")
 
 ### A note on OS FIPS modes
-RESTful Interface Tool 2.2 and greater have OS FIPS support. If an OS is set to enforce FIPS, RESTful Interface Tool used a FIPS version of OpenSSL.
+RESTful Interface Tool 2.2 and greater have OS FIPS support. If an OS is set to enforce FIPS, RESTful Interface Tool uses a FIPS version of OpenSSL.
 
 For users running from source that would like FIPS support, please see [this link](https://developer.hpe.com/blog/creating-a-python-version-that-enforces-fips) containing information on including this feature.

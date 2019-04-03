@@ -18,8 +18,10 @@
 """ Status Command for RDMC """
 
 import sys
+import json
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
                                                     NoCurrentSessionEstablished
@@ -54,21 +56,42 @@ class StatusCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.statusvalidation(options)
         contents = self._rdmc.app.status()
         selector = self._rdmc.app.get_selector()
 
-        if contents:
+        if contents and options.json:
+            self.jsonout(contents)
+        elif contents:
             self.outputpatches(contents, selector)
         else:
             sys.stdout.write("No changes found\n")
 
         #Return code
         return ReturnCodes.SUCCESS
+
+    def jsonout(self, contents):
+        """ Helper function to print json output of patches
+
+        :param contents: contents for the selection
+        :type contents: string.
+        """
+        sys.stdout.write("Current changes found:\n")
+        createdict = lambda y, x: {x:y}
+        totdict = {}
+        for item in contents:
+            for keypath, value in item.items():
+                path = keypath.split('(')[1].strip('()')
+                cont = {}
+                totdict[path] = cont
+                for content in value:
+                    val = ["List Manipulation"] if content['op'] == 'move' else \
+                        [content["value"].strip('"\'')] if len(content["value"]) else [""]
+                    cont = reduce(createdict, reversed([path]+content['path'].strip('/').\
+                                  split('/')+val))
+                    self._rdmc.app.merge_dict(totdict, cont)
+        sys.stdout.write(json.dumps(totdict, indent=2))#, cls=JSONEncoder)
+        sys.stdout.write('\n')
 
     def outputpatches(self, contents, selector):
         """ Helper function for status for use in patches
@@ -81,7 +104,7 @@ class StatusCommand(RdmcCommandBase):
         sys.stdout.write("Current changes found:\n")
         for item in contents:
             moveoperation = ""
-            for key, value in item.iteritems():
+            for key, value in item.items():
                 if selector and key.lower().startswith(selector.lower()):
                     sys.stdout.write("%s (Currently selected)\n" % key)
                 else:
@@ -98,18 +121,16 @@ class StatusCommand(RdmcCommandBase):
                             continue
                     try:
                         if isinstance(content[0]["value"], int):
-                            sys.stdout.write(u'\t%s=%s' % \
+                            sys.stdout.write('\t%s=%s' % \
                                  (content[0]["path"][1:], content[0]["value"]))
                         elif not isinstance(content[0]["value"], bool) and \
                                             not len(content[0]["value"]) == 0:
                             if content[0]["value"][0] == '"' and \
                                                 content[0]["value"][-1] == '"':
-                                sys.stdout.write(u'\t%s=%s' % \
-                                                    (content[0]["path"][1:], \
+                                sys.stdout.write('\t%s=%s' % (content[0]["path"][1:], \
                                                     content[0]["value"][1:-1]))
                             else:
-                                sys.stdout.write(u'\t%s=%s' % \
-                                                    (content[0]["path"][1:], \
+                                sys.stdout.write('\t%s=%s' % (content[0]["path"][1:], \
                                                      content[0]["value"]))
                         else:
                             output = content[0]["value"]
@@ -118,22 +139,20 @@ class StatusCommand(RdmcCommandBase):
                                 if len(output) == 0:
                                     output = '""'
 
-                            sys.stdout.write(u'\t%s=%s' % \
+                            sys.stdout.write('\t%s=%s' % \
                                              (content[0]["path"][1:], output))
                     except:
                         if isinstance(content["value"], int):
-                            sys.stdout.write(u'\t%s=%s' % \
+                            sys.stdout.write('\t%s=%s' % \
                                  (content["path"][1:], content["value"]))
                         elif not isinstance(content["value"], bool) and \
                                                 not len(content["value"]) == 0:
                             if content["value"][0] == '"' and \
                                                     content["value"][-1] == '"':
-                                sys.stdout.write(u'\t%s=%s' % \
-                                                        (content["path"][1:], \
+                                sys.stdout.write('\t%s=%s' % (content["path"][1:], \
                                                         content["value"]))
                             else:
-                                sys.stdout.write(u'\t%s=%s' % \
-                                                        (content["path"][1:], \
+                                sys.stdout.write('\t%s=%s' % (content["path"][1:], \
                                                         content["value"]))
                         else:
                             output = content["value"]
@@ -142,14 +161,18 @@ class StatusCommand(RdmcCommandBase):
                                 if len(output) == 0:
                                     output = '""'
 
-                            sys.stdout.write(u'\t%s=%s' % \
-                                                (content["path"][1:], output))
+                            sys.stdout.write('\t%s=%s' % (content["path"][1:], output))
                     sys.stdout.write('\n')
             if moveoperation:
-                sys.stdout.write(u"\t%s=List Manipulation\n" % moveoperation)
+                sys.stdout.write("\t%s=List Manipulation\n" % moveoperation)
 
     def statusvalidation(self, options):
         """ Status method validation function """
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -184,6 +207,16 @@ class StatusCommand(RdmcCommandBase):
             help="Pass this flag along with the username flag if you are"\
             "running in local higher security modes.""",
             default=None,
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )
         customparser.add_option(
             '-e',

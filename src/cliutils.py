@@ -55,7 +55,7 @@ def get_user_config_dir():
                              wintypes.HANDLE, wintypes.DWORD, wintypes.LPCWSTR]
 
 
-            path_buf = wintypes.create_unicode_buffer(wintypes.MAX_PATH)
+            path_buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
             result = shgetfolderpath(0, csidl_appdata, 0, 0, path_buf)
 
             if result == 0:

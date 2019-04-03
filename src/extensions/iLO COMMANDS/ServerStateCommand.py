@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class ServerStateCommand(RdmcCommandBase):
     """ Returns the current state of the server that  is currently logged in """
@@ -30,8 +30,7 @@ class ServerStateCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='serverstate',\
             usage='serverstate [OPTIONS]\n\n\treturns the current state of the'\
-            ' server\n\n\tShow the current server state.' \
-                                                    '\n\texample: serverstate',\
+            ' server\n\n\tShow the current server state.\n\texample: serverstate',\
             summary='Returns the current state of the server.',\
             aliases=['serverstate'],\
             optparser=OptionParser())
@@ -58,23 +57,16 @@ class ServerStateCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid number of parameters, "\
                             "serverstate command does not take any parameters.")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.serverstatevalidation(options)
 
         path = self.typepath.defs.systempath
-        results = self._rdmc.app.get_handler(path, silent=True, \
-                                                            uncache=True).dict
+        results = self._rdmc.app.get_handler(path, silent=True, uncache=True).dict
 
         if results:
             results = results['Oem'][self.typepath.defs.oemhp]['PostState']
-            sys.stdout.write("The server is currently in state: " + results + \
-                                                                        '\n')
+            sys.stdout.write("The server is currently in state: " + results + '\n')
         else:
-            raise NoContentsFoundForOperationError("Unable to retrieve " \
-                                                                "server state")
+            raise NoContentsFoundForOperationError("Unable to retrieve server state")
 
         return ReturnCodes.SUCCESS
 
@@ -86,6 +78,10 @@ class ServerStateCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -106,11 +102,9 @@ class ServerStateCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

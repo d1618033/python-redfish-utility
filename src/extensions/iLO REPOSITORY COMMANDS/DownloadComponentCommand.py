@@ -30,8 +30,7 @@ import redfish.hpilo.risblobstore2 as risblobstore2
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                         InvalidCommandLineError, DownloadError, \
-                        InvalidFileInputError, IncompatibleiLOVersionError, \
-                        Encryption
+                        InvalidFileInputError, IncompatibleiLOVersionError, Encryption
 
 def human_readable_time(seconds):
     """ Returns human readable time
@@ -100,8 +99,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Download component only takes 1 " \
                                                 "component path argument.\n")
         elif not args:
-            raise InvalidCommandLineError("Download component missing " \
-                                                            "component path.\n")
+            raise InvalidCommandLineError("Download component missing component path.\n")
 
         start_time = time.time()
         ret = ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
@@ -140,8 +138,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             raise InvalidFileInputError("Invalid output file location.")
         if not os.access(os.path.join(os.path.split(destination)[0]), os.W_OK):
             raise InvalidFileInputError("File location is not writable.")
-        if os.access(destination, os.F_OK) and not os.access(destination, \
-                                                                 os.W_OK):
+        if os.access(destination, os.F_OK) and not os.access(destination, os.W_OK):
             raise InvalidFileInputError("Existing File cannot be overwritten.")
 
         if filepath[0] != '/':
@@ -151,7 +148,7 @@ class DownloadComponentCommand(RdmcCommandBase):
                              uncache=True, sessionid=options.sessionid)
 
         with open(destination, "wb") as local_file:
-            local_file.write(results.read)
+            local_file.write(results.ori)
 
         sys.stdout.write("Download complete\n")
 
@@ -184,16 +181,14 @@ class DownloadComponentCommand(RdmcCommandBase):
                 raise InvalidFileInputError("Existing File cannot be overwritten.")
 
             ret = bs2.channel.dll.downloadComponent(ctypes.create_string_buffer(\
-                                                filename.encode('utf-8')), \
-                                                ctypes.create_string_buffer(\
-                                                destination.encode('utf-8')))
+                                filename.encode('utf-8')), ctypes.create_string_buffer(\
+                                                            destination.encode('utf-8')))
 
             if ret != 0:
                 sys.stdout.write("Component " + filename + " download failed\n")
                 return ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
             else:
-                sys.stdout.write("Component " + filename + \
-                                                    " downloaded successfully\n")
+                sys.stdout.write("Component " + filename + " downloaded successfully\n")
 
         except Exception as excep:
             raise DownloadError(str(excep))
@@ -228,19 +223,17 @@ class DownloadComponentCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
 
     def sessionvalidation(self, options):
-        """ Raw get validation function
+        """ session validation function
 
         :param options: command line options
         :type options: list.

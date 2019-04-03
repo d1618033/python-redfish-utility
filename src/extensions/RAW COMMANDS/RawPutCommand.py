@@ -77,13 +77,12 @@ class RawPutCommand(RdmcCommandBase):
             try:
                 inputfile = open(args[0], 'r')
                 contentsholder = json.loads(inputfile.read())
-            except Exception, excp:
+            except Exception as excp:
                 raise InvalidFileInputError("%s" % excp)
         elif len(args) > 1:
             raise InvalidCommandLineError("Raw put only takes 1 argument.\n")
         else:
-            raise InvalidCommandLineError("Missing raw put file input "\
-                                                                "argument.\n")
+            raise InvalidCommandLineError("Missing raw put file input argument.\n")
 
         if options.headers:
             extraheaders = options.headers.split(',')
@@ -94,8 +93,7 @@ class RawPutCommand(RdmcCommandBase):
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    raise InvalidCommandLineError("Invalid format for " \
-                                                            "--headers option.")
+                    raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
             returnresponse = False
@@ -109,7 +107,7 @@ class RawPutCommand(RdmcCommandBase):
               response=returnresponse, silent=options.silent, \
               optionalpassword=options.biospassword, service=options.service, \
               providerheader=options.providerid, username=options.user, \
-              password=options.password)
+              password=options.password, is_redfish=self._rdmc.opts.is_redfish)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
@@ -117,10 +115,10 @@ class RawPutCommand(RdmcCommandBase):
         if results and returnresponse:
             if options.getheaders:
                 sys.stdout.write(json.dumps(dict(\
-                                 results._http_response.getheaders())) + "\n")
+                                 results.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.text)
+                sys.stdout.write(results.read)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -155,11 +153,9 @@ class RawPutCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
             self.lobobj.loginfunction(inputline, skipbuild=True)
 
     def sessionvalidation(self, options):
@@ -258,15 +254,14 @@ class RawPutCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(
             '--service',
             dest='service',
             action="store_true",
-            help="""Use this flag to enable service mode and increase """\
-                                                """the function speed""",
+            help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_option(

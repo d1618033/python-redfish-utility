@@ -47,12 +47,6 @@
                 <File Id='ILOREST_ENVSBAT' Name='rdmc-envs.bat' Source='win32\rdmc-envs.bat' Checksum='yes' />
 				<File Id='ILOREST_SYMLINK' Name='symlink.bat' Source='win32\symlink.bat' Checksum='yes' />
 				<File Id='ILORESTCONF' Name='redfish.conf' Source='dist\redfish.conf' ProcessorArchitecture='x64' Checksum='yes' />
-				<!-- File Id='ILORESTZIP1' Name='hp-rest-classes-bios-P89-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-P89-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
-				<File Id='ILORESTZIP2' Name='hp-rest-classes-bios-P92-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-P92-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
-				<File Id='ILORESTZIP3' Name='hp-rest-classes-bios-U13-1.00_07_13_2014.zip' Source='dist\hp-rest-classes-bios-U13-1.00_07_13_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
-				<File Id='ILORESTZIP4' Name='hp-rest-classes-bios-U20-1.00_07_12_2014.zip' Source='dist\hp-rest-classes-bios-U20-1.00_07_12_2014.zip' ProcessorArchitecture='x64' Checksum='yes' />
-				<File Id='ILORESTZIP5' Name='hp-rest-classes-ilo4-200.zip' Source='dist\hp-rest-classes-ilo4-200.zip' ProcessorArchitecture='x64' Checksum='yes' />
-				<File Id='ILORESTZIP6' Name='hp-rest-classes-bios-I36-1.00_07_11_2014.zip' Source='dist\hp-rest-classes-bios-I36-1.00_07_11_2014.zip' ProcessorArchitecture='x64' Checksum='yes' /-->
 				<File Id='ILORESTCHIFDLL' Name='ilorest_chif.dll' Source='dist\ilorest_chif.dll' ProcessorArchitecture='x64' Checksum='yes' />
             </Component>
 

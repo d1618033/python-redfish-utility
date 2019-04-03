@@ -21,6 +21,7 @@ import os
 import sys
 import json
 
+from six.moves import input
 from optparse import OptionParser
 
 from rdmc_base_classes import RdmcCommandBase
@@ -29,7 +30,7 @@ from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError
 
 class MakeInstallSetCommand(RdmcCommandBase):
-    """ Command class to creeate installset payload"""
+    """ Command class to create installset payload"""
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='makeinstallset', \
@@ -83,8 +84,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
 
         sys.stdout.write("Warning: This command will run in interactive mode.\n")
         if args:
-            raise InvalidCommandLineError("makeinstallset command takes no "\
-                                          "arguments.")
+            raise InvalidCommandLineError("makeinstallset command takes no arguments.")
 
         self.minstallsetworker(options)
 
@@ -115,7 +115,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
                 if len(reqdprops) <= count:
                     break
                 if count == -1:
-                    line = raw_input("\nEnter a name for this command: ")
+                    line = input("\nEnter a name for this command: ")
                 else:
                     sys.stdout.write('\n'+self.helptext[reqdprops[count]] + "\n")
                     if self.loggedin and reqdprops[count].lower() == 'filename':
@@ -124,8 +124,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
                         comps['UpdatableBy'] = updateby
                         break
                     else:
-                        line = raw_input('Enter '+ reqdprops[count] + \
-                                         " for " + comps["Name"] + ": ")
+                        line = input('Enter '+ reqdprops[count] + " for " + comps["Name"] + ": ")
                 if line.endswith(os.linesep):
                     line.rstrip(os.linesep)
                 if line == "backout":
@@ -136,12 +135,11 @@ class MakeInstallSetCommand(RdmcCommandBase):
                     comps["Name"] = line
                 else:
                     while True:
-                        validated = self.validatepropvalue(reqdprops[count], line, \
-                                                                        reqdprops)
+                        validated = self.validatepropvalue(reqdprops[count], line, reqdprops)
                         if not validated:
                             if line == "backout":
                                 break
-                            line = raw_input("Input %s is not a valid property " \
+                            line = input("Input %s is not a valid property " \
                                             "for %s. Try again: " % (line, reqdprops[count]))
                         else:
                             comps[reqdprops[count]] = validated
@@ -154,11 +152,10 @@ class MakeInstallSetCommand(RdmcCommandBase):
                 totcount = totcount + 1
 
         if not totcount:
-            sys.stdout.write("No sequences created. Exiting without creating an "\
-                             "installset.\n")
+            sys.stdout.write("No sequences created. Exiting without creating an installset.\n")
         else:
             while True:
-                isrecovery = raw_input("Is this a recovery installset? ")
+                isrecovery = input("Is this a recovery installset? ")
                 isrecovery = True if str(isrecovery).lower() in \
                                             ['true', 't', 'yes'] else isrecovery
                 isrecovery = False if str(isrecovery).lower() in \
@@ -173,13 +170,13 @@ class MakeInstallSetCommand(RdmcCommandBase):
                 installsetname = "System Recovery Set"
             else:
                 while True:
-                    installsetname = raw_input("Enter installset name: ")
+                    installsetname = input("Enter installset name: ")
                     if not installsetname:
                         sys.stdout.write("Install set must have a name.\n")
                     else:
                         break
 
-            description = raw_input("Enter description for the installset: ")
+            description = input("Enter description for the installset: ")
 
             body = {"Name":installsetname, "Description":description, \
                     "IsRecovery":isrecovery, "Sequence":totcomps}
@@ -248,9 +245,9 @@ class MakeInstallSetCommand(RdmcCommandBase):
                          "been added to the installset:\n")
         for comp in self.comps:
             count += 1
-            sys.stdout.write("[%d] %s\n" % (count, comp['Name']))
+            sys.stdout.write("[%d] %s\n" % (count, comp['Name'].encode("ascii","ignore")))
         while True:
-            userinput = raw_input("Select the number of the component you want to add to "\
+            userinput = input("Select the number of the component you want to add to "\
                              "the install set: ")
             try:
                 userinput = int(userinput)

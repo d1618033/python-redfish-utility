@@ -17,11 +17,15 @@
 # -*- coding: utf-8 -*-
 """ Firmware Update Command for rdmc """
 
+import sys
+import time
+
+from datetime import datetime
+
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, \
-                    IloLicenseError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, IloLicenseError, Encryption, \
+                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, TimeOutError
 
 class FirmwareIntegrityCheckCommand(RdmcCommandBase):
     """ Reboot server that is currently logged in """
@@ -30,9 +34,9 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             name='fwintegritycheck',\
             usage='fwintegritycheck [OPTIONS]\n\n\tPerform a firmware ' \
                     'integrity check on the current logged in server.\n\t' \
-                    'example: fwintegritycheck',\
-            summary='Perform a firmware integrity check on the current logged' \
-                    ' in server.',\
+                    'example: fwintegritycheck\n\n\tPerform a firmware integrity check and '\
+                    'return results of the check.\n\texmaple: fwintegritycheck --results',\
+            summary='Perform a firmware integrity check on the currently logged in server.',\
             aliases=['fwintegritycheck'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -56,21 +60,14 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError('fwintegritycheck command takes no ' \
-                                                                    'arguments')
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+            raise InvalidCommandLineError('fwintegritycheck command takes no arguments')
 
         self.firmwareintegritycheckvalidation(options)
-
         if self.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('fwintegritycheck command is ' \
                                                     'only available on iLO 5.')
 
-        licenseres = self._rdmc.app.filter('HpeiLOLicense.', None, None)
+        licenseres = self._rdmc.app.select(selector='HpeiLOLicense.')
         try:
             licenseres = licenseres[0]
         except:
@@ -79,7 +76,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             raise IloLicenseError("This command is not available with this iLO license.")
 
         select = self.typepath.defs.hpilofirmwareupdatetype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -93,6 +90,34 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
 
         self._rdmc.app.post_handler(path, {})
 
+        if options.results:
+            results_string = "Awaiting results of firmware integrity check..."
+            sys.stdout.write(results_string)
+            polling = 50
+            found = False
+            while polling > 0:
+                if not polling % 5:
+                    sys.stdout.write('.')
+                get_results = self._rdmc.app.get_handler(bodydict['@odata.id'],\
+                    service=True, silent=True)
+                if get_results:
+                    curr_time = datetime.strptime(bodydict['Oem']['Hpe']\
+                                        ['CurrentTime'], "%Y-%m-%dT%H:%M:%SZ")
+                    scan_time = datetime.strptime(get_results.dict['Oem']['Hpe']\
+                        ['FirmwareIntegrity']['LastScanTime'], "%Y-%m-%dT%H:%M:%SZ")
+
+                    if scan_time > curr_time:
+                        sys.stdout.write('\nScan Result: %s\n' % get_results.dict\
+                            ['Oem']['Hpe']['FirmwareIntegrity']['LastScanResult'])
+                        found = True
+                        break
+
+                    polling -= 1
+                    time.sleep(1)
+            if not found:
+                sys.stdout.write('\nPolling timed out before scan completed.\n')
+                TimeOutError("")
+
         return ReturnCodes.SUCCESS
 
     def firmwareintegritycheckvalidation(self, options):
@@ -103,6 +128,10 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -123,11 +152,9 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -164,6 +191,14 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '--results',
+            dest='results',
+            help="Optionally include this flag to show results of firmware "\
+                                                            "integrity check.",
+            default=False,
+            action='store_true'
         )
         customparser.add_option(
             '-e',

@@ -19,15 +19,14 @@
 
 from optparse import OptionParser, SUPPRESS_HELP
 from collections import (OrderedDict)
-import collections
+
+import six
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, Encryption, \
-                    InvalidCommandLineErrorOPTS, UI, \
-                    NoContentsFoundForOperationError
-
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, Encryption, \
+                    NoContentsFoundForOperationError, InvalidCommandLineError
 
 class GetCommand(RdmcCommandBase):
     """ Constructor """
@@ -64,67 +63,31 @@ class GetCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.getvalidation(options)
 
-        multiargs = False
-        content = []
+        filtr = (None, None)
 
-        if args:
-            for arg in args:
-                newargs = list()
+        if options.filter:
+            try:
+                if (str(options.filter)[0] == str(options.filter)[-1])\
+                        and str(options.filter).startswith(("'", '"')):
+                    options.filter = options.filter[1:-1]
 
-                if self._rdmc.app.get_selector().lower().startswith('bios.'):
-                    if 'attributes' not in arg.lower():
-                        arg = "Attributes/" + arg
+                (sel, val) = options.filter.split('=')
+                filtr = (sel.strip(), val.strip())
 
-                if "/" in arg:
-                    newargs = arg.split("/")
-                    arg = newargs[0]
+            except:
+                raise InvalidCommandLineError("Invalid filter" \
+                  " parameter format [filter_attribute]=[filter_value]")
 
-                if len(args) > 1 and options.json:
-                    multiargs = True
-                    item = self.getworkerfunction(arg, options, line,\
-                                newargs=newargs, results=True, uselist=True, \
-                                                readonly=options.noreadonly, multivals=True)
-
-                    if item:
-                        content.append(item)
-                    else:
-                        if not newargs:
-                            raise NoContentsFoundForOperationError('No ' \
-                                           'contents found for entry: %s' % arg)
-                        else:
-                            raise NoContentsFoundForOperationError('No ' \
-                                       'contents found for entry: %s' % line[0])
-                else:
-                    if not self.getworkerfunction(arg, options, line, uselist=True,\
-                                        readonly=options.noreadonly, newargs=newargs):
-                        if not newargs:
-                            raise NoContentsFoundForOperationError('No ' \
-                                           'contents found for entry: %s' % arg)
-                        else:
-                            raise NoContentsFoundForOperationError('No ' \
-                                       'contents found for entry: %s' % line[0])
-        else:
-            if not self.getworkerfunction(args, options, line, uselist=True, \
-                                          readonly=options.noreadonly):
-                raise NoContentsFoundForOperationError('No contents found')
-
-        if multiargs and options.json:
-            self.jsonprinthelper(content)
-
-        if options.logout:
-            self.logoutobj.run("")
+        self.getworkerfunction(args, options, results=None, uselist=True, filtervals=filtr,\
+                               readonly=options.noreadonly)
 
         #Return code
         return ReturnCodes.SUCCESS
 
-    def getworkerfunction(self, args, options, line, newargs=None, readonly=False,\
-                                results=None, uselist=False, multivals=False):
+    def getworkerfunction(self, args, options, readonly=False, filtervals=(None, None),\
+                                results=None, uselist=False):
         """ main get worker function
 
         :param args: command line arguments
@@ -133,120 +96,57 @@ class GetCommand(RdmcCommandBase):
         :type options: list.
         :param line: command line input
         :type line: string.
-        :param newargs: new style arguments
-        :type newargs: list.
         :param readonly: remove readonly properties
-        :type newargs: bool
+        :type readonly: bool
+        :param filtervals: filter key value pair (Key,Val)
+        :type filtervals: tuple
         :param results: current results collected
         :type results: string.
         :param uselist: use reserved properties list to filter results
         :type uselist: boolean.
-        :param multivals: multiple values
-        :type multivals: boolean.
         """
-        listitem = False
-        somethingfound = False
-        if readonly:
-            try:
-                contents = self._rdmc.app.get_save(args, remread=True)
-                uselist = False
-            except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
-                contents = self._rdmc.app.get_save(args)
-        else:
-            contents = self._rdmc.app.get_save(args)
+        content = []
+        nocontent = set()
+        instances = None
 
-        values = {}
-        itemnum = 0
+        #For rest redfish compatibility of bios.
+        args = [args] if args and isinstance(args, six.string_types) else args
+        args = ["Attributes/"+arg if self._rdmc.app.get_selector().lower().\
+                startswith('bios.') and 'attributes' not in arg.lower() else arg \
+                                                for arg in args] if args else args
+        if filtervals[0]:
+            instances = self._rdmc.app.select(selector=self._rdmc.app.get_selector(), \
+                                                                    fltrvals=filtervals)
 
-        if not contents:
-            raise NoContentsFoundForOperationError('No contents '\
-                                                'found for entries: %s' % line)
+        try:
+            contents = self._rdmc.app.getprops(props=args, remread=readonly, nocontent=nocontent, \
+                                                                                insts=instances)
+            uselist = False if readonly else uselist
+        except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
+            contents = self._rdmc.app.getprops(props=args, nocontent=nocontent)
+        for ind, content in enumerate(contents):
+            if 'bios.' in self._rdmc.app.get_selector().lower() and \
+                    'Attributes' in list(content.keys()):
+                content.update(content['Attributes'])
+                del content['Attributes']
+            contents[ind] = OrderedDict(sorted(list(content.items()), key=lambda x: x[0]))
+        if uselist:
+            map(lambda x: self.removereserved(x), contents)
+        if results:
+            return contents
 
-        for content in contents:
-            if 'bios.' in self._rdmc.app.get_selector().lower():
-                if 'Attributes' in content.keys():
-                    content.update(content['Attributes'])
-                    del content['Attributes']
+        contents = contents[0] if len(contents) == 1 else contents
+        if options and options.json and contents:
+            UI().print_out_json(contents)
+        elif contents:
+            UI().print_out_human_readable(contents)
 
-                    try:
-                        for item in newargs:
-                            if item.lower() == 'attributes':
-                                newargs.remove(item)
-                                break
-                    except:
-                        pass
-
-            content = OrderedDict(sorted(content.items(), key=lambda x: x[0]))
-
-            if uselist:
-                self.removereserved(content)
-
-            if len(content):
-                itemnum += 1
-
-                if not newargs:
-                    somethingfound = True
-                else:
-                    innerresults = OrderedDict()
-                    newlist = list()
-
-                    for item in newargs:
-                        somethingfound = False
-                        if isinstance(content, list):
-                            if not content:
-                                break
-                            if len(content) > 1:
-                                argleft = [x for x in newargs if x not in \
-                                                                        newlist]
-
-                                _ = [self.getworkerhelper(results, content[x], \
-                                    newlist[:], argleft, jsono=options.json) \
-                                                for x in range(len(content))]
-                                somethingfound = True
-                                listitem = True
-                                break
-                            else:
-                                content = content[0]
-
-                        for key in content.keys():
-                            if item.lower() == key.lower():
-                                newlist.append(key)
-                                content = content.get(key)
-                                somethingfound = True
-                                break
-                        else:
-                            somethingfound = False
-
-                        if not somethingfound:
-                            return somethingfound
-
-                    counter = 0
-                    for item in reversed(newlist):
-                        if counter == 0:
-                            innerresults = {item:content}
-                            counter += 1
-                        else:
-                            innerresults = {item:innerresults}
-
-                    content = innerresults
-            else:
-                continue
-
-            if somethingfound and results:
-                if multivals:
-                    values[itemnum] = content
-                else:
-                    return content
-            elif somethingfound and not listitem:
-                if options.json:
-                    UI().print_out_json(content)
-                else:
-                    UI().print_out_human_readable(content)
-
-        if multivals:
-            return values
-
-        return somethingfound
+        if nocontent:
+            strtoprint = ', '.join(str(val) for val in nocontent)
+            raise NoContentsFoundForOperationError('No ' \
+                               'contents found for entry: %s' % strtoprint)
+        if options.logout:
+            self.logoutobj.run("")
 
     def removereserved(self, entry):
         """ function to remove reserved properties
@@ -255,7 +155,7 @@ class GetCommand(RdmcCommandBase):
         :type entry: dict.
         """
 
-        for key, val in entry.items():
+        for key, val in list(entry.items()):
             if key.lower() in HARDCODEDLIST or '@odata' in key.lower():
                 del entry[key]
             elif isinstance(val, list):
@@ -269,88 +169,6 @@ class GetCommand(RdmcCommandBase):
                 if all([True if not test else False for test in entry[key]]):
                     del entry[key]
 
-    def getworkerhelper(self, results, content, newlist, newargs, jsono=False):
-        """ helper function for list items
-
-        :param results: current results collected
-        :type results: string.
-        :param content: current content to work on
-        :type content: string.
-        :param newlist: new style list
-        :type newlist: list.
-        :param newargs: new style arguments
-        :type newargs: list.
-        :param jsono: boolean to determine output style
-        :type jsono: boolean.
-        """
-        somethingfound = False
-        innerresults = OrderedDict()
-        listitem = False
-        for item in newargs:
-            if isinstance(content, list):
-                if not content:
-                    return
-
-                if len(content) > 1:
-                    argleft = [x for x in newargs if x not in newlist]
-                    _ = [self.getworkerhelper(results, content[x], newlist[:],\
-                                argleft, jsono) for x in range(len(content))]
-                    listitem = True
-                    break
-                else:
-                    content = content[0]
-
-            for key in content.keys():
-                if item.lower() == key.lower():
-                    newlist.append(key)
-                    content = content.get(key)
-                    somethingfound = True
-                    break
-            else:
-                somethingfound = False
-
-            if not somethingfound:
-                return somethingfound
-
-        counter = 0
-        for item in reversed(newlist):
-            if counter == 0:
-                innerresults = {item:content}
-                counter += 1
-            else:
-                innerresults = {item:innerresults}
-                content = innerresults
-
-        if somethingfound and results:
-            return content
-        elif somethingfound and not listitem:
-            if jsono:
-                UI().print_out_json(content)
-            else:
-                UI().print_out_human_readable(content)
-
-    def jsonprinthelper(self, content):
-        """ Helper for JSON UI print out
-
-        :param content: current content to work on
-        :type content: string.
-        """
-        final = dict()
-
-        for item in content:
-            for num, _ in item.iteritems():
-                self.dict_merge(final, item)
-        for num in final:
-            UI().print_out_json(final[num])
-
-    def dict_merge(self, dct, merge_dct):
-        for key, _ in merge_dct.iteritems():
-            if (key in dct and isinstance(dct[key], dict)
-                    and isinstance(merge_dct[key], collections.Mapping)):
-                self.dict_merge(dct[key], merge_dct[key])
-            else:
-                dct[key] = merge_dct[key]
-
     def getvalidation(self, options):
         """ get method validation function
 
@@ -361,6 +179,10 @@ class GetCommand(RdmcCommandBase):
 
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -388,8 +210,6 @@ class GetCommand(RdmcCommandBase):
                                   self._rdmc.app.config.get_password()])
 
         if inputline and options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -398,12 +218,12 @@ class GetCommand(RdmcCommandBase):
             inputline.extend(["--selector", options.selector])
             self.lobobj.loginfunction(inputline)
         elif options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
                 inputline.extend(["--path", options.path])
+            if options.ref:
+                inputline.extend(["--refresh"])
 
             inputline.extend([options.selector])
             self.selobj.selectfunction(inputline)
@@ -411,16 +231,16 @@ class GetCommand(RdmcCommandBase):
             try:
                 inputline = list()
                 selector = self._rdmc.app.get_selector()
-                if options.filter:
-                    inputline.extend(["--filter", options.filter])
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
                     inputline.extend(["--path", options.path])
+                if options.ref:
+                    inputline.extend(["--refresh"])
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except:
+            except InvalidCommandLineErrorOPTS:
                 raise redfish.ris.NothingSelectedError
 
     def definearguments(self, customparser):
@@ -487,14 +307,11 @@ class GetCommand(RdmcCommandBase):
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
-            " will be /rest/v1. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " will be /redfish/v1/. Note: The path flag can only be specified"\
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
         )
         customparser.add_option(
@@ -524,6 +341,14 @@ class GetCommand(RdmcCommandBase):
             " properties that are not read-only. This is useful to see what "\
             "is configurable with the selected type(s).",
             default=False
+        )
+        customparser.add_option(
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear \
+                                            patches from current selection.",
+            default=False,
         )
         customparser.add_option(
             '-e',

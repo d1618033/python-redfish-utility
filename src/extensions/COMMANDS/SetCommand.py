@@ -53,7 +53,7 @@ class SetCommand(RdmcCommandBase):
         #remove reboot option if there is no reboot command
         try:
             self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        except:
+        except KeyError:
             self.parser.remove_option('--reboot')
 
     def setfunction(self, line, skipprint=False):
@@ -72,21 +72,25 @@ class SetCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not self._rdmc.interactive and \
-                                        not self._rdmc.app.config.get_cache():
+        if not self._rdmc.interactive and not self._rdmc.app.config.get_cache():
             raise InvalidCommandLineError("The 'set' command is not useful in "\
                                       "non-interactive and non-cache modes.")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.setvalidation(options)
-
+        fsel = None
+        fval = None
         if args:
+
+            if options.filter:
+                try:
+                    (fsel, fval) = str(options.filter).strip('\'\" ').split('=')
+                    (fsel, fval) = (fsel.strip(), fval.strip())
+                except:
+                    raise InvalidCommandLineError("Invalid filter" \
+                      " parameter format [filter_attribute]=[filter_value]")
+
             if any([s.lower().startswith('adminpassword=') for s in args]) \
-                    and not any([s.lower().startswith('oldadminpassword=') \
-                                                                for s in args]):
+                    and not any([s.lower().startswith('oldadminpassword=') for s in args]):
                 raise InvalidCommandLineError("'OldAdminPassword' must also " \
                             "be set with the current password \nwhen " \
                             "changing 'AdminPassword' for security reasons.")
@@ -102,15 +106,12 @@ class SetCommand(RdmcCommandBase):
                 try:
                     (sel, val) = arg.split('=')
                     sel = sel.strip().lower()
-                    val = val.strip()
-                    if val[0] in ("'", '"') and val[-1] in ("'", '"'):
-                        val = val[1:-1]
+                    val = val.strip('"\'')
 
                     if val.lower() == "true" or val.lower() == "false":
                         val = val.lower() in ("yes", "true", "t", "1")
                 except:
-                    raise InvalidCommandLineError("Invalid set parameter " \
-                                                  "format. [Key]=[Value]")
+                    raise InvalidCommandLineError("Invalid set parameter format. [Key]=[Value]")
 
                 newargs = list()
 
@@ -132,7 +133,7 @@ class SetCommand(RdmcCommandBase):
 
                 try:
                     contents = self._rdmc.app.loadset(seldict=payload,\
-                                        latestschema=options.latestschema,\
+                        latestschema=options.latestschema, fltrvals=(fsel, fval), \
                                         uniqueoverride=options.uniqueoverride)
                     if not contents:
                         if not sel.lower() == 'oldadminpassword':
@@ -149,32 +150,30 @@ class SetCommand(RdmcCommandBase):
                     else:
                         for content in contents:
                             if self._rdmc.opts.verbose:
-                                sys.stdout.write("Added the following" \
-                                                                    " patch:\n")
+                                sys.stdout.write("Added the following patch:\n")
                                 UI().print_out_json(content)
 
-                except redfish.ris.ValidationError, excp:
+                except redfish.ris.ValidationError as excp:
                     errs = excp.get_errors()
 
                     for err in errs:
-                        if err.sel.lower() == 'adminpassword':
+                        if err.sel and err.sel.lower() == 'adminpassword':
                             types = self._rdmc.app.current_client.monolith.types
 
                             for item in types:
                                 for instance in types[item]["Instances"]:
-                                    if 'hpbios.' in instance.type.lower():
+                                    if 'hpbios.' in instance.maj_type.lower():
                                         _ = [instance.patches.remove(patch) for \
                                          patch in instance.patches if \
-                                         patch.patch[0]['path'] == \
-                                         '/OldAdminPassword']
+                                         patch.patch[0]['path'] == '/OldAdminPassword']
 
                         if isinstance(err, redfish.ris.RegistryValidationError):
                             sys.stderr.write(err.message)
-                            sys.stderr.write(u'\n')
+                            sys.stderr.write('\n')
 
                             if err.reg and not skipprint:
                                 err.reg.print_help(sel)
-                                sys.stderr.write(u'\n')
+                                sys.stderr.write('\n')
 
                     raise redfish.ris.ValidationError(excp)
 
@@ -188,8 +187,7 @@ class SetCommand(RdmcCommandBase):
                 self.logoutobj.run("")
 
         else:
-            raise InvalidCommandLineError("Missing parameters "\
-                    "for 'set' command.\n")
+            raise InvalidCommandLineError("Missing parameters for 'set' command.\n")
 
     def run(self, line, skipprint=False):
         """ Main set function
@@ -213,6 +211,10 @@ class SetCommand(RdmcCommandBase):
         if self._rdmc.app.config._ac__commit.lower() == 'true':
             options.commit = True
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -232,15 +234,11 @@ class SetCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline and options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -251,8 +249,6 @@ class SetCommand(RdmcCommandBase):
             inputline.extend(["--selector", options.selector])
             self.lobobj.loginfunction(inputline)
         elif options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -266,8 +262,6 @@ class SetCommand(RdmcCommandBase):
             try:
                 inputline = list()
                 selector = self._rdmc.app.get_selector()
-                if options.filter:
-                    inputline.extend(["--filter", options.filter])
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
@@ -277,7 +271,7 @@ class SetCommand(RdmcCommandBase):
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except:
+            except InvalidCommandLineErrorOPTS:
                 raise redfish.ris.NothingSelectedSetError
 
     def definearguments(self, customparser):
@@ -365,14 +359,11 @@ class SetCommand(RdmcCommandBase):
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
             " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
         )
         customparser.add_option(
@@ -380,7 +371,7 @@ class SetCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(

@@ -22,7 +22,7 @@ import getpass
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, AccountExists,\
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, ResourceExists,\
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
 
 class IloFederationCommand(RdmcCommandBase):
@@ -70,10 +70,6 @@ class IloFederationCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.addfederationvalidation(options)
 
         if len(args) == 2 and args[0] in ['add', 'changekey']:
@@ -83,8 +79,7 @@ class IloFederationCommand(RdmcCommandBase):
             if tempnewkey and tempnewkey != '\r':
                 tempnewkey = tempnewkey
             else:
-                raise InvalidCommandLineError("Empty or invalid key" \
-                                                                " was entered.")
+                raise InvalidCommandLineError("Empty or invalid key was entered.")
             args.extend([tempnewkey])
 
         elif not len(args) <= 3:
@@ -92,8 +87,7 @@ class IloFederationCommand(RdmcCommandBase):
 
         redfish = self._rdmc.app.current_client.monolith.is_redfish
         path = self.typepath.defs.federationpath
-        results = self._rdmc.app.get_handler(path, service=True, \
-                                                            silent=True).dict
+        results = self._rdmc.app.get_handler(path, service=True, silent=True).dict
 
         newresults = []
 
@@ -109,6 +103,9 @@ class IloFederationCommand(RdmcCommandBase):
 
             newresults.append(fed)
             results = newresults
+
+        if not results:
+            raise NoContentsFoundForOperationError("")
 
         if not args:
             sys.stdout.write("iLO Federation Id list with Privileges:\n")
@@ -150,7 +147,7 @@ class IloFederationCommand(RdmcCommandBase):
 
             if resp and resp.dict:
                 if 'resourcealreadyexist' in str(resp.dict).lower():
-                    raise AccountExists('')
+                    raise ResourceExists('')
 
         elif args[0].lower() == 'changekey':
             args.remove('changekey')
@@ -181,7 +178,7 @@ class IloFederationCommand(RdmcCommandBase):
             args.remove('delete')
 
             try:
-                name = unicode(args[0])
+                name = str(args[0])
             except:
                 raise InvalidCommandLineError("No Name entered to delete.")
 
@@ -197,8 +194,7 @@ class IloFederationCommand(RdmcCommandBase):
             if not path == self.typepath.defs.federationpath:
                 self._rdmc.app.delete_handler(path)
             else:
-                raise NoContentsFoundForOperationError('Unable to find the specified'\
-                                                                    ' account.')
+                raise NoContentsFoundForOperationError('Unable to find the specified account.')
         else:
             raise InvalidCommandLineError('Invalid command.')
 
@@ -216,7 +212,7 @@ class IloFederationCommand(RdmcCommandBase):
         """
         for fed in feds:
             if fed['Name'] == username:
-                raise AccountExists('Federation name is already in use.')
+                raise ResourceExists('Federation name is already in use.')
 
         if len(username) >= 32:
             raise InvalidCommandLineError('User name exceeds maximum length.')
@@ -231,6 +227,10 @@ class IloFederationCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -251,11 +251,9 @@ class IloFederationCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

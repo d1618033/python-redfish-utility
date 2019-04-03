@@ -21,8 +21,8 @@ from optparse import OptionParser, SUPPRESS_HELP
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
-                                NoContentsFoundForOperationError
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidCommandLineError, \
+                        Encryption
 
 class ListCommand(RdmcCommandBase):
     """ Constructor """
@@ -59,30 +59,24 @@ class ListCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.listvalidation(options)
 
-        if args:
-            for arg in args:
-                newargs = list()
+        fvals = (None, None)
 
-                if "/" in arg:
-                    newargs = arg.split("/")
-                    arg = newargs[0]
+        if options.filter:
+            try:
+                if (str(options.filter)[0] == str(options.filter)[-1])\
+                        and str(options.filter).startswith(("'", '"')):
+                    options.filter = options.filter[1:-1]
 
-                if not self.getobj.getworkerfunction(arg, options, line,\
-                                                newargs=newargs, uselist=False):
-                    raise NoContentsFoundForOperationError('No contents found '\
-                                                        'for entry: %s\n' % arg)
-        else:
-            if not self.getobj.getworkerfunction(args, options, line, \
-                                                                uselist=False):
-                raise NoContentsFoundForOperationError('No contents found.')
+                (sel, val) = options.filter.split('=')
+                fvals = (sel.strip(), val.strip())
+            except:
+                raise InvalidCommandLineError("Invalid filter" \
+                  " parameter format [filter_attribute]=[filter_value]")
 
-        #Return code
+        self.getobj.getworkerfunction(args, options, filtervals=fvals, uselist=False)
+
         return ReturnCodes.SUCCESS
 
     def listvalidation(self, options):
@@ -95,6 +89,10 @@ class ListCommand(RdmcCommandBase):
 
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -115,15 +113,11 @@ class ListCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline and options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -132,12 +126,12 @@ class ListCommand(RdmcCommandBase):
             inputline.extend(["--selector", options.selector])
             self.lobobj.loginfunction(inputline)
         elif options.selector:
-            if options.filter:
-                inputline.extend(["--filter", options.filter])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
                 inputline.extend(["--path", options.path])
+            if options.ref:
+                inputline.extend(["--refresh"])
 
             inputline.extend([options.selector])
             self.selobj.selectfunction(inputline)
@@ -145,16 +139,16 @@ class ListCommand(RdmcCommandBase):
             try:
                 inputline = list()
                 selector = self._rdmc.app.get_selector()
-                if options.filter:
-                    inputline.extend(["--filter", options.filter])
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
                     inputline.extend(["--path", options.path])
+                if options.ref:
+                    inputline.extend(["--refresh"])
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except:
+            except InvalidCommandLineErrorOPTS:
                 raise redfish.ris.NothingSelectedError
 
     def definearguments(self, customparser):
@@ -240,15 +234,20 @@ class ListCommand(RdmcCommandBase):
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
             " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
+        )
+        customparser.add_option(
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear "\
+                                            "patches from current selection.",
+            default=False,
         )
         customparser.add_option(
             '-e',

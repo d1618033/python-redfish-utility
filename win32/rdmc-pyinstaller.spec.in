@@ -1,5 +1,6 @@
 # -*- mode: python -*-
 import os
+import sys
 import compileall
 
 block_cipher = None
@@ -27,6 +28,9 @@ def hiddenImportGet():
 			if '.pyc' in name and '__init__' not in name:
 				name = name.replace('.pyc', '')
 				classNames.append('extensions'+cn+'.'+name)
+
+	if sys.version_info[0] == 2:
+		classNames.append('urllib2')
 
 	return classNames
 

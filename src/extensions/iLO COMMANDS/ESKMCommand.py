@@ -18,9 +18,9 @@
 """ ESKM Command for rdmc """
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                     NoContentsFoundForOperationError, Encryption
 
 class ESKMCommand(RdmcCommandBase):
@@ -29,8 +29,7 @@ class ESKMCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='eskm',\
             usage='eskm [OPTIONS]\n\n\tClear the ESKM logs.\n\texample: eskm' \
-                    ' clearlog\n\n\tTest the ESKM connections.\n\texample: ' \
-                    'eskm testconnections',\
+                    ' clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections',\
             summary="Command for all ESKM available actions.",\
             aliases=None,\
             optparser=OptionParser())
@@ -54,18 +53,12 @@ class ESKMCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not len(args) == 1:
-            raise InvalidCommandLineError("eskm command only takes" \
-                                                            " one parameter.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+            raise InvalidCommandLineError("eskm command only takes one parameter.")
 
         self.eskmvalidation(options)
 
         select = self.typepath.defs.hpeskmtype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -110,6 +103,10 @@ class ESKMCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -129,11 +126,9 @@ class ESKMCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

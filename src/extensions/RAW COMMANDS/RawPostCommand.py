@@ -77,17 +77,16 @@ class RawPostCommand(RdmcCommandBase):
             try:
                 inputfile = open(args[0], 'r')
                 contentsholder = json.loads(inputfile.read())
-            except Exception, excp:
+            except Exception as excp:
                 raise InvalidFileInputError("%s" % excp)
         elif len(args) > 1:
             raise InvalidCommandLineError("Raw post only takes 1 argument.\n")
         else:
-            raise InvalidCommandLineError("Missing raw post file input "\
-                                                                "argument.\n")
+            raise InvalidCommandLineError("Missing raw post file input argument.\n")
         if options.encode:
             if "body" in contentsholder and "UserName" in contentsholder["body"] and \
                         "Password" in contentsholder["body"] and \
-                        len(contentsholder["body"].keys()) == 2:
+                        len(list(contentsholder["body"].keys())) == 2:
                 encobj = Encryption()
                 contentsholder["body"]["UserName"] = encobj.decode_credentials(\
                                             contentsholder["body"]["UserName"])
@@ -102,8 +101,7 @@ class RawPostCommand(RdmcCommandBase):
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    raise InvalidCommandLineError("Invalid format for " \
-                                                            "--headers option.")
+                    raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
             returnresponse = False
@@ -116,18 +114,18 @@ class RawPostCommand(RdmcCommandBase):
                   sessionid=options.sessionid, url=url, headers=headers, \
                   response=returnresponse, silent=options.silent, \
                   providerheader=options.providerid, service=options.service, \
-                  username=options.user, password=options.password)
+                  username=options.user, password=options.password, \
+                  is_redfish=self._rdmc.opts.is_redfish)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % args[0])
 
         if results and returnresponse:
             if options.getheaders:
-                sys.stdout.write(json.dumps(dict(\
-                                results._http_response.getheaders())) + "\n")
+                sys.stdout.write(json.dumps(dict(results.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.text + "\n")
+                sys.stdout.write(results.ori + "\n")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -159,11 +157,9 @@ class RawPostCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
             self.lobobj.loginfunction(inputline, skipbuild=True)
 
@@ -262,8 +258,7 @@ class RawPostCommand(RdmcCommandBase):
             '--service',
             dest='service',
             action="store_true",
-            help="""Use this flag to enable service mode and increase """\
-                                                """the function speed""",
+            help="""Use this flag to enable service mode and increase the function speed""",
             default=False
         )
         customparser.add_option(

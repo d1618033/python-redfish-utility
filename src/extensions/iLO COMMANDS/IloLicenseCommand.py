@@ -19,8 +19,8 @@
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class IloLicenseCommand(RdmcCommandBase):
     """ Add an iLO license to the server """
@@ -30,8 +30,7 @@ class IloLicenseCommand(RdmcCommandBase):
             usage='ilolicense [LICENSE_KEY] [OPTIONS]\n\n\t'\
                 'Set an iLO license on the current logged in server.\n\t' \
                 'example: ilolicense xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',\
-            summary='Adds an iLO license key to the currently logged in ' \
-            'server.',\
+            summary='Adds an iLO license key to the currently logged in server.',\
             aliases=None,\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -53,15 +52,10 @@ class IloLicenseCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.addlicensevalidation(options)
 
         if not len(args) == 1:
-            raise InvalidCommandLineError("ilolicense command only takes one "\
-                                                                    "argument")
+            raise InvalidCommandLineError("ilolicense command only takes one argument")
 
         path = self.typepath.defs.addlicensepath
         body = {"LicenseKey": "%s" % args[0]}
@@ -77,6 +71,10 @@ class IloLicenseCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -97,11 +95,9 @@ class IloLicenseCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

@@ -21,9 +21,10 @@ import sys
 import getpass
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
-                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class SetPasswordCommand(RdmcCommandBase):
     """ Set password class command """
@@ -65,10 +66,6 @@ class SetPasswordCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.setpasswordvalidation(options)
 
         if not args:
@@ -90,8 +87,7 @@ class SetPasswordCommand(RdmcCommandBase):
             args.extend([tempnewpass, tempoldpass])
 
         if not len(args) == 2:
-            raise InvalidCommandLineError("Please pass both new password and " \
-                                                                "old password.")
+            raise InvalidCommandLineError("Please pass both new password and old password.")
 
         count = 0
         for arg in args:
@@ -114,27 +110,22 @@ class SetPasswordCommand(RdmcCommandBase):
                     break
 
             if options.poweron:
-                body = {"PasswordName": "User",\
-                        "OldPassword": args[1],\
-                        "NewPassword": args[0]}
+                body = {"PasswordName": "User", "OldPassword": args[1], "NewPassword": args[0]}
             else:
-                body = {"PasswordName": "Administrator",\
-                        "OldPassword": args[1],\
+                body = {"PasswordName": "Administrator", "OldPassword": args[1],\
                         "NewPassword": args[0]}
 
             self._rdmc.app.post_handler(path, body)
         else:
             if options.poweron:
                 self.selobj.run("HpBios.")
-                self.setobj.run("PowerOnPassword=%s OldPowerOnPassword=%s" % \
-                                                            (args[0], args[1]))
+                self.setobj.run("PowerOnPassword=%s OldPowerOnPassword=%s" % (args[0], args[1]))
                 self.commitobj.run("")
             else:
                 self.selobj.run("HpBios.")
-                self.setobj.run("AdminPassword=%s OldAdminPassword=%s" % \
-                                                            (args[0], args[1]))
+                self.setobj.run("AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1]))
                 self.commitobj.run("")
-                sys.stdout.write(u'\nThe session will now be terminated.\nPlease'\
+                sys.stdout.write('\nThe session will now be terminated.\nPlease'\
                     ' login again with the updated credentials to continue.\n')
                 self.logoutobj.run("")
 
@@ -152,6 +143,10 @@ class SetPasswordCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -172,11 +167,9 @@ class SetPasswordCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

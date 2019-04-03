@@ -21,8 +21,7 @@ import sys
 
 from optparse import OptionParser
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
 
 class HelpCommand(RdmcCommandBase):
     """ Constructor """
@@ -31,8 +30,7 @@ class HelpCommand(RdmcCommandBase):
             name='help',\
             usage='help [COMMAND]\n\n\tFor more detailed command descriptions' \
                     ' use the help command feature\n\texample: help login',\
-            summary='Displays command line syntax and'\
-                    ' help menus for individual commands.'\
+            summary='Displays command line syntax and help menus for individual commands.'\
                     ' Example: help login',\
             aliases=[],\
             optparser=OptionParser())
@@ -59,21 +57,20 @@ class HelpCommand(RdmcCommandBase):
             RdmcOptionParser().print_help()
             if self._rdmc:
                 cmddict = self._rdmc.get_commands()
-                sorted_keys = cmddict.keys()
-                sorted_keys.sort()
+                sorted_keys = sorted(list(cmddict.keys()))
 
                 for key in sorted_keys:
                     if key[0] == '_':
                         continue
                     else:
-                        sys.stdout.write(u'\n%s\n' % key)
+                        sys.stdout.write('\n%s\n' % key)
 
                     for cmd in cmddict[key]:
                         cmd.print_summary()
         else:
             if self._rdmc:
                 cmddict = self._rdmc.get_commands()
-                sorted_keys = cmddict.keys()
+                sorted_keys = list(cmddict.keys())
 
                 for key in sorted_keys:
                     for cmd in cmddict[key]:

@@ -1,27 +1,29 @@
 ## Raw commands
 
-These are the raw HTTP RESTful operations that can be used through the RESTful Interface Tool. The commands and their examples that can be found in this section include the equivalents of HTTP RESTful **PATCH, GET, POST, PUT, DELETE**, and **HEAD**.
+This section lists the raw HTTP RESTful operations that can be used through the RESTful Interface Tool. The commands in this section are the equivalents of HTTP RESTful **PATCH, GET, POST, PUT, DELETE**, and **HEAD**.
 
 ### RawPatch command
 
 > RawPatch example commands:
 
-> Here, the **AdminName** of type **Bios** was "" before. The rawpatch command sent the patch.json to change that property to become **Jean Kranz**. Commit is left out deliberately here since, raw commands (such as rawpost, rawput, etc.) do not require the commit command to be run since changes are made directly. 
+> To directly patch to a URI with JSON data run the command supplying a filename with a json payload.
 
-> This particular change requires second-level BIOS authentication, which is why the biospassword flag was included.
+<pre>
+iLOrest > <font color="#01a982">rawpatch rawpatch.json</font>
+The operation completed successfully.
+</pre>
 
-> ![RawPatch Example 1](images/examples/rawpatch_ex1.png "RawPatch example 1")
 
-
-> The following **patch.json** file was used in the above example:
+> The following **rawpatch.json** file was used in the above example:
 
 ```json
 {
-    "path": "/rest/v1/systems/1/bios/Settings",
-    "body": {
-        "AdminName": "Jean Kranz"
-    }
+	"path": "/redfish/v1/systems/1",
+	"body": {
+		"AssetTag": "NewAssetTag"
+	}
 }
+
 ```
 
 
@@ -40,9 +42,9 @@ Use this command to perform an HTTP RESTful Patch command. Run to send a patch f
 
 ```json
 {
-	"path": "/rest/v1/systems/1/bios/Settings",
+	"path": "/redfish/v1/systems/1",
 	"body": {
-		"AdminName": "Jean Kranz"
+		"AssetTag": "NewAssetTag"
 	}
 }
 ```
@@ -73,7 +75,7 @@ Optionally include this flag if you would prefer to connect using a session id i
 
 - **--silent**
 
-Use this flag to silence responses
+Use this flag to silence responses.
 
 - **--response**
 
@@ -86,6 +88,7 @@ Use this flag to return the iLO response headers.
 - **--headers=HEADERS**
 
 Use this flag to add extra headers to the request.
+
 Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 - **--biospassword=BIOSPASSWORD**
@@ -116,15 +119,102 @@ None
 
 > RawGet example commands:
 
-> **Above:** The rawget command here executed the GET command on the path **/rest/v1/systems/1/bios/Settings**. This displays the information in the given path. 
+> To get the complete JSON response directly from the URI requested run the command specifying a URI to retrieve.
 
-<aside class="notice">
-The full list of information has been truncated for space.
-</aside>
+<pre>
+LOrest > <font color="#01a982">rawget /redfish/v1/systems/1</font>
+[200] The operation completed successfully.
+{
+  "BiosVersion": "U32 v2.10 (12/14/2018)",
+  "SKU": "Kappa",
+  "PowerState": "On",
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/1/Processors"
+  },
+  "SerialNumber": "Kappa",
+  "Boot": {
+    "BootSourceOverrideTarget": "Cd",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Cd",
+      "Hdd",
+      "Usb",
+      "SDCard",
+      "Utilities",
+      "Diags",
+      "BiosSetup",
+      "Pxe",
+      "UefiShell",
+      "UefiHttp",
+      "UefiTarget"
+    ],
+</pre>
 
-> ![Rawget Example 1](images/examples/rawget_ex1.png "RawGet example 1")
+> Specify a file to save the response to by including the `-f, --filename` option.
 
-> ![Rawget Example 2](images/examples/rawget_ex2.png "RawGet example 2")
+<pre>
+LOrest > rawget /redfish/v1/systems/1 <font color="#01a982">-f system.json</font>
+[200] The operation completed successfully.
+Results written out to 'system.json'.
+</pre>
+
+> Use the `--expand` flag to expand collection URIs to include the response of collection members. The full response has been truncated for space.
+
+<pre>
+iLOrest > rawget /redfish/v1/systems/1 -f system.json
+[200] The operation completed successfully.
+Results written out to 'system.json'.
+iLOrest > rawget /redfish/v1/systems/
+[200] The operation completed successfully.
+{
+  "@odata.type": "#ComputerSystemCollection.ComputerSystemCollection",
+  "Description": "Computer Systems view",
+  "Members@odata.count": 1,
+  "@odata.id": "/redfish/v1/Systems/",
+  "@odata.context": "/redfish/v1/$metadata#ComputerSystemCollection.ComputerSystemCollection",
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/"
+    }
+  ],
+  "@odata.etag": "W/\"AA6D42B0\"",
+  "Name": "Computer Systems"
+}
+iLOrest > rawget /redfish/v1/systems/ <font color="#01a982">--expand</font>
+[200] The operation completed successfully.
+{
+  "@odata.type": "#ComputerSystemCollection.ComputerSystemCollection",
+  "Description": "Computer Systems view",
+  "Members@odata.count": 1,
+  "@odata.id": "/redfish/v1/Systems/",
+  "@odata.context": "/redfish/v1/$metadata#ComputerSystemCollection.ComputerSystemCollection",
+  "Members": [
+    {
+      "BiosVersion": "U32 v2.10 (12/14/2018)",
+      "SKU": "Kappa",
+      "PowerState": "On",
+      "Processors": {
+        "@odata.id": "/redfish/v1/Systems/1/Processors/"
+      },
+      "SerialNumber": "Kappa",
+      "Boot": {
+        "BootSourceOverrideTarget": "Cd",
+        "BootSourceOverrideTarget@Redfish.AllowableValues": [
+          "None",
+          "Cd",
+          "Hdd",
+          "Usb",
+          "SDCard",
+          "Utilities",
+          "Diags",
+          "BiosSetup",
+          "Pxe",
+          "UefiShell",
+          "UefiHttp",
+          "UefiTarget"
+        ],
+</pre>
+
 
 
 #### Syntax
@@ -164,9 +254,12 @@ Use this flag to return the iLO response body.
 - **--getheaders**
 
 Use this flag to return the iLO response headers.
+
 - **--headers=HEADERS**
 
-Use this flag to add extra headers to the request. Usage: --headers=HEADER:VALUE,HEADER:VALUE
+Use this flag to add extra headers to the request.
+
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 - **--silent**
 
@@ -206,25 +299,28 @@ If you include the `filename` flag, this command will return an output file of t
 
 > RawPost example commands:
 
-> The rawpost command performs an HTTP REST POST operation using the information provided in the provided file. Here the ForceRestart ResetType was set, so after the rawpost posted the changes iLO executed a ForceRestart. 
+> To directly post to a URI with JSON data run the command supplying a filename with a json payload.
 
 <aside class="notice">
-If a full path is not given, the tool searches for the file where the RESTful Interface Tool was started.
+If a full path is not given, the tool searches for the file where the RESTful Interface Tool is started.
 </aside>
 
-> ![RawPost Example 1](images/examples/rawpost_ex1.png "RawPost example 1")
+<pre>
+iLOrest > <font color="#01a982">rawpost rawpost.json</font>
+The operation completed successfully.
+</pre>
 
 
-> The following **forcerestart.json** file is used in conjuncture:
+> The following **rawpost.json** file is used in the example above:
 
 ```json
 {
-     "path": "/rest/v1/Systems/1",
-     "body": {
-         "Action": "Reset",
-         "ResetType": "ForceRestart"
-     }
- }
+	"path": "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/",
+	"body": {
+		"ResetType": "ForceRestart"
+	}
+}
+
 ```
 
 
@@ -243,17 +339,16 @@ Use this command to perform an HTTP RESTful POST command. Run to post the data f
 
 ```json
 {
-     "path": "/rest/v1/Systems/1",
-     "body": {
-         "Action": "Reset",
-         "ResetType": "ForceRestart"
-     }
- }
+	"path": "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/",
+	"body": {
+		"ResetType": "ForceRestart"
+	}
+}
 ```
 
 - **Filename**
 
-Include the filename to send a post from the data included in this input file. An example JSON file is shown on the side:
+Include the filename to send a post from the data included in this input file. An example JSON file is shown on the side.
 
 - **-h, --help**
 
@@ -282,11 +377,12 @@ Use this flag to return the iLO response headers.
 - **--headers=HEADERS**
 
 Use this flag to add extra headers to the request.
+
 Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 - **--silent**
 
-Use this flag to silence responses
+Use this flag to silence responses.
 
 - **--sessionid=SESSIONID**
 
@@ -314,21 +410,26 @@ None
 
 > RawPut example commands:
 
-> **Above:** Here the rawput command was used to put the above put.json file to the server. Use the biospassword flag if the resource you are trying to modify requires second-level BIOS authentication to modify.
+> To directly put to a URI with JSON data run the command supplying a filename with a json payload.
 
-> ![RawPut Example 1](images/examples/rawput_ex1.png "RawPut example 1")
-
+<pre>
+iLOrest > <font color="#01a982">rawput put.json</font>
+One or more properties were changed and will not take effect until system is reset.
+</pre>
 
 
 > This example uses the following **put.json** file:
 
 ```
 {
-    "path": "/rest/v1/Systems/1/bios/Settings",
-    "body":{
-        "BaseConfig": "default"
-    }
+	"path": "/redfish/v1/systems/1/bios/Settings/",
+	"body": {
+		"Attributes": {
+			"BaseConfig": "default"
+		}
+	}
 }
+
 ```
 
 #### Syntax
@@ -344,17 +445,19 @@ Use this command to perform an HTTP RESTful PUT command. Run to retrieve data fr
 > Example input file below:
 
 ```json
-{	
-    "path": "/rest/v1/Systems/1/bios/Settings",
-    "body":{	
-        "BaseConfig": "default"
-    }
+{
+	"path": "/redfish/v1/systems/1/bios/Settings/",
+	"body": {
+		"Attributes": {
+			"BaseConfig": "default"
+		}
+	}
 }
 ```
 
 - **Filename**
 
-Include the filename to send a PUT from the data included in this input file. Example Input file shown on the side:
+Include the filename to send a PUT from the data included in this input file. Example Input file shown on the side.
 
 - **-h, --help**
 
@@ -379,11 +482,12 @@ Use this flag to return the iLO response headers.
 - **--headers=HEADERS**
 
 Use this flag to add extra headers to the request.
+
 Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 - **--silent**
 
-Use this flag to silence responses
+Use this flag to silence responses.
 
 - **--sessionid=SESSIONID**
 
@@ -421,9 +525,12 @@ None
 
 > RawDelete example commands:
 
-> Here the rawdelete command was used to delete a session. After the server was logged into, the provided session was deleted.
+> To directly delete a URI run the command specifying a URI to delete.
 
-> ![RawDelete Example 1](images/examples/rawdelete_ex1.png "RawDelete example 1")
+<pre>
+iLOrest > <font color="#01a982">rawdelete /redfish/v1/AccountService/Accounts/3/</font>
+The account was removed successfully.
+</pre>
 
 
 
@@ -481,9 +588,22 @@ None
 
 > RawHead example commands:
 
-> The rawhead command is the HTTP RESTful HEAD operation. It is used to retrieve the data from the passed in path.
+> To directly read the head values of a URI run the command specifying a URI query.
 
-> ![RawHead Example 1](images/examples/rawhead_ex1.png "RawHead example 1")
+<pre>
+iLOrest > <font color="#01a982">rawhead /redfish/v1/Systems/1/</font>
+[200] The operation completed successfully.
+{
+  "Content-Length": "0",
+  "X_HP-CHRP-Service-Version": "1.0.3",
+  "ETag": "W/\"F24B9154\"",
+  "Link": "</redfish/v1/SchemaStore/en/ComputerSystem.json/>; rel=describedby",
+  "Allow": "GET, HEAD, POST, PATCH",
+  "Date": "Sun, 03 Feb 2019 22:33:10 GMT",
+  "OData-Version": "4.0",
+  "X-Frame-Options": "sameorigin"
+}
+</pre>
 
 
 #### Syntax
@@ -522,7 +642,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **--silent**
 
-Use this flag to silence responses
+Use this flag to silence responses.
 
 - **--sessionid=SESSIONID**
 

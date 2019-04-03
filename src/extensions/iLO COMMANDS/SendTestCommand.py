@@ -19,8 +19,8 @@
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
 class SendTestCommand(RdmcCommandBase):
     """Send syslog test to the logged in server """
@@ -31,8 +31,7 @@ class SendTestCommand(RdmcCommandBase):
                 ' current logged in server.\n\texample: sendtest syslog\n\n' \
                 '\tSend alert mail test to the current logged in server.\n\t' \
                 'example: sendtest alertmail\n\n\tSend SNMP test alert ' \
-                'to the current logged in server.\n\texample: sendtest ' \
-                'snmpalert',\
+                'to the current logged in server.\n\texample: sendtest snmpalert',\
             summary="Command for sending various tests to iLO.",\
             aliases=None,\
             optparser=OptionParser())
@@ -56,16 +55,11 @@ class SendTestCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not len(args) == 1:
-            raise InvalidCommandLineError("sendtest command takes only one " \
-                                                                    "argument.")
+            raise InvalidCommandLineError("sendtest command takes only one argument.")
 
         body = None
         path = None
         actionitem = None
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
 
         self.sendtestvalidation(options)
 
@@ -82,7 +76,7 @@ class SendTestCommand(RdmcCommandBase):
             raise InvalidCommandLineError("sendtest command does not have " \
                                                     "parameter %s." % args[0])
 
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -107,8 +101,7 @@ class SendTestCommand(RdmcCommandBase):
                         path = bodydict['Actions'][item]['target']
                         break
             else:
-                for item in bodydict['Oem'][self.typepath.defs.oemhp]\
-                                                                    ['Actions']:
+                for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
                     if actionitem in item:
                         if self.typepath.defs.isgen10:
                             actionitem = item.split('#')[-1]
@@ -134,6 +127,10 @@ class SendTestCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -153,11 +150,9 @@ class SendTestCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

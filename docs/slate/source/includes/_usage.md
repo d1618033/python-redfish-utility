@@ -1,20 +1,20 @@
 # Using the RESTful Interface Tool
 
-## RESTful Interface Tool Modes of operation
+## RESTful Interface Tool Modes of Operation
 
-The RESTful Interface Tool has three modes of operation. By default, the interactive mode is utilized when you start the RESTful Interface Tool. With Scriptable Mode, you can use a script that gives commands to the RESTful Interface Tool. File-Based mode allows you to use a script that gives commands to the RESTful Interface Tool and use a file to load and save settings.
+The RESTful Interface Tool has three modes of operation. By default, the interactive mode is utilized when you start the RESTful Interface Tool. With scriptable mode, you can use a script that gives commands to the RESTful Interface Tool. The file-based mode allows you to use a script that gives commands to the RESTful Interface Tool and uses a file to load and save settings.
 
-### Interactive mode
+### Interactive Mode
 
-Interactive mode is started when you run the RESTful Interface Tool without any command line parameters. The `ilorest>` prompt is displayed and you can enter commands one at a time. You can exit the interactive mode by entering the `exit` command at the prompt. On Windows systems, double-click `ilorest.exe` to start an interactive session. You must be an administrator to run `ilorest.exe`.
+Interactive mode is started when you run the RESTful Interface Tool without any command-line parameters. The `ilorest >` prompt is displayed and you can enter commands one at a time. You can exit the interactive mode by entering the `exit` command at the prompt. On Windows systems, double-click `ilorest.exe` to start an interactive session. You must be an administrator to run `ilorest.exe`.
 
 ![Interactive Mode](images/InteractiveMode_1.png "Interactive Mode")
 
-### Scriptable mode
+### Scriptable Mode
 
-> The following script can be called to retrieve information regarding the **Bios** type:
+> The following script retrieves information regarding the Bios type:
 
-```
+<pre>
 :: This is a batch file that logs into a remote server,
 :: selects the Bios type, and gets the BootMode value
 
@@ -46,11 +46,11 @@ ilorest.exe select Bios.
 @echo *****************************************
 ilorest.exe get BootMode
 pause
-```
+</pre>
 
-Scriptable mode is used if you want to script all the commands with the use of an external input file. The script contains a list of the RESTful Interface Tool command lines that let users get and set properties of server objects.
+You can use the scriptable mode to script all the commands using an external input file. The script contains a list of the RESTful Interface Tool command lines that let users get and set properties of server objects.
 
-In this example, first the `Bios` type is selected, and then the **get** command is used to retrieve information about the `BootMode` property of `Bios`
+In this example, first the `Bios` type is selected, and then the `get` command is used to retrieve information about the `BootMode` property of `Bios`.
 
 ### File-based mode
 
@@ -95,7 +95,7 @@ When the example script is run, the following result is produced:
 
 ![File Mode example](images/FileBasedMode_1.png "File Based Mode example")
 
-Here, the `Bios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the **load** command is used to make these changes on the server. 
+Here, the `Bios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the `load` command is used to make these changes on the server. 
 
 The properties of `Bios` can be edited here, and then loaded on the server. When the file is loaded on the server, changes to read-only values are not reflected. The full list in this example is truncated to save space.
 
@@ -124,6 +124,50 @@ The properties of `Bios` can be edited here, and then loaded on the server. When
 	}
 }
 ```
+
+## Executing commands in parallel
+
+> Run the following command to start an iLOrest session in 10 different iLO servers:
+
+```
+pdsh -R exec -w server[1-10] ilorest --cache-dir %h login ilo-%h -u username -p password.
+```
+
+> When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, the iLOrest tool saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2, the data is cached in directory server2.
+
+```
+ilorest --cache-dir server1 login ilo-server1 -u username -p password
+
+ilorest --cache-dir server2 login ilo-server2 -u username -p password
+
+ilorest --cache-dir server3 login ilo-server3 -u username -p password
+
+ilorest --cache-dir server4 login ilo-server4 -u username -p password
+
+ilorest --cache-dir server5 login ilo-server5 -u username -p password
+
+ilorest --cache-dir server6 login ilo-server6 -u username -p password
+
+ilorest --cache-dir server7 login ilo-server7 -u username -p password
+
+ilorest --cache-dir server8 login ilo-server8 -u username -p password
+
+ilorest --cache-dir server9 login ilo-server9 -u username -p password
+
+ilorest --cache-dir server10 login ilo-server10 -u username -p password
+```
+
+> Now that an iLOrest session is created on each iLO, you can **select**, **set**, or **get** information from them.
+
+> The **-R exec** part of the example finds and locally executes the iLOrest executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, … 10`.
+
+```
+pdsh -R exec --cache-dir server[1-10] ilorest <select, list, get or set> <Type or property>.
+```
+
+iLOrest uses a caching method to locally save servers' data. To send iLOrest commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses `PDSH`, but any method of parallel scripting will work as long as you are specifying different cache directories.
+
+Running iLOrest on multiple systems locally can be done using automation tools such as Ansible, Chef, and Puppet. 
 
 ## Configuration file (ilorest.conf)
 
@@ -237,7 +281,7 @@ The properties of `Bios` can be edited here, and then loaded on the server. When
 # loadfile = ilorest.json
 ```
 
-The configuration file contains the default settings for the tool. You can use a text editor to change the behavior of the tool such as adding a server IP address, username, and password. The settings that you added or updated in the configuration file are automatically loaded each time you start the tool. 
+The configuration file contains the default settings for the tool. You can use a text editor to change the behavior of the tool such as adding a server IP address, username, and password. The settings that you add or update in the configuration file are automatically loaded each time you start the tool.
 
 Configuration file locations:
 

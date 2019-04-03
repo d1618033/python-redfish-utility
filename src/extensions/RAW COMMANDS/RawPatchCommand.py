@@ -22,10 +22,10 @@ import sys
 import json
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, InvalidFileInputError, \
-                    InvalidFileFormattingError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidFileFormattingError, \
+                    InvalidCommandLineErrorOPTS, InvalidFileInputError, Encryption
 
 class RawPatchCommand(RdmcCommandBase):
     """ Raw form of the patch command """
@@ -86,8 +86,7 @@ class RawPatchCommand(RdmcCommandBase):
         elif len(args) > 1:
             raise InvalidCommandLineError("Raw patch only takes 1 argument.\n")
         else:
-            raise InvalidCommandLineError("Missing raw patch file input "\
-                                                                "argument.\n")
+            raise InvalidCommandLineError("Missing raw patch file input argument.\n")
 
         if options.headers:
             extraheaders = options.headers.split(',')
@@ -98,8 +97,7 @@ class RawPatchCommand(RdmcCommandBase):
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    raise InvalidCommandLineError("Invalid format for " \
-                                                            "--headers option.")
+                    raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
             returnresponse = False
@@ -111,20 +109,18 @@ class RawPatchCommand(RdmcCommandBase):
                   contentsholder["body"], verbose=self._rdmc.opts.verbose, \
                   url=url, sessionid=options.sessionid, headers=headers, \
                   response=returnresponse, silent=options.silent, \
-                  optionalpassword=options.biospassword, \
+                  optionalpassword=options.biospassword, is_redfish=self._rdmc.opts.is_redfish, \
                   service=options.service, providerheader=options.providerid, \
                   username=options.user, password=options.password)
         else:
-            raise InvalidFileFormattingError("Input file '%s' was not format" \
-                                                        " properly." % args[0])
+            raise InvalidFileFormattingError("Input file '%s' was not format properly." % args[0])
 
         if results and returnresponse:
             if options.getheaders:
-                sys.stdout.write(json.dumps(dict(\
-                                 results._http_response.getheaders())) + "\n")
+                sys.stdout.write(json.dumps(dict(results.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.text)
+                sys.stdout.write(results.read)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -159,11 +155,9 @@ class RawPatchCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
             self.lobobj.loginfunction(inputline, skipbuild=True)
 
@@ -256,8 +250,7 @@ class RawPatchCommand(RdmcCommandBase):
             '--service',
             dest='service',
             action="store_true",
-            help="""Use this flag to enable service mode and increase """\
-                                                """the function speed""",
+            help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_option(
@@ -265,7 +258,7 @@ class RawPatchCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(

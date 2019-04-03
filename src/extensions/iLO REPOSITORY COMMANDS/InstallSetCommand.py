@@ -73,10 +73,6 @@ class InstallSetCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.installsetvalidation(options)
 
         if self.typepath.defs.isgen9:
@@ -95,8 +91,7 @@ class InstallSetCommand(RdmcCommandBase):
             self.printinstallsets(options)
         elif args[0].lower() == 'add':
             if not len(args) == 2:
-                raise InvalidCommandLineError('add command requires an ' \
-                                                            'install set file.')
+                raise InvalidCommandLineError('add command requires an install set file.')
             else:
                 self.addinstallset(args[1], options.name)
         elif args[0].lower() == 'delete':
@@ -128,13 +123,13 @@ class InstallSetCommand(RdmcCommandBase):
         try:
             inputfile = open(setfile, 'r')
             sequences = json.loads(inputfile.read())
-        except Exception, excp:
+        except Exception as excp:
             raise InvalidFileInputError("%s" % excp)
 
         listtype = self.validatefile(sequences)
 
         if listtype:
-            body = {u"Name": name, u"Sequence": sequences}
+            body = {"Name": name, "Sequence": sequences}
         else:
             body = sequences
             if "Sequence" in body:
@@ -147,18 +142,16 @@ class InstallSetCommand(RdmcCommandBase):
 
         for sequence in sequences:
             if sequence['Command'] == 'ApplyUpdate':
-                if 'Filename' in sequence.keys():
+                if 'Filename' in list(sequence.keys()):
                     if not sequence['Filename'] in filenamelist:
                         raise NoContentsFoundForOperationError('Component' \
                             ' referenced in install set is not present on' \
                             ' iLO Drive: %s' % sequence['Filename'])
             elif sequence['Command'] == 'WaitTimeSeconds':
-                sequence['WaitTimeSeconds'] = \
-                                            int(sequence['WaitTimeSeconds'])
+                sequence['WaitTimeSeconds'] = int(sequence['WaitTimeSeconds'])
         for setvar in sets:
             if setvar['Name'] == body['Name']:
-                raise InvalidCommandLineError('Install set name is already ' \
-                                                                    'in use.')
+                raise InvalidCommandLineError('Install set name is already in use.')
 
         self._rdmc.app.post_handler(path, body)
 
@@ -174,8 +167,7 @@ class InstallSetCommand(RdmcCommandBase):
 
         for setvar in sets:
             if setvar['Name'] == name:
-                path = setvar['Actions']['#HpeComponentInstallSet.Invoke']\
-                                                                    ['target']
+                path = setvar['Actions']['#HpeComponentInstallSet.Invoke']['target']
 
         if not path:
             raise NoContentsFoundForOperationError('No install set with the' \
@@ -193,8 +185,7 @@ class InstallSetCommand(RdmcCommandBase):
         :type name: str.
         """
         path = None
-        sets = self._rdmc.app.getcollectionmembers(\
-                                       '/redfish/v1/UpdateService/InstallSets/')
+        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
 
         for setvar in sets:
             if setvar['Name'] == name:
@@ -204,13 +195,11 @@ class InstallSetCommand(RdmcCommandBase):
             sys.stdout.write('Deleting install set: %s...\n'% name)
             self._rdmc.app.delete_handler(path)
         else:
-            raise NoContentsFoundForOperationError('Unable to find '\
-                                                   'the specified install set.')
+            raise NoContentsFoundForOperationError('Unable to find the specified install set.')
 
     def removeinstallsets(self):
         """Removes all install sets """
-        sets = self._rdmc.app.getcollectionmembers(\
-                                       '/redfish/v1/UpdateService/InstallSets/')
+        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
 
         if not sets:
             sys.stdout.write('No install sets found.\n')
@@ -218,13 +207,15 @@ class InstallSetCommand(RdmcCommandBase):
         sys.stdout.write('Deleting all install sets...\n')
 
         for setvar in sets:
-            sys.stdout.write('Deleting install set: %s\n' % setvar['Name'])
-            self._rdmc.app.delete_handler(setvar['@odata.id'])
+            if setvar['IsRecovery']:
+                sys.stdout.write('Skipping delete of recovery set: %s\n' %setvar['Name'])
+            else:
+                sys.stdout.write('Deleting install set: %s\n' % setvar['Name'])
+                self._rdmc.app.delete_handler(setvar['@odata.id'])
 
     def printinstallsets(self, options):
         """Prints install sets """
-        sets = self._rdmc.app.getcollectionmembers(\
-                                       '/redfish/v1/UpdateService/InstallSets/')
+        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
         if not options.json:
             sys.stdout.write('Install Sets:\n')
 
@@ -238,15 +229,15 @@ class InstallSetCommand(RdmcCommandBase):
                     recovery = ""
                 sys.stdout.write('\n%s: %s\n' % (setvar['Name'], recovery))
 
-                if not 'Sequence' in setvar.keys():
+                if 'Sequence' not in list(setvar.keys()):
                     sys.stdout.write('\tNo Sequences in set.\n')
                     continue
 
                 for item in setvar['Sequence']:
-                    if 'Filename' in item.keys():
-                        sys.stdout.write('\t%s: %s %s\n' % (item['Name'], \
+                    if 'Filename' in list(item.keys()):
+                        sys.stdout.write('\t%s: %s %s\n' % (item['Name'].encode("ascii", "ignore"),\
                                             item['Command'], item['Filename']))
-                    elif 'WaitTimeSeconds' in item.keys():
+                    elif 'WaitTimeSeconds' in list(item.keys()):
                         sys.stdout.write('\t%s: %s %s seconds\n' % \
                                              (item['Name'], item['Command'], \
                                               str(item['WaitTimeSeconds'])))
@@ -266,8 +257,7 @@ class InstallSetCommand(RdmcCommandBase):
         :type file: string.
         """
         listtype = True
-        keylist = ['Name', 'UpdatableBy', 'Command', 'WaitTimeSeconds', \
-                                                                    'Filename']
+        keylist = ['Name', 'UpdatableBy', 'Command', 'WaitTimeSeconds', 'Filename']
 
         if isinstance(installsetfile, list):
             for item in installsetfile:
@@ -322,6 +312,10 @@ class InstallSetCommand(RdmcCommandBase):
         """
         inputline = list()
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -341,14 +335,12 @@ class InstallSetCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
             self.lobobj.loginfunction(inputline)
 
     def definearguments(self, customparser):

@@ -95,7 +95,7 @@ class RawGetCommand(RdmcCommandBase):
         if options.response or options.getheaders:
             returnresponse = True
 
-        results = self._rdmc.app.get_handler(args[0], \
+        results = self._rdmc.app.get_handler(args[0], is_redfish=self._rdmc.opts.is_redfish, \
                 verbose=self._rdmc.opts.verbose, sessionid=options.sessionid, \
                 url=url, headers=headers, response=returnresponse, \
                 silent=options.silent, service=options.service, \
@@ -111,22 +111,20 @@ class RawGetCommand(RdmcCommandBase):
         elif results and returnresponse:
             if options.getheaders:
                 sys.stdout.write(json.dumps(dict(\
-                                 results._http_response.getheaders())) + "\n")
+                                 results.getheaders())) + "\n")
 
             if options.response:
                 sys.stdout.write(results.read)
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, \
-                                                    cls=redfish.ris.JSONEncoder)
+                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder)
 
                     filehndl = open(options.filename[0], "w")
                     filehndl.write(output)
                     filehndl.close()
 
-                    sys.stdout.write(u"Results written out to '%s'.\n" % \
-                                                            options.filename[0])
+                    sys.stdout.write("Results written out to '%s'.\n" % options.filename[0])
                 else:
                     if options.service:
                         sys.stdout.write("%s\n" % results.dict)
@@ -165,11 +163,9 @@ class RawGetCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
             self.lobobj.loginfunction(inputline, skipbuild=True)
 
@@ -278,8 +274,7 @@ class RawGetCommand(RdmcCommandBase):
             '--service',
             dest='service',
             action="store_true",
-            help="""Use this flag to enable service mode and increase """\
-                                                """the function speed""",
+            help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_option(

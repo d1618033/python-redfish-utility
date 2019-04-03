@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                                InvalidCommandLineErrorOPTS, IloLicenseError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+                                InvalidCommandLineErrorOPTS, IloLicenseError
 
 class VirtualMediaCommand(RdmcCommandBase):
     """ Changes the iscsi configuration for the server that is currently """ \
@@ -35,8 +35,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                     '\n\texample: virtualmedia\n\n\tInsert virtual media and ' \
                     'set to boot on next restart.\n\texample: virtualmedia 2 ' \
                     'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove ' \
-                    'current inserted media.\n\texample: virtualmedia 2 ' \
-                    '--remove',\
+                    'current inserted media.\n\texample: virtualmedia 2 --remove',\
             summary='Command for inserting and removing virtual media.',\
             aliases=['virtualmedia'],\
             optparser=OptionParser())
@@ -67,16 +66,10 @@ class VirtualMediaCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid number of parameters. " \
                 "virtualmedia command takes a maximum of 2 parameters.")
         else:
-
-            if options.encode and options.user and options.password:
-                options.user = Encryption.decode_credentials(options.user)
-                options.password = Encryption.decode_credentials(options.password)
-
             self.virtualmediavalidation(options)
 
         resp = self._rdmc.app.get_handler(\
-                          '/rest/v1/Managers/1/VirtualMedia/1', response=True,\
-                          silent=True)
+                          '/rest/v1/Managers/1/VirtualMedia/1', response=True, silent=True)
 
         if not resp.status == 200:
             raise IloLicenseError('')
@@ -86,28 +79,26 @@ class VirtualMediaCommand(RdmcCommandBase):
 
         if self._rdmc.app.current_client.monolith.is_redfish:
             isredfish = True
-            paths = self.getobj.getworkerfunction("@odata.id", options, \
-                    "@odata.id", results=True, multivals=True, uselist=False)
-            ids = self.getobj.getworkerfunction("Id", options, \
-                    "Id", results=True, multivals=True, uselist=False)
-
+            paths = self.getobj.getworkerfunction("@odata.id", options, results=True, uselist=False)
+            ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+            paths = {ind:path for ind, path in enumerate(paths)}
+            ids = {ind:id for ind, id in enumerate(ids)}
             for path in paths:
                 paths[path] = paths[path]['@odata.id']
         else:
             isredfish = False
-            paths = self.getobj.getworkerfunction(\
-                    "links", options, "links/self/href", \
-                    newargs=['links', 'self', 'href'],\
-                    results=True, multivals=True, uselist=False)
-            ids = self.getobj.getworkerfunction("Id", options, \
-                    "Id", results=True, multivals=True, uselist=False)
+            paths = self.getobj.getworkerfunction("links/self/href", options, \
+                    results=True, uselist=False)
+            ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+            paths = {ind:path for ind, path in enumerate(paths)}
+            ids = {ind:id for ind, id in enumerate(ids)}
             for path in paths:
                 paths[path] = paths[path]['links']['self']['href']
         # To keep indexes consistent between versions
-        if not ids.keys()[0] == ids.values()[0].values()[0]:
+        if not list(ids.keys())[0] == list(list(ids.values())[0].values())[0]:
             finalpaths = {}
             for path in paths:
-                finalpaths.update({int(ids[path].values()[0]): paths[path]})
+                finalpaths.update({int(list(ids[path].values())[0]): paths[path]})
             paths = finalpaths
         if options.removevm:
             self.vmremovehelper(args, options, paths, isredfish, ilover)
@@ -142,7 +133,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         if isredfish:
             path, body = self.vmredfishhelper('remove', args[0])
         else:
-            if float(ilover) <= 4.230:
+            if ilover <= 4.230:
                 body = {"Image": None}
             else:
                 body = {"Action": "EjectVirtualMedia", "Target": "/Oem/Hp"}
@@ -154,7 +145,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                                       "media please run the command with no " \
                                       "arguments for possible values.")
 
-        if float(ilover) <= 4.230:
+        if ilover <= 4.230:
             self._rdmc.app.patch_handler(path, body)
         else:
             self._rdmc.app.post_handler(path, body)
@@ -183,11 +174,10 @@ class VirtualMediaCommand(RdmcCommandBase):
         if isredfish:
             path, body = self.vmredfishhelper('insert', args[0], args[1])
         else:
-            if float(ilover) <= 4.230:
+            if ilover <= 4.230:
                 body = {"Image": args[1]}
             else:
-                body = {"Action": "InsertVirtualMedia", "Target": "/Oem/Hp", \
-                                                            "Image": args[1]}
+                body = {"Action": "InsertVirtualMedia", "Target": "/Oem/Hp", "Image": args[1]}
 
         try:
             path = paths[int(args[0])] if not path else path
@@ -196,7 +186,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                                           "media please run the command with " \
                                           "no arguments for possible values.")
 
-        if float(ilover) <= 4.230:
+        if ilover <= 4.230:
             self._rdmc.app.patch_handler(path, body)
         else:
             self._rdmc.app.post_handler(path, body)
@@ -218,21 +208,20 @@ class VirtualMediaCommand(RdmcCommandBase):
         images = {}
         count = 0
         mediatypes = self.getobj.getworkerfunction(\
-            "MediaTypes", options, "MediaTypes", results=True, multivals=True,\
-                                                                 uselist=False)
-        ids = self.getobj.getworkerfunction("Id", options, \
-                    "Id", results=True, multivals=True, uselist=False)
+            "MediaTypes", options, results=True, uselist=False)
+        ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+        ids = {ind:id for ind, id in enumerate(ids)}
+        mediatypes = {ind:med for ind, med in enumerate(mediatypes)}
         # To keep indexes consistent between versions
-        if not ids.keys()[0] == ids.values()[0].values()[0]:
+        if not list(ids.keys())[0] == list(list(ids.values())[0].values())[0]:
             finalmet = {}
             for mount in mediatypes:
-                finalmet.update({int(ids[mount].values()[0]): mediatypes[mount]})
+                finalmet.update({int(list(ids[mount].values())[0]): mediatypes[mount]})
             mediatypes = finalmet
 
         for path in paths:
             count += 1
-            image = self._rdmc.app.get_handler(paths[path], service=True, \
-                                                                    silent=True)
+            image = self._rdmc.app.get_handler(paths[path], service=True, silent=True)
             image = image.dict['Image']
             images.update({path: image})
 
@@ -280,7 +269,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         :type number: int
         """
 
-        results = self._rdmc.app.filter("VirtualMedia.", None, None)
+        results = self._rdmc.app.select(selector="VirtualMedia.")
         bodydict = None
 
         try:
@@ -295,6 +284,10 @@ class VirtualMediaCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid input value for virtual media"\
                                             " please run the command with no " \
                                             "arguments for possible values.")
+        if action == 'remove' and not bodydict['Inserted']:
+            raise InvalidCommandLineError("Invalid input value for virtual media."\
+                    " No media present in this drive to unmount. Please recheck " \
+                                            "arguments for possible values.")
 
         if action == 'insert' and image:
             for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
@@ -304,8 +297,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                     else:
                         action = "InsertVirtualMedia"
 
-                    path = bodydict['Oem'][self.typepath.defs.oemhp][\
-                                                'Actions'][item]['target']
+                    path = bodydict['Oem'][self.typepath.defs.oemhp]['Actions'][item]['target']
                     body = {"Action": action, "Image": image}
                     break
         elif action == 'remove':
@@ -316,8 +308,7 @@ class VirtualMediaCommand(RdmcCommandBase):
                     else:
                         action = "EjectVirtualMedia"
 
-                    path = bodydict['Oem'][self.typepath.defs.oemhp][\
-                                                'Actions'][item]['target']
+                    path = bodydict['Oem'][self.typepath.defs.oemhp]['Actions'][item]['target']
                     body = {"Action": action}
                     break
         else:
@@ -333,6 +324,10 @@ class VirtualMediaCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -353,11 +348,9 @@ class VirtualMediaCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -418,6 +411,16 @@ class VirtualMediaCommand(RdmcCommandBase):
             "next server reboot. NOTE: The image will be ejected "\
             "automatically on the second server reboot so that the server "\
             "does not boot to this image twice.",
+            default=False
+        )
+        customparser.add_option(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
             default=False
         )
         customparser.add_option(

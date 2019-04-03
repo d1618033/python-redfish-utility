@@ -1,12 +1,12 @@
 ---
-title: RESTful Interface Tool 2.3.0 User Guide
+title: RESTful Interface Tool 2.4.0 User Guide
 
 language_tabs:
   - shell: Shell
 
 toc_footers:
   - <a href='https://www.hpe.com/'>Hewlett Packard Enterprise Development LP</a>
-  - Copyright © 2016 
+  - Copyright © 2019 
 
 includes:
   - overview
@@ -15,6 +15,7 @@ includes:
   - highsecurity
   - commands
   - globalcommands
+  - advancedusage
   - bioscommands
   - ilocommands
   - ilorepositorycommands

@@ -20,9 +20,10 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
+
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class ResultsCommand(RdmcCommandBase):
     """ Monolith class command """
@@ -55,13 +56,7 @@ class ResultsCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Results command does not take any " \
-                                                                "arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+            raise InvalidCommandLineError("Results command does not take any arguments.")
         self.resultsvalidation(options)
         results = {}
         if self.typepath.defs.biospath[-1] == '/':
@@ -73,7 +68,7 @@ class ResultsCommand(RdmcCommandBase):
 
         try:
             self.selobj.selectfunction("SmartStorageConfig")
-            smartarray = self._rdmc.app.get_save()
+            smartarray = self._rdmc.app.getprops()
             sapaths = [path['@odata.id'].split('settings')[0] for path in smartarray]
         except:
             sapaths = None
@@ -90,19 +85,19 @@ class ResultsCommand(RdmcCommandBase):
                             silent=True) for path in sapaths]
         try:
             results.update({'Bios:': biosresults.dict[self.typepath.defs.\
-                                            biossettingsstring][u'Messages']})
+                                            biossettingsstring]['Messages']})
         except:
             results.update({'Bios:': None})
 
         try:
             results.update({'Iscsi:': iscsiresults.dict[self.typepath.defs.\
-                                           biossettingsstring][u'Messages']})
+                                           biossettingsstring]['Messages']})
         except:
             results.update({'Iscsi:': None})
 
         try:
             results.update({'Boot:': bootsresults.dict[self.typepath.defs.\
-                                             biossettingsstring][u'Messages']})
+                                             biossettingsstring]['Messages']})
         except:
             results.update({'Boot:': None})
         try:
@@ -113,7 +108,7 @@ class ResultsCommand(RdmcCommandBase):
                 else:
                     loc += ':'
                 results.update({loc: result.dict[self.typepath.defs.\
-                                             biossettingsstring][u'Messages']})
+                                             biossettingsstring]['Messages']})
         except:
             results.update({'SmartArray:': None})
 
@@ -125,13 +120,13 @@ class ResultsCommand(RdmcCommandBase):
             if results[result]:
                 messagelist.append((result, (results[result])))
             else:
-                sys.stderr.write(u"No messages found for %s.\n" % result[:-1])
+                sys.stderr.write("No messages found for %s.\n" % result[:-1])
 
-        sys.stdout.write(u"Results of the previous reboot changes:\n\n")
+        sys.stdout.write("Results of the previous reboot changes:\n\n")
 
         for loc, messages  in messagelist:
 
-            sys.stdout.write(u"%s\n" % loc)
+            sys.stdout.write("%s\n" % loc)
 
             for message in messages:
                 if self.typepath.flagiften:
@@ -149,22 +144,18 @@ class ResultsCommand(RdmcCommandBase):
 
                 if message_type[0] in errmessages:
                     try:
-                        if errmessages[message_type[0]][message_name[-1]]\
-                                                        ["NumberOfArgs"] == 0:
-                            output = errmessages[message_type[0]]\
-                                                [message_name[-1]]["Message"]
+                        if errmessages[message_type[0]][message_name[-1]]["NumberOfArgs"] == 0:
+                            output = errmessages[message_type[0]][message_name[-1]]["Message"]
                         else:
-                            output = errmessages[message_type[0]]\
-                                            [message_name[-1]]["Description"]
+                            output = errmessages[message_type[0]][message_name[-1]]["Description"]
 
-                        sys.stdout.write(u"%s\n" % output)
+                        sys.stdout.write("%s\n" % output)
                         continue
                     except:
                         pass
 
                 if not output:
-                    sys.stderr.write(u"Unable to find error message for: %s\n" \
-                                                                % message_name)
+                    sys.stderr.write("Unable to find error message for: %s\n" % message_name)
 
         return ReturnCodes.SUCCESS
 
@@ -176,6 +167,10 @@ class ResultsCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -196,11 +191,9 @@ class ResultsCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

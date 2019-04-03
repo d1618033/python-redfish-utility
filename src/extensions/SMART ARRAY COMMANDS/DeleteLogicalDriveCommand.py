@@ -20,6 +20,9 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
+
+from six.moves import input
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
@@ -59,21 +62,15 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.deletelogicaldrivevalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
 
         if not args and not options.all:
-            raise InvalidCommandLineError('You must include a logical drive '\
-                                                                'to delete.')
+            raise InvalidCommandLineError('You must include a logical drive to delete.')
         elif not options.controller:
-            raise InvalidCommandLineError('You must include a controller '\
-                                                                'to select.')
+            raise InvalidCommandLineError('You must include a controller to select.')
         else:
             if len(args) > 1:
                 logicaldrives = args
@@ -98,8 +95,7 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Selected controller not " \
                                     "found in the current inventory list.")
         else:
-            self.deletelogicaldrives(controllist, logicaldrives, options.all,\
-                                     options.force)
+            self.deletelogicaldrives(controllist, logicaldrives, options.all, options.force)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -134,14 +130,12 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
                         deldrive = int(deldrive)
 
                     for idx, ldrive in enumerate(controller['LogicalDrives']):
-                        if deldrive == ldrive['VolumeUniqueIdentifier'] \
-                                                    or deldrive == idx+1:
+                        if deldrive == ldrive['VolumeUniqueIdentifier'] or deldrive == idx+1:
                             if not force:
                                 while True:
-                                    ans = raw_input("Are you sure you would"\
+                                    ans = input("Are you sure you would"\
                                             " like to continue deleting drive"\
-                                            ' %s? (y/n)' % \
-                                            ldrive['LogicalDriveName'])
+                                            ' %s? (y/n)' % ldrive['LogicalDriveName'])
 
                                     if ans.lower() == 'y':
                                         break
@@ -150,8 +144,7 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
                                                 "deleting logical drive.\n")
                                         return
                             sys.stdout.write('Setting logical drive %s ' \
-                                             'for deletion\n' % ldrive[\
-                                                       'LogicalDriveName'])
+                                             'for deletion\n' % ldrive['LogicalDriveName'])
 
                             controller['LogicalDrives'][idx]['Actions'] = \
                                         [{"Action": "LogicalDriveDelete"}]
@@ -182,10 +175,8 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
         :type controller: dict.
         """
         changelist = ['PredictiveSpareRebuild', 'SurfaceScanAnalysisPriority', \
-                  'FlexibleLatencySchedulerSetting', \
-                  'DegradedPerformanceOptimization', \
-                  'CurrentParallelSurfaceScanCount', \
-                  'SurfaceScanAnalysisDelaySeconds', \
+                  'FlexibleLatencySchedulerSetting', 'DegradedPerformanceOptimization', \
+                  'CurrentParallelSurfaceScanCount', 'SurfaceScanAnalysisDelaySeconds', \
                   'MonitorAndPerformanceAnalysisDelaySeconds', \
                   'InconsistencyRepairPolicy', 'DriveWriteCache', \
                   'ExpandPriority', 'EncryptionEULA', 'NoBatteryWriteCache', \
@@ -193,7 +184,7 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
                   'RebuildPriority', 'QueueDepth', 'ElevatorSort']
 
         for item in changelist:
-            if item in controller.keys():
+            if item in list(controller.keys()):
                 controller[item] = None
 
     def getetag(self, path):
@@ -201,10 +192,8 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
         etag = None
         instance = self._rdmc.app.current_client.monolith.path(path)
         if instance:
-            templist = instance.resp.getheaders()
-            tempindex = [x[0] for x in templist].index('etag')
-            etag = templist[tempindex][1]
-
+            etag = instance.resp.getheader('etag') if 'etag' in instance.resp.getheaders() \
+                                            else instance.resp.getheader('ETag')
         return etag
 
     def deletelogicaldrivevalidation(self, options):
@@ -216,6 +205,10 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
         client = None
         inputline = list()
         runlogin = False
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -236,16 +229,14 @@ class DeleteLogicalDriveCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

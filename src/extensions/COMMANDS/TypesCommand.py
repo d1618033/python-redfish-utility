@@ -21,11 +21,9 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 
-import redfish.ris
-
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class TypesCommand(RdmcCommandBase):
     """ Constructor """
@@ -34,8 +32,7 @@ class TypesCommand(RdmcCommandBase):
             name='types',\
             usage='types [TYPE] [OPTIONS]\n\n\tRun to display currently ' \
             'available selectable types\n\texample: types',\
-            summary='Displays all selectable types within the currently'\
-                    ' logged in server.',\
+            summary='Displays all selectable types within the currently logged in server.',\
             aliases=['types'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -58,33 +55,23 @@ class TypesCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.typesvalidation(options)
 
-        try:
-            if not args:
-                typeslist = list()
-                typeslist = list(set(self._rdmc.app.types(options.fulltypes)))
-                typeslist.sort()
+        if not args:
+            typeslist = list()
+            typeslist = sorted(set(self._rdmc.app.types(options.fulltypes)))
 
-                if not returntypes:
-                    sys.stdout.write("Type options:")
+            if not returntypes:
+                sys.stdout.write("Type options:")
+                sys.stdout.write('\n')
+
+                for item in typeslist:
+                    sys.stdout.write(item)
                     sys.stdout.write('\n')
-
-                    for item in typeslist:
-                        sys.stdout.write(item)
-                        sys.stdout.write('\n')
-                else:
-                    return typeslist
             else:
-                raise InvalidCommandLineError("The 'types' command does not "\
-                                                        "take any arguments.")
-
-        except redfish.ris.InstanceNotFoundError, infe:
-            raise redfish.ris.InstanceNotFoundError(infe)
+                return typeslist
+        else:
+            raise InvalidCommandLineError("The 'types' command does not take any arguments.")
 
     def run(self, line):
         """ Wrapper function for types main function
@@ -107,6 +94,10 @@ class TypesCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -126,16 +117,14 @@ class TypesCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
         if options.includelogs:
             inputline.extend(["--includelogs"])
         if options.path:
@@ -185,14 +174,11 @@ class TypesCommand(RdmcCommandBase):
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
             " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
         )
         customparser.add_option(

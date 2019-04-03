@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                        InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class DriveSanitizeCommand(RdmcCommandBase):
     """ Drive erase/sanitize command """
@@ -56,21 +56,15 @@ class DriveSanitizeCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.drivesanitizevalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
 
         if not args and not options.all:
-            raise InvalidCommandLineError('You must include a physical drive ' \
-                                                                'to sanitize.')
+            raise InvalidCommandLineError('You must include a physical drive to sanitize.')
         elif not options.controller:
-            raise InvalidCommandLineError('You must include a controller ' \
-                                                                'to select.')
+            raise InvalidCommandLineError('You must include a controller to select.')
         else:
             if len(args) > 1:
                 physicaldrives = args
@@ -101,8 +95,7 @@ class DriveSanitizeCommand(RdmcCommandBase):
                     sys.stdout.write('Preparing for sanitization...\n')
                     self.monitorsanitization()
                 else:
-                    sys.stdout.write('Sanitization will occur on the next'\
-                                                            ' system reboot.\n')
+                    sys.stdout.write('Sanitization will occur on the next system reboot.\n')
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -128,8 +121,7 @@ class DriveSanitizeCommand(RdmcCommandBase):
                     logicaldrivelist.append(drive)
 
             if optall:
-                sanitizedrivelist = [x['Location'] for x in \
-                                    controller['PhysicalDrives']]
+                sanitizedrivelist = [x['Location'] for x in controller['PhysicalDrives']]
             else:
                 for erasedrive in drivelist:
                     if erasedrive.isdigit():
@@ -141,8 +133,7 @@ class DriveSanitizeCommand(RdmcCommandBase):
                                 raise InvalidCommandLineError("Unable to" \
                                       " sanitize configured drive. Remove" \
                                       " any logical drive(s) associated " \
-                                      "with drive %s and try again." % \
-                                                        pdrive['Location'])
+                                      "with drive %s and try again." % pdrive['Location'])
 
                             sys.stdout.write('Setting physical drive %s ' \
                                  'for sanitization\n' % pdrive['Location'])
@@ -154,11 +145,9 @@ class DriveSanitizeCommand(RdmcCommandBase):
                 changes = True
                 contentsholder = {"Actions": [{"Action": "PhysicalDriveErase", \
                             "ErasePattern": "SanitizeRestrictedBlockErase", \
-                            "PhysicalDriveList": sanitizedrivelist}], \
-                                                "DataGuard": "Disabled"}
+                            "PhysicalDriveList": sanitizedrivelist}], "DataGuard": "Disabled"}
 
-                self._rdmc.app.patch_handler(controller["@odata.id"], \
-                                                                contentsholder)
+                self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
         return changes
 
@@ -175,6 +164,10 @@ class DriveSanitizeCommand(RdmcCommandBase):
         client = None
         inputline = list()
         runlogin = False
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -195,16 +188,14 @@ class DriveSanitizeCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

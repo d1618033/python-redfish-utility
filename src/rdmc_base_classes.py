@@ -25,6 +25,8 @@ import shlex
 
 from optparse import OptionParser, OptionGroup
 
+import six
+
 import cliutils
 import versioning
 
@@ -72,7 +74,7 @@ class CommandBase(object):
         :type cmdname: str.
         :returns: boolean -- True if it matches, otherwise False
         """
-        if cmdname is None or len(cmdname) == 0:
+        if not cmdname:
             return False
 
         cmdname_lower = cmdname.lower()
@@ -117,7 +119,7 @@ class CommandBase(object):
         lines.append(' '.join(line))
 
         sep = '\n' + (' ' * 34)
-        print "  %-28s - %s" % (self.name, sep.join(lines))
+        print("  %-28s - %s" % (self.name, sep.join(lines)))
 
     def _parse_arglist(self, line=None):
         """parses line into an options and args taking
@@ -131,7 +133,7 @@ class CommandBase(object):
             return self.parser.parse_args(line)
 
         arglist = []
-        if isinstance(line, basestring):
+        if isinstance(line, six.string_types):
             arglist = shlex.split(line, posix=False)
 
             for ind, val in enumerate(arglist):
@@ -270,5 +272,12 @@ class RdmcOptionParser(OptionParser):
             "requested by the file. Note: May cause errors in some data "\
             "retreval due to difference in schema versions.",
             default=False
+        )
+        globalgroup.add_option(
+            '--proxy',
+            dest='proxy',
+            default=None,
+            help="""Use the provided proxy for communication.""",
+            metavar='URL'
         )
         self.add_option_group(globalgroup)

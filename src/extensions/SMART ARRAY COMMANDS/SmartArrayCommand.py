@@ -72,14 +72,10 @@ class SmartArrayCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.smartarrayvalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
 
         if options.controller:
             self.selection_output(options, content)
@@ -118,8 +114,7 @@ class SmartArrayCommand(RdmcCommandBase):
                 if options.physicaldrives or options.pdrive:
                     outputcontent = True
                     try:
-                        self.get_drives(options, controller["PhysicalDrives"], \
-                                                                physical=True)
+                        self.get_drives(options, controller["PhysicalDrives"], physical=True)
                     except KeyError as excp:
                         if excp.message == "PhysicalDrives":
                             raise IncompatableServerTypeError("Cannot "\
@@ -127,11 +122,10 @@ class SmartArrayCommand(RdmcCommandBase):
 
                 if options.logicaldrives or options.ldrive:
                     outputcontent = True
-                    self.get_drives(options, controller["LogicalDrives"], \
-                                                                logical=True)
+                    self.get_drives(options, controller["LogicalDrives"], logical=True)
 
                 if not outputcontent:
-                    for k in controller.keys():
+                    for k in list(controller.keys()):
                         if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
                             del controller[k]
 
@@ -151,7 +145,7 @@ class SmartArrayCommand(RdmcCommandBase):
             if options.physicaldrives:
                 try:
                     self.get_drives(options, val["PhysicalDrives"], physical=True)
-                except KeyError, excp:
+                except KeyError as excp:
                     if excp.message == "PhysicalDrives":
                         raise IncompatableServerTypeError("Cannot "\
                             "configure physical drives using this controller.")
@@ -206,8 +200,7 @@ class SmartArrayCommand(RdmcCommandBase):
                         pass
                 else:
                     for drive in drives:
-                        if options.ldrive.lower() == \
-                                        drive["VolumeUniqueIdentifier"].lower():
+                        if options.ldrive.lower() == drive["VolumeUniqueIdentifier"].lower():
                             driveloc = drive
 
                 if not driveloc:
@@ -218,8 +211,7 @@ class SmartArrayCommand(RdmcCommandBase):
             else:
                 for idx, drive in enumerate(drives):
                     if physical:
-                        sys.stdout.write("[%d]: %s\n" % (idx + 1, \
-                                                            drive["Location"]))
+                        sys.stdout.write("[%d]: %s\n" % (idx + 1, drive["Location"]))
                     elif logical:
                         if not "VolumeUniqueIdentifier" in drive:
                             drivedata = "Pending drive"
@@ -243,9 +235,9 @@ class SmartArrayCommand(RdmcCommandBase):
         """
         self.selobj.selectfunction("HpSmartStorageDiskDrive.")
 
-        for drive in self._rdmc.app.get_save():
+        for drive in self._rdmc.app.getprops():
             if drive["Location"] in location:
-                for k in drive.keys():
+                for k in list(drive.keys()):
                     if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
                         del drive[k]
 
@@ -260,6 +252,10 @@ class SmartArrayCommand(RdmcCommandBase):
         client = None
         inputline = list()
         runlogin = False
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -280,16 +276,14 @@ class SmartArrayCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

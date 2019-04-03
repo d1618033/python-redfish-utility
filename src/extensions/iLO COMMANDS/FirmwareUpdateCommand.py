@@ -34,8 +34,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
             usage='firmwareupdate [URI] [OPTIONS]\n\n\tApply a firmware ' \
                     'update to the current logged in server.\n\texample: ' \
                     'firmwareupdate <url/hostname>/images/image.bin',\
-            summary='Perform a firmware update on the currently logged in ' \
-                                                                    'server.',\
+            summary='Perform a firmware update on the currently logged in server.',\
             aliases=['firmwareupdate'],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -59,11 +58,6 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if len(args) == 1:
-
-            if options.encode and options.user and options.password:
-                options.user = Encryption.decode_credentials(options.user)
-                options.password = Encryption.decode_credentials(options.password)
-
             self.firmwareupdatevalidation(options)
         else:
             raise InvalidCommandLineError("Invalid number of parameters." \
@@ -76,7 +70,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         uri = "FirmwareURI"
 
         select = self.typepath.defs.hpilofirmwareupdatetype
-        results = self._rdmc.app.filter(select, None, None)
+        results = self._rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -137,8 +131,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
 
         while True:
             if counter == 100:
-                raise FirmwareUpdateError("Error occurred while updating "\
-                                                                "the firmware.")
+                raise FirmwareUpdateError("Error occurred while updating the firmware.")
             else:
                 counter += 1
 
@@ -163,8 +156,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 else:
                     if not written:
                         written = True
-                        sys.stdout.write("iLO is uploading the necessary " \
-                                                        "files. Please wait...")
+                        sys.stdout.write("iLO is uploading the necessary files. Please wait...")
 
                 time.sleep(0.5)
             elif results["State"].lower().startswith(("progressing", \
@@ -182,7 +174,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                         position += 1
                         time.sleep(0.1)
             elif results["State"].lower().startswith("complete"):
-                sys.stdout.write(u'\n\nFirmware update has completed and iLO' \
+                sys.stdout.write('\n\nFirmware update has completed and iLO' \
                                  ' may reset. \nIf iLO resets the' \
                                  ' session will be terminated.\nPlease wait' \
                                  ' for iLO to initialize completely before' \
@@ -190,8 +182,29 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                                  ' for firmware changes to take effect.\n')
                 break
             elif results["State"].lower().startswith("error"):
-                raise FirmwareUpdateError("Error occurred while updating "\
-                                                                "the firmware.")
+                error = self._rdmc.app.get_handler(path, silent=True)
+                self.printerrmsg(error)
+
+    def printerrmsg(self, error):
+        """ raises and prints the detailed error message if possible """
+        output = "Error occurred while updating the firmware."
+
+        try:
+            error = error.dict['Oem']['Hpe']['Result']['MessageId'].split('.')
+            errmessages = self._rdmc.app.get_error_messages()
+            for messagetype in list(errmessages.keys()):
+                if error[0] == messagetype:
+                    if errmessages[messagetype][error[-1]]["NumberOfArgs"] == 0:
+                        output = "Firmware update error. %s" % \
+                                    errmessages[messagetype][error[-1]]["Message"]
+                    else:
+                        output = "Firmware update error. %s" % \
+                                errmessages[messagetype][error[-1]]["Description"]
+                    break
+        except:
+            pass
+
+        raise FirmwareUpdateError(output)
 
     def firmwareupdatevalidation(self, options):
         """ Firmware update method validation function
@@ -201,6 +214,10 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -221,11 +238,9 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

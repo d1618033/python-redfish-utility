@@ -21,8 +21,8 @@ import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        Encryption
 
 class FactoryResetControllerCommand(RdmcCommandBase):
     """ Factory reset controller command """
@@ -55,14 +55,10 @@ class FactoryResetControllerCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
-        self.factoryresetcontrollervalidation(options)
+        self.frcontrollervalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.get_save()
+        content = self._rdmc.app.getprops()
 
         if options.controller:
             controllist = []
@@ -84,8 +80,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
                 for controller in controllist:
                     contentsholder = {"Actions": [{"Action": "FactoryReset"}], \
                                                         "DataGuard": "Disabled"}
-                    self._rdmc.app.patch_handler(controller["@odata.id"], \
-                                                                contentsholder)
+                    self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
         else:
             for idx, val in enumerate(content):
                 sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
@@ -93,7 +88,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         #Return code
         return ReturnCodes.SUCCESS
 
-    def factoryresetcontrollervalidation(self, options):
+    def frcontrollervalidation(self, options):
         """ Factory reset controller validation function
 
         :param options: command line options
@@ -102,6 +97,10 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         client = None
         inputline = list()
         runlogin = False
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -122,16 +121,14 @@ class FactoryResetControllerCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline or not client:
             runlogin = True
             if not inputline:
-                sys.stdout.write(u'Local login initiated...\n')
+                sys.stdout.write('Local login initiated...\n')
 
         if runlogin:
             self.lobobj.loginfunction(inputline)

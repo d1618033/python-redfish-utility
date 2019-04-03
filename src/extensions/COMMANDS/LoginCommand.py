@@ -26,8 +26,7 @@ import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                            InvalidCommandLineErrorOPTS, PathUnavailableError, \
-                            Encryption
+                            InvalidCommandLineErrorOPTS, PathUnavailableError, Encryption
 
 class LoginCommand(RdmcCommandBase):
     """ Constructor """
@@ -36,7 +35,7 @@ class LoginCommand(RdmcCommandBase):
             name='login',\
             usage='login [URL] [OPTIONS] \n\n\tTo login' \
                     ' remotely run using iLO url and iLO credentials' \
-                    '\n\texample: login <iLO url/hostname> -u <iLO username> ' \
+                    '\n\texample: login <iLO url/hostname> -u <iLO username> '\
                     '-p <iLO password>\n\n\tTo login on a local server run' \
                     ' without arguments\n\texample: login',\
             summary='Connects to a server, establishes a secure session,'\
@@ -50,6 +49,27 @@ class LoginCommand(RdmcCommandBase):
         self.biospassword = None
         self._rdmc = rdmcObj
         self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+
+    def run(self, line):
+        """ wrapper function for main login function
+
+        :param line: command line input
+        :type line: string.
+        """
+        try:
+            self.loginfunction(line)
+
+            if ("-h" in line) or ("--help" in line):
+                return ReturnCodes.SUCCESS
+
+            if not self._rdmc.app.current_client.monolith._visited_urls:
+                self.logoutobj.run("")
+                raise PathUnavailableError("The path specified by the --path flag is unavailable.")
+        except Exception:
+            raise
+
+        #Return code
+        return ReturnCodes.SUCCESS
 
     def loginfunction(self, line, skipbuild=None):
         """ Main worker function for login class
@@ -69,58 +89,30 @@ class LoginCommand(RdmcCommandBase):
 
         self.loginvalidation(options, args)
 
-        if options.encode:
-            self.username = Encryption.decode_credentials(self.username)
-            self.password = Encryption.decode_credentials(self.password)
+        proxy = self._rdmc.opts.proxy if self._rdmc.opts.proxy else \
+                                        self._rdmc.app.config.get_proxy()
 
-        self._rdmc.app.getgen(url=self.url, username=self.username, \
-                                                        password=self.password)
-        self._rdmc.opts.is_redfish = self._rdmc.app.updatedefinesflag(\
-                                        redfishflag=self._rdmc.opts.is_redfish)
-
-        try:
-            self._rdmc.app.login(username=self.username, \
-                          password=self.password, base_url=self.url, \
-                          verbose=self._rdmc.opts.verbose, \
-                          path=options.path, skipbuild=skipbuild,\
-                          includelogs=options.includelogs, \
-                          biospassword=self.biospassword, \
-                          is_redfish=self._rdmc.opts.is_redfish)
-        except Exception:
-            raise
+        self._rdmc.app.login(username=self.username, \
+                      password=self.password, base_url=self.url, \
+                      verbose=self._rdmc.opts.verbose, path=options.path, skipbuild=skipbuild,\
+                      includelogs=options.includelogs, biospassword=self.biospassword, \
+                      is_redfish=self._rdmc.opts.is_redfish, proxy=proxy)
 
         # Warning for cache enabled, since we save session in plain text
         if not self._rdmc.encoding:
-            sys.stdout.write(u"WARNING: Cache is activated. Session keys are" \
-                                                    u" stored in plaintext.\n")
+            sys.stdout.write("WARNING: Cache is activated. Session keys are stored in plaintext.\n")
 
         if self._rdmc.opts.debug:
-            sys.stdout.write(u"WARNING: Logger is activated. Logging is" \
-                                                    u" stored in plaintext.\n")
+            sys.stdout.write("WARNING: Logger is activated. Logging is stored in plaintext.\n")
 
         if options.selector:
             try:
-                sel = None
-                val = None
-
-                if options.filter:
-                    try:
-                        (sel, val) = options.filter.split('=')
-                        sel = sel.strip()
-                        val = val.strip()
-
-                        if val.lower() == "true" or val.lower() == "false":
-                            val = val.lower() in ("yes", "true", "t", "1")
-                    except:
-                        raise InvalidCommandLineError("Invalid filter" \
-                        " parameter format. [filter_attribute]=[filter_value]")
-
-                self._rdmc.app.select(query=options.selector, sel=sel, val=val)
+                self._rdmc.app.select(selector=options.selector)
 
                 if self._rdmc.opts.verbose:
                     sys.stdout.write("Selected option: '%s'" % options.selector)
                     sys.stdout.write('\n')
-            except Exception, excp:
+            except Exception as excp:
                 raise redfish.ris.InstanceNotFoundError(excp)
 
     def loginvalidation(self, options, args):
@@ -147,14 +139,17 @@ class LoginCommand(RdmcCommandBase):
             if tempinput:
                 options.password = tempinput
             else:
-                raise InvalidCommandLineError("Empty or invalid password" \
-                                                                " was entered.")
+                raise InvalidCommandLineError("Empty or invalid password was entered.")
 
         if options.user:
             self.username = options.user
 
         if options.password:
             self.password = options.password
+
+        if options.encode:
+            self.username = Encryption.decode_credentials(self.username)
+            self.password = Encryption.decode_credentials(self.password)
 
         if options.biospassword:
             self.biospassword = options.biospassword
@@ -170,33 +165,11 @@ class LoginCommand(RdmcCommandBase):
             if "https://" not in self.url:
                 self.url = "https://" + self.url
             if not self.username or not self.password:
-                raise InvalidCommandLineError("Empty username or password" \
-                                                                " was entered.")
+                raise InvalidCommandLineError("Empty username or password was entered.")
         else:
             # Check to see if there is a URL in config file
             if self._rdmc.app.config.get_url():
                 self.url = self._rdmc.app.config.get_url()
-    def run(self, line):
-        """ wrapper function for main login function
-
-        :param line: command line input
-        :type line: string.
-        """
-        try:
-            self.loginfunction(line)
-
-            if ("-h" in line) or ("--help" in line):
-                return ReturnCodes.SUCCESS
-
-            if not self._rdmc.app.current_client.monolith._visited_urls:
-                self.logoutobj.run("")
-                raise PathUnavailableError("The path specified by the --path"\
-                                " flag is unavailable.")
-        except Exception:
-            raise
-
-        #Return code
-        return ReturnCodes.SUCCESS
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -241,29 +214,13 @@ class LoginCommand(RdmcCommandBase):
             default=None,
         )
         customparser.add_option(
-            '--filter',
-            dest='filter',
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
-        )
-        customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
-            " If you do not specify a starting point, the default path"\
+            help="Optionally set a starting point for data collection during"\
+            " login. If you do not specify a starting point, the default path"\
             " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " at the time of login. Warning: Only for advanced users, and"\
+            " generally not needed for normal operations.",
             default=None,
         )
         customparser.add_option(
@@ -271,7 +228,7 @@ class LoginCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(

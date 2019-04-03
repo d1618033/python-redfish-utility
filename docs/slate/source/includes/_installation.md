@@ -2,37 +2,17 @@
 
 ## Requirements
 
-The following is a list of requirements for the server you want to manage with the tool:
+The requirements for the server, which you will manage with the tool, are as follows:
 
-- Local management: Gen9 server with a Windows OS or Linux OS (64–bit) installed (If you want to install the tool locally on the server).
-- Remote management: Gen9 server with or without an OS installed.
+- Local management: Gen9 or greater server with a Windows OS or Linux OS (64–bit) installed.
+- Remote management: Gen9 or greater server with or without an OS installed.
 - iLO 4 2.10 or later.
 - Before you run the tool on a Linux system, the **/tmp** folder must be configured to allow code to execute. If the **/tmp** folder is set to *no-execution*, the tool will not run.
-- The install packages are available for download from [http://www.hpe.com/info/resttool](http://www.hpe.com/info/resttool).
-
-### Updating the JSON schemas used by the RESTful Interface Tool
-
-> Windows Directory
-
-```
-
-C:\Program Files\Hewlett Packard Enterprise\HP RESTful Interface Tool\
-
-```
-
-> Linux Directory
-
-```
-
-/usr/share/ilorest
-
-```
-
-If you are using iLO 2.10 or later and the RESTful Interface Tool 1.30 or later, the JSON schemas are automatically updated. If you are using an earlier version of iLO or an earlier version of the RESTful Interface Tool, you must manually get the latest JSON schemas from the SPP located in the `\hp_restful_api directory`. Copy the schema files to the appropriate directory:
+Note: You can download the install packages from [http://www.hpe.com/info/resttool](http://www.hpe.com/info/resttool).
 
 ### Installing the RESTful Interface Tool
 
-The following installation steps describe how to install the tool in a Windows OS or Linux OS.
+Perform the following steps to install the tool in a Windows OS or Linux OS.
 #### Windows
 1. Download the RESTful Interface Tool (Windows MSI package) from [http://www.hpe.com/info/resttool](http://www.hpe.com/info/resttool).
 2. Install the package on the server you prefer to manage for local management. For remote management, install the package on a laptop or server that has access to the managed server network.
@@ -44,11 +24,11 @@ The following installation steps describe how to install the tool in a Windows O
 ### Starting the RESTful Interface Tool
 
 #### Windows
-1. Click the Start menu.
+1. Click the **Start** menu.
 2. Click **Hewlett Packard Enterprise** → **HPE RESTful Interface Tool**.
 3. Right-click the **HPE RESTful Interface Tool** prompt, and then click **Run as Administrator**.
 
 #### Linux
 1. Open a terminal window.
-2. To start interactive mode, run the command **/usr/sbin/ilorest** (using administrator privileges).
+2. Run the following command as an administrator to start interactive mode: `/usr/sbin/ilorest`
 

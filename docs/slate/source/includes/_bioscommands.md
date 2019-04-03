@@ -6,24 +6,130 @@ This section details usage and examples of RESTful Interface Tool commands relat
 
 > Bootorder example commands:
 
-> In this example, the boot order was not specified first. The current persistent boot order is listed. Other options, such as continuous and one time boot options, as well as continuous and one time boot UEFI options are also displayed. Next, we call bootorder with a specified list. This sets the boot order to **Generic.USB.1.1, HD.EmbRAID.1.3., NIC.LOM.1.1.Httpv4, HD.SD.1.2, NIC.LOM.1.1.IPV4, NIC.LOM.1.1.Httpv6, NIC.LOM.1.1.IPv6, HD.EmbRAID.1.5, HD.EmbRAID1.6, HD.EmbRAID.1.4, HD.EmbRAID1.2**. The commit flag will commit the changes, otherwise changes are not saved.
+> Run without arguments to view the current persistent boot order, continuous and one time boot options, and continuous and one time boot UEFI options.
 
-> ![Bootorder Example 1](images/examples/bootorder_ex1.png "Bootorder example 1")
+<pre>
+iLOrest > <font color="#01a982">bootorder</font>
+Discovering data...Done
+
+Current Persistent Boot Order:
+1. HD.EmbRAID.1.6 (sles-secureboot)
+2. HD.EmbRAID.1.7 (Windows Boot Manager)
+3. HD.EmbRAID.1.8 (Red Hat Enterprise Linux)
+4. NIC.LOM.1.1.IPv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv4))
+5. NIC.LOM.1.1.Httpv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv4))
+6. HD.SD.1.2 (Internal SD Card 1 : Generic USB3.0-CRW)
+7. HD.EmbRAID.1.2 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:1 Box:1)
+8. HD.EmbRAID.1.3 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:2 Box:1)
+9. HD.EmbRAID.1.4 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:3 Box:1)
+10. HD.EmbRAID.1.5 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:4 Box:1)
+11. Generic.USB.1.1 (Generic USB Boot)
+12. NIC.LOM.1.1.Httpv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv6))
+13. NIC.LOM.1.1.IPv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv6))
+
+Continuous and one time boot options:
+1. None
+2. Cd
+3. Hdd
+4. Usb
+5. SDCard
+6. Utilities
+7. Diags
+8. BiosSetup
+9. Pxe
+10. UefiShell
+11. UefiHttp
+12. UefiTarget
+
+Continuous and one time boot uefi options:
+1. HD.EmbRAID.1.7 (Windows Boot Manager)
+2. HD.EmbRAID.1.6 (sles-secureboot)
+3. HD.EmbRAID.1.8 (Red Hat Enterprise Linux)
+4. NIC.LOM.1.1.IPv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv4))
+5. NIC.LOM.1.1.Httpv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv4))
+6. HD.SD.1.2 (Internal SD Card 1 : Generic USB3.0-CRW)
+7. HD.EmbRAID.1.2 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:1 Box:1)
+8. HD.EmbRAID.1.3 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:2 Box:1)
+9. HD.EmbRAID.1.4 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:3 Box:1)
+10. HD.EmbRAID.1.5 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:4 Box:1)
+11. Generic.USB.1.1 (Generic USB Boot)
+12. NIC.LOM.1.1.Httpv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv6))
+13. NIC.LOM.1.1.IPv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv6))
+</pre>
+
+> List numbers associated with the `Current Persistent Boot Order` list to set a new boot order. Any numbers left off of the new list will be added to the end. Using the previous examples Current Persistent Boot Order, this command will place `Generic.USB.1.1`, `HD.SD.1.2`, and `HD.EmbRAID.1.8` at the top in that order. The commit flag will commit the changes, otherwise changes are not saved.
+
+<pre>
+iLOrest > <font color="#01a982">bootorder [11,6,3] --commit</font>
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+iLOrest > bootorder
+
+Current Persistent Boot Order:
+1. Generic.USB.1.1 (Generic USB Boot)
+2. HD.SD.1.2 (Internal SD Card 1 : Generic USB3.0-CRW)
+3. HD.EmbRAID.1.8 (Red Hat Enterprise Linux)
+4. HD.EmbRAID.1.6 (sles-secureboot)
+5. HD.EmbRAID.1.7 (Windows Boot Manager)
+6. NIC.LOM.1.1.IPv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv4))
+7. NIC.LOM.1.1.Httpv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv4))
+8. HD.EmbRAID.1.2 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:1 Box:1)
+9. HD.EmbRAID.1.3 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:2 Box:1)
+10. HD.EmbRAID.1.4 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:3 Box:1)
+11. HD.EmbRAID.1.5 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:4 Box:1)
+12. NIC.LOM.1.1.Httpv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv6))
+13. NIC.LOM.1.1.IPv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv6))
+...
+</pre>
+
+> Use partial string matching to set a boot order independent of the current boot order. All boot options not listed will be added to the end of the boot order. This command will set All v4 NICs first, followed by all hard drives, followed by Generic.USB.1.1, then committing the results.
+
+<pre>
+iLOrest > <font color="#01a982">bootorder NIC.*v4 HD* Generic.USB.1.1</font>
+iLOrest > bootorder
+
+Current Persistent Boot Order:
+1. NIC.LOM.1.1.IPv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv4))
+2. NIC.LOM.1.1.Httpv4 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv4))
+3. HD.SD.1.2 (Internal SD Card 1 : Generic USB3.0-CRW)
+4. HD.EmbRAID.1.8 (Red Hat Enterprise Linux)
+5. HD.EmbRAID.1.6 (sles-secureboot)
+6. HD.EmbRAID.1.7 (Windows Boot Manager)
+7. HD.EmbRAID.1.2 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:1 Box:1)
+8. HD.EmbRAID.1.3 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:2 Box:1)
+9. HD.EmbRAID.1.4 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:3 Box:1)
+10. HD.EmbRAID.1.5 (Embedded RAID 1 : HPE Smart Array P408i-a SR Gen10 - Size:279.3 GiB Port:1I Bay:4 Box:1)
+11. Generic.USB.1.1 (Generic USB Boot)
+12. NIC.LOM.1.1.Httpv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (HTTP(S) IPv6))
+13. NIC.LOM.1.1.IPv6 (Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC (PXE IPv6))
+...
+</pre>
+
+> Change the one time boot order using the `--onetimeboot` option. Specify a option to boot to from the `Continuous and one time boot options` list.
+
+<pre>
+iLOrest > bootorder <font color="#01a982">--onetimeboot=Hdd</font> --commit
+Committing changes...
+The operation completed successfully.
+</pre>
 
 
-> Here the one time boot order was changed so that the next time the server boots it will boot from the hard drive.
+> Change the continuous boot order using the `--continuousboot` option. Specify a option to boot to from the `Continuous and one time boot options` list.
 
-> ![Bootorder Example 2](images/examples/bootorder_ex2.png "Bootorder example 2")
+<pre>
+iLOrest > bootorder <font color="#01a982">--continuousboot=Cd</font> --commit
+Committing changes...
+The operation completed successfully.
+</pre>
 
 
-> Here the continuous boot option was changed so that it will keep attempting to boot from the cd drive.
+> To turn off any continuous or one-time boot options that have been configured, use the `--disablebootflag` option. 
 
-> ![Bootorder Example 3](images/examples/bootorder_ex3.png "Bootorder example 3")
-
-
-> To turn off any continuous or one-time boot options that have been configured, include the disablebootflag option. 
-
-> ![Bootorder Example 4](images/examples/bootorder_ex4.png "Bootorder example 4")
+<pre>
+iLOrest > bootorder <font color="#01a982">--disablebootflag</font> --commit
+Committing changes...
+The operation completed successfully.
+</pre>
 
 
 
@@ -33,13 +139,13 @@ bootorder *[Boot Order] [Optional Parameters]*
 
 #### Description
 
-Run this command without arguments to display current boot order. Otherwise, run it with commands to change the order of booting, to perform a one-time boot, to perform a continuous bout, or disable continuous boot or one-time boot options.
+Modifies the current boot order and sets continuous and one-time boot settings. Run this command without arguments to display current boot order. Run it with arguments to change the boot order. To perform a one-time boot, continuous boot, or disable continuous boot or one-time boot, use the respective options.
 
 #### Parameters
 
 - **Boot Order**
 
-The boot order can be specified as a list of numbers. If omitted, displays the current boot order. See examples below for usage and syntax.
+The boot order can be specified as a list of numbers or as a list of partial strings for matching. If omitted, displays the current boot order. See examples for usage and syntax.
 
 - **-h, --help**
 
@@ -59,7 +165,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **--commit**
 
-Use this flag when you are ready to commit all the changes for the current selection. Including the **--commit** flag will log you out of the server after the command is run. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
+Use this flag when you are ready to commit all the changes for the current selection. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -85,7 +191,7 @@ Use this to disable either continuous or one-time boot modes.
 
 - **--securebootkeys=SECUREBOOT**
 
-Use this flag to perform actions on secure boot keys.Possible values include defaultkeys: resets all keys to default,deletekeys: deletes all keys, deletepk: deletes all product keys.
+Use this flag to perform actions on secure boot keys. Possible values include defaultkeys: resets all keys to default, deletekeys: deletes all keys, deletepk: deletes all product keys.
 
 #### Inputs
 
@@ -99,18 +205,41 @@ None
 
 > BiosDefaults example commands:
 
-> Here after the server was logged into, the biosdefaults command resets the BIOS settings to their default values. 
+> To set the bios back to factory defaults, run the command without arguments
 
 <aside class="notice">
 Some changes are not applied until the system is reset.
 </aside>
 
-> ![BiosDefaults Example 1](images/examples/biosdefaults_ex1.png "BiosDefaults example 1")
+<pre>
+iLOrest > <font color="#01a982">biosdefaults</font>
+Resetting the currently logged in server's BIOS settings to defaults.
+One or more properties were changed and will not take effect until system is reset.
+</pre>
 
+> To set the bios back to user defaults, include the `--userdefaults` flag.
 
-> Here after the server was logged into, the biosdefaults command reset the BIOS settings to their default values. The reboot flag was included so that some changes requiring a reboot will be reflected.
+<pre>
+iLOrest > biosdefaults <font color="#01a982">--userdefaults</font>
+Resetting the currently logged in server's BIOS settings to defaults.
+One or more properties were changed and will not take effect until system is reset.
+</pre>
 
-> ![BiosDefaults Example 2](images/examples/biosdefaults_ex2.png "BiosDefaults example 2")
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), sets the bios back to default settings, then reboots *(--reboot)* the server to apply the changes. Using the reboot option automatically logs-out of the server.
+
+<pre>
+iLOrest > <font color="#01a982">biosdefaults --url xx.xx.xx.xx -u username -p password --reboot=ForceRestart</font>
+Discovering data...Done
+Resetting the currently logged in server's BIOS settings to defaults.
+One or more properties were changed and will not take effect until system is reset.
+
+After the server is rebooted the session will be terminated.
+Please wait for the server to boot completely to login again.
+Rebooting server in 3 seconds...
+The operation completed successfully.
+Logging session out.
+</pre>
+
 
 
 #### Syntax
@@ -119,7 +248,7 @@ biosdefaults *[Optional Parameters]*
 
 #### Description
 
-Run this command to set the BIOS settings of the currently logged in server back to the default settings.
+Sets the BIOS settings of the currently logged in server back to the default settings.
 
 #### Parameters
 
@@ -170,46 +299,168 @@ None
 
 > iSCSIConfig example commands:
 
-> Using the iscsiconfig command without any flags will display the current ISCSI configuration, including ISCSI initiator name and currently configured boot entries.
+> Using the iscsiconfig command without any options will display the current ISCSI configuration, including ISCSI initiator name and currently configured boot entries.
 
-> ![iSCSIConfig Example 1](images/examples/iscsi_ex1.png "iSCSIConfig example 1")
+<pre>
+iLOrest > <font color="#01a982">iscsiconfig</font>
 
-> Use the list flag to retrieve the current configured iscsi boot attempts. If none are configured, as seen above, then you will see all sections with a message stating **Not Added**.
+Iscsi Initiator Name: "iqn.2015-02.com.hpe:uefi-U32-Kappa"
 
-> ![iSCSIConfig Example 2](images/examples/iscsi_ex2.png "iSCSIConfig example 2")
+Available iSCSI Boot Network Interfaces:
+[1] Embedded LOM 1 Port 1 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC
+[2] Embedded LOM 1 Port 2 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC
+[3] Embedded LOM 1 Port 3 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC
+[4] Embedded LOM 1 Port 4 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC
+</pre>
 
-> The add [2] flag was included here to add a boot attempt. The [2] entry here causes the server to add a boot attempt with the **iSCSINicSource NicBoot** value of 2. Thus, the [2] supplied here caused a new entry to be added with **iSCSINicSource** value **NicBoot2**. 
+> Use the list flag to retrieve the current configured iscsi boot attempts. If none are configured, then all sections will have a message stating **Not Added**.
 
-<aside class="notice">
-The 2 inputted here is not the attempt number, as opposed to "iscsiconfig --delete 2" which does *delete the 2nd boot attempt.*
-</aside>
+<pre>
+iLOrest > iscsiconfig <font color="#01a982">--list</font>
+Current iSCSI Attempts:
+[
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  }
+]
+</pre>
 
-> ![iSCSIConfig Example 3](images/examples/iscsi_ex3.png "iSCSIConfig example 3")
+> To add an iSCSI boot attempt use the `--add` option, specifying which iSCSI Network Interface to attempt a boot from. This command will add a boot attempt from option [2] in the `Available iSCSI Boot Network Interfaces` list.
+
+<pre>
+iLOrest > iscsiconfig <font color="#01a982">--add [2]</font>
+One or more properties were changed and will not take effect until system is reset.
+iLOrest > iscsiconfig --list
+Current iSCSI Attempts:
+[
+  {
+    "Embedded LOM 1 Port 2 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC": {
+      "Attempt 1": {
+        "iSCSILUN": "0",
+        "iSCSIAttemptName": "1",
+        "iSCSIConnectTimeoutMS": 20000,
+        "iSCSIChapUsername": "",
+        "iSCSIChapSecret": "",
+        "iSCSIInitiatorGateway": "0.0.0.0",
+        "iSCSINicSource": "NicBoot2",
+        "iSCSIConnection": "Disabled",
+        "iSCSIInitiatorNetmask": "0.0.0.0",
+        "iSCSITargetName": "",
+        "iSCSIReverseChapUsername": "",
+        "iSCSIInitiatorInfoViaDHCP": true,
+        "iSCSIAttemptInstance": 1,
+        "iSCSITargetTcpPort": 3260,
+        "iSCSIConnectRetry": 3,
+        "StructuredBootString": null,
+        "iSCSIReverseChapSecret": "",
+        "iSCSIInitiatorIpAddress": "0.0.0.0",
+        "iSCSIAuthenticationMethod": "None",
+        "iSCSITargetInfoViaDHCP": true,
+        "iSCSIChapType": "OneWay",
+        "iSCSITargetIpAddress": "0.0.0.0",
+        "iSCSIIpAddressType": "IPv4",
+        "UEFIDevicePath": null
+      }
+    }
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  }
+]
+</pre>
+
+> Modify properties for boot attempts by outputting them to a file, editing the file, then apply the changes with the `--modify` option. You must include the `--list` option with the `-f` option to write to a file.
+
+<pre>
+iLOrest > iscsiconfig <font color="#01a982">--list -f output.txt</font>
+Results written out to 'output.txt'
+iLOrest > iscsiconfig <font color="#01a982">--modify output.txt</font>
+One or more properties were changed and will not take effect until system is reset.
+</pre>
+
+> To delete an iSCSI attempt use the `--delete` option, specifying which attempt to delete.
+
+<pre>
+iLOrest > iscsiconfig --list
+Current iSCSI Attempts:
+[
+  {
+    "Embedded LOM 1 Port 2 : HPE Ethernet 1Gb 4-port 331i Adapter - NIC": {
+      "Attempt 1": {
+        "iSCSILUN": "0",
+        "iSCSIAttemptName": "1",
+        "iSCSIConnectTimeoutMS": 20000,
+        "iSCSIChapUsername": "blah",
+        "iSCSIChapSecret": "",
+        "iSCSIInitiatorGateway": "0.0.0.0",
+        "iSCSINicSource": "NicBoot2",
+        "iSCSIConnection": "Disabled",
+        "iSCSIInitiatorNetmask": "0.0.0.0",
+        "iSCSITargetName": "",
+        "iSCSIReverseChapUsername": "",
+        "iSCSIInitiatorInfoViaDHCP": true,
+        "iSCSIAttemptInstance": 1,
+        "iSCSITargetTcpPort": 3260,
+        "iSCSIConnectRetry": 3,
+        "StructuredBootString": null,
+        "iSCSIReverseChapSecret": "",
+        "iSCSIInitiatorIpAddress": "0.0.0.0",
+        "iSCSIAuthenticationMethod": "None",
+        "iSCSITargetInfoViaDHCP": true,
+        "iSCSIChapType": "OneWay",
+        "iSCSITargetIpAddress": "0.0.0.0",
+        "iSCSIIpAddressType": "IPv4",
+        "UEFIDevicePath": null
+      }
+    }
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  }
+]
+
+iLOrest > iscsiconfig <font color="#01a982">--delete 1</font>
+One or more properties were changed and will not take effect until system is reset.
+iLOrest > iscsiconfig --list
+Current iSCSI Attempts:
+[
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  },
+  {
+    "Not Added": {}
+  }
+]
+</pre>
 
 
-> Here we first added a boot attempt, then decided to modify some properties. We do this by first writing the **iscsiconfig** properties to a file called **output.txt** using the –f flag. 
-
-<aside class="notice">
-The results are only written to the file if the --list flag is included as well.
-</aside>
-
-> ![iSCSIConfig Example 4-1](images/examples/iscsi_ex4-1.png "iSCSIConfig example 4-1")
-
-> ![iSCSIConfig Example 4-2](images/examples/iscsi_ex4-2.png "iSCSIConfig example 4-2")
-
-> ![iSCSIConfig Example 5-1](images/examples/iscsi_ex5-1.png "iSCSIConfig example 5-1")
-
-
-> Then we opened up the output.txt file in a word processor, changed the property we wanted to, and re-uploaded the configuration to the server using the modify flag. Since second-level BIOS authentication was required, the biospassword flag was included as well. The original and modified output.txt files are given above, with the iSCSITargetInfoViaDHCP value changed from true to false. The original and modified output.txt files are given above, with the iSCSITargetInfoViaDHCP value changed from true to false.
-
-> Here when the server was logged into, there was already a boot attempt configured. To delete a boot attempt, use the delete flag to remove the boot attempt. We then verified that the boot attempt was deleted with another list flag. 
-
-<aside class="notice">
-The "iscsiconfig --delete 1" command deletes the 1st iSCSI attempt. This is different from the number specified with "iscsiconfig --add [1]", which implies add an iSCSI attempt with **NicBoot1**.
-</aside>
-
-
-> ![iSCSIConfig Example 5-2](images/examples/iscsi_ex5-2.png "iSCSIConfig example 5-2")
 
 #### Syntax
 
@@ -217,7 +468,7 @@ iscsiconfig *[iSCSI Configuration] [Optional Parameters]*
 
 #### Description
 
-Use this command to view the current iSCSI configuration, to save the current iSCSI configuration to a file, to load an iSCSI configuration from a file, or to view available NIC resources for iSCSI configuration.
+Use this command to view the current iSCSI configuration, save the current iSCSI configuration to a file, load an iSCSI configuration from a file, or view available NIC resources for iSCSI configuration.
 
 #### Parameters
 
@@ -279,9 +530,21 @@ None
 
 > Results example commands:
 
-> Using the results command without any parameters here shows any BIOS changes after a reboot. Here, Bios, Iscsi, and Boot all show as having been completed successfully.
+> Run the command without any parameters to gather the results of any changes which occurred on the last reboot.
 
-> ![Results Example 1](images/examples/results_ex1.png "Results example 1")
+<pre>
+iLOrest > <font color="#01a982">results</font>
+Results of the previous reboot changes:
+
+Bios:
+The operation completed successfully.
+SmartArray:
+Request successfully completed
+Boot:
+The operation completed successfully.
+Iscsi:
+The operation completed successfully.
+</pre>
 
 #### Syntax
 
@@ -289,7 +552,7 @@ results *[optional parameters]*
 
 #### Description
 
-Show the results of a BIOS change after a server reboot.
+Show the results of any changes, which require a system reboot to take effect.
 
 #### Parameters
 
@@ -321,13 +584,74 @@ None
 
 > Pending example commands:
 
-> Here when first running the pending command on a server with no changes we see there are no changes found.
+> Run `pending` with no arguments show current changes that *have* been committed to the server and are awaiting a reboot. In this example, no changes have been found.
 
-> ![Pending Example 1](images/examples/pending_ex1.png "Pending example 1")
+<pre>
+iLOrest > <font color="#01a982">pending</font>
+Current Pending Changes:
 
-> Now we set and commit AdminName to the new value "newadminname". After we log back into the server we see pending command shows our change to AdminName that will take effect on reboot.
+SmartStorageConfig.v2_0_1:
+No pending changes found.
 
-> ![Pending Example 2](images/examples/pending_ex2.png "Pending example 2")
+HpeServerBootSettings.v2_0_0:
+No pending changes found.
+
+HpeScalablePmem.v1_0_0:
+No pending changes found.
+
+HpeiSCSISoftwareInitiator.v2_0_0:
+No pending changes found.
+
+HpeKmsConfig.v1_0_0:
+No pending changes found.
+
+HpeServerConfigLock.v1_0_0:
+No pending changes found.
+
+Bios.v1_0_0:
+No pending changes found.
+
+HpeTlsConfig.v1_0_0:
+No pending changes found.
+</pre>
+
+> After committing a change to AdminName the pending command shows the change to AdminName that will take effect on reboot.
+
+<pre>
+iLOrest > select bios.
+iLOrest > set AdminName=newname --commit
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+iLOrest > <font color="#01a982">pending</font>
+Current Pending Changes:
+
+SmartStorageConfig.v2_0_1:
+No pending changes found.
+
+HpeServerBootSettings.v2_0_0:
+No pending changes found.
+
+HpeScalablePmem.v1_0_0:
+No pending changes found.
+
+HpeiSCSISoftwareInitiator.v2_0_0:
+No pending changes found.
+
+HpeKmsConfig.v1_0_0:
+No pending changes found.
+
+HpeServerConfigLock.v1_0_0:
+No pending changes found.
+
+Bios.v1_0_0:
+Attributes=
+            AdminName=
+                       Current=""
+                       Pending=newname
+
+HpeTlsConfig.v1_0_0:
+No pending changes found.
+</pre>
 
 #### Syntax
 
@@ -336,66 +660,6 @@ pending *[Optional Parameters]*
 #### Description
 
 Displays pending committed changes that will be applied after a reboot.
-
-#### Parameters
-
-- **-h, --help**
-
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-Use the provided iLO URL to login.
-
-- **-u USER, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p PASSWORD, --password=PASSWORD**
-
-Use the provided iLO password to log in.
-
-
-#### Inputs
-
-None
-
-#### Outputs
-
-None
-
-### Setpassword command
-
-<aside class="notice">
-Please make sure the order of passwords is maintained. The passwords are extracted base on their position in the arguments list.
-</aside>
-
-> Setpassword example commands:
-
-> Setting the admin password with no previous password set.
-
-> ![Setpassword Example 1](images/examples/setpassword_ex1.png "Setpassword example 1")
-
-
-> Setting the admin password back to nothing. 
-
-> ![Setpassword Example 2](images/examples/setpassword_ex2.png "Setpassword example 2")
-
-
-> Setting the power on password.
-
-> ![Setpassword Example 3](images/examples/setpassword_ex3.png "Setpassword example 3")
-
-	
-
-
-#### Syntax
-
-setpassword *[NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]*
-
-#### Description
-
-
 
 #### Parameters
 
@@ -413,14 +677,75 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 - **-p PASSWORD, --password=PASSWORD**
 
-Use the provided iLO password to log in.
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+#### Inputs
+
+None
+
+#### Outputs
+
+None
+
+### Setpassword command
+
+<aside class="notice">
+Please make sure the order of passwords is maintained. The passwords are extracted based on their position in the arguments list.
+</aside>
+
+> Setpassword example commands:
+
+> To set a new password, include the new password and the current password. When setting a bios or power on password with no previous password set, `OLD_PASSWORD` must be set to `""` signifying no password.
+
+<pre>
+iLOrest > <font color="#01a982">setpassword newpassword ""</font>
+The operation completed successfully.
+</pre>
+
+
+> When setting a bios or power on password back to nothing, `NEW_PASSWORD` must be set to `""`.
+
+<pre>
+iLOrest > <font color="#01a982">setpassword "" oldpassword</font>
+The operation completed successfully.
+</pre>
+
+
+> To set the power on password, include the `--poweron` option.
+
+<pre>
+iLOrest > setpassword newpassword "" <font color="#01a982">--poweron</font>
+The operation completed successfully.
+</pre>
+
+	
+
+
+#### Syntax
+
+setpassword *[NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]*
+
+#### Description
+
+Sets the bios admin password and poweron password.
+
+#### Parameters
+
+- **-h, --help**
+
+Including the help flag on this command will display help on the usage of this command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. 'REBOOT' is replaceable parameter that can have multiple values. For help with parameters and descriptions regarding the reboot flag, run help reboot.
-
-
-
 
 #### Inputs
 

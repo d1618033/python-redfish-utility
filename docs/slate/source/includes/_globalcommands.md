@@ -1,53 +1,6 @@
-## Global commands
+## Global Options
 
-This section includes commands as well as their usage and examples for general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, and authenticating and logging in and out of the server.
-
-### Help Command
-
-> Help example commands:
-
-> Entering the help to list the global iLOrest options and help options for all available commands.
-
-> ![Help Example 1](images/examples/help_ex1.png "Help example 1")
-
-> Providing a specific command will list help regarding that specific command.
-
-> ![Help Example 2](images/examples/help_ex2.png "Help example 2")
-
-> The alternate syntax to list details regarding a command.
-
-> ![Help Example 3](images/examples/help_ex3.png "Help example 3")
-
-
-#### Syntax
-
-help *[command] [optional parameters]*
-
-#### Description
-
-Displays command line syntax and help menus for individual commands. Use this command if you want to know more about a command or need help using a command. Alternatively, you can use the `help` command without specifying a particular command if you wish to see all available commands and options.
-
-#### Parameters
-
-- Command 
-
-Supplying a command to help will cause this command to display the help message corresponding to the given command, as well as the options relating to that particular command.
-
-<aside class="notice">If no command is provided, the help command will provide help on all available commands and options.</aside>
-
-- **-h, --help**
-
-Running the help command with the **–h** or **–help** command will display information on how to use the help command.
-
-- **-c FILE, --config=FILE**
-
-Use the provided configuration file instead of the default one.
-
-- **--cache-dir=PATH**
-
-Use the provided directory as the location to cache data (default location: `C:\Users\USERNAME\AppData\Roaming\.ilorest`).
-
-#### Global Options
+This section lists all global options available.
 
 **-v, --verbose**
 
@@ -57,27 +10,310 @@ Display verbose information.
 
 Display debug information.
 
-**-nocache**
+**--nocache**
 
 During execution the application will temporarily store data only in memory.
 
-**-nologo**
+**--nologo**
 
 Include to block copyright and logo.
 
-**-redfish**
+**--redfish**
 
-Use this flag if you wish to to enable Redfish only compliance. It is enabled by default in systems with iLO5 and above.
+Use this flag if you wish to enable Redfish only compliance. It is enabled by default in systems with iLO5 and above.
 
-**_Important: The --redfish global option is required for iLO 4 firmware version 2.40 and is not required for iLO 5._** 
+<aside class="notice">The --redfish global option is not required for iLO 5.</aside>
 
 **--latestschema**
 
 Optionally use the latest schema instead of the one requested by the file. 
 
+**--proxy=URL**
+
+Use the provided proxy for communication. 
+
 <aside class="notice">
 Might cause errors in some data retrieval due to difference in schema versions.
 </aside>
+
+## Global commands
+
+This section includes commands as well as their usage and examples of general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, and authenticating and logging in and out of the server.
+
+### Help Command
+
+> Help example commands:
+
+> Entering help will list the global iLOrest options and all available commands.
+
+<pre>
+iLOrest > <font color="#01a982">help</font>
+Usage: iLOrest [GLOBAL OPTIONS] [COMMAND] [ARGUMENTS] [COMMAND OPTIONS]
+
+Options:
+  -h, --help            Show this help message and exit.
+  -c FILE, --config=FILE
+                        Use the provided configuration file instead of the
+                        default one.
+  --cache-dir=PATH      Use the provided directory as the location to cache
+                        data (default location:
+                        C:\Users\kocurema\AppData\Roaming\.iLOrest)
+
+  GLOBAL OPTIONS:
+    -v, --verbose       Display verbose information.
+    -d, --debug         Display debug information.
+    --logdir=PATH       Use the provided directory as the location for log
+                        file.
+    --nocache           During execution the application will temporarily
+                        store data only in memory.
+    --nologo            Include to block copyright and logo.
+    --redfish           Use this flag if you wish to to enable Redfish only
+                        compliance. It is enabled by default in systems with
+                        iLO5 and above.
+    --latestschema      Optionally use the latest schema instead of the one
+                        requested by the file. Note: May cause errors in some
+                        data retreval due to difference in schema versions.
+    --proxy=URL         Use the provided proxy for communication.
+
+BIOS COMMANDS
+  biosdefaults                 - Set the currently logged in server to default
+                                  BIOS settings.
+  bootorder                    - Displays and sets the current boot order.
+  iscsiconfig                  - Displays and configures the current iscsi
+                                  settings.
+  pending                      - Show the pending changes that will be applied
+                                  on reboot.
+  results                      - Show the results of changes which require a
+                                  server reboot.
+  setpassword                  - Sets the admin password and poweron password
+
+COMMANDS
+  commit                       - Applies all the changes made during the
+                                  current session.
+  get                          - Displays the current value(s) of a
+                                  property(ies) within a selected type.
+  info                         - Displays detailed information about a
+                                  property within a selected type.
+  list                         - Displays the current value(s) of a
+                                  property(ies) within a selected type
+                                  including reserved properties.
+  load                         - Loads the server configuration settings from
+                                  a file.
+  login                        - Connects to a server, establishes a secure
+                                  session, and discovers data from iLO.
+  logout                       - Ends the current session and disconnects from
+                                  the server.
+  save                         - Saves the selected type's settings to a file.
+  select                       - Selects the object type to be used.
+  set                          - Changes the value of a property within the
+                                  currently selected type.
+  status                       - Displays all pending changes within a
+                                  selected type that need to be committed.
+  types                        - Displays all selectable types within the
+                                  currently logged in server.
+  exit                         - Exits from the interactive shell.
+  help                         - Displays command line syntax and help menus
+                                  for individual commands. Example: help login
+
+RAW COMMANDS
+  rawdelete                    - Raw form of the DELETE command.
+  rawget                       - Raw form of the GET command.
+  rawhead                      - Raw form of the HEAD command.
+  rawpatch                     - Raw form of the PATCH command.
+  rawpost                      - Raw form of the POST command.
+  rawput                       - Raw form of the PUT command.
+
+SMART ARRAY COMMANDS
+  clearcontrollerconfig        - Clears smart array controller configuration.
+  createlogicaldrive           - Creates a new logical drive on the selected
+                                  controller.
+  deletelogicaldrive           - Deletes logical drives from the selected
+                                  controller.
+  drivesanitize                - Erase/Sanitizes physical drives
+  factoryresetcontroller       - Factory resets a controller by index or
+                                  location.
+  smartarray                   - Discovers all storage controllers installed
+                                  in the server and managed by the
+                                  SmartStorage.
+
+iLO COMMANDS
+  certificate                  - Command for importing both iLO and login
+                                  authorization certificates as well as
+                                  generating iLO certificate signing requests
+  clearrestapistate            - Clears the persistent state of the REST API.
+                                  Some portions of the API may not be available
+                                  until after the server reboots.
+  directory                    - Update directory settings, add/delete
+                                  directory roles, and test directory settings.
+  disableilofunctionality      - disables iLO's accessibility via the network
+                                  and resets iLO. WARNING: This should be used
+                                  with caution as it will render iLO unable to
+                                  respond to further network operations
+                                  (including REST operations) until iLO is
+                                  re-enabled using the RBSU menu.
+  eskm                         - Command for all ESKM available actions.
+  factorydefaults              - Resets iLO to factory defaults. WARNING: user
+                                  data will be removed use with caution.
+  fwintegritycheck             - Perform a firmware integrity check on the
+                                  currently logged in server.
+  firmwareupdate               - Perform a firmware update on the currently
+                                  logged in server.
+  iloaccounts                  - Adds / deletes an iLO account on the
+                                  currently logged in server.
+  backuprestore                - Backup and restore iLO to a server using a
+                                  .bak file.
+  iloclone                     - Clone the iLO config of the currently logged
+                                  in server and copy it to the server in the
+                                  arguments.
+  ilofederation                - Adds / deletes an iLO federaion group on the
+                                  currently logged in server.
+  ilolicense                   - Adds an iLO license key to the currently
+                                  logged in server.
+  iloreset                     - Reset iLO on the current logged in server.
+  ipprofiles                   - This is used to manage hpeipprofile data
+                                  store.
+  onebuttonerase               - Performs One Button Erase on a system .
+  reboot                       - Reboot operations for the current logged in
+                                  server.
+  sendtest                     - Command for sending various tests to iLO.
+  serverclone                  - Creates a JSON formated clone file of a
+                                  system's iLO, Bios, and SSA configuration
+                                  which can be duplicated onto other systems.
+                                  User editable JSON file can be manipulated to
+                                  modify settings before being loaded onto
+                                  another machine.
+  serverinfo                   - Shows aggregate health status and details of
+                                  the currently logged in server.
+  serverlogs                   - Download and perform log operations.
+  serverstate                  - Returns the current state of the server.
+  sigrecompute                 - Command to recalculate the signature of the
+                                  computer's configuration.
+  singlesignon                 - Command for all single sign on available
+                                  actions.
+  virtualmedia                 - Command for inserting and removing virtual
+                                  media.
+
+iLO REPOSITORY COMMANDS
+  deletecomp                   - Deletes components/binaries from the iLO
+                                  Repository.
+  downloadcomp                 - Downloads components/binaries from the iLO
+                                  Repository.
+  flashfwpkg                   - Flashes fwpkg components using the iLO
+                                  repository.
+  installset                   - Manages install sets for iLO.
+  listcomp                     - Lists components/binaries from the iLO
+                                  Repository.
+  maintenancewindow            - Manages the maintenance windows for iLO.
+  makeinstallset               - Creates install sets for iLO.
+  taskqueue                    - Manages the update task queue for iLO.
+  uploadcomp                   - Upload components/binary to the iLO
+                                  Repository.
+</pre>
+
+> Providing a specific command will list help regarding that specific command.
+
+<pre>
+iLOrest > <font color="#01a982">help login</font>
+Usage: login [URL] [OPTIONS]
+
+        To login remotely run using iLO url and iLO credentials
+        example: login <iLO url/hostname> -u <iLO username> -p <iLO password>
+
+        To login on a local server run without arguments
+        example: login
+
+Options:
+  -h, --help            show this help message and exit
+  -u USER, --user=USER  If you are not logged in yet, including this flag
+                        along with the password and URL flags can be used to
+                        log into a server in the same command.
+  -p PASSWORD, --password=PASSWORD
+                        Use the provided iLO password to log in.
+  --includelogs         Optionally include logs in the data retrieval process.
+  --selector=SELECTOR   Optionally include this flag to select a type to run
+                        the current command on. Use this flag when you wish to
+                        select a type without entering another command, or if
+                        you wish to work with a type that is different from
+                        the one you currently have selected.
+  --path=PATH           Optionally set a starting point for data collection
+                        during login. If you do not specify a starting point,
+                        the default path will be /redfish/v1/. Note: The path
+                        flag can only be specified at the time of login.
+                        Warning: Only for advanced users, and generally not
+                        needed for normal operations.
+  --biospassword=BIOSPASSWORD
+                        Select this flag to input a BIOS password. Include
+                        this flag if second-level BIOS authentication is
+                        needed for the command to execute. This option is only
+                        used on Gen 9 systems.
+</pre>
+
+> The alternate syntax to list details regarding a command is **-h**.
+
+<pre>
+iLOrest > <font color="#01a982">login -h</font>
+Usage: login [URL] [OPTIONS]
+
+        To login remotely run using iLO url and iLO credentials
+        example: login <iLO url/hostname> -u <iLO username> -p <iLO password>
+
+        To login on a local server run without arguments
+        example: login
+
+Options:
+  -h, --help            show this help message and exit
+  -u USER, --user=USER  If you are not logged in yet, including this flag
+                        along with the password and URL flags can be used to
+                        log into a server in the same command.
+  -p PASSWORD, --password=PASSWORD
+                        Use the provided iLO password to log in.
+  --includelogs         Optionally include logs in the data retrieval process.
+  --selector=SELECTOR   Optionally include this flag to select a type to run
+                        the current command on. Use this flag when you wish to
+                        select a type without entering another command, or if
+                        you wish to work with a type that is different from
+                        the one you currently have selected.
+  --path=PATH           Optionally set a starting point for data collection
+                        during login. If you do not specify a starting point,
+                        the default path will be /redfish/v1/. Note: The path
+                        flag can only be specified at the time of login.
+                        Warning: Only for advanced users, and generally not
+                        needed for normal operations.
+  --biospassword=BIOSPASSWORD
+                        Select this flag to input a BIOS password. Include
+                        this flag if second-level BIOS authentication is
+                        needed for the command to execute. This option is only
+                        used on Gen 9 systems.
+</pre>
+
+
+#### Syntax
+
+help *[command] [optional parameters]*
+
+#### Description
+
+Displays command-line syntax and help menus for individual commands. Use this command if you want to know more about a command or need help using a command. Alternatively, you can use the `help` command without specifying a particular command if you wish to see all the available commands and options.
+
+#### Parameters
+
+- Command 
+
+Supplying a command to help will display the help message corresponding to the given command, as well as the options relating to that particular command.
+
+<aside class="notice">If no command is provided, the help command will list and provide a brief description of all available commands.</aside>
+
+- **-h, --help**
+
+Running the `help` command with the **–h** or **–help** command will display information on how to use the `help` command.
+
+- **-c FILE, --config=FILE**
+
+Use the provided configuration file instead of the default one.
+
+- **--cache-dir=PATH**
+
+Use the provided directory as the location to cache data (default location: `C:\Users\USERNAME\AppData\Roaming\.ilorest`).
 
 #### Inputs
 
@@ -91,20 +327,29 @@ None
 
 > Login example commands:
 
-> To login remotely, supply the URL, username, and password for the server. Here the selector tag has been included so that the **Bios** type is selected once the user is logged in. You can prove that the **Bios** type has indeed been selected when we enter the select command.
+> To login remotely, supply the URL, username, and password for the server. 
 
-> ![Login Example 1](images/examples/login_ex1.png "Login example 1")
 
-> Here the path was set to **/redfish/v1/systems/1/bios/** instead of the default **/redfish/v1/**. To check that the path has indeed been set to a different place, the types command was entered and returned the types in the specified path, instead of in the default **/redfish/v1/**. You can log in again with the default **/redfish/v1/** to show the change.
+<pre>
+iLOrest > <font color="#01a982">login xx.xx.xx.xx -u username -p password</font>
+Discovering data...Done
+</pre>
 
-> ![Login Example 2-1](images/examples/login_ex2-1.png "Login example 2-1")
+> Here the selector option has been included so that the `Bios` type is selected once the user is logged in. You can prove that the `Bios` type has indeed been selected when we enter the select command.
 
-> ![Login Example 2-2](images/examples/login_ex2-2.png "Login example 2-2")
+<pre>
+iLOrest > login xx.xx.xx.xx -u username -p password <font color="#01a982">--select Bios.</font>
+Discovering data...Done
+iLOrest > select
+Current selection: Bios.v1_0_0
+</pre>
 
 > Here the URL, username, and password information are not specified here or in the configuration file, and the server was logged in to locally.
 
-> ![Login Example 3](images/examples/login_ex3.png "Login example 3")
-
+<pre>
+iLOrest > <font color="#01a982">login</font>
+Discovering data...Done
+</pre>
 
 
 #### Syntax
@@ -113,7 +358,11 @@ login *[URL] [User] [Password] [Optional Parameters]*
 
 #### Description
 
-Connects to a server, establishes a secure session, and discovers data from iLO. Use the `login` command to connect to a server. This command establishes a secure session and discovers data from iLO. If you are logging in to a local server, run the command without arguments. If you are not logging in to a local server, see the following:
+Connects to a server, establishes a secure session, and discovers data from iLO. If you are logging in to a local server, run the command without arguments. If you are not logging in to a local server, supply the URL argument along with the user and password options.
+
+#### Usage in Other Commands
+
+Login remotely as part of other commands by including the *--url*, *(-u, --user)*, and *(-p, --password)* flags. Locally you will be logged in automatically unless running in higher security modes (see [Higher Security Modes](#higher-security-modes)).
 
 #### Parameters
 
@@ -137,29 +386,23 @@ Connect to the server with the password corresponding to the given user.
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
+<aside class="notice">Use this option to limit long login times.</aside>
+
 - **--selector=SELECTOR**
 
-Optionally including the **selector** flag allows you to select a type to run the current command on. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
-
-- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
-
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
-
-<aside class="notice">Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the <b>filter</b> flag to narrow down results based on properties.</aside>
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
 
 - **--path=PATH**
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be /rest/v1.
 
-<aside class="notice">The path flag can only be specified at the time of login, so if you are already logged in to the server, the path flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but include your login information, you can still specify the path flag there.</aside>
 
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="warning">Cache is activated session keys and it is normal to see these keys stored in plaintext. This warning regarding an activated cache is normal to see in versions earlier than 2.3, it is not seen version 2.3 and greater of the tool.</aside>
-
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
 
 ### Types command
 
@@ -167,17 +410,112 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 > This command will list all the available types that you can select. The full list has been truncated for space.
 
-> ![Types Example 1](images/examples/types_ex1.png "Types example 1")
-
+<pre>
+iLOrest > login xx.xx.xx.xx -u username -p password
+Discovering data...Done
+iLOrest > <font color="#01a982">types</font>
+Type options:
+AccountService.v1_3_0
+Bios.v1_0_0
+CertificateCollection
+Chassis.v1_6_0
+ChassisCollection
+ComputerSystem.v1_4_0
+ComputerSystemCollection
+EthernetInterface.v1_4_1
+EthernetInterfaceCollection
+EventDestinationCollection
+EventService.v1_0_8
+HostInterface.v1_1_1
+HostInterfaceCollection
+HpeBaseConfigs.v2_0_0
+HpeBaseNetworkAdapter.v2_0_0
+HpeBaseNetworkAdapterCollection
+HpeBiosMapping.v2_0_0
+HpeCertAuth.v1_1_0
+HpeCertificate.v1_0_0
+HpeCertificateCollection
+HpeComponent.v1_0_1
+HpeComponentCollection
+HpeComponentInstallSet.v1_0_3
+HpeComponentInstallSetCollection
+HpeComponentUpdateTaskQueueCollection
+HpeDirectoryTest.v1_0_0
+HpeESKM.v2_0_0
+...
+</pre>
 
 > This command simultaneously logs in to the server at the provided URL with the provided username and password, and list all the available types that you can select. The full list has been truncated here for space.
 
-> ![Types Example 2](images/examples/types_ex2.png "Types example 2")
+<pre>
+iLOrest > <font color="#01a982">types --url xx.xx.xx.xx -u username -p password</font>
+Discovering data...Done
+Type options:
+AccountService.v1_3_0
+Bios.v1_0_0
+CertificateCollection
+Chassis.v1_6_0
+ChassisCollection
+ComputerSystem.v1_4_0
+ComputerSystemCollection
+EthernetInterface.v1_4_1
+EthernetInterfaceCollection
+EventDestinationCollection
+EventService.v1_0_8
+HostInterface.v1_1_1
+HostInterfaceCollection
+HpeBaseConfigs.v2_0_0
+HpeBaseNetworkAdapter.v2_0_0
+HpeBaseNetworkAdapterCollection
+HpeBiosMapping.v2_0_0
+HpeCertAuth.v1_1_0
+HpeCertificate.v1_0_0
+HpeCertificateCollection
+HpeComponent.v1_0_1
+HpeComponentCollection
+HpeComponentInstallSet.v1_0_3
+HpeComponentInstallSetCollection
+HpeComponentUpdateTaskQueueCollection
+HpeDirectoryTest.v1_0_0
+HpeESKM.v2_0_0
+...
+</pre>
 
+> Adding the `fulltypes` option will return the full type name instead of the default simplified versions. This is only available on Redfish systems.
 
-> Specifying a path for the type command will print the types found in the given path. Here only the types found in **/rest/v1/systems/1/bios/** were returned.
+<pre>
+iLOrest > <font color="#01a982">types --fulltypes</font>
+Type options:
+#AccountService.v1_3_0.AccountService
+#Bios.v1_0_0.Bios
+#CertificateCollection.CertificateCollection
+#Chassis.v1_6_0.Chassis
+#ChassisCollection.ChassisCollection
+#ComputerSystem.v1_4_0.ComputerSystem
+#ComputerSystemCollection.ComputerSystemCollection
+#EthernetInterface.v1_4_1.EthernetInterface
+#EthernetInterfaceCollection.EthernetInterfaceCollection
+#EventDestinationCollection.EventDestinationCollection
+#EventService.v1_0_8.EventService
+#HostInterface.v1_1_1.HostInterface
+#HostInterfaceCollection.HostInterfaceCollection
+#HpeBaseConfigs.v2_0_0.HpeBaseConfigs
+#HpeBaseNetworkAdapter.v2_0_0.HpeBaseNetworkAdapter
+#HpeBaseNetworkAdapterCollection.HpeBaseNetworkAdapterCollection
+#HpeBiosMapping.v2_0_0.HpeBiosMapping
+#HpeCertAuth.v1_1_0.HpeCertAuth
+#HpeCertificate.v1_0_0.HpeCertificate
+#HpeCertificateCollection.HpeCertificateCollection
+#HpeComponent.v1_0_1.HpeComponent
+#HpeComponentCollection.HpeComponentCollection
+#HpeComponentInstallSet.v1_0_3.HpeComponentInstallSet
+#HpeComponentInstallSetCollection.HpeComponentInstallSetCollection
+#HpeComponentUpdateTaskQueueCollection.HpeComponentUpdateTaskQueueCollection
+#HpeDirectoryTest.v1_0_0.HpeDirectoryTest
+#HpeESKM.v2_0_0.HpeESKM
+...
+</pre>
 
-> ![Types Example 3](images/examples/types_ex3.png "Types example 3")
 
 
 #### Syntax
@@ -186,7 +524,9 @@ types *[Optional Parameters]*
 
 #### Description
 
-The `types` command displays all selectable types available within the currently logged in server. Types include a name as well as version information. Types represent the schema used for the resource and indicate the version of the schema. Version information is `major.minor.errata` (for example `SystemRoot.0.9.5`). Major versions are not backwards compatible, but everything else is.
+The `types` command displays all selectable types available within the currently logged in server. Types include a name as well as version information. Types represent the schema used for the resource and indicate the version of the schema. Version information is `major.minor.errata` (for example: `SystemRoot.0.9.5`). Major versions are not backwards compatible, but everything else is.
+
+<aside class="notice">See the iLO RESTful API Data Model Reference at <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/#resource-definitions">https://hewlettpackard.github.io/ilo-rest-api-docs/</a> for a list and description of all the possible types.</aside>
 
 #### Parameters
 
@@ -196,7 +536,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -209,6 +549,8 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 - **--includelogs**
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
 
 - **--path=PATH**
 
@@ -228,24 +570,63 @@ None
 
 None
 
-<aside class="notice">See the iLO RESTful API Data Model Reference at <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/">https://hewlettpackard.github.io/ilo-rest-api-docs/</a> for a list and description of all the possible types.</aside>
-
 ### Select command
 
 > Select example commands:
 
-> Before the commands were entered here, the user was not logged in to the server. When you use the select tag with login credentials, you are logged in to the server and the inputted type is selected. The type was selected by entering the select command with no type specified is verified, which shows that the currently selected type is returned. 
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), and selects the `ComputerSystem.` type.
 
 <aside class="notice">
-Adding a period after the type selected, **Bios**, limits the selection, preventing accidentally also selecting **BiosMapping**. This also removes the need to include the version.
+Adding a period after the selected type will ensure the selection is limited to one type. For example, selecting **Bios** will select both **Bios.v1_0_0** and **HpeBiosMapping.v2_0_0**. Selecting **Bios.** will only select the **Bios.v1_0_0** type.
 </aside>
 
-> ![Select Example 1](images/examples/select_ex1.png "Select example 1")
+<aside class="notice">
+Supplying the type version is not required. The selection **Bios.** and **Bios.v1_0_0** are identical.
+</aside>
 
+<pre>
+iLOrest > <font color="#01a982">select ComputerSystem. --url xx.xx.xx.xx -u username -p password</font>
+Discovering data...Done
+iLOrest > select
+Current selection: ComputerSystem.v1_4_0
+</pre>
 
-> Here the **ComputerSystem** type was selected instead of the **Bios** type like in the example above.
+> Running the select command with no argument will return the current selection.
 
-> ![Select Example 2](images/examples/select_ex2.png "Select example 2")
+<pre>
+iLOrest > <font color="#01a982">select</font>
+Error: No type currently selected. Please use the 'types' command to
+get a list of types, or pass your type by using the '--selector' flag.
+iLOrest > select Bios.
+iLOrest > <font color="#01a982">select</font>
+Current selection: Bios.v1_0_0
+</pre>
+
+> Adding a period after the type selected, `Bios`, limits the selection, preventing accidentally also selecting anything else starting with `Bios`. This also removes the need to include the version.
+
+<pre>
+iLOrest > select Bios
+iLOrest > select
+Current selection: HpeBiosMapping.v2_0_0, Bios.v1_0_0
+iLOrest > <font color="#01a982">select Bios.</font>
+iLOrest > select
+Current selection: Bios.v1_0_0
+</pre>
+
+> iLOrest caches data once a type has been selected for the first time. To refresh a type with the most up to date information use the `--refresh` option.
+
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > get Oem/Hpe/PowerOnMinutes
+Oem=
+     Hpe=
+          PowerOnMinutes=814088
+iLOrest > <font color="#01a982">select ComputerSystem. --refresh</font>
+iLOrest > get Oem/Hpe/PowerOnMinutes
+Oem=
+     Hpe=
+          PowerOnMinutes=814089
+</pre>
 
 
 
@@ -256,6 +637,10 @@ select *[Type] [Optional Parameters]*
 #### Description
 
 Use `select` to choose a specific type to work with. Eligible types for selection are those listed by the types command. Because commands are entered individually in the RESTful Interface Tool, working with specific types requires that you highlight or select the particular type you are working with. Use the `select` command to highlight a type so that you can work with it.
+
+#### Usage in Other Commands
+
+Select a type from another command by including the *(--select, --selector)* option flag followed by the type to select. Not all commands have the `select` flag, run help on the command to see available options.
 
 #### Parameters
 
@@ -269,7 +654,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -283,23 +668,19 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
-- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
-
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
-
-<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
+<aside class="notice">Use this option to limit long login times.</aside>
 
 - **--path=PATH**
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
 
 #### Inputs
 
@@ -311,37 +692,101 @@ None
 
 ### List command
 
+<aside class="notice">arguments are not case-sensitive.</aside>
+
 > List command examples:
 
-> This command shows the current values of the properties of the selected type, including reserved properties. The full list has been truncated here for space.
+> With a Type selected, run the command without arguments to list all properties within the selected type, including reserved properties. The full list has been truncated here for space.
 
-> ![List Example 1](images/examples/list_ex1.png "List example 1")
+<pre>
+iLOrest > select Bios.
+iLOrest > <font color="#01a982">list</font>
+@odata.context=/redfish/v1/$metadata#Bios.Bios
+@odata.etag=W/"02E13BA89B606F6F6F02950EB3CA676D"
+@odata.id=/redfish/v1/systems/1/bios/settings/
+@odata.type=#Bios.v1_0_0.Bios
+AcpiHpet=Enabled
+AcpiRootBridgePxm=Enabled
+AcpiSlit=Enabled
+AdjSecPrefetch=Enabled
+AdminEmail=""
+AdminName=""
+AdminOtherInfo=""
+AdminPhone=""
+AdvCrashDumpMode=Disabled
+AdvancedMemProtection=AdvancedEcc
+AsrStatus=Enabled
+AsrTimeoutMinutes=Timeout10
+AssetTagProtection=Unlocked
+AttributeRegistry=BiosAttributeRegistryU32.v1_2_10
+AutoPowerOn=RestoreLastState
+BootMode=Uefi
+...
+</pre>
 
-> Including the **--json** tag preserves the JSON structure of the type’s information. The full list has been truncated here for space.
+> Including the `-j`,`--json` option preserves the JSON structure of the type’s information. The full list has been truncated here for space.
 
-> ![List Example 2](images/examples/list_ex2.png "List example 2")
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > <font color="#01a982">list --json</font>
+{
+  "@odata.context": "/redfish/v1/$metadata#ComputerSystem.ComputerSystem",
+  "@odata.etag": "W/\"9D48B4B7\"",
+  "@odata.id": "/redfish/v1/Systems/1/",
+  "@odata.type": "#ComputerSystem.v1_4_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "ResetType@Redfish.AllowableValues": [
+        "On",
+        "ForceOff",
+        "ForceRestart",
+        "Nmi",
+        "PushPowerButton"
+      ],
+      "target": "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/"
+    }
+  },
+  "AssetTag": "",
+  "Bios": {
+    "@odata.id": "/redfish/v1/systems/1/bios/"
+  },
+  "BiosVersion": "U32 v2.10 (12/14/2018)",
+  "Boot": {
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Cd",
+      "Hdd",
+...
+</pre>
 
-> After the server is logged in to and the EthernetNetworkInterface type is selected, the list command reveals that there are two objects with that type on the server. So, to only show the one at **href=/rest/v1/Managers/1/NICs/2**, the list command was run again with the **--filter** flag included. The full list has been truncated here for space.
+> To return specific properties or sub-properties include them as arguments. If the property you want to return is a sub-property add them in the form `Property/Sub-property`.
 
-> ![List Example 3-1](images/examples/list_ex3-1.png "List example 3-1")
-
-> ![List Example 3-2](images/examples/list_ex3-2.png "List example 3-2")
-
-> ![List Example 3-3](images/examples/list_ex3-3.png "List example 3-3")
+<pre>
+iLOrest > <font color="#01a982">list @odata.id Boot/BootSourceOverrideMode AssetTag</font>
+@odata.id=/redfish/v1/Systems/1/
+AssetTag=""
+Boot=
+      BootSourceOverrideMode=UEFI
+</pre>
 
 
 
 #### Syntax
 
-list *[Optional Parameters]*
+list *[Property(s)] [Optional Parameters]*
 
 #### Description
 
-Displays the JSON model of the currently selected type, showing current value(s) of properties including reserved properties. After you have selected a type, you can use the list command to see the details of the currently selected type. This includes information such as current values of properties.
+Displays the current values of the properties of a selected type including reserved properties in human-readable and optionally JSON formats. Optionally include arguments to only return the values of those properties.
 
 <aside class="notice">The list command does display reserved properties for types, while the get command does not.</aside>
 
 #### Parameters
+
+- **Property(s)**
+
+Supplying a property or multiple properties will cause list to display the current value for that particular property or properties. Otherwise, if you wish to retrieve all the properties, run without arguments. Use this command only after a type has already been selected. If the value you are looking up is not available, it will return with no contents found for that property entry.
 
 - **-h, --help**
 
@@ -349,7 +794,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -363,6 +808,8 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
+<aside class="notice">Use this option to limit long login times.</aside>
+
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
 Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
@@ -372,13 +819,13 @@ Optionally set a filter value for a filter attribute. This uses the provided fil
 
 - **---j, --json**
 
-Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure can make the information easier to parse.
 
 - **--path=PATH**
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
@@ -398,27 +845,156 @@ None
 
 > Omitting a property when using the info command causes info to list all available options, given that you have already selected a type. The full list has been truncated for space.
 
-> ![Info Example 1](images/examples/info_ex1.png "Info example 1")
+<pre>
+iLOrest > select Bios.
+iLOrest > <font color="#01a982">info</font>
+Info options:
+AcpiHpet
+AcpiRootBridgePxm
+AcpiSlit
+AdjSecPrefetch
+AdminEmail
+AdminName
+AdminOtherInfo
+AdminPhone
+</pre>
+
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Power.` type, and displays the `PowerSupplies` information.
+
+<pre>
+iLOrest > <font color="#01a982">info PowerSupplies -u username -p password --url xx.xx.xx.xx --select Power.</font>
+Discovering data...Done
+
+NAME
+    PowerSupplies
 
 
-> Here the server is logged into and type **Power** is selected, the power supplies information is displayed.
+DESCRIPTION
+    Details of the power supplies associated with this system or
+    device
 
-> ![Info Example 2](images/examples/info_ex2.png "Info example 2")
 
+TYPE
+    array
+
+
+READ-ONLY
+    True
+
+
+SUB-PROPERTIES
+    Redundancy, Name, SerialNumber, MemberId, @odata.id,
+    PowerCapacityWatts, Model, PartNumber, Status,
+    LastPowerOutputWatts, SparePartNumber, RelatedItem,
+    LineInputVoltageType, Oem, PowerSupplyType, LineInputVoltage,
+    FirmwareVersion, Manufacturer
+</pre>
 
 > Multiple properties under the VirtualMedia type are specified. By passing multiple properties, it returns the information on all of the properties passed.
 
-> ![Info Example 3](images/examples/info_ex3.png "Info example 3")
+<pre>
+iLOrest > select VirtualMedia.
+iLOrest > <font color="#01a982">info Image WriteProtected</font>
+
+NAME
+    Image
+
+
+DESCRIPTION
+    The valid URI indicating the image that is mounted on this server.
+    A null value indicates that no image exists.
+
+
+TYPE
+    string
+    null
+
+
+READ-ONLY
+    False
+
+
+**************************************************
+
+NAME
+    WriteProtected
+
+
+DESCRIPTION
+    Indicates whether the virtual media is protected against write
+    operations.
+
+
+TYPE
+    boolean
+    null
+
+
+READ-ONLY
+    False
+
+
+POSSIBLE VALUES
+    True or False
+</pre>
+
+> Any Sub-Properties shown in an info response can be queried in the same form as set, list, and get: `Property/Sub-property`.
+
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > info Boot
+
+NAME
+    Boot
+
+
+DESCRIPTION
+    The boot information for the current resource.
+
+
+TYPE
+    object
+
+
+READ-ONLY
+    False
+
+
+SUB-PROPERTIES
+    BootSourceOverrideTarget,
+    BootSourceOverrideTarget@Redfish.AllowableValues,
+    BootSourceOverrideEnabled, BootSourceOverrideMode,
+    UefiTargetBootSourceOverride@Redfish.AllowableValues,
+    UefiTargetBootSourceOverride
+iLOrest > <font color="#01a982">info Boot/BootSourceOverrideTarget</font>
+
+NAME
+    BootSourceOverrideTarget
+
+
+DESCRIPTION
+    The current boot source to be used at next boot instead of the
+    normal boot device, if BootSourceOverrideEnabled is true.
+
+
+TYPE
+    string
+    null
+
+
+READ-ONLY
+    False
+</pre>
 
 
 
 #### Syntax
 
-info *[Property] [Optional Parameters]*
+info *[Property(s)] [Optional Parameters]*
 
 #### Description
 
-Displays detailed information about a property within a selected type. This section includes commands as well as their usage and examples for general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, and authenticating and logging in and out of the server.
+Displays detailed information about a property within a selected type. Information displayed includes the data type of the value, if the property is read-only or not, a brief description, possible values, and any sub-properties associated with the property.
 
 #### Parameters
 
@@ -428,7 +1004,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -442,11 +1018,7 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
-- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
-
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
-
-<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
+<aside class="notice">Use this option to limit long login times.</aside>
 
 - **--latestschema**
 
@@ -462,7 +1034,7 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
@@ -485,42 +1057,125 @@ None
 <aside class="notice">
 No reserved properties are shown with the get command.
 </aside>
+<aside class="notice">Arguments are not case-sensitive.</aside>
 
-> ![Get Example 1](images/examples/get_ex1.png "Get example 1")
+<pre>
+iLOrest > select Bios.
+iLOrest > <font color="#01a982">get</font>
+AcpiHpet=Enabled
+AcpiRootBridgePxm=Enabled
+AcpiSlit=Enabled
+AdjSecPrefetch=Enabled
+AdminEmail=""
+AdminName=Michael L
+AdminOtherInfo=""
+AdminPhone=""
+...
+</pre>
 
 > Using get with a specific property lists the current value of that property, given that a type has already been selected.
 
-> ![Get Example 2](images/examples/get_ex2.png "Get example 2")
+<pre>
+iLOrest > <font color="#01a982">get AdminName</font>
+AdminName=Jason E
+</pre>
 
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, and the `get` command is used to retrieve the `BootOrderPolicy` property of `Bios.`
 
-> Here the server at xx.xx.xx.xx is logged into, the type Bios. is selected, and the get command is used to retrieve the BootOrderPolicy property of Bios.
+<pre>
+iLOrest > <font color="#01a982">get BootOrderPolicy --url xx.xx.xx.xx -u username -p password --select Bios.</font>
+Discovering data...Done
+BootOrderPolicy=RetryIndefinitely
+</pre>
 
-> ![Get Example 3](images/examples/get_ex3.png "Get example 3")
+> Because the logout flag was included, the user is logged out of the server after the get command is performed.
 
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > <font color="#01a982">get AssetTag --logout</font>
+AssetTag=""
+Logging session out.
+</pre>
 
-> Because the logout flag was included here, the user is logged out of the server after the get command here is performed.
+> Any Sub-Properties shown can be queried in the same form as set, list, and info: `Property/Sub-property`. You can also specify multiple properties to get simultaneously.
 
-> ![Get Example 4](images/examples/get_ex4.png "Get example 4")
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > get MemorySummary
+MemorySummary=
+               Status=
+                       HealthRollup=OK
+               TotalSystemPersistentMemoryGiB=0
+               TotalSystemMemoryGiB=32
+iLOrest > <font color="#01a982">get MemorySummary/Status MemorySummary/TotalSystemMemoryGiB AssetTag</font>
+AssetTag=""
+MemorySummary=
+               Status=
+                       HealthRollup=OK
+               TotalSystemMemoryGiB=32
+</pre>
 
-> Here, the get command utilizes its ability to take multiple properties as arguments. The first time the get command was used on the **ConnectedVia** and **MediaTypes property**, two objects of type **VirtualMedia** and **MediaTypes** were returned. However, to get the **ConnectedVia** and **MediaTypes** value for only one of the types, the filter tag was included. When the get command was run with the filter, the only value printed this time was the **ConnectedVia** value and the **MediaTypes** value for the **VirtualMedia** located at the specified address.
+> You can use the `noreadonly` flag to narrow down your results to only properties that can be changed.
 
-> ![Get Example 5](images/examples/get_ex5.png "Get example 5")
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > get
+AssetTag=""
+BiosVersion=U32 v2.10 (12/14/2018)
+Boot=
+      BootSourceOverrideTarget=None
+      BootSourceOverrideTarget@Redfish.AllowableValues=None
+                                                        Cd
+                                                        Hdd
+                                                        Usb
+                                                        SDCard
+                                                        Utilities
+                                                        Diags
+                                                        BiosSetup
+                                                        Pxe
+                                                        UefiShell
+                                                        UefiHttp
+                                                        UefiTarget
+      BootSourceOverrideEnabled=Disabled
+...
+iLOrest > <font color="#01a982">get --noreadonly</font>
+AssetTag=""
+Boot=
+      BootSourceOverrideTarget=None
+      BootSourceOverrideEnabled=Disabled
+      BootSourceOverrideMode=Legacy
+      UefiTargetBootSourceOverride=None
+HostName=ahostname
+IndicatorLED=Unknown
+Oem=
+     Hpe=
+          EndOfPostDelaySeconds=None
+          PowerOnDelay=Minimum
+          ServerFQDN=""
+          PowerAutoOn=RemainOff
+          PostMode=None
+          ProcessorJitterControl=
+                                  Mode=Auto
+          PostDiscoveryMode=None
+          PowerRegulatorMode=OSControl
+</pre>
+
 
 #### Syntax
 
-get *[Property] [Optional Parameters]*
+get *[Property(s)] [Optional Parameters]*
 
 #### Description
 
-Displays the current value of a property of the currently selected type. Use the `get` command to retrieve the current value of a property. Use this command only after a type has already been selected. If the value you are looking up has no value, it will return with no contents found for that property entry.
+Displays the current value of a property of the currently selected type. Use this command only after a type has already been selected. If the value you are looking up is not available, it will return with no contents found for that property entry.
 
-<aside class="notice">The difference between the <b>get</b> command and the <b>list</b> command is that the <b>list</b> command also lists details about reserved properties, while the <b>get</b> command does not.</aside>
+<aside class="notice">The difference between the <b>get</b> command and the <b>list</b> command is that the <b>list</b> command displays details about the reserved properties, while the <b>get</b> command does not.</aside>
 
 #### Parameters
 
-- **Property**
+- **Property(s)**
 
-Supplying a property will cause get to display the current value for that particular property. Otherwise, if you wish to retrieve all the properties, run without arguments. This is still assuming you have a type already selected.
+Supplying a property or multiple properties will cause get to display the current value for that particular property or properties. Otherwise, if you wish to retrieve all the properties, run without arguments. This is still assuming you have a type already selected.
 
 - **-h, --help**
 
@@ -528,7 +1183,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -540,35 +1195,38 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 - **--includelogs**
 
-Optional: Include this flag to set the **includelogs** flag. This will include logs in the data retrieval process.
+Optionally include this flag to set the **includelogs** flag. This will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
 
 -**--selector=SELECTOR**
 
-Optional: Include this flag to select a file to run the current command on. Use this command to select a type without entering another command, or to work with a type that is different from the one currently selected.
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this command to select a type without entering another command, or to work with a type that is different from the one currently selected.
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optional:Include to set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
+Optionally include to set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the <b>filter</b> flag to narrow down results based on properties.</aside>
 
 - **-j, --json**
 
-Optional: Include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
+Optionally include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
 
 - **--path=PATH**
 
-Optional: Include this flag to set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
+Optionally include this flag to set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
-Optional: Include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 - **--noreadonly**
 
-Optional: Include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
+Optionally include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
+
 #### Inputs
 
 None
@@ -579,31 +1237,56 @@ None
 
 ### Set command
 
+<aside class="notice">Arguments are not case-sensitive.</aside>
+
 > Set example commands:
 
-> Here the **ServiceName** property of the type **Bios** has been set to the value **ExampleService**. When the get command is performed next, the value of **ServiceName** has been set to **ExampleService**. 
+> You can set multiple properties from the same type simultaneously. Add quotes around the property and value to add spaces in the value.
 
-<aside class="notice">
-Even though the get command shows **ServiceName** is set to **ExampleService**, the commit command must be performed next for the changes to be reflected next time the server is logged into.
-</aside>
+> <aside class="notice">Even though the get command shows **ServiceName** is set to **ExampleService** and **AdminName** set to **Jason E**, the commit command must be performed next for the changes to be updated on the server.</aside>
 
-> ![Set Example 1](images/examples/set_ex1.png "Set example 1")
+<pre>
+iLOrest > select Bios.
+iLOrest > get AdminName ServiceName
+AdminName=""
+ServiceName=""
+iLOrest > <font color="#01a982">set "AdminName=Jason E" ServiceName=ExampleService</font>
+iLOrest > get AdminName ServiceName
+AdminName=Jason E
+ServiceName=ExampleService
+</pre>
+
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, the `set` command is used to set the `AdminName` property to `Jason E`, and the commit flag has been added to apply the changes to the server.
+
+<pre>
+iLOrest > <font color="#01a982">set "AdminName=Jason E" --url xx.xx.xx.xx -u username -p password --select Bios. --commit</font>
+Discovering data...Done
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+</pre>
+
+
+> To revert your changes on a type you can use the refresh flag.
+
+<pre>
+iLOrest > select Bios.
+iLOrest > get AdminName
+AdminName=Jason E
+iLOrest > set AdminName=JohnDoe
+iLOrest > get AdminName
+AdminName=JohnDoe
+iLOrest > <font color="#01a982">select Bios. --refresh</font>
+iLOrest > get AdminName
+AdminName=Jason E
+</pre>
 
 
 
-> Set the attribute of a type using the set command. Here the server is logged into using the username, password, and URL flags, and then **Bios** is selected with the selector flag. Then, the **ServiceName** property is set.
+#### Description
 
-> ![Set Example 2](images/examples/set_ex2.png "Set example 2")
+Changes the value of a property in a currently selected type. Multiple properties can be set simultaneously.
 
-
-> Here the **AdminName** property of the type **Bios** was set to the value **JohnDoe**. Including the commit flag committed the changes, so that after logging back into the server, the **AdminName** becomes **JohnDoe**. Otherwise it would have returned to its previous value. Include the **biospassword** flag to input a password if second level BIOS authentication is required.
-
-> ![Set Example 3](images/examples/set_ex3.png "Set example 3")
-
-
-> Here the **AdminName** property of the type **Bios** was set to the value **JohnDoe**. However, since the reboot flag was included but the commit flag was not, after the server is logged into again the **AdminName** property has returned to its original value.
-
-> ![Set Example 4](images/examples/set_ex4.png "Set example 4")
+<aside class="warning">No changes you have set will be reflected on the server unless you commit your changes afterward.</aside>
 
 #### Syntax
 
@@ -613,35 +1296,33 @@ set *[Property=Value] [Path] [Optional Parameters]*
 
 - `set AdminName=John`
 
-This is **correct** syntax. This sets the `AdminName` to John.
+**Correct** syntax. This sets the `AdminName` to John.
 
 - `set “AdminName=John Doe”`
 
-This is **correct** syntax. If the property has a space in it, use quotes around the entire property/value pair. Here the `AdminName` has been set to John Doe.
+**Correct** syntax. If the property has a space in it, use quotes around the entire property/value pair. Here the `AdminName` has been set to John Doe.
 
 - `set AdminName=””`
 
-This is **correct** syntax. Use this syntax if you wish to remove the `AdminName` property value, using quotes that have nothing between them.
+**Correct** syntax. Use this syntax if you wish to remove the `AdminName` property value, using quotes that have nothing between them.
 
 - `set AdminName=’’`
 
-This is **correct** syntax. This is an alternate syntax that also removes the `AdminName` property and sets it to nothing. Use single quotes with nothing between them.
+**Correct** syntax. This is an alternate syntax that also removes the `AdminName` property and sets it to nothing. Use single quotes with nothing between them.
 
 - `set AdminName=’””’`
 
-This is **correct** syntax. This deletes the `AdminName` value.
+**Correct** syntax. This deletes the `AdminName` value.
 
 - `set AdminName=”John Doe”`
 
 This is **incorrect** syntax, and will not be correctly reflected on the server.
 
-#### Description
-
-Given that a type is currently selected, changes the value of a property in that type. Use the `set` command to assign a value to the property of a type, provided that a type has already been selected. Properties in a multilevel path can be set using this command, and multiple properties of a type can also be simultaneously set.
-
-<aside class="warning">No changes you have set will be reflected on the server unless you commit your changes afterward.</aside>
-
 #### Parameters
+
+- **Property(s)**
+
+Supplying a property and a value will stage an update to that property with the supplied value.
 
 - **-h, --help**
 
@@ -649,7 +1330,7 @@ Including the help flag on this command will display help on the usage of this c
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -663,9 +1344,11 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
+<aside class="notice">Use this option to limit long login times.</aside>
+
 - **--selector=SELECTOR**
 
-Optionally include the selector flag to select a type to run the current command on. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
@@ -687,7 +1370,7 @@ Use this flag when you are ready to commit all the changes for the current selec
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
@@ -697,7 +1380,7 @@ Optionally include the logout flag to log out of the server after this command i
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
 
 - **--reboot=REBOOT**
 
@@ -719,54 +1402,72 @@ None
 
 > Save example commands:
 
-> Here, the server is logged into, Bios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the Bios type, so the ilorest.json file that was saved holds the information about Bios. The file holding that information looks like the following. 
+> Here, the server is logged into, Bios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the Bios type, so the `ilorest.json` file that was saved holds the information about `Bios.` The file holding that information looks like the following. 
 
-> ![Save Example 1](images/examples/save_ex1.png "Save example 1")
+<pre>
+iLOrest > <font color="#01a982">save --select Bios. --url xx.xx.xx.xx -u username -p password</font>
+Discovering data...Done
+Saving configuration...
+Configuration saved to: ilorest.json
+</pre>
 
 
-
-> Example json file
+> Example json file:
 
 ```json
 [
   {
     "Comments": {
-      "Manufacturer": "HP", 
-      "Model": "ProLiant DL360 Gen9", 
-      "BIOSFamily": "P89", 
-      "BIOSDate": "05/03/2015"
+      "Manufacturer": "HPE", 
+      "Model": "ProLiant DL360 Gen10", 
+      "BIOSFamily": "U32", 
+      "BIOSDate": "12/14/2018", 
+      "SerialNumber": "Kappa", 
+      "iLOVersion": "iLO 5 v1.40"
     }
   }, 
   {
-    "HpBios.1.2.0": {
-      "/rest/v1/systems/1/bios/Settings": {
-        "AdminPassword": null, 
-        "BootMode": "Uefi", 
-        "Dhcpv4": "Enabled", 
-        "DynamicPowerCapping": "Auto", 
-        "EmbeddedSerialPort": "Com1Irq4", 
-        "EmbeddedUefiShell": "Enabled", 
-        "IntelPerfMonitoring": "Disabled", 
-		…
-        "UrlBootFile": "", 
-        "Usb3Mode": "Auto", 
-        "VlanPriority": 0, 
-        "WakeOnLan": "Enabled"
-      }	
+    "#Bios.v1_0_0.Bios": {
+      "/redfish/v1/systems/1/bios/settings/": {
+        "@odata.context": "/redfish/v1/$metadata#Bios.Bios", 
+        "@odata.etag": "W/\"02E13BA89B606F6F6F02950EB3CA676D\"", 
+        "@odata.id": "/redfish/v1/systems/1/bios/settings/", 
+        "AttributeRegistry": "BiosAttributeRegistryU32.v1_2_10", 
+        "Attributes": {
+          "MemFastTraining": "Enabled", 
+          "PowerRegulator": "DynamicPowerSavings", 
+          "EmbeddedDiagnostics": "Enabled", 
+          "Ipv6Address": "::", 
+          "PersistentMemBackupPowerPolicy": "UseExternalBackupPower", 
+          "ServiceEmail": "", 
+          "FlexLom1Aspm": "Disabled", 
+          "UrlBootFile": "", 
+          "DcuStreamPrefetcher": "Enabled", 
+          "IntelNicDmaChannels": "Enabled", 
+          ...
+        }, 
+        "Id": "settings", 
+        "Name": "BIOS Pending Settings"
+      }
     }
   }
 ]
 ```
 
-> Here, **Bios** is selected, and the corresponding JSON file is saved to a file called **BiosInfo.json** in a local directory. The attached --logout flag logs the user out after this command is completed.
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, saves the JSON response to a file called `BiosInfo.json` in a local directory, and then logs out. 
 
-> ![Save Example 2](images/examples/save_ex2.png "Save example 2")
-
+<pre>
+iLOrest > <font color="#01a982">save --select Bios. --url xx.xx.xx.xx -u username -p password -f BiosInfo.json --logout</font>
+Discovering data...Done
+Saving configuration...
+Configuration saved to: BiosInfo.json
+Logging session out.
+</pre>
 
 #### Syntax
 
 save *[Optional Parameters]*
-
+ 
 #### Description
 
 Saves the JSON information of a selected type to a local file. Use this command along with the `load` command when you want to modify properties of a selected type through file editing. Using this command saves a local copy of your selected type’s JSON information.
@@ -783,7 +1484,7 @@ Use this flag if you wish to use a different filename than the default one. The 
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -797,9 +1498,15 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
+<aside class="notice">Use this option to limit long login times.</aside>
+
 - **--selector=SELECTOR**
 
-Include the selector flag to select a type to run the current command on. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
+
+- **--multisave=MULTISAVE**
+
+Optionally include this flag to save multiple types of single file. Override the currently selected type.
 
 - **--filter [ATTRIBUTE]=[VALUE]**
 
@@ -815,7 +1522,7 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
 
-<aside class="notice"> The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
 
 - **--logout**
 
@@ -823,7 +1530,7 @@ Optionally include the logout flag to log out of the server after this command i
 
 - **-e ENCRYPTION, --encryption=ENCRYPTION**
 
-Optionally include this flag to encrypt/decrypt a file using the key provided.
+Optionally include this flag to encrypt a file using the key provided.
 
 #### Inputs
 
@@ -839,25 +1546,47 @@ Save a selected type to a file in JSON format. You can edit the values in the fi
 
 > Load example commands:
 
+> If no filename is supplied with the (-f, --filename) option, save looks for a file named `ilorest.json` in the current working directory. Save will automatically select the required type to make changes.
+
+<pre>
+iLOrest > <font color="#01a982">load</font>
+Loading configuration...
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+</pre>
+
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p) and load a file from the current working directory called `biosconfig.json`.
+
+<pre>
+iLOrest > <font color="#01a982">load --url xx.xx.xx.xx -u username -p password -f biosconfig.json</font>
+Discovering data...Done
+Loading configuration...
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+</pre>
+
 > This is the multi-server configuration setup. You must pass in a multi-server file in the following format.
 
-> ![Load Example 1](images/examples/load_ex1.png "Load example 1")
+<pre>
+iLOrest > <font color="#01a982">load -m mpfilename.txt -f biosconfig.json</font>
+Discovering data...Done
+Loading configuration for multiple servers...
+Logging session out.
+Checking given server information...
+Create multiple processes to load configuration concurrently to all servers...
+Loading Configuration for xx.xx.xx.xx : SUCCESS
+Loading Configuration for xx.xx.xx.xy : SUCCESS
+All servers have been successfully configured.
+</pre>
 
+> All servers are configured concurrently. Because the filename tag is included, it searches for the file called `biosconfig.json` and loads that information to the servers. If no values have changed, the load process is complete. If any property values have changed, the changes are committed and the user is logged out of the server. Logs of the entire process are then stored in the same location as the iLOrest logs.
 
-
-> All servers are configured concurrently. Because the filename tag is included, it searches for the file called **output.json** and loads that information to the servers by setting any property values that have changed. If no values have changed, the load process is complete. If any property values have changed, the changes are committed and the user is logged out of the server. Logs of the entire process are then stored in the same location as the ilorest logs.
-
-> ![Load Example 2](images/examples/load_mpfile.png "Load example 2")
-
-
-> The load command entered here first logs into the server using the given information. Then, since no file was specified for it to load, it searches for the file called **ilorest.json** and loads that information to the server by setting any property values that have changed. If no values have changed, it is finished. Otherwise, it commits the changes and logs the user out of the server. Here there have been changes made, so the after changing property values the changes are committed and the server logged out of.
-
-> ![Load Example 3](images/examples/load_ex2.png "Load example 3")
-
-
-> The load command entered here first logs into the server using the given information. Since the filename tag has been included, it searches for the file called **biosconfig.json** and loads that information to the server by setting any property values that have changed. If no values have changed, it is finished. Otherwise, it commits the changes. Here all the properties specified in **biosconfig.json** are the same as the values on the server, so the command is finished executing. 
-
-> ![Load Example 4](images/examples/load_ex3.png "Load example 4")
+<pre>
+--url 10.0.0.100 -u username -p password
+--url 10.0.0.101 -u username -p password
+--url 10.0.0.102 -u username -p password
+--url 10.0.0.103 -u username -p password
+</pre>
 
 
 
@@ -883,7 +1612,7 @@ Use this flag if you wish to use a different filename than the default one. The 
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
@@ -903,7 +1632,7 @@ Optionally use the latest schema instead of the one requested by the file.
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
 
 - **--logout**
 
@@ -915,19 +1644,15 @@ Override the measures stopping the tool from writing over items that are system 
 
 - **-m MPFILENAME, --multiprocessing=MPFILENAME**
 
-Use the provided filename to obtain data.
+Optionally supply a filename to a multi-processing file to load concurrently on multiple servers.
 
 - **-o OUTDIRECTORY, --outputdirectory=OUTDIRECTORY**
 
 Use the provided directory to output data for a multiple server configuration.
 
-- **-o OFILENAME, --outputfilename=OFILENAME**
-
-Use the provided filename to output data.
-
 - **-e ENCRYPTION, --encryption=ENCRYPTION**
 
-Optionally include this flag to encrypt/decrypt a file using the key provided.
+Optionally include this flag to decrypt a file using the key provided.
 
 #### Inputs
 
@@ -943,9 +1668,33 @@ None
 
 > Status example commands:
 
-> The status command shows changes to be committed. Here we see that the AssetTag property of **ComputerSystem** has been set to **newtag**, and that the **ServiceName** property of **Bios** has been set to **SimpleService**. The status command shows all pending changes, including changes for different types.
+> The status command shows changes to be committed. The status command shows all pending changes, including changes for different types.
 
-> ![Status Example 1](images/examples/status_ex1.png "Status example 1")
+<pre>
+iLOrest > <font color="#01a982">status</font>
+Current changes found:
+Bios.v1_0_0(/redfish/v1/systems/1/bios/settings/) (Currently selected)
+        Attributes/ServiceName=simpleservice
+ComputerSystem.v1_4_0(/redfish/v1/Systems/1/)
+        AssetTag=newtag
+</pre>
+
+> Once changes are committed they no longer show in status.
+
+<pre>
+iLOrest > <font color="#01a982">status</font>
+Current changes found:
+Bios.v1_0_0(/redfish/v1/systems/1/bios/settings/) (Currently selected)
+        Attributes/ServiceName=simpleservice
+ComputerSystem.v1_4_0(/redfish/v1/Systems/1/)
+        AssetTag=newtag
+iLOrest > commit
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+The operation completed successfully.
+iLOrest > status
+No changes found
+</pre>
 
 
 
@@ -955,7 +1704,7 @@ status *[Optional Parameters]*
 
 #### Description
 
-Displays all pending changes. All pending changes will be displayed, regardless of which type is currently selected. Unless you have already committed your changes using the `–commit` flag, changes you make to properties will be queued. Use the `status` command to see all the changes that have not been committed yet.
+Displays all pending changes, regardless of which type is currently selected. All the changes that have not been committed yet will be shown.
 
 #### Parameters
 
@@ -975,18 +1724,49 @@ None
 
 > Commit example commands:
 
-> Once you have made changes and are ready for them to take effect, use the commit command to commit your changes. Here the commit command saves the **AdminName** property of **Bios.** to the new value of **DeniseHarkins**, and includes the **biospassword=BIOSPASSWORD** for second level BIOS authentication. The included reboot flag reboots the server. The commit command always logs out of the server.
+> Commit all pending changes made by set by running the `commit` command.
 
-> ![Commit Example 1](images/examples/commit_ex1.png "Commit example 1")
+<pre>
+iLOrest > select ComputerSystem.
+iLOrest > set AssetTag=newtag
+iLOrest > select Bios.
+iLOrest > set servicename=simpleservice
+iLOrest > <font color="#01a982">commit</font>
+Committing changes...
+One or more properties were changed and will not take effect until system is reset.
+The operation completed successfully.
+</pre>
 
 
-> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of Bios was set to a new value, then the server was logged out of because the logout flag was included. 
+> If you do not commit before logging out changes will be lost.
 
 <aside class="notice">
-The commit flag isn't used here; therefore, changes are not committed upon logout.
+You must commit changes before logging out or settings will not be updated on the server.
 </aside>
 
-> ![Commit Example 2](images/examples/commit_ex2.png "Commit example 2")
+<pre>
+iLOrest > select Bios.
+iLOrest > get AdminName
+AdminName=Chelsea K
+iLOrest > set AdminName=newname
+iLOrest > get AdminName
+AdminName=newname
+iLOrest > logout
+Logging session out.
+iLOrest > get AdminName --select Bios.
+Discovering data...Done
+AdminName=Chelsea K
+</pre>
+
+> Commit after running other commands by using the `--commit` option. This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u, --user) and password (-p, --password), selects the `ComputerSystem.` type, sets `AssetTag` to `""`, commits the change, and logs-out.
+
+<pre>
+iLOrest > <font color="#01a982">set AssetTag="" --url xx.xx.xx.xx -u username -p password --selector ComputerSystem. --commit --logout</font>
+Discovering data...Done
+Committing changes...
+The operation completed successfully.
+Logging session out.
+</pre>
 
 
 
@@ -996,7 +1776,11 @@ commit *[Optional Parameters]*
 
 #### Description
 
-Applies all changes made during the current session and then executes the `logout` command. After you have changed one or more values for the property of a type, you need to commit those changes in order for those changes to be reflected on the server. Use the `commit` command to do this. Once you have run the `commit` command, you will automatically be logged out of the server.
+Applies all changes made during the current session. After you have changed one or more values for the property of a type, you need to commit those changes in order for those changes to be reflected on the server.
+
+#### Usage in Other Commands
+
+To commit at the end of a command, include the *--commit* option. Not all commands have the `commit` flag, run help on the command to see available options.
 
 #### Parameters
 
@@ -1008,7 +1792,7 @@ Including the help flag on this command will display help on the usage of this c
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
 
 - **--reboot=REBOOT**
 
@@ -1028,11 +1812,20 @@ None
 
 > Use the logout command to end the session and disconnect from the server.
 
-> ![Logout Example 1](images/examples/logout_ex1.png "Logout example 1")
+<pre>
+iLOrest > login xx.xx.xx.xx -u username -p password
+Discovering data...Done
+iLOrest > <font color="#01a982">logout</font>
+Logging session out.
+</pre>
 
-> Here the logout flag was used to demonstrate that the server can be logged out of after another command. Here, after the **EmbSata1Enabled** property of **Bios** was set to a new value, the server was logged out of because the logout flag was included.
+> Logout from another command using the `--logout` option.
 
-> ![Logout Example 2](images/examples/logout_ex2.png "Logout example 2")
+<pre>
+iLOrest > get AssetTag --select ComputerSystem. <font color="#01a982">--logout</font>
+AssetTag=""
+Logging session out.
+</pre>
 
 
 #### Syntax
@@ -1042,6 +1835,10 @@ logout *[Optional Parameters]*
 #### Description
 
 Use the `logout` command to exit your session and to disconnect from the server.
+
+#### Usage in Other Commands
+
+To log out at the end of a command, include the *--logout* option. Not all commands have the `logout` flag, run help on the command to see available options.
 
 #### Parameters
 
@@ -1063,7 +1860,11 @@ None
 
 > This command exits the interactive shell.
 
-> ![Exit Example 1](images/examples/exit_ex1.png "Exit example 1")
+<pre>
+iLOrest > <font color="#01a982">exit</font>
+Logging session out.
+Bye for now
+</pre>
 
 #### Syntax
 

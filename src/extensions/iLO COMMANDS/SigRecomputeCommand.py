@@ -18,8 +18,8 @@
 """ SigRecompute Command for rdmc """
 from optparse import OptionParser, SUPPRESS_HELP
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError
 
 class SigRecomputeCommand(RdmcCommandBase):
     """ Recalculate the signature of the servers configuration """
@@ -28,8 +28,7 @@ class SigRecomputeCommand(RdmcCommandBase):
             name='sigrecompute',\
             usage='sigrecompute [OPTIONS]\n\n\tRecalculate the signature on ' \
                     'the computers configuration.\n\texample: sigrecompute\n\n'\
-                    '\tNote: sigrecompute command is not available on Redfish'\
-                    ' systems.',\
+                    '\tNote: sigrecompute command is not available on Redfish systems.',\
             summary="Command to recalculate the signature of the computer's " \
             "configuration.",\
             aliases=None,\
@@ -54,12 +53,7 @@ class SigRecomputeCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Sigrecompute command takes no " \
-                                                                "arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
+            raise InvalidCommandLineError("Sigrecompute command takes no arguments.")
 
         self.sigrecomputevalidation(options)
         path = self.typepath.defs.systempath
@@ -68,8 +62,7 @@ class SigRecomputeCommand(RdmcCommandBase):
             body = {"Action": "ServerSigRecompute", "Target": "/Oem/Hp"}
             self._rdmc.app.post_handler(path, body)
         else:
-            raise IncompatibleiLOVersionError("Sigrecompute action not " \
-                                                        "available on redfish.")
+            raise IncompatibleiLOVersionError("Sigrecompute action not available on redfish.")
 
         return ReturnCodes.SUCCESS
 
@@ -81,6 +74,10 @@ class SigRecomputeCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -101,11 +98,9 @@ class SigRecomputeCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

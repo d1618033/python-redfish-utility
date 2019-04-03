@@ -28,9 +28,8 @@ from redfish.ris.rmc_helper import ValidationError
 
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
-                        InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
-                        NoContentsFoundForOperationError
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
+                        InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption
 
 class MaintenanceWindowCommand(RdmcCommandBase):
     """ Main maintenancewindow command class """
@@ -70,10 +69,6 @@ class MaintenanceWindowCommand(RdmcCommandBase):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
 
         self.maintenancewindowvalidation(options)
 
@@ -121,8 +116,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             adddata['Name'] = 'MW-%s' % str(randint(0, 1000000))
 
         if options.description:
-            if options.description.startswith('"') and \
-                                            options.description.endswith('"'):
+            if options.description.startswith('"') and options.description.endswith('"'):
                 options.description = options.description[1:-1]
             adddata['Description'] = options.description
 
@@ -176,16 +170,16 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         if windows:
             for window in windows:
                 if options.json:
-                    jsonwindows.append(dict((key, val) for key, val in window.iteritems() \
+                    jsonwindows.append(dict((key, val) for key, val in window.items() \
                                                             if not '@odata.'in key))
                 else:
                     outstring += '%s:' % window['Name']
-                    if 'Description' in window.keys() and window['Description']:
+                    if 'Description' in list(window.keys()) and window['Description']:
                         outstring += '\n\tDescription: %s' % window['Description']
                     else:
                         outstring += '\n\tDescription: %s' % 'No description.'
                     outstring += '\n\tStart After: %s' % window['StartAfter']
-                    if 'Expire' in window.keys():
+                    if 'Expire' in list(window.keys()):
                         outstring += '\n\tExpires at: %s' % window['Expire']
                     else:
                         outstring += '\n\tExpires at: %s' % 'No expire time set.'
@@ -211,16 +205,15 @@ class MaintenanceWindowCommand(RdmcCommandBase):
 
         for window in windows:
             if cmw['Name'] == window['Name']:
-                errorlist.append('Maintenance window with Name: %s already exists.'\
-                                 % cmw['Name'])
+                errorlist.append('Maintenance window with Name: %s already exists.' % cmw['Name'])
 
-        if 'Name' in cmw.keys():
+        if 'Name' in list(cmw.keys()):
             if len(cmw['Name']) > 64:
                 errorlist.append('Name must be 64 characters or less.')
-        if 'Description' in cmw.keys():
+        if 'Description' in list(cmw.keys()):
             if len(cmw['Description']) > 64:
                 errorlist.append('Description must be 64 characters or less.')
-        if 'Expire' in cmw.keys():
+        if 'Expire' in list(cmw.keys()):
             if not re.match(rfdtregex, cmw['Expire']):
                 errorlist.append('Invalid redfish date-time format in Expire. '\
                     'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
@@ -238,6 +231,10 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         """
         inputline = list()
         client = None
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -258,14 +255,12 @@ class MaintenanceWindowCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
 

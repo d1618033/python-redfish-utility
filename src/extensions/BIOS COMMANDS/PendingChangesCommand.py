@@ -26,7 +26,7 @@ from optparse import OptionParser, SUPPRESS_HELP
 import jsondiff
 
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption,\
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                             InvalidCommandLineErrorOPTS, UI
 
 class PendingChangesCommand(RdmcCommandBase):
@@ -34,8 +34,8 @@ class PendingChangesCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='pending',\
-            usage='pending [OPTIONS]\n\n\tRun to show pending changes that will'\
-                    ' be applied after a reboot.\n\texample: pending',\
+            usage='pending [OPTIONS]\n\n\tRun to show pending committed changes '\
+                    'that will be applied after a reboot.\n\texample: pending',\
             summary='Show the pending changes that will be applied on reboot.',\
             aliases=['pending'],\
             optparser=OptionParser())
@@ -60,13 +60,7 @@ class PendingChangesCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Pending command does not take any " \
-                                                                "arguments.")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
+            raise InvalidCommandLineError("Pending command does not take any arguments.")
         self.pendingvalidation(options)
 
         self.pendingfunction()
@@ -76,30 +70,35 @@ class PendingChangesCommand(RdmcCommandBase):
     def pendingfunction(self):
         """ Main pending command worker function
         """
-
         settingsuri = []
-        ignorekeys = ['@odata.id', '@odata.etag', '@redfish.settings']
+        ignorekeys = ['@odata.id', '@odata.etag', '@redfish.settings', 'oem']
+        ignoreuri = [unicode('hpsut*')]
         ignorekeys.extend(HARDCODEDLIST)
 
         resourcedir = self._rdmc.app.get_handler(self._rdmc.app.current_client.\
-                monolith._resourcedir, \
-                verbose=self._rdmc.opts.verbose, service=True, silent=True)
+                monolith._resourcedir, verbose=self._rdmc.opts.verbose, service=True, silent=True)
 
         for resource in resourcedir.dict['Instances']:
-            if '/settings' in resource['@odata.id']:
-                settingsuri.append(resource['@odata.id'])
+            if (resource['@odata.id'].split('/').__len__() - 1) > 4:
+                splitstr = resource['@odata.id'].split('/')[5]
+            for element in ignoreuri:
+                if '/settings' in resource['@odata.id'] and not \
+                                                        self.wildcard_str_match(element, splitstr):
+                    settingsuri.append(resource['@odata.id'])
+
         sys.stdout.write('Current Pending Changes:\n')
+
         for uri in settingsuri:
             diffprint = {}
             baseuri = uri.split('settings')[0]
+
             base = self._rdmc.app.get_handler(baseuri, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
             settings = self._rdmc.app.get_handler(uri, \
                     verbose=self._rdmc.opts.verbose, service=True, silent=True)
 
             typestring = self._rdmc.app._rmc_clients._monolith._typestring
-            currenttype = '.'.join(base.dict[typestring].split('#')\
-                                                        [-1].split('.')[:-1])
+            currenttype = '.'.join(base.dict[typestring].split('#')[-1].split('.')[:-1])
 
             differences = json.loads(jsondiff.diff(base.dict, settings.dict, \
                                                 syntax='symmetric', dump=True))
@@ -112,6 +111,29 @@ class PendingChangesCommand(RdmcCommandBase):
             else:
                 UI().pretty_human_readable(diffprint)
                 sys.stdout.write('\n')
+
+    def wildcard_str_match(self, first, second):
+        """
+        Recursive function for determining match between two strings. Accounts
+        for wildcard characters
+
+        :param first: comparison string (may contain '*' or '?' for wildcards)
+        :param type: str (unicode)
+        :param second: string value to be compared (must not contain '*' or '?')
+        :param type: str (unicode)
+        """
+
+        if not first and not second:
+            return True
+        if len(first) > 1 and first[0] == '*' and not second:
+            return False
+        if (len(first) > 1 and first[0] == '?') or (first and second and first[0] == second[0]):
+            return self.wildcard_str_match(first[1:], second[1:])
+        if first and first[0] == '*':
+            return self.wildcard_str_match(first[1:], second) or \
+                self.wildcard_str_match(first, second[1:])
+
+        return False
 
     def recursdict(self, diff, ignorekeys):
         """ Recursively get dict ready for printing
@@ -143,8 +165,7 @@ class PendingChangesCommand(RdmcCommandBase):
                 diffprint[item] = self.recursdict(diff[item], ignorekeys)
 
             elif isinstance(diff[item], list):
-                diffprint.update({item: {'Current': diff[item][0], \
-                                         'Pending': diff[item][1]}})
+                diffprint.update({item: {'Current': diff[item][0], 'Pending': diff[item][1]}})
             else:
                 continue
 
@@ -158,6 +179,10 @@ class PendingChangesCommand(RdmcCommandBase):
         """
         client = None
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -178,11 +203,9 @@ class PendingChangesCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)

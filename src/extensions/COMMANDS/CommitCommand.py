@@ -20,10 +20,12 @@
 import sys
 
 from optparse import OptionParser, SUPPRESS_HELP
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
-                        NoChangesFoundOrMadeError, NoCurrentSessionEstablished
+
+from redfish.ris.rmc_helper import NothingSelectedError
 
 from rdmc_base_classes import RdmcCommandBase
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError,\
+                        NoChangesFoundOrMadeError, NoCurrentSessionEstablished, Encryption
 
 class CommitCommand(RdmcCommandBase):
     """ Constructor """
@@ -32,8 +34,7 @@ class CommitCommand(RdmcCommandBase):
             name='commit',\
             usage='commit [OPTIONS]\n\n\tRun to apply all changes made during' \
                     ' the current session\n\texample: commit',\
-            summary='Applies all the changes made during the current' \
-                    ' session.',\
+            summary='Applies all the changes made during the current session.',\
             aliases=[],\
             optparser=OptionParser())
         self.definearguments(self.parser)
@@ -43,7 +44,7 @@ class CommitCommand(RdmcCommandBase):
         #remove reboot option if there is no reboot command
         try:
             self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        except:
+        except KeyError:
             self.parser.remove_option('--reboot')
 
     def commitfunction(self, options=None):
@@ -52,32 +53,32 @@ class CommitCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.commitvalidation(options)
 
-        sys.stdout.write(u"Committing changes...\n")
+        sys.stdout.write("Committing changes...\n")
 
         if options:
             if options.biospassword:
                 self._rdmc.app.update_bios_password(options.biospassword)
-
         try:
-            if not self._rdmc.app.commit(verbose=self._rdmc.opts.verbose):
-                raise NoChangesFoundOrMadeError("No changes found or made " \
-                                                    "during commit operation.")
-        except Exception, excp:
-            raise excp
-
-        if options:
-            if options.reboot:
-                self.rebootobj.run(options.reboot)
-            else:
-                self.logoutobj.run("")
+            failure = False
+            commit_opp = self._rdmc.app.commit(verbose=self._rdmc.opts.verbose)
+            for path in commit_opp:
+                if self._rdmc.opts.verbose:
+                    sys.stdout.write('Changes are being made to path: %s\n' % path)
+                if commit_opp.next():
+                    failure = True
+        except NothingSelectedError:
+            raise NoChangesFoundOrMadeError("No changes found or made during commit operation.")
         else:
+            if failure:
+                raise FailureDuringCommitError('One or more types failed to commit. Run the '\
+                                               'status command to see uncommitted data. '\
+                                               'if you wish to discard failed changes refresh the '\
+                                               'type using select with the --refresh flag.')
+
+        if options.reboot:
+            self.rebootobj.run(options.reboot)
             self.logoutobj.run("")
 
     def run(self, line):
@@ -101,6 +102,11 @@ class CommitCommand(RdmcCommandBase):
 
     def commitvalidation(self, options):
         """ Commit method validation function """
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
+
         try:
             client = self._rdmc.app.get_current_client()
             if options.user and options.password:
@@ -149,7 +155,7 @@ class CommitCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(

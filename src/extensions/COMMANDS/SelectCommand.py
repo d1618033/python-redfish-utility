@@ -24,8 +24,8 @@ from optparse import OptionParser, SUPPRESS_HELP
 import redfish.ris
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, LOGGER, \
+                        Encryption
 
 class SelectCommand(RdmcCommandBase):
     """ Constructor """
@@ -58,36 +58,14 @@ class SelectCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         self.selectvalidation(options)
 
         try:
             if args:
-                sel = None
-                val = None
-
-                if options.filter:
-                    try:
-                        if (str(options.filter)[0] == str(options.filter)[-1])\
-                                and str(options.filter).startswith(("'", '"')):
-                            options.filter = options.filter[1:-1]
-
-                        (sel, val) = options.filter.split('=')
-                        sel = sel.strip()
-                        val = val.strip()
-
-                        if val.lower() == "true" or val.lower() == "false":
-                            val = val.lower() in ("yes", "true", "t", "1")
-                    except:
-                        raise InvalidCommandLineError("Invalid filter" \
-                          " parameter format [filter_attribute]=[filter_value]")
-                else:
-                    self._rdmc.app.erase_filter_settings()
-
-                selections = self._rdmc.app.select(query=args, sel=sel, val=val)
+                if options.ref:
+                    LOGGER.warn("Patches from current selection will be cleared.")
+                selector = args[0]
+                selections = self._rdmc.app.select(selector=selector, rel=options.ref)
 
                 if self._rdmc.opts.verbose and selections:
                     templist = list()
@@ -103,7 +81,10 @@ class SelectCommand(RdmcCommandBase):
                 selector = self._rdmc.app.get_selector()
 
                 if selector:
-                    sys.stdout.write("Current selection: '%s'" % selector)
+                    sellist = [sel for sel in self._rdmc.app.current_client.\
+                       monolith.typesadded if selector.lower() in sel.lower()]
+                    sys.stdout.write("Current selection: ")
+                    sys.stdout.write('%s' % ', '.join(map(str, sellist)))
                     sys.stdout.write('\n')
                 else:
                     raise InvalidCommandLineError("No type currently selected."\
@@ -111,7 +92,7 @@ class SelectCommand(RdmcCommandBase):
                                 " list of types, or pass your type by using" \
                                 " the '--selector' flag.")
 
-        except redfish.ris.InstanceNotFoundError, infe:
+        except redfish.ris.InstanceNotFoundError as infe:
             raise redfish.ris.InstanceNotFoundError(infe)
 
     def selectvalidation(self, options):
@@ -123,6 +104,10 @@ class SelectCommand(RdmcCommandBase):
         client = None
         runlogin = False
         inputline = list()
+
+        if options.encode and options.user and options.password:
+            options.user = Encryption.decode_credentials(options.user)
+            options.password = Encryption.decode_credentials(options.password)
 
         try:
             client = self._rdmc.app.get_current_client()
@@ -143,14 +128,12 @@ class SelectCommand(RdmcCommandBase):
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
 
         if not inputline and not client:
-            sys.stdout.write(u'Local login initiated...\n')
+            sys.stdout.write('Local login initiated...\n')
         if inputline:
             runlogin = True
         if options.includelogs:
@@ -210,29 +193,21 @@ class SelectCommand(RdmcCommandBase):
             default=False,
         )
         customparser.add_option(
-            '--filter',
-            dest='filter',
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear "\
+                                            "patches from current selection.",
+            default=False,
         )
         customparser.add_option(
             '--path',
             dest='path',
-            help="Optionally set a starting point for data collection."\
+            help="Optionally set a starting point for data collection during login."\
             " If you do not specify a starting point, the default path"\
-            " will be /rest/v1. Note: The path flag can only be specified"\
-            " at the time of login, so if you are already logged into the"\
-            " server, the path flag will not change the path. If you are"\
-            " entering a command that isn't the login command, but include"\
-            " your login information, you can still specify the path flag"\
-            " there.  ",
+            " will be /redfish/v1/. Note: The path flag can only be specified"\
+            " at the time of login. Warning: Only for advanced users, and generally "\
+            "not needed for normal operations.",
             default=None,
         )
         customparser.add_option(
@@ -240,7 +215,7 @@ class SelectCommand(RdmcCommandBase):
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
-            " command to execute.",
+            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_option(
