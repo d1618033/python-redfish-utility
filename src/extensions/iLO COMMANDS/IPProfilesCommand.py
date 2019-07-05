@@ -53,11 +53,11 @@ class IPProfilesCommand(RdmcCommandBase):
                     '\n\texample: ipprofiles <file path>'\
                     '\n\n\tDelete an ipprofile or list of profiles.\n\t'
                     'Provide the unique key that corresponds to the ipprofile'\
-                    ' data you want to delete.\n\tSeveral keys can be comma-separated'\
+                    ' data you want to delete.\n\tSeveral IDs can be comma-separated'\
                     ' with no space in between to delete more than one profile. '\
-                    '\n\texample: ipprofiles -d key1,key2,key3...'\
-                    '\n\n\tCopies ip profile with the specified job key into the ip job queue.'\
-                    'and starts it.\n\texample: ipprofiles --start=<job key>',\
+                    '\n\texample: ipprofiles -d ID1,ID2,ID3...'\
+                    '\n\n\tCopies ip profile with the specified ID into the ip job queue.'\
+                    'and starts it.\n\texample: ipprofiles --start=<profile ID>',\
             summary='This is used to manage hpeipprofile data store.',\
             aliases=['ipprofiles'],\
             optparser=OptionParser())
@@ -68,7 +68,10 @@ class IPProfilesCommand(RdmcCommandBase):
         self.bootorderobj = rdmcObj.commands_dict["BootOrderCommand"](rdmcObj)
         self.path = '/redfish/v1/systems/1/hpeip/HpeIpProfiles/'
         self.ipjobs = '/redfish/v1/Systems/1/HpeIp/HpeIpJobs/'
+        self.running_jobs = '/redfish/v1/Systems/1/hpeip/hpeipjobs'
+        self.hvt_output = '/redfish/v1/Systems/1/hpeip/hpeiphvtdata'
         self.syspath = '/redfish/v1/Systems/1/'
+        self.ipjobtype = ['langsel', 'hvt', 'ssa', 'install', 'rbsu']
 
     def run(self, line):
         """ Main raw get worker function
@@ -100,6 +103,12 @@ class IPProfilesCommand(RdmcCommandBase):
         :type args: string.
         """
 
+        if options.running_jobs:
+            self.get_running_job()
+            return ReturnCodes.SUCCESS
+        if options.get_hvt:
+            self.get_hvt_output()
+            return ReturnCodes.SUCCESS
         if options.del_key:
             self.deletekeyfromipprofiledata(options)
             return ReturnCodes.SUCCESS
@@ -122,8 +131,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
 
-        results = self._rdmc.app.get_handler(self.path, \
-            verbose=self._rdmc.opts.verbose, silent=True, response=True)
+        results = self._rdmc.app.get_handler(self.path, silent=True, response=True)
         if results.status == 404:
             raise PathUnavailableError("The Intelligent Provisioning resource "\
                                    "is not available on this system. You may need"\
@@ -152,6 +160,54 @@ class IPProfilesCommand(RdmcCommandBase):
         else:
             sys.stdout.write("No IP profiles found\n")
 
+    def get_running_job(self):
+        """
+        Retrieves and decodes, running job
+        :return returncode: int
+        """
+
+        results = self._rdmc.app.get_handler(self.running_jobs, silent=True, response=True)
+        if results.status == 404:
+            raise PathUnavailableError("The Intelligent Provisioning resource "\
+                                   "is not available on this system. You may need"\
+                                   " to run IP at least once to add the resource.")
+
+        if results and results.status == 200:
+            j2python = json.loads(results.read)
+            for _, val in enumerate(j2python.keys()):
+                if isinstance(val, six.string_types):
+                    result = self.decode_base64_string(str(j2python[val]))
+                    if result is not None:
+                        j2python[val] = result
+
+            results.read = json.dumps(j2python, ensure_ascii=False)
+            if results.dict:
+                UI().print_out_json(results.dict)
+        else:
+            sys.stdout.write("No IP profiles found\n")
+
+    def get_hvt_output(self):
+        """
+        Retrieves and decodes, running job
+        :return returncode: int
+        """
+        return_value = {}
+        results = self._rdmc.app.get_handler(self.hvt_output, silent=True, response=True)
+        if results.status == 404:
+            raise PathUnavailableError("The Intelligent Provisioning resource "\
+                                   "is not available on this system. You may need"\
+                                   " to run IP at least once to add the resource.")
+
+        if results and results.status == 200:
+            j2python = json.loads(results.read)
+            for _, val in enumerate(j2python.keys()):
+                if isinstance(val, six.string_types) and '@' not in val:
+                    return_value = json.loads(self.decode_base64_string(str(j2python[val])))
+            UI().print_out_json(return_value)
+        else:
+            sys.stdout.write("No IP profiles found\n")
+
+
     def encodeandpatchipprofiledata(self, args):
         """
         Reads file in the given path, encode it,
@@ -164,8 +220,7 @@ class IPProfilesCommand(RdmcCommandBase):
         contentsholder = self.encode_base64_string(args)
 
         if "path" in contentsholder and "body" in contentsholder:
-            self._rdmc.app.patch_handler(contentsholder["path"], \
-                  contentsholder["body"], verbose=self._rdmc.opts.verbose)
+            self._rdmc.app.patch_handler(contentsholder["path"], contentsholder["body"])
 
         return ReturnCodes.SUCCESS
 
@@ -178,8 +233,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
 
-        get_results = self._rdmc.app.get_handler(self.path,\
-                verbose=self._rdmc.opts.verbose, silent=True)
+        get_results = self._rdmc.app.get_handler(self.path, silent=True)
 
         j2python = json.loads(get_results.read)
         all_keys = options.del_key[0].split(',')
@@ -193,8 +247,7 @@ class IPProfilesCommand(RdmcCommandBase):
         payload["path"] = self.path
         payload["body"] = j2python
 
-        self._rdmc.app.put_handler(payload["path"], payload["body"],\
-              verbose=self._rdmc.opts.verbose)
+        self._rdmc.app.put_handler(payload["path"], payload["body"])
 
         return ReturnCodes.SUCCESS
 
@@ -274,8 +327,7 @@ class IPProfilesCommand(RdmcCommandBase):
         payload["path"] = ipprovider
         payload["body"] = current_state
 
-        self._rdmc.app.put_handler(payload["path"], payload["body"],\
-              verbose=self._rdmc.opts.verbose, silent=True)
+        self._rdmc.app.put_handler(payload["path"], payload["body"], silent=True)
 
     def monitorinipstate(self, ipprovider, timer=48):
         """
@@ -327,13 +379,21 @@ class IPProfilesCommand(RdmcCommandBase):
         copy_job = {}
         for ipj in j2python:
             if jobkey == ipj:
-                copy_job = j2python[ipj]
-                copy_job = json.loads(self.decode_base64_string(copy_job))
+                _decode = self.decode_base64_string(j2python[ipj])
+                if _decode is not None:
+                    _critical_props = {
+                        "log": "[{\"msg\": \"WAITINGTOBEPROCESSED\", \"percent\": 0}]",
+                        "status": "waiting"
+                    }
+                    copy_job.update({k: v.update(_critical_props) or v \
+                        for k, v in json.loads(_decode).items() if k in self.ipjobtype})
+                else:
+                    raise NoContentsFoundForOperationError(\
+                        "Not supported profile content")
                 break
         if not copy_job:
-            raise NoContentsFoundForOperationError("Job key does not match any ipprofile")
-        copy_job['log'] = [{"msg": "WAITINGTOBEPROCESSED", "percent": 0}]
-        copy_job['status'] = "waiting"
+            raise NoContentsFoundForOperationError(\
+                "The ID %s does not match any ipprofile" % jobkey)
         payload = {}
         payload["path"] = self.ipjobs
         payload["body"] = copy_job
@@ -536,7 +596,7 @@ class IPProfilesCommand(RdmcCommandBase):
             '--user',
             dest='user',
             help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
+            " with the password and URL flags can be used to login to a"\
             " server in the same command.""",
             default=None,
         )
@@ -546,6 +606,22 @@ class IPProfilesCommand(RdmcCommandBase):
             dest='password',
             help="""Use the provided iLO password to log in.""",
             default=None,
+        )
+        customparser.add_option(
+            '-r',
+            '--running',
+            dest='running_jobs',
+            default=False,
+            action="store_true",
+            help="""Show status of the currently running or last job executed""",
+        )
+        customparser.add_option(
+            '-D',
+            '--diags',
+            help="""Get result of last HVT (diagnostics) run as part of an ipprofile job""",
+            default=False,
+            action='store_true',
+            dest='get_hvt'
         )
         customparser.add_option(
             '-f',

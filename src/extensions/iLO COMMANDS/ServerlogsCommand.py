@@ -131,7 +131,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :type options: list.
         """
         if not options.service:
-            raise InvalidCommandLineError("")
+            raise InvalidCommandLineError("Please select a log type using the --selectlog option.")
 
         if options.service.lower() == 'iml':
             path = self.returnimlpath(options=options)

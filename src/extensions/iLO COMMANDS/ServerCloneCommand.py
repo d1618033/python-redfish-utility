@@ -28,12 +28,13 @@ import getpass
 import traceback
 
 from collections import OrderedDict
-from zipfile import ZipFile
 from optparse import OptionParser, SUPPRESS_HELP
 
 import jsonpath_rw
 import redfish.ris
+
 from redfish.ris.rmc_helper import (IloResponseError, IdTokenError, InstanceNotFoundError)
+
 from six.moves import input
 from rdmc_base_classes import RdmcCommandBase
 
@@ -46,10 +47,10 @@ __DEFAULT__ = "<p/k>"
 __MINENCRYPTIONLEN__ = 16
 __clone_file__ = 'ilorest_clone.json'
 __tmp_clone_file__ = '_ilorest_clone_tmp'
+__tmp_sel_file__ = '_ilorest_sel_tmp'
 __error_log_file__ = 'clone_error_logfile.log'
 __changelog_file__ = 'changelog.log'
-__archive_file__ = 'ilo_clone_arch.zip'
-__ilorest_logfile__ = 'iLOrest.log'
+__tempfoldername__ = "serverclone_data"
 
 def log_decor(func):
     """
@@ -93,8 +94,8 @@ def logging(command, _trace, error, _args):
     :param _agrs: array of methods arguments
     :type _args: array
     """
-    sys.stderr.write("Logging error to \'%s\'.\n" % __error_log_file__)
 
+    sys.stderr.write("Logging error to \'%s\'.\n" % __error_log_file__)
     with open(__error_log_file__, 'a+') as efh:
         efh.write(command + ":\n")
         efh.write("Simplified Error: " + str(error) + '\n')
@@ -134,7 +135,7 @@ class ServerCloneCommand(RdmcCommandBase):
             'NOTE 2: During clone load, login using an ilo account with\n\t        full privileges'\
             ' (such as the Administrator account)\n\t        to ensure all items are cloned '\
             'successfully.',\
-            summary="This is a BETA command. See serverclone documentation for more information. "\
+            summary="This is a BETA command. See serverclone documentation for more information."\
             "Creates a JSON formated clone file of a system's iLO, Bios, and SSA "\
             "configuration which can be duplicated onto other systems. "\
             "User editable JSON file can be manipulated to modify settings before being "\
@@ -145,11 +146,11 @@ class ServerCloneCommand(RdmcCommandBase):
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
         self.clone_file = None #set in validation
+        self._cache_dir = None #set in validation
         self.tmp_clone_file = __tmp_clone_file__
+        self.tmp_sel_file = __tmp_sel_file__
         self.change_log_file = __changelog_file__
         self.error_log_file = __error_log_file__
-        self.archive_file = None #set in validation
-        self.ilorest_log_file = __ilorest_logfile__
         self.https_cert_file = None
         self.sso_cert_file = None
         self.save = None
@@ -213,9 +214,6 @@ class ServerCloneCommand(RdmcCommandBase):
             sys.stdout.write("Loading of clonefile \'%s\' to server is complete. Review the "\
                              "changelog file \'%s\'.\n" % (self.clone_file, self.change_log_file))
 
-        if options.archive:
-            self.archive_handler()
-
         return ReturnCodes.SUCCESS
 
     @log_decor
@@ -235,7 +233,8 @@ class ServerCloneCommand(RdmcCommandBase):
                                 'EthernetInterface', 'ServerBootSettings', 'SecureBoot', \
                                 'ManagerNetworkService', 'SmartStorageConfig']
 
-        if options.noBIOS and self.save:
+        if options.noBIOS:
+            sys.stdout.write("Bios configuration will be excluded from loading operation.\n")
             supported_types_list.remove('Bios')
 
         unsupported_types_list = ['Collection', 'PowerMeter', 'HpeBiosMapping']
@@ -327,24 +326,30 @@ class ServerCloneCommand(RdmcCommandBase):
                 else:
                     sys.stdout.write("Invalid input...\n")
 
-        if options.archive:
-            self.archive_handler()
-
         if reset_confirm:
-            if 'http' not in self._rdmc.app._rmc_clients._rest_client.base_url:
-                sys.stdout.write("Resetting iLO...\n")
-                self.iloresetobj.run("")
-                sys.stdout.write("Sleeping 120 seconds for iLO reset...\n")
-                time.sleep(120)
-                sys.stdout.write("Resetting System...\n")
-                self.reboot_server()
-            else:
+            if self._rdmc.app.config.get_url: #reset process in remote mode
                 sys.stdout.write("Resetting System...\n")
                 self.reboot_server()
                 sys.stdout.write("Resetting iLO...\n")
                 self.iloresetobj.run("")
+                sys.stdout.write("You will need to re-login to access this system...\n")
+            else: #reset process in local mode
+                sys.stdout.write("Resetting local iLO...\n")
+                self.iloresetobj.run("")
                 sys.stdout.write("Sleeping 120 seconds for iLO reset...\n")
                 time.sleep(120)
+                # This stuff will likely not be needed, but I am leaving it here for now
+                '''
+                if self._rdmc.app.config.get_url():
+                    inputline.extend([self._rdmc.app.config.get_url()])
+                if self._rdmc.app.config.get_username():
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
+                if self._rdmc.app.config.get_password():
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                '''
+                self.loginobj.run("")
+                sys.stdout.write("Resetting System...\n")
+                self.reboot_server()
         else:
             sys.stdout.write("Aborting Server Reboot and iLO reset...\n")
             sys.stdout.write("TestMode...%s\n" % options.testmode)
@@ -539,26 +544,53 @@ class ServerCloneCommand(RdmcCommandBase):
         :parm options: command line options
         :type options: attribute
         """
-        options_str = ""
-        ignore_list = 'ValueChangedError', None, ""
+        sys.stdout.write("Patching remaining data.\n")
+        try:
+            if options.encryption:
+                with open(self.tmp_clone_file, 'r+b') as file_handle:
+                    fdata = json.loads(Encryption().decrypt_file(file_handle.read(),\
+                                                            options.encryption))
+            else:
+                with open(self.tmp_clone_file, 'r+') as file_handle:
+                    fdata = json.loads(file_handle.read())
+        except:
+            raise InvalidFileInputError("Invalid file formatting found. Verify the file has a "\
+                                        "valid JSON format.")
+        for _sect in fdata:
+            _tmp_sel = {}
+            _key = (next(iter(_sect)))
+            _tmp_sel[_key.split('.')[0] + '.'] = _sect[_key]
+            try:
+                if options.encryption:
+                    with open(self.tmp_sel_file, 'w+b') as outfile:
+                        outfile.write(Encryption().encrypt_file(json.dumps([_tmp_sel], \
+                                        indent=2, cls=redfish.ris.JSONEncoder), options.encryption))
+                else:
+                    with open(self.tmp_sel_file, 'w+') as outfile:
+                        outfile.write(json.dumps([_tmp_sel], indent=2, \
+                                                                    cls=redfish.ris.JSONEncoder))
+                self.loadpatch_helper(options)
+            except Exception as excp:
+                excp = str(excp)
+                if excp not in ignore_list:
+                    sys.stderr.write("An error occured while patching:\n %s\n" % excp)
 
+    @log_decor
+    def loadpatch_helper(self, options):
+        """
+        Load temporary patch file to server
+
+        :parm options: command line options
+        :type options: attribute
+        """
+        options_str = ""
         if options.encryption:
             options_str += " --encryption " + options.encryption
 
         if options.uniqueoverride:
             options_str += " --uniqueitemoverride"
 
-        try:
-            self.loadobj.run("-f " + self.tmp_clone_file + options_str)
-        except IloResponseError as iloerr:
-            sys.stderr.write("iLO reported an error while patching: %s\n" % iloerr)
-        except Exception as excp:
-            excp = str(excp)
-            if excp not in ignore_list:
-                sys.stderr.write("An error occured while patching:\n %s\n" % excp)
-
-        if not options.archive:
-            os.remove(self.tmp_clone_file)
+        self.loadobj.run("-f " + self.tmp_sel_file + options_str)
 
     def gatherandsavefunction(self, typelist, options):
         """
@@ -752,7 +784,7 @@ class ServerCloneCommand(RdmcCommandBase):
                 elif ans.lower() == 'n':
                     sys.stdout.write("Aborting deletion. No changes have been made made to the " \
                                      "server.\n")
-                    return 0
+                    return False
                 else:
                     sys.stdout.write("Invalid input...\n")
 
@@ -794,6 +826,8 @@ class ServerCloneCommand(RdmcCommandBase):
             else:
                 sys.stdout.write("Deletion of the Default iLO Federation Group is not allowed.\n")
             return True
+
+        return False
 
     @log_decor
     def load_ssocertificate(self):
@@ -1442,7 +1476,7 @@ class ServerCloneCommand(RdmcCommandBase):
         #operation should be performed before this point.
         if user_pass:
             if user_pass == __DEFAULT__:
-                self._rdmc.app.warning_handler("The default password will be attempted.")
+                sys.stderr.write("The default password will be attempted.")
             try:
                 if found_user:
                     raise ResourceExists('')
@@ -1545,7 +1579,7 @@ class ServerCloneCommand(RdmcCommandBase):
         fed_key = fed_accounts['FederationKey']
         if fed_key:
             if fed_key == __DEFAULT__:
-                self._rdmc.app.warning_handler("The default password will be attempted.")
+                sys.stderr.write("The default password will be attempted.")
             if 'HostBIOSConfigPriv' in fed_accounts['Privileges']:
                 if not fed_accounts['Privileges']['HostBIOSConfigPriv']:
                     config_privs_str += ' --nobiosconfigpriv'
@@ -1876,30 +1910,6 @@ class ServerCloneCommand(RdmcCommandBase):
                 self._rdmc.app.post_handler(reboot_path, body)
 
     @log_decor
-    def archive_handler(self):
-        """
-        Handles archiving of data for bug tracking and reporting
-        """
-        #hidden command only
-        packlist = [self.clone_file, self.error_log_file, self.ilorest_log_file]
-
-        if self.load:
-            packlist.append(self.tmp_clone_file)
-            packlist.append(self.change_log_file)
-
-        with ZipFile(self.archive_file, 'w') as zip_arch:
-            for _file in packlist:
-                try:
-                    zip_arch.write(_file)
-                    os.remove(_file)
-                except:
-                    pass
-
-        sys.stdout.write("Clone file, and log files saved to: %s\n" % \
-                         self.archive_file)
-        zip_arch.printdir()
-
-    @log_decor
     def json_traversal_delete_empty(self, data, old_key=None, _iter=None, remove_list=None):
         """
         Recursive function to traverse a dictionary and delete things which
@@ -2021,6 +2031,13 @@ class ServerCloneCommand(RdmcCommandBase):
         :type options: list.
 
         """
+
+        self._cache_dir = os.path.join(self._rdmc.app.config.get_cachedir(), __tempfoldername__)
+        if not os.path.exists(self._cache_dir):
+            os.makedirs(self._cache_dir)
+        self.tmp_clone_file = os.path.join(self._cache_dir, __tmp_clone_file__)
+        self.tmp_sel_file = os.path.join(self._cache_dir, __tmp_sel_file__)
+
         client = None
         inputline = list()
 
@@ -2056,6 +2073,10 @@ class ServerCloneCommand(RdmcCommandBase):
         if inputline or not client:
             self.loginobj.loginfunction(inputline)
 
+        if options.noBIOS and self.load:
+            raise InvalidCommandLineErrorOPTS("\'--nobios\' is only intended for \'save\'"\
+                                              " operation.")
+
         if options.clonefilename:
             if len(options.clonefilename) < 2:
                 self.clone_file = options.clonefilename[0]
@@ -2083,15 +2104,6 @@ class ServerCloneCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("Ensure you are loading a single TLS certificate"\
                                                   ".\n")
-
-        if options.archive:
-            if len(options.archive) < 2:
-                self.archive_file = options.archive[0]
-            else:
-                raise InvalidCommandLineErrorOPTS("Only a single archive file may be specified.")
-        else:
-            self.archive_file = __archive_file__
-
         if self._rdmc.opts.debug:
             sys.stderr.write("Debug selected...all exceptions will be handled in an external log "\
                              "file (check error log for automatic testing).\n")
@@ -2174,17 +2186,6 @@ class ServerCloneCommand(RdmcCommandBase):
             action="append",
             default=None,
         )
-        #to possibly be deleted in a future release
-        customparser.add_option(
-            '--errarch',
-            '--archive',
-            dest='archive',
-            help="Allow for save to automatically archive the clone file and "\
-                 "error log file. Use with load will archive the clone file, "\
-                 "temporary patch file, error log file and changelog file.",
-            action="append",
-            default=None,
-        )
         customparser.add_option(
             '--uniqueitemoverride',
             dest='uniqueoverride',
@@ -2213,8 +2214,8 @@ class ServerCloneCommand(RdmcCommandBase):
         customparser.add_option(
             '--nobios',
             dest='noBIOS',
-            help="Optionally include this flag to remove Bios configuration "\
-            " during save or load processes.",
+            help="Optionally include this flag to omit save of Bios configuration."\
+            " (During save process only.)",
             action="store_true",
             default=None,
         )

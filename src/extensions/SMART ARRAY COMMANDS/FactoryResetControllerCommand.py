@@ -18,21 +18,54 @@
 """ Factory Reset Controller Command for rdmc """
 
 import sys
+from collections import OrderedDict
 
 from optparse import OptionParser, SUPPRESS_HELP
+from six.moves import input
+
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
+
+def controller_parse(option, opt_str, value, parser):
+    """ Controller Option Parsing
+
+        :param option: command line option
+        :type option: attributes
+        :param opt_str: parsed option string
+        :type opt_str: string
+        :param value: parsed option value
+        :type value: attribute
+        :param parser: OptionParser instance
+        :type parser: object
+    """
+    setattr(parser.values, option.dest, [])
+    use_slot = False
+    use_indx = False
+    for _opt in value.split(','):
+        if _opt.isdigit() and not use_slot:
+            use_indx = True
+            parser.values.controller.append(int(_opt))
+        elif "slot" in _opt.lower() and not use_indx:
+            use_slot = True
+            parser.values.controller.append((_opt.replace('\"', '')).strip())
+        else:
+            raise InvalidCommandLineErrorOPTS("An invalid option or combination of options were " \
+                                              "used to specify a smart array controller.")
+    if use_indx:
+        parser.values.controller.sort()
 
 class FactoryResetControllerCommand(RdmcCommandBase):
     """ Factory reset controller command """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='factoryresetcontroller',\
-            usage='factoryresetcontroller [OPTIONS]\n\n\tRun without ' \
-                'arguments for the current controller options.\n\texample: ' \
-                'factoryresetcontroller\n\n\tTo factory reset a controller ' \
-                'by index.\n\texample: factoryresetcontroller --conroller=2',\
+            usage='factoryresetcontroller [OPTIONS]\n\n\tTo factory reset a controller ' \
+                'by index.\n\texample: factoryresetcontroller --controller=2' \
+                '\n\tor by slot position.' \
+                '\n\texample: factoryresetcontroller --controller "Slot1" ' \
+                '\n\n\tTo factory reset all available smart array controllers' \
+                '\n\texample: factoryresetcontroller --all', \
             summary='Factory resets a controller by index or location.',\
             aliases=['factoryresetcontroller'],\
             optparser=OptionParser())
@@ -58,32 +91,61 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         self.frcontrollervalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.getprops()
+        content = OrderedDict()
+        for controller in self._rdmc.app.getprops():
+            try:
+                content[int(controller.get('Location', None).split(' ')[-1])] = controller
+            except (AttributeError, KeyError):
+                pass
 
-        if options.controller:
-            controllist = []
+        controldict = {}
+        use_slot = False
+        use_indx = False
 
-            if options.controller.isdigit() and not options.controller == '0':
-                try:
-                    controllist.append(content[int(options.controller) - 1])
-                except:
-                    pass
-            else:
-                for control in content:
-                    if options.controller.lower() == control["Location"].lower():
-                        controllist.append(control)
+        for _opt in options.controller:
+            found = False
+            for pos, control in enumerate(content):
+                if isinstance(_opt, int) and not use_slot:
+                    if pos == (_opt - 1):
+                        controldict[_opt] = content[control]
+                        found = True
+                        use_indx = True
+                elif _opt.lower() == content[control]["Location"].lower() and not use_indx:
+                    controldict[int(content[control]["Location"].split(' ')[-1])] = \
+                                                                                content[control]
+                    found = True
+                    use_slot = True
+                if found:
+                    break
 
-            if not controllist:
-                raise InvalidCommandLineError("Selected controller not " \
-                                        "found in the current inventory list.")
-            else:
-                for controller in controllist:
-                    contentsholder = {"Actions": [{"Action": "FactoryReset"}], \
-                                                        "DataGuard": "Disabled"}
-                    self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
-        else:
-            for idx, val in enumerate(content):
-                sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
+            if not found:
+                sys.stderr.write("\nController \'%s\' not found in the current inventory " \
+                                 "list.\n" % _opt)
+
+        if options.all:
+            controldict.update(content)
+
+        if not options.force:
+            while True:
+                if options.all:
+                    ans = input("Are you sure you would like to factory reset all available " \
+                                "smart array controllers? (y/n)\n")
+                else:
+                    ans = input("Are you sure you would like to factory reset controller(s): " \
+                                "\'%s\' ? (y/n)\n" % controldict.keys())
+                if ans.lower() == 'y':
+                    break
+                elif ans.lower() == 'n':
+                    sys.stdout.write("Aborting factory reset of controllers.\n")
+                    return None
+
+        for indx, controller in enumerate(controldict):
+            self._rdmc.app.patch_handler(controldict[controller]["@odata.id"], \
+                                         {"Actions": [{"Action": "FactoryReset"}], \
+                                          "DataGuard": "Disabled"})
+
+            sys.stdout.write("[%d]: %s - has been reset to factory defaults.\n" % (indx + 1, \
+                                                              controldict[controller]["Location"]))
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -133,6 +195,9 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         if runlogin:
             self.lobobj.loginfunction(inputline)
 
+        if not options.all and not options.controller:
+            raise InvalidCommandLineErrorOPTS("Please specify a controller or use \'--all\'.")
+
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
 
@@ -167,8 +232,28 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         customparser.add_option(
             '--controller',
             dest='controller',
-            help="""Use this flag to select the corresponding controller.""",
-            default=None,
+            action='callback',
+            callback=controller_parse,
+            help="""Use this flag to select the corresponding controller "\
+                 "using either the slot number or index.""",
+            type="string",
+            default=[],
+        )
+        customparser.add_option(
+            '--all',
+            dest='all',
+            help="""Use this flag to reset all available smart array controllers to factory """ \
+                 """defaults """,
+            action="store_true",
+            default=False,
+        )
+        customparser.add_option(
+            '--force',
+            dest='force',
+            help="""Use this flag to override the "are you sure?" text when """ \
+                 """clearing controller configuration.""",
+            action="store_true",
+            default=False,
         )
         customparser.add_option(
             '-e',

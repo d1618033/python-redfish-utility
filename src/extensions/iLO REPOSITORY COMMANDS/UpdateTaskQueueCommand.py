@@ -126,7 +126,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         tpmflag = False
         try:
 
-            results = self._rdmc.app.get_handler(self.typepath.defs.biospath)
+            results = self._rdmc.app.get_handler(self.typepath.defs.biospath, silent=True)
             contents = results.dict if self.typepath.defs.isgen9 else results.dict["Attributes"]
             tpmstate = contents["TpmState"]
             if not "Not" in tpmstate or not "Disabled" in tpmstate:

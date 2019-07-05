@@ -1,5 +1,5 @@
 ---
-title: RESTful Interface Tool 2.4.0 User Guide
+title: RESTful Interface Tool 2.5.0 User Guide
 
 language_tabs:
   - shell: Shell

@@ -218,10 +218,22 @@ None
 
 > Clearcontrollerconfig example commands:
 
+<aside class="notice">
+By default all available smart array controllers are included. Use '--controller' to target a specific index or slot for clearing controller configuration.
+</aside>
+
 > To clear a controller configuration run the command including the `--controller` option specifying the controller to clear.
 
 <pre> 
 ilorest > <font color="#01a982">clearcontrollerconfig --controller=1</font>
+One or more properties were changed an will not take effect until system is reset.
+</pre>
+
+> To clear controller configuration on all available smart array controllers use `--all`.
+
+<pre> 
+ilorest > <font color="#01a982">clearcontrollerconfig --all</font>
+Are you sure you would like to clear all available smart array controller configurations? (y/n) <font color="#01a982"> y </font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -256,7 +268,11 @@ Use this flag to select the corresponding controller.
 
 - **--all**
 
-Use this flag to sanitize all physical drives on a controller.
+Use this flag to factory reset all controllers.
+
+- **--force**
+
+Use this flag to override the "are you sure?" text when clearing configurations on all available smart array controllers. 
 
 
 #### Inputs
@@ -289,7 +305,7 @@ One or more properties were changed an will not take effect until system is rese
 <pre> 
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 2,3,4,5,6 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</font>
+ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 2,3,4,5,6 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --spare-type=Dedicated</font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -546,6 +562,10 @@ None
 
 > Factoryresetcontroller example commands:
 
+<aside class="notice">
+By default all available smart array controllers are included. Use '--controller' to target a specific index or slot for a factory reset.
+</aside>
+
 > To factory reset a controller run this command and specify it's index with the `--controller` option.
 
 <pre> 
@@ -553,13 +573,15 @@ ilorest > <font color="#01a982">factoryresetcontroller --controller=1</font>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
-> To factory reset all controllers run this command and include the `--all` option.
+> To factory reset all controllers `--all` option.
 
 <pre> 
-ilorest > factoryresetcontroller <font color="#01a982">--all</font>
-One or more properties were changed and will not take effect until system is reset.
+ilorest > <font color="#01a982">factoryresetcontroller --all</font>
+Are you sure you would like to factory reset all available smart array controllers? (y/n) <font color="#01a982">y</font>
+[1]: Slot 0 - has been reset to factory defaults.
+[2]: Slot 1 - has been reset to factory defaults.
+[3]: Slot 3 - has been reset to factory defaults.
 </pre>
-
 
 #### Syntax
 
@@ -592,6 +614,14 @@ If you are not logged in yet, use the provided iLO URL along with the user and p
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--all**
+
+Use this flag to factory reset all controllers.
+
+- **--force**
+
+Use this flag to override the "are you sure?" text when performing a factory reset to selected smart array controllers. 
 
 
 #### Inputs

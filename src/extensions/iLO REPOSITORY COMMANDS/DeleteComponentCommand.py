@@ -35,7 +35,7 @@ class DeleteComponentCommand(RdmcCommandBase):
               'delete component(s) of the currently logged in system.\n\n\t'\
               'Delete a single component by name.\n\texample: deletecomp ' \
               'CP327.zip\n\n\tDelete multiple components by ' \
-              'id.\n\texample: deletecomp 377fg6c4,327cf4c7\n\n\tDelete '
+              'id.\n\texample: deletecomp 377fg6c4 327cf4c7\n\n\tDelete '
               'multiple components by filename.\n\texample: deletecomp '
               'CP327.exe CP99.exe',\
             summary='Deletes components/binaries from the iLO Repository.', \
@@ -130,8 +130,8 @@ class DeleteComponentCommand(RdmcCommandBase):
                 if deleted:
                     sys.stdout.write('Deleted %s\n' % opt)
                 else:
-                    raise InvalidCommandLineError('Cannot find or unable to ' \
-                                                    'delete component %s' % opt)
+                    raise InvalidCommandLineError('Cannot find or unable to delete component %s' \
+                                                                                            % opt)
 
     def deletecomponentvalidation(self, options):
         """ component validation function

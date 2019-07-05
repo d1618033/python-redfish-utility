@@ -160,7 +160,7 @@ class GetCommand(RdmcCommandBase):
                 del entry[key]
             elif isinstance(val, list):
                 for item in entry[key]:
-                    if isinstance(item, dict):
+                    if isinstance(item, dict) and item:
                         self.removereserved(item)
                         if all([True if not test else False for test in entry[key]]):
                             del entry[key]

@@ -412,30 +412,31 @@ class UploadComponentCommand(RdmcCommandBase):
         """
         compsig = ''
 
-        if comppath.endswith('.exe') or comppath.endswith('.zip'):
-            cutpath = comppath.split(os.sep)
-            filename = cutpath[-1].split('.')[0]
+        cutpath = comppath.split(os.sep)
+        _file = cutpath[-1]
+        _file_rev = _file[::-1]
+        filename = _file[:((_file_rev.find('.'))*-1) - 1]
 
-            try:
-                location = os.sep.join(cutpath[:-1])
-            except:
-                location = os.curdir
+        try:
+            location = os.sep.join(cutpath[:-1])
+        except:
+            location = os.curdir
 
-            if not location:
-                location = os.curdir
+        if not location:
+            location = os.curdir
 
-            files = [f for f in os.listdir(location) if os.path.isfile(os.path.join(location, f))]
+        files = [f for f in os.listdir(location) if os.path.isfile(os.path.join(location, f))]
 
-            for filehndl in files:
-                if filehndl.startswith(filename) and filehndl.endswith('.compsig'):
-                    sys.stdout.write('Compsig found for file.\n')
+        for filehndl in files:
+            if filehndl.startswith(filename) and filehndl.endswith('.compsig'):
+                sys.stdout.write('Compsig found for file.\n')
 
-                    if location != '.':
-                        compsig = location + os.sep + filehndl
-                    else:
-                        compsig = filehndl
+                if location != '.':
+                    compsig = location + os.sep + filehndl
+                else:
+                    compsig = filehndl
 
-                    break
+                break
 
         return compsig
 
