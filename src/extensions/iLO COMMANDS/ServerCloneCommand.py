@@ -237,31 +237,26 @@ class ServerCloneCommand(RdmcCommandBase):
             sys.stdout.write("Bios configuration will be excluded from loading operation.\n")
             supported_types_list.remove('Bios')
 
-        unsupported_types_list = ['Collection', 'PowerMeter', 'HpeBiosMapping']
-
-        _types = _types2 = list()
-        _types = sorted(set(self._rdmc.app.types('--fulltypes')))
+        unsupported_types_list = ['Collection', 'PowerMeter', 'BiosMapping']
 
         #supported types comparison
-        _types2 = []
-        for _type in _types:
+        types_accepted = set()
+        for _type in sorted(set(self._rdmc.app.types('--fulltypes'))):
+            if _type[:1].split('.')[0] == '#':
+                _type_mod = _type[1:].split('.')[0]
+            else:
+                _type_mod = _type.split('.')[0]
             for stype in supported_types_list:
-                if stype.lower() in _type.lower():
-                    _types2.append(_type)
-                    break
+                if stype.lower() in _type_mod.lower():
+                    found = False
+                    for ustype in unsupported_types_list:
+                        if ustype.lower() in _type_mod.lower():
+                            found = True
+                            break
+                    if not found:
+                        types_accepted.add(_type)
 
-        #unsupported types comparison
-        _types = _types2
-        _types2 = []
-        for _type in _types:
-            found = False
-            for utype in unsupported_types_list:
-                if utype.lower() in _type.lower():
-                    found = True
-            if not found:
-                _types2.append(_type)
-
-        return _types2
+        return sorted(types_accepted)
 
     def loadfunction(self, options):
         """
@@ -329,7 +324,7 @@ class ServerCloneCommand(RdmcCommandBase):
         if reset_confirm:
             if self._rdmc.app.config.get_url: #reset process in remote mode
                 sys.stdout.write("Resetting System...\n")
-                self.reboot_server()
+                self.ilorebootobj.run("ForceRestart")
                 sys.stdout.write("Resetting iLO...\n")
                 self.iloresetobj.run("")
                 sys.stdout.write("You will need to re-login to access this system...\n")
@@ -338,18 +333,9 @@ class ServerCloneCommand(RdmcCommandBase):
                 self.iloresetobj.run("")
                 sys.stdout.write("Sleeping 120 seconds for iLO reset...\n")
                 time.sleep(120)
-                # This stuff will likely not be needed, but I am leaving it here for now
-                '''
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                '''
                 self.loginobj.run("")
                 sys.stdout.write("Resetting System...\n")
-                self.reboot_server()
+                self.ilorebootobj.run("ForceRestart")
         else:
             sys.stdout.write("Aborting Server Reboot and iLO reset...\n")
             sys.stdout.write("TestMode...%s\n" % options.testmode)
@@ -659,15 +645,17 @@ class ServerCloneCommand(RdmcCommandBase):
 
                 instance = self.ilo_special_functions(instance, _type, path, options)
 
-                if 'SmartStorageConfig' in _type or 'HpeiLOLicense' in _type or \
-                                                                            'iLOLicense' in _type:
-                    templist = ["Modified", "Type", "Description", "Status",\
-                            "links", "SettingsResult", "Attributes", \
-                            "@odata.context", "@odata.type", "@odata.id",\
-                            "@odata.etag", "Links", "Actions", \
-                            "AvailableActions", "BiosVersion"]
-                    instance = self._rdmc.app.iterateandclear(instance, templist)
-                else:
+                _itc_pass = True
+                for _itm in _spec_list:
+                    if _itm.lower() in _type.lower():
+                        templist = ["Modified", "Type", "Description", "Status", "links", \
+                                    "SettingsResult", "@odata.context", "@odata.type", "@odata.id",\
+                                    "@odata.etag", "Links", "Actions", \
+                                    "AvailableActions", "BiosVersion"]
+                        instance = iterateandclear(instance, templist)
+                        _itc_pass = False
+                        break
+                if _itc_pass:
                     instance = self._rdmc.app.removereadonlyprops(instance, False, True)
 
                 if instance:
@@ -858,18 +846,14 @@ class ServerCloneCommand(RdmcCommandBase):
         :type path: string
 
         """
-        redfish_dhcp4 = False
-        redfish_dhcp6 = False
-
         support_ipv6 = True
-        oem = True
-
         dhcpv4curr = None
         dhcpv4conf = None
         oem_dhcpv4curr = None
         oem_dhcpv4conf = None
-
         errors = []
+
+        self.json_traversal_delete_empty(ethernet_data, None, None)
 
         if 'EthernetInterface' in _type:
             for curr_sel in self._rdmc.app.select(_type.split('.')[0] + '.', \
@@ -882,11 +866,11 @@ class ServerCloneCommand(RdmcCommandBase):
                     self.typepath.defs.hrefstring, self.typepath.defs.managerpath + '*'), rel=True):
                 if curr_sel.path == path:
                     break
+        else:
+            raise Exception("Invalid Type in Ethernet Loading Operation: \'%s\'" % _type)
 
-        if 'Oem' not in ethernet_data.keys():
-            sys.stdout.write("OEM section for DHCPv4 and DHCPv6 not present.\n")
-            oem = False
-
+        #ENABLING ETHERNET INTEFACE SECTION
+        #---------------
         try:
             #Enable the Interface if called for and not already enabled
             if ethernet_data['InterfaceEnabled'] and not curr_sel.dict\
@@ -902,73 +886,56 @@ class ServerCloneCommand(RdmcCommandBase):
                 return
         except (KeyError, NameError, TypeError, AttributeError):
             #check OEM for NICEnabled instead
-            if oem and not curr_sel.dict['Oem'][self.typepath.defs.oemhp]['NICEnabled'] and \
+            if not curr_sel.dict['Oem'][self.typepath.defs.oemhp]['NICEnabled'] and \
                                     ethernet_data['Oem'][self.typepath.defs.oemhp]['NICEnabled']:
                 self._rdmc.app.patch_handler(path, {"Oem": {self.typepath.defs.oemhp: \
                                                                             {"NICEnabled": True}}})
                 sys.stdout.write("NIC Interface Enabled.\n")
-            elif oem and not curr_sel.dict['Oem'][self.typepath.defs.oemhp]['NICEnabled'] and not\
+            elif not curr_sel.dict['Oem'][self.typepath.defs.oemhp]['NICEnabled'] and not\
                          ethernet_data['Oem'][self.typepath.defs.oemhp]['NICEnabled']:
                 self._rdmc.app.patch_handler(path, {"Oem": { \
                             self.typepath.defs.oemhp: {"NICEnabled": False}}})
                 sys.stdout.write("NIC Interface Disabled.\n")
                 return
         #except IloResponseError:
-        #    raise
 
-        if oem and 'NICSupportsIPv6' in curr_sel.dict['Oem'][self.typepath.defs.oemhp].keys():
+        #END ENABLING ETHERNET INTEFACE SECTION
+        #---------------
+        #---------------
+        #---------------
+        #DETERMINE DHCPv4 and DHCPv6 States and associated flags
+
+        if 'NICSupportsIPv6' in curr_sel.dict['Oem'][self.typepath.defs.oemhp].keys():
             support_ipv6 = curr_sel.dict['Oem'][self.typepath.defs.oemhp]['NICSupportsIPv6']
 
+        #obtain DHCPv4 Config and OEM
         try:
             if 'DHCPv4' in curr_sel.dict.keys() and 'DHCPv4' in ethernet_data.keys():
-                redfish_dhcp4 = True
                 dhcpv4curr = copy.deepcopy(curr_sel.dict['DHCPv4'])
                 dhcpv4conf = copy.deepcopy(ethernet_data['DHCPv4'])
-            if oem:
+        except (KeyError, NameError, TypeError, AttributeError):
+            sys.stdout.write("Unable to find Redfish DHCPv4 Settings.\n")
+        finally:
+            try:
                 oem_dhcpv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv4'])
+                                                                                    ['DHCPv4'])
                 oem_dhcpv4conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv4'])
+                                                                                    ['DHCPv4'])
                 ipv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]['IPv4'])
                 ipv4conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]['IPv4'])
-
-        except (KeyError, NameError, TypeError, AttributeError):
-            #DHCPv4 Redfish settings are not available. Fallback to OEM.
-            sys.stdout.write("Unable to find Redfish DHCPv4 Settings.\n")
-            try:
-                if oem:
-                    oem_dhcpv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv4'])
-                    oem_dhcpv4conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv4'])
-                    ipv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]['IPv4'])
-                    ipv4conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]['IPv4'])
             except (KeyError, NameError):
                 raise InvalidKeyError("Unable to find OEM Keys for DHCPv4 or IPv4")
-
-        if oem_dhcpv4curr:
-            if 'DHCPEnabled' in oem_dhcpv4curr.keys():
-                dhcp_enabled_key = 'DHCPEnabled'
-            else:
-                dhcp_enabled_key = 'Enabled'
 
         try:
             if support_ipv6:
                 if 'DHCPv6' in curr_sel.dict.keys() and 'DHCPv6' in ethernet_data.keys():
-                    redfish_dhcp6 = True
                     dhcpv6curr = copy.deepcopy(curr_sel.dict['DHCPv6'])
                     dhcpv6conf = copy.deepcopy(ethernet_data['DHCPv6'])
-                if oem:
-                    oem_dhcpv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv6'])
-                    oem_dhcpv6conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]\
-                                                                                        ['DHCPv6'])
-                    ipv6curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]['IPv6'])
-                    ipv6conf = copy.deepcopy(ethernet_data['Oem'][self.typepath.defs.oemhp]['IPv6'])
             else:
                 sys.stdout.write("NIC Does not support IPv6.\n")
         except (KeyError, NameError, TypeError, AttributeError):
             sys.stdout.write("Unable to find Redfish DHCPv6 Settings.\n")
+        finally:
             try:
                 oem_dhcpv4curr = copy.deepcopy(curr_sel.dict['Oem'][self.typepath.defs.oemhp]\
                                                                                         ['DHCPv6'])
@@ -981,13 +948,12 @@ class ServerCloneCommand(RdmcCommandBase):
 
         try:
             #if DHCP Enable request but not currently enabled
-            if dhcpv4conf[dhcp_enabled_key] and not curr_sel.dict['DHCPv4'][dhcp_enabled_key]:
+            if dhcpv4conf['DHCPEnabled'] and not curr_sel.dict['DHCPv4']['DHCPEnabled']:
                 self._rdmc.app.patch_handler(path, {"DHCPv4": {"DHCPEnabled": True}})
                 sys.stdout.write("DHCP Enabled.\n")
             #if DHCP Disable request but currently enabled
-            elif not dhcpv4conf[dhcp_enabled_key] and curr_sel.dict['DHCPv4'][dhcp_enabled_key]:
-                self._rdmc.app.patch_handler(path, {"DHCPv4": { \
-                                                        "DHCPEnabled": False}})
+            elif not dhcpv4conf['DHCPEnabled'] and curr_sel.dict['DHCPv4']['DHCPEnabled']:
+                self._rdmc.app.patch_handler(path, {"DHCPv4": {"DHCPEnabled": False}})
                 dhcpv4conf['UseDNSServers'] = False
                 dhcpv4conf['UseNTPServers'] = False
                 dhcpv4conf['UseGateway'] = False
@@ -996,14 +962,14 @@ class ServerCloneCommand(RdmcCommandBase):
         except (KeyError, NameError, TypeError, AttributeError):
             #try with OEM
             try:
-                if oem and oem_dhcpv4conf['Enabled'] and not curr_sel.dict\
+                if oem_dhcpv4conf['Enabled'] and not curr_sel.dict\
                         ['Oem'][self.typepath.defs.oemhp]['DHCPv4']['Enabled']:
                     self._rdmc.app.patch_handler(path, {'Oem': { \
                     self.typepath.defs.oemhp: {"DHCPv4": {"DHCPEnabled": True}}}})
                     sys.stdout.write("DHCP Enabled.\n")
                     if 'IPv4Addresses' in ethernet_data:
                         del ethernet_data['IPv4Addresses']
-                elif oem and not oem_dhcpv4conf['Enabled'] and curr_sel.dict\
+                elif not oem_dhcpv4conf['Enabled'] and curr_sel.dict\
                         ['Oem'][self.typepath.defs.oemhp]['DHCPv4']['Enabled']:
                     oem_dhcpv4conf['UseDNSServers'] = False
                     oem_dhcpv4conf['UseNTPServers'] = False
@@ -1012,141 +978,6 @@ class ServerCloneCommand(RdmcCommandBase):
                     sys.stdout.write("DHCP Disabled.\n")
             except (KeyError, NameError) as exp:
                 errors.append("Failure in parsing or removing data in OEM DHCPv4: %s.\n" % exp)
-
-        #diff and overwrite the original payload
-        ethernet_data = self._rdmc.app.diffdict(ethernet_data, curr_sel.dict)
-
-        #verify any remaining properties are valid
-        try:
-            #delete Domain name and FQDN if UseDomainName for DHCPv4 or DHCPv6
-            #is present. can wait to apply at the end
-            if dhcpv4conf['UseDomainName'] or dhcpv6conf['UseDomainName']:
-                if oem and 'DomainName' in ethernet_data['Oem'][self.typepath.defs.oemhp]:
-                    del ethernet_data['Oem'][self.typepath.defs.oemhp]['DomainName']
-                if 'FQDN' in ethernet_data:
-                    del ethernet_data['FQDN']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if oem_dhcpv4conf['UseDomainName'] or oem_dhcpv6conf['UseDomainName']:
-                    if oem and ('DomainName' in ethernet_data['Oem'][self.typepath.defs.oemhp]):
-                        del ethernet_data['Oem'][self.typepath.defs.oemhp]['DomainName']
-                    if 'FQDN' in ethernet_data:
-                        del ethernet_data['FQDN']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            #delete DHCP4 DNSServers from IPV4 dict if UseDNSServers Enabled
-            #can wait to apply at the end
-            if dhcpv4conf['UseDNSServers'] and 'DNSServers' in ipv4conf.keys():
-                del ipv4conf['DNSServers']
-                if 'NameServers' in ethernet_data:
-                    del ethernet_data['NameServers']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if oem_dhcpv4conf['UseDNSServers'] and 'DNSServers' in ipv4conf.keys():
-                    del ipv4conf['DNSServers']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        if support_ipv6:
-            try:
-                #delete DHCP6 DNSServers from IPV6 dict if UseDNSServers Enabled
-                #can wait to apply at the end
-                if dhcpv6conf['UseDNSServers'] and 'DNSServers' in ipv6conf.keys():
-                    del ipv6conf['DNSServers']
-            except (KeyError, NameError, TypeError, AttributeError):
-                #try againw tih OEM
-                try:
-                    if oem_dhcpv6conf['UseDNSServers'] and 'DNSServers' in ipv6conf.keys():
-                        del ipv6conf['DNSServers']
-                except (KeyError, NameError) as exp:
-                    errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            if dhcpv4conf['UseWINSServers']:
-                if 'WINServers' in ipv4conf.keys():
-                    del ipv4conf['WINServers']
-                if 'WINSRegistration' in ipv4conf.keys():
-                    del ipv4conf['WINSRegistration']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if oem_dhcpv4conf['UseWINSServers']:
-                    if 'WINServers' in ipv4conf.keys():
-                        del ipv4conf['WINServers']
-                    if 'WINSRegistration' in ipv4conf.keys():
-                        del ipv4conf['WINSRegistration']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            if dhcpv4conf['UseStaticRoutes'] and 'StaticRoutes' in ipv4conf.keys():
-                del ipv4conf['StaticRoutes']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if oem_dhcpv4conf['UseStaticRoutes'] and 'StaticRoutes' in ipv4conf.keys():
-                    del ipv4conf['StaticRoutes']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            #if using DHCPv4, remove static addresses
-            if dhcpv4conf[dhcp_enabled_key] and 'IPv4StaticAddresses' in ethernet_data.keys():
-                del ethernet_data['IPv6StaticAddresses']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if oem_dhcpv4conf[dhcp_enabled_key]:
-                    if 'IPv4StaticAddresses' in ipv4conf.keys():
-                        del ipv4conf['IPv4StaticAddresses']
-                    if 'IPv4Addresses' in ethernet_data.keys():
-                        del ethernet_data['IPv4Addresses']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            #if not using DHCPv6, remove static addresses from payload
-            if not dhcpv6conf[dhcp_enabled_key] and 'IPv6StaticAddresses' in ethernet_data.keys():
-                del ethernet_data['IPv6StaticAddresses']
-        except (KeyError, NameError, TypeError, AttributeError):
-            #try again with OEM
-            try:
-                if not oem_dhcpv6conf[dhcp_enabled_key] and 'IPv6StaticAddresses' in \
-                                                                                ipv4conf.keys():
-                    del ipv4conf['IPv6StaticAddresses']
-            except (KeyError, NameError) as exp:
-                errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            if 'AutoNeg' not in ethernet_data.keys() and 'SpeedMbps' \
-                                            not in ethernet_data.keys():
-                del ethernet_data['FullDuplex']
-
-            if 'AutoNeg' in ethernet_data.keys():
-                if ethernet_data['AutoNeg'] or ethernet_data['AutoNeg'] is None:
-                    if 'FullDuplex' in ethernet_data.keys():
-                        del ethernet_data['FullDuplex']
-                    if 'SpeedMbps' in ethernet_data.keys():
-                        del ethernet_data['SpeedMbps']
-            #if Full Duplex exists, check if FullDuplexing enabled. If so,
-            #remove Speed setting.
-            elif 'FullDuplex' in ethernet_data.keys():
-                if ethernet_data['FullDuplex']:
-                    del ethernet_data['FullDuplex']
-                if 'SpeedMbps' in ethernet_data.keys():
-                    del ethernet_data['SpeedMbps']
-        except (KeyError, NameError):
-            errors.append("Unable to remove property %s.\n" % exp)
-
-        try:
-            if 'FrameSize' in list(ethernet_data.keys()):
-                del ethernet_data['FrameSize']
-        except (KeyError, NameError) as exp:
-            errors.append("Unable to remove property %s.\n" % exp)
 
         try:
             #if the ClientIDType is custom and we are missing the ClientID then this property can
@@ -1167,9 +998,143 @@ class ServerCloneCommand(RdmcCommandBase):
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
 
-        self.json_traversal_delete_empty(ethernet_data, None, None)
+        #diff and overwrite the original payload
+        ethernet_data = diffdict(ethernet_data, curr_sel.dict)
+
+        #verify dependencies on those flags which are to be applied are eliminated
         try:
-            self._rdmc.app.patch_handler(path, ethernet_data)
+            #delete Domain name and FQDN if UseDomainName for DHCPv4 or DHCPv6
+            #is present. can wait to apply at the end
+            if dhcpv4conf['UseDomainName'] or dhcpv6conf['UseDomainName']:
+                if 'DomainName' in ethernet_data['Oem'][self.typepath.defs.oemhp]:
+                    del ethernet_data['Oem'][self.typepath.defs.oemhp]['DomainName']
+                if 'FQDN' in ethernet_data:
+                    del ethernet_data['FQDN']
+        except (KeyError, NameError, TypeError, AttributeError):
+            #try again with OEM
+            try:
+                if oem_dhcpv4conf['UseDomainName'] or oem_dhcpv6conf['UseDomainName']:
+                    if 'DomainName' in ethernet_data['Oem'][self.typepath.defs.oemhp]:
+                        del ethernet_data['Oem'][self.typepath.defs.oemhp]['DomainName']
+                    if 'FQDN' in ethernet_data:
+                        del ethernet_data['FQDN']
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            #delete DHCP4 DNSServers from IPV4 dict if UseDNSServers Enabled
+            #can wait to apply at the end
+            if dhcpv4conf.get('UseDNSServers'): #and ethernet_data.get('NameServers'):
+                #del_sections('NameServers', ethernet_data)
+                self.json_traversal_delete_empty(data=ethernet_data, remove_list=['NameServers'])
+        except (KeyError, NameError, TypeError, AttributeError):
+            pass
+        finally:
+            try:
+                if oem_dhcpv4conf.get('UseDNSServers'):
+                    #del_sections('DNSServers', ethernet_data)
+                    self.json_traversal_delete_empty(data=ethernet_data, \
+                                                                    remove_list=['DNSServers'])
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            if dhcpv4conf.get('UseWINSServers'):
+                self.json_traversal_delete_empty(data=ethernet_data, remove_list=['WINServers'])
+        except (KeyError, NameError, TypeError, AttributeError):
+            pass
+        finally:
+            try:
+                if oem_dhcpv4conf.get('UseWINSServers'):
+                    self.json_traversal_delete_empty(data=ethernet_data, \
+                                                    remove_list=['WINServers', 'WINSRegistration'])
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            if dhcpv4conf['UseStaticRoutes']:
+                self.json_traversal_delete_empty(data=ethernet_data, remove_list=['StaticRoutes'])
+        except (KeyError, NameError, TypeError, AttributeError):
+            pass
+        finally:
+            try:
+                if oem_dhcpv4conf['UseStaticRoutes']:
+                    self.json_traversal_delete_empty(data=ethernet_data, \
+                                                                    remove_list=['StaticRoutes'])
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            #if using DHCPv4, remove static addresses
+            if dhcpv4conf.get('DHCPEnabled'):
+                self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['IPv4Addresses', 'IPv4StaticAddresses'])
+        except (KeyError, NameError, TypeError, AttributeError):
+            pass
+        finally:
+            try:
+                if oem_dhcpv4conf.get('Enabled'):
+                    self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['IPv4Addresses', 'IPv4StaticAddresses'])
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            #if not using DHCPv6, remove static addresses from payload
+            if dhcpv6conf.get('OperatingMode') == 'Disabled':
+                self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['IPv6Addresses', 'IPv6StaticAddresses'])
+        except (KeyError, NameError, TypeError, AttributeError):
+            pass
+        finally:
+            try:
+                if not oem_dhcpv6conf.get('StatefulModeEnabled'):
+                    self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['IPv6Addresses', 'IPv6StaticAddresses'])
+            except (KeyError, NameError) as exp:
+                errors.append("Unable to remove property %s.\n" % exp)
+
+        flags = dict()
+        if dhcpv4conf:
+            flags['DHCPv4'] = dhcpv4conf
+        if dhcpv6conf:
+            flags['DHCPv6'] = dhcpv6conf
+        if oem_dhcpv4conf:
+            flags['Oem'] = {self.typepath.defs.oemhp : {'DHCPv4': oem_dhcpv4conf}}
+        if oem_dhcpv6conf:
+            flags['Oem'] = {self.typepath.defs.oemhp : {'DHCPv6': oem_dhcpv6conf}}
+
+        #verify dependencies on those flags which are to be applied are eliminated
+
+        try:
+            self._rdmc.app.patch_handler(path, flags)
+        except IloResponseError as excp:
+            errors.append("iLO Responded with the following errors setting DHCP: %s.\n" % excp)
+
+        try:
+            if 'AutoNeg' not in ethernet_data.keys():
+                self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['FullDuplex', 'SpeedMbps'])
+
+            #if Full Duplex exists, check if FullDuplexing enabled. If so,
+            #remove Speed setting.
+            elif 'FullDuplex' in ethernet_data.keys():
+                self.json_traversal_delete_empty(data=ethernet_data, \
+                                            remove_list=['FullDuplex', 'SpeedMbps'])
+        except (KeyError, NameError) as exp:
+            errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            if 'FrameSize' in list(ethernet_data.keys()):
+                self.json_traversal_delete_empty(data=ethernet_data, remove_list=['FrameSize'])
+        except (KeyError, NameError) as exp:
+            errors.append("Unable to remove property %s.\n" % exp)
+
+        try:
+            if ethernet_data:
+                self._rdmc.app.patch_handler(path, ethernet_data)
+            else:
+                raise NoDifferencesFoundError
         except IloResponseError:
             try:
                 sys.stdout.write("This machine may not have a reconfigurable MACAddress...Retrying"\
@@ -1885,29 +1850,6 @@ class ServerCloneCommand(RdmcCommandBase):
                 sys.stdout.write("The clone file \'%s\', selected for loading,"\
                                  " was not found.\n" % self.clone_file)
                 raise IOError
-
-    @log_decor
-    def reboot_server(self):
-        """
-        Reboot server operation
-        """
-        # unable to use Reboot command due to logout upon completion
-
-        results = self._rdmc.app.select(selector="ComputerSystem.")
-        bdict = next(iter(results)).resp.dict
-        if results and bdict:
-            try:
-                reboot_path = bdict[self.typepath.defs.hrefstring]
-            except KeyError:
-                reboot_path = bdict['links']['self'][self.typepath.defs.hrefstring]
-            finally:
-                if 'Actions' in bdict:
-                    action = next(iter(bdict['Actions'].keys())).split('#')[-1]
-                    reboot_path += 'Actions/' + action + '/'
-                else:
-                    action = 'Reset'
-                body = {"Action": action, "ResetType": "ForceRestart"}
-                self._rdmc.app.post_handler(reboot_path, body)
 
     @log_decor
     def json_traversal_delete_empty(self, data, old_key=None, _iter=None, remove_list=None):
