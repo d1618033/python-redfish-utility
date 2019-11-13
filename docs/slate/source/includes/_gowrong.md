@@ -1,0 +1,220 @@
+# When Things Go Wrong
+
+This section provides debug information to help when things go wrong. If this section does not solve your issue please contact support or submit a github issue to our open source project <a href="https://github.com/HewlettPackard/python-redfish-utility/issues">here</a>.
+
+## I need return codes to script, but I'm not seeing any in the output.
+
+The verbose global flag (-v,--verbose) will output more information including return codes.
+
+> You can see return codes and other information with the verbose flag.
+
+<pre>
+ilorest <font color="#01a982">-v</font>
+iLOrest : RESTful Interface Tool version 3.0
+Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
+--------------------------------------------------------------------------------
+iLOrest > login
+Discovering data...Done
+Monolith build process time: 0.259999990463
+<font color="#01a982">iLOrest return code: 0</font>
+</pre>
+
+## How can I see exactly what iLOrest is sending to iLO?
+
+The debug global flag (-d, --debug) will provide the payloads we send and receive from iLO. It is printed to console and to the iLOrest.log file. Debug mode will show information such as X-Auth-Token headers. For this reason it's highly encouraged to only use the debug flag for debugging issues and not for production scripts.
+
+> You can see full payloads with debug mode. The response is truncated for space.
+
+<pre>
+ilorest <font color="#01a982">-d</font> login
+iLOrest : RESTful Interface Tool version 3.0
+Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
+--------------------------------------------------------------------------------
+INFO    : Not using CA certificate.
+INFO    : Initializing no proxy.
+DEBUG   : HTTP REQUEST: GET
+        PATH: /redfish/v1/
+        HEADERS: {'OData-Version': '4.0'}
+        BODY: None
+DEBUG   : Starting new HTTPS connection (1): XX.XX.XX.XXX
+DEBUG   : https://XX.XX.XX.XXX:443 "GET /redfish/v1/ HTTP/1.1" 200 None
+INFO    : Response Time to /redfish/v1/: 0.536000013351 seconds.
+DEBUG   : HTTP RESPONSE for /redfish/v1/:
+Code:200 OK
+Headers:
+        Transfer-Encoding: chunked
+        ETag: W/"9E4419FB"
+        Link: </redfish/v1/SchemaStore/en/ServiceRoot.json/>; rel=describedby
+        Allow: GET, HEAD
+        Cache-Control: no-cache
+        Date: Fri, 30 Aug 2019 00:29:30 GMT
+        OData-Version: 4.0
+        X-Frame-Options: sameorigin
+        Content-type: application/json; charset=utf-8
+
+Body Response of /redfish/v1/: {"@odata.con...
+</pre>
+
+## Why am I getting extra data?
+
+If you are getting more data than you think you should, you may not be using a selector that is exclusive to the type you want.
+
+It's also possible that the type you have selected has more than one instance. In this case the [filter option](#filter-option) can help you limit the results to the instance you want.
+
+> In this example the selector returns both the instance and the collection type. Modifying the selector to limit the selection solves this problem. The easiest way to do that is to add a period to ensure you are only selecting one type.
+
+<pre>
+iLOrest > select <font color="#01a982">ComputerSystem</font>
+Selected option(s): #ComputerSystemCollection.ComputerSystemCollection, #ComputerSystem.v1_4_0.ComputerSystem
+iLOrest return code: 0
+iLOrest > select <font color="#01a982">ComputerSystem.</font>
+Selected option(s): #ComputerSystem.v1_4_0.ComputerSystem
+iLOrest return code: 0
+</pre>
+
+> This example shows that we are selecting only 1 type, but multiple instances are available for that type. We only want to modify or view 1 instance! We can use the [--filter](#filter-option) option to limit to 1 instance only.
+
+<pre>
+iLOrest > select <font color="#01a982">EthernetInterface.</font>
+Selected option(s): #EthernetInterface.v1_4_1.EthernetInterface
+iLOrest return code: 0
+iLOrest > list @odata.id
+
+@odata.id=/redfish/v1/Systems/1/EthernetInterfaces/2/
+
+@odata.id=/redfish/v1/Systems/1/EthernetInterfaces/1/
+
+@odata.id=/redfish/v1/Managers/1/EthernetInterfaces/1/
+
+@odata.id=/redfish/v1/Systems/1/EthernetInterfaces/3/
+
+@odata.id=/redfish/v1/Managers/1/EthernetInterfaces/2/
+
+@odata.id=/redfish/v1/Systems/1/EthernetInterfaces/4/
+iLOrest return code: 0
+iLOrest > list @odata.id <font color="#01a982">--filter=Id=3</font>
+Selected option(s): #EthernetInterface.v1_4_1.EthernetInterface
+@odata.id=/redfish/v1/Systems/1/EthernetInterfaces/3/
+iLOrest return code: 0
+</pre>
+
+## I can set a property, but the commit is failing...
+
+This can happen for multiple reasons. We try to catch issues with commits when the property is initially set, but not all possible issues can be caught. 
+
+First run the [status command](#status-command) to see what properties have failed to commit.
+
+To ensure you are sending data that will be accepted by the server you can get schema information for the property that failed to commit with the [info command](#info-command).
+
+Some properties require other properties to be set first. You can view the <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/#resource-definitions">iLO REST API Doc's resource definitions</a> for the property you are trying to commit to see any additional information on modifying the property that is not in the schemas.
+
+## I think this property is an array, but I can't tell by the get/list output.
+
+Currently the human readable output does not distinguish between nested json objects and arrays. They both look similar in the output. You can use the -j,--json flags to distinguish between arrays and nested json objects.
+
+> It's hard to tell where the array is in this output until you print the response in json format.
+
+<pre>
+iLOrest > get Boot/BootOrder Boot/BootSourceOverrideTarget
+Selected option(s): #ComputerSystem.v1_4_0.ComputerSystem
+Boot=
+      BootSourceOverrideTarget=None
+      BootOrder=Boot0014
+                 Boot0015
+                 Boot0016
+                 Boot000A
+                 Boot000B
+                 Boot000C
+                 Boot000D
+                 Boot000E
+                 Boot000F
+                 Boot0010
+                 Boot0012
+                 Boot0013
+                 Boot0011
+iLOrest return code: 0
+iLOrest > get Boot/BootOrder Boot/BootSourceOverrideTarget <font color="#01a982">--json</font>
+Selected option(s): #ComputerSystem.v1_4_0.ComputerSystem
+{
+  "Boot": {
+    "BootOrder": [
+      "Boot0014",
+      "Boot0015",
+      "Boot0016",
+      "Boot000A",
+      "Boot000B",
+      "Boot000C",
+      "Boot000D",
+      "Boot000E",
+      "Boot000F",
+      "Boot0010",
+      "Boot0012",
+      "Boot0013",
+      "Boot0011"
+    ],
+    "BootSourceOverrideTarget": "None"
+  }
+}
+iLOrest return code: 0
+</pre>
+
+## I need to change a property, but it's an array... How can I modify that?
+
+Currently Array types need to be set as a whole modified array inside brackets. ``[ ]``
+
+You can also modify lists using the [save](#save-command) and [load](#load-command) commands.
+
+> In this example we are only flipping the first two boot order items in the array, but we need to send the whole array, not just the modified section. You can see with the status command that we are changing specific array values.
+
+<pre>
+iLOrest > set Boot/BootOrder=<font color="#01a982">[Boot0015,Boot0014,Boot0016,Boot000A,Boot000B,Boot000C,Boot000D,Boot000E,Boot000F,Boot0010,Boot0012,Boot0013,Boot0011]</font>
+iLOrest > status
+Current changes found:
+ComputerSystem.v1_4_0(/redfish/v1/Systems/1/) (Currently selected)
+        Boot/BootOrder/0=Boot0015
+        Boot/BootOrder/1=Boot0014
+iLOrest > commit
+Committing changes...
+The operation completed successfully.
+</pre>
+
+## Will this command reboot/reset my system?
+
+Some commands may reboot your system because it's required to complete the process. Others can be told to reboot the system using the --reboot flag. 
+
+<aside class="warning">Please read the help for any warnings or notes specific to each command. Not all warnings are mentioned here and this list is only intended to describe some command behavior to be aware of.</aside>
+
+This list describes any reboot or reset behavior for commands:
+
+- The following commands will reboot your system:
+  - Reboot
+  - OneButtonErase
+  - Serverclone
+  - iLOclone
+- The following commands can reboot your system if you specify the option:
+  - BiosDefaults
+  - BootOrder
+  - IscsiConfig
+  - SetPassword
+  - Commit
+  - Load
+  - Set
+  - VirtualMedia
+- The following commands will reset iLO:
+  - OneButtonErase
+  - Serverclone
+  - iLOclone
+  - iLOreset
+  - Uploadcomp - Can reset iLO if the firmware requires an iLO reset to finish flashing and you are directly flashing
+  - flashfwpkg - Can reset iLO if the firmware requires an iLO reset to finish flashing
+- The following commands will factory reset your iLO:
+  - iLOclone
+  - factoryreset
+
+## Firmware uploading/flash issues
+
+This section will describe any known issues flashing certain versions or any intermidiate steps required to flash certain firmware.
+
+### iLO 5 firmware v2.10
+
+When flashing or uploading iLO 5 firmware v2.10 or greater, the system you are flashing or uploading to must have iLO 5 firmware v1.40 or greater. Any iLO firmware version below iLO 5 v1.40 will cause a failure to flash/upload.

@@ -1,5 +1,5 @@
 python-redfish-utility
-==============
+======================
 .. image:: https://travis-ci.org/HewlettPackard/python-redfish-utility.svg?branch=master
     :target: https://travis-ci.org/HewlettPackard/python-redfish-utility
 .. image:: https://img.shields.io/github/release/HewlettPackard/python-redfish-utility.svg?maxAge=2592000
@@ -18,17 +18,32 @@ Description
 
  The Redfish Utility is a command line interface that allows you to manage servers that take advantage of Redfish APIs. For this release of the utility, you can manage any server running a Redfish API. You can install the utility on your computer for remote use. In addition to using the utility manually to execute individual commands, you can create scripts to automate tasks.
 
- You can download the tool directly from HPE's website  `here <https://www.hpe.com/us/en/product-catalog/detail/pip.7630408.html#/>`_.
+ You can download the windows and linux tool directly from HPE's website  `here <https://www.hpe.com/us/en/product-catalog/detail/pip.7630408.html#/>`_
+ or download the windows, linux, debian, and mac versions from the github `releases section <https://github.com/HewlettPackard/python-redfish-utility/releases>`_.
 
+Requirements
+------------
+ No special requirements.
+
+Usage
+----------
+
+Installing Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: console
+
+	pip install -r requirements.txt
+	
 Running the utility from command line
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
 	python.exe rdmc.py
 	
 Building an executable from file source
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
  For this process you will need to install pyinstaller for python.
 
@@ -36,12 +51,9 @@ Building an executable from file source
 
 	python.exe pyinstaller rdmc-pyinstaller-windows.spec
 
-Requirements
-----------
- No special requirements.
+Documentation
+~~~~~~~~~~~~~
 
-Usage
-----------
  For further usage please refer to our slate documentation: `https://hewlettpackard.github.io/python-redfish-utility/ <https://hewlettpackard.github.io/python-redfish-utility/>`_
 
 Contributing
@@ -60,6 +72,14 @@ History
   * 04/25/2017: Release of version 1.9.1
   * 07/17/2017: Release of version 2.0.0
   * 10/31/2017: Release of version 2.1.0
+  * 02/20/2018: Release of version 2.2.0
+  * 06/11/2018: Release of version 2.3.0
+  * 07/02/2018: Release of version 2.3.1
+  * 10/31/2018: Release of version 2.3.3
+  * 11/01/2018: Release of version 2.3.4
+  * 04/03/2019: Release of version 2.4.1
+  * 07/05/2019: Release of version 2.5.0
+  * 09/13/2019: Release of version 2.5.1
 
 License
 ----------

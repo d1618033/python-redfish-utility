@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 """This is the helper module for RDMC"""
 
 #---------Imports---------
-
+from __future__ import unicode_literals
 import os
 import sys
 import time
@@ -32,10 +32,13 @@ from ctypes import create_string_buffer, c_char_p, byref
 import six
 import pyaes
 
+from prompt_toolkit.completion import Completer, Completion
+
 import redfish.ris
 import redfish.hpilo.risblobstore2 as risblobstore2
 
 import versioning
+from rdmc_base_classes import HARDCODEDLIST
 
 if os.name == 'nt':
     from six.moves import winreg
@@ -426,17 +429,15 @@ class UI(object):
 
     def retries_exhausted_attemps(self):
         """ Called when url retries have been exhausted """
-        sys.stderr.write("\nError: Could not reach URL. Retries have been" \
-                         " exhausted.\n")
+        sys.stderr.write("\nError: Could not reach URL. Retries have been exhausted.\n")
 
     def print_out_json(self, content):
-        """ Print out json content to std.out
+        """ Print out json content to std.out with sorted keys
 
         :param content: content to be printed out
         :type content: str.
         """
-        sys.stdout.write(json.dumps(content, indent=2, \
-                                                cls=redfish.ris.JSONEncoder))
+        sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True))
         sys.stdout.write('\n')
 
     def print_out_json_ordered(self, content):
@@ -446,8 +447,7 @@ class UI(object):
         :type content: str.
         """
         content = OrderedDict(sorted(list(content.items()), key=lambda x: x[0]))
-        sys.stdout.write(json.dumps(content, indent=2, \
-                                                cls=redfish.ris.JSONEncoder))
+        sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder))
         sys.stdout.write('\n')
 
     def print_out_human_readable(self, content):
@@ -486,11 +486,9 @@ class UI(object):
 
                 enterloop = False
                 sys.stdout.write(str(key) + '=')
-                self.pretty_human_readable(value, indent,
-                                           (start + len(key) + 2))
+                self.pretty_human_readable(value, indent, (start + len(key) + 2))
         else:
-            content = content if isinstance(content, six.string_types) \
-                                                            else str(content)
+            content = content if isinstance(content, six.string_types) else str(content)
 
             content = '""' if not content else content
             sys.stdout.write(content)
@@ -594,8 +592,7 @@ class Encryption(object):
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except:
-            raise UnableToDecodeError("Unable to decode credential %s."\
-                                       % credential)
+            raise UnableToDecodeError("Unable to decode credential %s." % credential)
 
         return retbuff.value
 
@@ -623,7 +620,118 @@ class Encryption(object):
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except:
-            raise UnableToDecodeError("Unable to decode credential %s."\
-                                       % credential)
+            raise UnableToDecodeError("Unable to decode credential %s." % credential)
 
         return retbuff.value
+
+class TabAndHistoryCompletionClass(Completer):
+    """ Tab and History Class used by interactive mode """
+    def __init__(self, options):
+        self.options = options
+        self.toolbar_text = None
+        self.last_complete = None
+
+    def get_completions(self, document, complete_event):
+        """ Function to return the options for autocomplete """
+        word = ""
+        self.toolbar_text = ""
+        lstoption = self.options
+        if document.text:
+            tokens = document.text.split()
+            #We aren't completing options yet
+            tokens = [token for token in tokens if not token.startswith('-')]
+
+            self.last_complete = tokens[-1]
+            nestedtokens = self.last_complete.split('/')
+
+            if not document.text.endswith(" "):
+                tokens.pop()
+                word = document.get_word_under_cursor()
+            else:
+                nestedtokens = []
+            if word == '/':
+                word = ''
+
+            if len(tokens) >= 1:
+                if tokens[0] == 'select':
+                    #only first type
+                    if len(tokens) >= 2:
+                        lstoption = []
+                    else:
+                        lstoption = self.options.get(tokens[0], {})
+                elif tokens[0] in ['get', 'list', 'info', 'set']:
+                    #Match properties
+                    nested_data = self.options.get('nestedprop', {})
+                    nested_info = self.options.get('nestedinfo', {})
+                    for token in nestedtokens:
+                        try:
+                            nested_data = nested_data[token]
+                            if tokens[0] == 'get' and isinstance(nested_data, dict):
+                                for k in list(nested_data.keys()):
+                                    if k.lower() in HARDCODEDLIST or '@odata' in k.lower() or \
+                                                            '@redfish.allowablevalues' in k.lower():
+                                        del nested_data[k]
+                            if nested_info:
+                                if 'properties' in nested_info:
+                                    nested_info = nested_info['properties']
+                                if not 'AttributeName' in nested_info[token]:
+                                    nested_info = nested_info['properties'][token] if 'properties' \
+                                                        in nested_info else nested_info[token]
+                                else:
+                                    nested_info = nested_info[token]
+                        except Exception:
+                            break
+                    nested_data = list(nested_data.keys()) if isinstance(nested_data, dict) else []
+                    lstoption = nested_data
+
+                    #Try to get info for help bar
+                    help_text = nested_info.get('HelpText', '')
+                    enum_tab = []
+                    if 'Type' in nested_info and nested_info['Type'].lower() == "enumeration":
+                        help_text += "\nPossible Values:\n"
+                        for value in nested_info['Value']:
+                            enum_tab.append(value['ValueName'])
+                            help_text += six.u(str(value['ValueName'])) + ' '
+
+                    if not help_text:
+                        try:
+                            nested_info = nested_info['properties']
+                        except KeyError:
+                            pass
+                        help_text = nested_info.get('description', '')
+                        if 'enum' in nested_info:
+                            help_text += "\nPossible Values:\n"
+                            for value in nested_info['enum']:
+                                enum_tab.append(value)
+                                help_text += six.u(str(value)) + ' '
+                    if isinstance(help_text, unicode):
+                        help_text = help_text.replace('. ', '.\n')
+                    self.toolbar_text = help_text
+                else:
+                    lstoption = {}
+            else:
+                for token in tokens:
+                    #just match commands
+                    lstoption = self.options.get(token, {})
+
+        for opt in lstoption:
+            if opt == word:
+                self.last_complete = opt
+            if opt.startswith(word):
+                yield Completion(
+                    opt + '',
+                    start_position=-len(word))
+
+    def bottom_toolbar(self):
+        return self.toolbar_text if self.toolbar_text else None
+
+    def updates_tab_completion_lists(self, options):
+        """ Function to update tab completion lists
+
+        :param options: options list
+        :type options: list.
+        """
+        # Loop through options passed and add them to them
+        # to the current tab options list
+        for key, value in options.items():
+            self.options[key] = value

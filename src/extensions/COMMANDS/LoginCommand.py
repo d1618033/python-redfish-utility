@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 import sys
 import getpass
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser, SUPPRESS
 
 import redfish.ris
 
@@ -37,11 +37,12 @@ class LoginCommand(RdmcCommandBase):
                     ' remotely run using iLO url and iLO credentials' \
                     '\n\texample: login <iLO url/hostname> -u <iLO username> '\
                     '-p <iLO password>\n\n\tTo login on a local server run' \
-                    ' without arguments\n\texample: login',\
+                    ' without arguments\n\texample: login\n\n\tNOTE: You can specify an '\
+                    'IPv4, IPv6, or hostname address.',\
             summary='Connects to a server, establishes a secure session,'\
                     ' and discovers data from iLO.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self.url = None
         self.username = None
@@ -62,7 +63,7 @@ class LoginCommand(RdmcCommandBase):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
 
-            if not self._rdmc.app.current_client.monolith._visited_urls:
+            if not self._rdmc.app.monolith._visited_urls:
                 self.logoutobj.run("")
                 raise PathUnavailableError("The path specified by the --path flag is unavailable.")
         except Exception:
@@ -81,7 +82,7 @@ class LoginCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -94,9 +95,13 @@ class LoginCommand(RdmcCommandBase):
 
         self._rdmc.app.login(username=self.username, \
                       password=self.password, base_url=self.url, \
-                      verbose=self._rdmc.opts.verbose, path=options.path, skipbuild=skipbuild,\
+                      path=options.path, skipbuild=skipbuild,\
                       includelogs=options.includelogs, biospassword=self.biospassword, \
-                      is_redfish=self._rdmc.opts.is_redfish, proxy=proxy)
+                      is_redfish=self._rdmc.opts.is_redfish, proxy=proxy, \
+                      ssl_cert=options.https_cert)
+
+        self.username = None
+        self.password = None
 
         # Warning for cache enabled, since we save session in plain text
         if not self._rdmc.encoding:
@@ -130,6 +135,8 @@ class LoginCommand(RdmcCommandBase):
             options.password = self._rdmc.app.config.get_password()
         if not options.biospassword:
             options.biospassword = self._rdmc.app.config.get_bios_password()
+        if not options.https_cert:
+            options.https_cert = self._rdmc.app.config.get_ssl_cert()
 
         # Password and user name validation
         if options.user and not options.password:
@@ -180,30 +187,30 @@ class LoginCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             '-u',
             '--user',
             dest='user',
             help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
+            " with the password and URL flags can be used to login to a"\
             " server in the same command.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-p',
             '--password',
             dest='password',
             help="""Use the provided iLO password to log in.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--includelogs',
             dest='includelogs',
             action="store_true",
             help="Optionally include logs in the data retrieval process.",
-            default=False,
+            default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--selector',
             dest='selector',
             help="Optionally include this flag to select a type to run"\
@@ -211,9 +218,9 @@ class LoginCommand(RdmcCommandBase):
              " select a type without entering another command, or if you"\
               " wish to work with a type that is different from the one"\
               " you currently have selected.",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--path',
             dest='path',
             help="Optionally set a starting point for data collection during"\
@@ -221,21 +228,28 @@ class LoginCommand(RdmcCommandBase):
             " will be /redfish/v1/. Note: The path flag can only be specified"\
             " at the time of login. Warning: Only for advanced users, and"\
             " generally not needed for normal operations.",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
             " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
+        '--https',
+        dest='https_cert',
+        help="Use the provided CA bundle or SSL certificate with your login to connect "\
+            "securely to the system in remote mode. This flag has no effect in local mode.",
+        default=None
+        )
+        customparser.add_argument(
             '-e',
             '--enc',
             dest='encode',
             action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help=SUPPRESS,
+            default=False
         )

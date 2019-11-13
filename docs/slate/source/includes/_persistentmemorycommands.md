@@ -1,6 +1,6 @@
 ## Persistent Memory Commands
 
-This section includes commands related to the discovery and configuration of HPE Persistent Memory.
+This section covers commands related to the discovery and configuration of HPE Persistent Memory.
 
 ### Persistent Memory Discovery Command
 
@@ -89,11 +89,11 @@ Displays help on the usage of this command.
 
 - **-D, --device**
 
-Shows a physical overview of the installed persistent memory modules.
+Shows a physical overview of installed persistent memory modules.
 
 - **-C, --config**
 
-Shows the current configuration of the installed persistent memory modules.
+Shows the current configuration of installed persistent memory modules.
 
 - **-L, --logical**
 
@@ -105,7 +105,7 @@ Shows a summary of the installed persistent memory modules.
 
 - **-I, --dimm**
 
-Optionally, use this flag to filter output by DIMM IDs (ProcessorNumber@SlotNumber). Can be used in conjunction with the `-D | --device` or the `-C | --config` flags.
+Optionally use this flag to filter output by DIMM IDs (ProcessorNumber@SlotNumber). Can be used in conjunction with the `-D | --device` or the `-C | --config` flags.
 
 - **-j, --json**
 
@@ -160,7 +160,7 @@ applypmmconfig -C | --config [-f | --force]
 #### Description
 
 
-Apply a pre-defined configuration to the installed persistent memory modules.
+Apply a predefined configuration to installed persistent memory modules.
 
 
 #### Parameters
@@ -172,11 +172,11 @@ Displays help on the usage of this command.
 
 - **-L, --list**
 
-Display a list of available pre-defined configIDs along with a brief description.
+Display a list of available predefined configIDs along with a brief description.
 
 - **-C, --config**
 
-Specify one of the pre-defined configIDs to apply to all the persistent memory modules.
+Specify one of the predefined configIDs to apply to all persistent memory modules.
 
 - **-f, --force**
 
@@ -229,7 +229,7 @@ provisionpmm [-h | --help] [-m | --memory-mode=(0|%)] [-i | --pmem-interleave=(O
 #### Description
 
 
-Applies user specified configuration to the persistent memory modules.
+Applies user specified configuration to persistent memory modules.
 
 
 #### Parameters
@@ -245,7 +245,7 @@ Optionally allows user to specify the percentage of total capacity that should b
 
 - **-i, --pmem-interleave**
 
-Indicates whether the persistent memory regions should be interleaved (Allowed values: "on", "off").
+Indicates whether the persistent memory regions should be interleaved or not (Allowed values: "on", "off").
 
 - **-p, --proc**
 
@@ -253,7 +253,7 @@ Optionally allows user to specify the processors (comma separated list of Proces
 
 - **-f, --force**
 
-Allows the user to force the configuration by automatically accepting any prompts.
+Allow the user to force the configuration by automatically accepting any prompts.
 
 
 ### Show Pending Configuration Command
@@ -285,7 +285,7 @@ showpmmpendingconfig [-j | --json]
 #### Description
 
 
-Shows the queued tasks pending a reboot for configuring the persistent memory modules.
+Shows the queued tasks pending a reboot for configuring persistent memory modules.
 
 
 #### Parameters
@@ -297,13 +297,13 @@ Displays help on the usage of this command.
 
 - **-j, --json**
 
-Optionally, use this flag to display output in JSON format.
+Optionally use this flag to display output in JSON format.
 
 
 ### Clear Pending Configuration Command
 
 
-> Example: Clears all the pending persistent memory configuration tasks.
+> Example: Clear all pending persistent memory configuration tasks.
 
 
 <pre>
@@ -328,7 +328,7 @@ clearpmmpendingconfig
 #### Description
 
 
-Clears all the pending persistent memory configuration tasks.
+Clears all pending persistent memory configuration tasks.
 
 #### Parameters
 

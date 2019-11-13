@@ -38,8 +38,7 @@ class RestHelpers(object):
         :rtype: RestResponse object
         """
         accepted_status = [200, 202]
-        resp = self._rdmc.app.get_handler(url, verbose=self._rdmc.opts.verbose, service=True,
-                                          silent=True, response=True)
+        resp = self._rdmc.app.get_handler(url, service=True, silent=True, response=True)
         if resp and resp.status in accepted_status and resp.dict:
             return resp.dict
         return None
@@ -212,8 +211,7 @@ class RestHelpers(object):
         :type: string
         :returns: status code
         """
-        resp = self._rdmc.app.delete_handler(url, verbose=self._rdmc.opts.verbose, service=True,
-                                             silent=True)
+        resp = self._rdmc.app.delete_handler(url, service=True, silent=True)
         if resp and resp.status in [200, 202]:
             return resp.status
         return None
@@ -228,8 +226,7 @@ class RestHelpers(object):
         :returns: status code
         """
         accepted_status = [200, 201, 202, 204]
-        resp = self._rdmc.app.post_handler(path, body, verbose=self._rdmc.opts.verbose,
-                                           service=True, silent=True, response=True)
+        resp = self._rdmc.app.post_handler(path, body, service=True, silent=True, response=True)
         if resp and resp.status in accepted_status:
             return resp.status
         return None

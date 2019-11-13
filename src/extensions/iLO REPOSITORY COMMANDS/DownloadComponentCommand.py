@@ -1,5 +1,5 @@
 # ##
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import time
 import ctypes
 
 from ctypes import c_char_p, c_int
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                         InvalidCommandLineError, DownloadError, \
                         InvalidFileInputError, IncompatibleiLOVersionError, Encryption
@@ -53,10 +53,12 @@ class DownloadComponentCommand(RdmcCommandBase):
             name='downloadcomp', \
             usage='downloadcomp [COMPONENT URI] [OPTIONS]\n\n\tRun to ' \
                 'download the file from path\n\texample: downloadcomp ' \
-                '/fwrepo/filename.exe --outdir <output location>', \
+                '/fwrepo/filename.exe --outdir <output location>' \
+                'download the file by name\n\texample: downloadcomp ' \
+                'filename.exe --outdir <output location>', \
             summary='Downloads components/binaries from the iLO Repository.', \
             aliases=['Downloadcomp'], \
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -71,27 +73,22 @@ class DownloadComponentCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
+        repo = ['fwrepo']
+        urilist = args[0].split('/')
+        if repo[0] not in urilist:
+            repo = ['/fwrepo/']
+            repo[0] += args[0]
+            args[0] = repo[0]
 
-        if options.sessionid:
-            url = self.sessionvalidation(options)
-        else:
-            url = None
-            self.downloadcomponentvalidation(options)
+        self.downloadcomponentvalidation(options)
 
-        if options.sessionid and not url:
-            raise InvalidCommandLineError('Url muse be included with ' \
-                          'sessionid. Session is not required for local mode.')
-
-        if not options.sessionid and self.typepath.defs.isgen9:
+        if self.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('iLO Repository commands are ' \
                                                     'only available on iLO 5.')
 
@@ -106,11 +103,10 @@ class DownloadComponentCommand(RdmcCommandBase):
 
         sys.stdout.write("Downloading component, this may take a while...\n")
 
-        if not url and 'blobstore' in self._rdmc.app.get_current_client()\
-                                                ._rest_client.get_base_url():
+        if 'blobstore' in self._rdmc.app.current_client.base_url:
             ret = self.downloadlocally(args[0], options)
         else:
-            ret = self.downloadfunction(args[0], options, url)
+            ret = self.downloadfunction(args[0], options)
 
         sys.stdout.write("%s\n" % human_readable_time(time.time() - start_time))
 
@@ -119,7 +115,7 @@ class DownloadComponentCommand(RdmcCommandBase):
 
         return ret
 
-    def downloadfunction(self, filepath, options=None, url=None):
+    def downloadfunction(self, filepath, options=None):
         """ Main download command worker function
 
         :param filepath: Path of the file to download.
@@ -144,8 +140,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         if filepath[0] != '/':
             filepath = '/' + filepath
 
-        results = self._rdmc.app.get_handler(filepath, url=url, \
-                             uncache=True, sessionid=options.sessionid)
+        results = self._rdmc.app.get_handler(filepath, uncache=True)
 
         with open(destination, "wb") as local_file:
             local_file.write(results.ori)
@@ -161,10 +156,9 @@ class DownloadComponentCommand(RdmcCommandBase):
         :type filepath: string.
         """
         try:
-            bs2 = risblobstore2.BlobStore2()
-            risblobstore2.BlobStore2.initializecreds(options.user, options.password)
-            bs2.channel.dll.downloadComponent.argtypes = [c_char_p, c_char_p]
-            bs2.channel.dll.downloadComponent.restype = c_int
+            dll = self._rdmc.app.current_client.connection._conn.channel.dll
+            dll.downloadComponent.argtypes = [c_char_p, c_char_p]
+            dll.downloadComponent.restype = c_int
 
             filename = filepath.rsplit('/', 1)[-1]
             if not options.outdir:
@@ -180,7 +174,7 @@ class DownloadComponentCommand(RdmcCommandBase):
                                                                  os.W_OK):
                 raise InvalidFileInputError("Existing File cannot be overwritten.")
 
-            ret = bs2.channel.dll.downloadComponent(ctypes.create_string_buffer(\
+            ret = dll.downloadComponent(ctypes.create_string_buffer(\
                                 filename.encode('utf-8')), ctypes.create_string_buffer(\
                                                             destination.encode('utf-8')))
 
@@ -205,20 +199,21 @@ class DownloadComponentCommand(RdmcCommandBase):
         client = None
 
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -226,31 +221,13 @@ class DownloadComponentCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if not inputline and not client:
             sys.stdout.write('Local login initiated...\n')
         if not client or inputline:
             self.lobobj.loginfunction(inputline)
-
-    def sessionvalidation(self, options):
-        """ session validation function
-
-        :param options: command line options
-        :type options: list.
-        """
-
-        url = None
-        if options.user or options.password or options.url:
-            if options.url:
-                url = options.url
-        else:
-            if self._rdmc.app.config.get_url():
-                url = self._rdmc.app.config.get_url()
-
-        if url and not "https://" in url:
-            url = "https://" + url
-
-        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for download command main function
@@ -261,62 +238,20 @@ class DownloadComponentCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help='Use the provided iLO URL to login.',
-            default="",
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
-            '--sessionid',
-            dest='sessionid',
-            help="Optionally include this flag if you would prefer to "\
-            "connect using a session id instead of a normal login.",
-            default=None
-        )
-        customparser.add_option(
-            '--includelogs',
-            dest='includelogs',
-            action="store_true",
-            help="Optionally include logs in the data retrieval process.",
-            default=False,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--logout',
             dest='logout',
             action="store_true",
             help="Optionally include the logout flag to log out of the"\
             " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
+            " not logged in will have no effect.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--outdir',
             dest='outdir',
-            help="""output directory for saving the file.""",
+            help="""Output directory for saving the file.""",
             default="",
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

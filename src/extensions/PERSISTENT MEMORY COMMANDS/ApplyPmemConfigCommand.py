@@ -19,10 +19,10 @@
 from __future__ import absolute_import
 import sys
 from copy import deepcopy
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
 
 from .lib.DisplayHelpers import DisplayHelpers
@@ -69,7 +69,7 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
                                        "\texample: applypmmconfig --config MemoryMode",
                                  summary="Applies a pre-defined configuration to PMM.",
                                  aliases=["applypmmconfig"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self.define_arguments(self.parser)
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
@@ -89,18 +89,18 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             "-C",
             "--config",
             action="store",
-            type="string",
+            type=str,
             dest="config",
             help="Specify one of the pre-defined configIDs to apply"
                  " to all Persistent Memory Modules.",
             default=None
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-L",
             "--list",
             action="store_true",
@@ -110,7 +110,7 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
             default=False
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-f",
             "--force",
             action="store_true",
@@ -129,7 +129,7 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         LOGGER.info("PMM Apply Pre-Defined Configuration: %s", self.name)
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:

@@ -20,10 +20,10 @@ from __future__ import absolute_import
 
 import sys
 from copy import deepcopy
-from optparse import OptionParser
+from argparse import ArgumentParser, Action, REMAINDER
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
 
 from .lib.DisplayHelpers import DisplayHelpers
@@ -31,6 +31,19 @@ from .lib.Mapper import Mapper
 from .lib.RestHelpers import RestHelpers
 from .ClearPendingConfigCommand import ClearPendingConfigCommand
 from .ShowPmemPendingConfigCommand import ShowPmemPendingConfigCommand
+
+class _ParseOptionsList(Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(_ParseOptionsList, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_strings):
+        """
+        Callback to parse a comma-separated list into an array.
+        Then store the array in the option's destination
+        """
+        try:
+            setattr(namespace, self.dest, next(iter(values)).split(","))
+        except:
+            raise InvalidCommandLineError("Values in a list must be separated by a comma.")
 
 class AdvancedPmmConfigCommand(RdmcCommandBase):
     """
@@ -41,20 +54,20 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,
                                  name="provisionpmm",
                                  usage="provisionpmm [-h | --help]"
-                                       "[-m | --memory-mode=(0|%)] [-i | --pmem-interleave=(On|Off)]"
+                                       "[-m | --memory-mode=(0|%%)] [-i | --pmem-interleave=(On|Off)]"
                                        "[-p | --proc=(processorID)] [-f | --force]\n\n"
                                        "\tApplies specified configuration to PMM\n"
-                                       "\texample: provisionpmm -m 50 -i On -p 6,7",
+                                       "\texample: provisionpmm -m 50 -i On -p 1,2",
                                  summary="Applies specified configuration to PMM.",
                                  aliases=["provisionpmm"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self.define_arguments(self.parser)
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
         self._show_pmem_config = ShowPmemPendingConfigCommand(self._rdmc)
         self._display_helpers = DisplayHelpers()
         self._mapper = Mapper()
-        self.usage = "provisionpmm [-h | --help] [-m | --memory-mode=(0|%)] " \
+        self.usage = "provisionpmm [-h | --help] [-m | --memory-mode=(0|%%)] " \
                      "[-i | --pmem-interleave=(On|Off)] [-p | --proc=(processorID)] "\
                      "[-f | --force]\n\n\t Applies specified configuration to PMM\n"\
                      "\texample: provisionpmm -m 50 -i On -p 1,2 -f\n"
@@ -66,13 +79,15 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         :type line: string.
         """
         LOGGER.info("PMM: %s", self.name)
+
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
+
         if args:
             self.validate_args(args, options)
         self.validate_options(options)
@@ -124,8 +139,8 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
                                           " to configure PMM")
         if options.interleave:
             if (options.interleave).lower() not in ['on', 'off']:
-                raise InvalidCommandLineError("Specify the correct value to set interleave"
-                                              " state of persistent memory regions\n\n" + self.usage)
+                raise InvalidCommandLineError("Specify the correct value to set interleave"\
+                    " state of persistent memory regions\n\n" + self.usage)
             options.interleave = options.interleave.lower()
 
         if options.proc and not options.memorymode and not options.interleave:
@@ -144,18 +159,6 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
                 if not proc_id.isdigit():
                     raise InvalidCommandLineError("Specify the correct processor id")
 
-    @staticmethod
-    # pylint: disable=unused-argument
-    def parse_options_list(option, opt, value, parser):
-        """
-        Callback to parse a comma-separated list into an array,
-        Then store the array in the option's destination
-        """
-        try:
-            setattr(parser.values, option.dest, value.split(","))
-        except:
-            raise InvalidCommandLineError("Values in a list must be separated by a comma")
-
     def define_arguments(self, customparser):
         """
         Wrapper function for new command main function
@@ -165,43 +168,41 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             "-m",
             "--memory-mode",
-            type="int",
             dest="memorymode",
-            default=0,
+            type=int,
             help="Percentage of the total capacity to configure all PMMs to MemoryMode."
                  " This flag is optional. If not specified,"
-                 " by default configuration will be applied with 0% Volatile."
+                 " by default configuration will be applied with 0%% Volatile."
                  " To interleave persistent memory regions, use this flag in conjunction with"
                  " the --pmem-interleave flag. To configure all the PMMs on specific processor,"
-                 " use this flag in conjunction with the --proc flag."
+                 " use this flag in conjunction with the --proc flag.",
+            default=0
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-i",
             "--pmem-interleave",
-            type="string",
             dest="interleave",
-            help="Indicates whether the persistent memory regions should be interleaved or not."
+            help="Indicates whether the persistent memory regions should be interleaved or not.",
+            default=None
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-p",
             "--proc",
-            type="string",
-            action="callback",
-            metavar="PROCLIST",
-            callback=self.parse_options_list,
+            nargs=1,
+            action=_ParseOptionsList,
             dest="proc",
-            help="To apply selected configuration on specific processors,"
-                 " supply a comma-separated list of Processor id's where p=processor id."
-                 " This flag is optional. If not specified,"
-                 " by default configuration will be applied to all the Processors."
+            help="To apply selected configuration on specific processors, "
+                 "supply a comma-separated list of Processor IDs (without spaces) where "
+                 "p=processor id. This flag is optional. If not specified, "
+                 "by default configuration will be applied to all the Processors."
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-f",
             "--force",
             action="store_true",

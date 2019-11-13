@@ -17,13 +17,13 @@
 # -*- coding: utf-8 -*-
 """Command to show recommended configurations"""
 from __future__ import absolute_import, division
-import sys
+
+from argparse import ArgumentParser
 
 from collections import OrderedDict
-from optparse import OptionParser
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     NoContentsFoundForOperationError, LOGGER
 
 from .lib.DisplayHelpers import DisplayHelpers, OutputFormats
@@ -44,7 +44,7 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
                                        "\texample: showrecommendedpmmconfig",
                                  summary="Show Recommended Configuration",
                                  aliases=["showrecommendedpmmconfig"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
         self._display_helpers = DisplayHelpers()
@@ -59,8 +59,8 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
         """
         LOGGER.info("Show Recommended Configuration: %s", self.name)
         try:
-            (options, args) = self._parse_arglist(line)
-        except:
+            (_, args) = self._parse_arglist(line)
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:

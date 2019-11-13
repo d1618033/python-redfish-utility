@@ -7,7 +7,8 @@ The requirements for the server, which you will manage with the tool, are as fol
 - Local management: Gen9 or greater server with a Windows OS or Linux OS (64–bit) installed.
 - Remote management: Gen9 or greater server with or without an OS installed.
 - iLO 4 2.10 or later.
-- Before you run the tool on a Linux system, the **/tmp** folder must be configured to allow code to execute. If the **/tmp** folder is set to *no-execution*, the tool will not run.
+- Before you run the tool on a Linux system, the **/tmp** folder must be configured to allow code to execute. If the **/tmp** folder is set to *no-execution*, the tool will not run. You can work around this by exporting an environment variable to point to another location. `$ export TMPDIR=/some/other/location` You can assign a new location to any of the following environment variables: TMPDIR, TEMP, TMP.
+
 Note: You can download the install packages from [http://www.hpe.com/info/resttool](http://www.hpe.com/info/resttool).
 
 ### Installing the RESTful Interface Tool

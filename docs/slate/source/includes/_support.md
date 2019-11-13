@@ -80,6 +80,8 @@ U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://ww
 
 ### Documents
 
+- [Transition to the RESTful Interface Tool (iLORest)](https://support.hpe.com/hpsc/doc/public/display?docId=a00061427en_us)
+
 - [iLO RESTful API Data Model Reference (iLO 4)](http://h22208.www2.hpe.com/eginfolib/servers/docs/HPRestfultool/iLo4/data_model_reference.html)
 - [HPE iLO 4 Scripting and Command Line Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03334058)
 - [HPE iLO 4 Release Notes](http://h20565.www2.hpe.com/hpsc/doc/public/display?docId=emr_na-c03334036&lang=en-us&cc=us)

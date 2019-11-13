@@ -164,26 +164,11 @@ Smartarray *[Optional Parameters]*
 
 Discovers all storage controllers installed in the server and managed by the SmartStorage.  
 
-
-
-
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
@@ -205,6 +190,26 @@ Use this flag to select the corresponding physical disk.
 
 Use this flag to select the corresponding logical disk.
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -212,28 +217,14 @@ None
 #### Outputs
 None 
 
-
-
 ### Clearcontrollerconfig command
 
 > Clearcontrollerconfig example commands:
-
-<aside class="notice">
-By default all available smart array controllers are included. Use '--controller' to target a specific index or slot for clearing controller configuration.
-</aside>
 
 > To clear a controller configuration run the command including the `--controller` option specifying the controller to clear.
 
 <pre> 
 ilorest > <font color="#01a982">clearcontrollerconfig --controller=1</font>
-One or more properties were changed an will not take effect until system is reset.
-</pre>
-
-> To clear controller configuration on all available smart array controllers use `--all`.
-
-<pre> 
-ilorest > <font color="#01a982">clearcontrollerconfig --all</font>
-Are you sure you would like to clear all available smart array controller configurations? (y/n) <font color="#01a982"> y </font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -248,19 +239,7 @@ Clears smart array controller configuration.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
@@ -268,22 +247,34 @@ Use this flag to select the corresponding controller.
 
 - **--all**
 
-Use this flag to factory reset all controllers.
+Use this flag to sanitize all physical drives on a controller.
 
-- **--force**
+#### Login Parameters
 
-Use this flag to override the "are you sure?" text when clearing configurations on all available smart array controllers. 
+The following parameters can be included to login to a server in the same line as the command is run.
 
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
 
-
-
 #### Outputs
 None
-
-
 
 ### Createlogicaldrive command
 
@@ -305,7 +296,7 @@ One or more properties were changed an will not take effect until system is rese
 <pre> 
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 2,3,4,5,6 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --spare-type=Dedicated</font>
+ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 1,3,4,5,6 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -330,19 +321,7 @@ Options:
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
@@ -396,6 +375,26 @@ Optionally include to choose the strip size in bytes (usable in custom creation 
 
 Optionally include to choose the stripe size in bytes (usable in custom creation only).
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -407,8 +406,6 @@ None
 ### Deletelogicaldrive command
 
 > Deletelogicaldrive example commands:
-
-
 
 > To delete multiple logical drives by index include the index of the drive you wish to delete. Also include the `--controller` option specifying the controller to use. You can specify multiple drives as well as a comma separated list.
 
@@ -433,8 +430,6 @@ ilorest > deletelogicaldrive --controller=1 <font color="#01a982">--all</font>
 [200] The operation completed successfully.
 </pre>
 
-
-
 #### Syntax
 
 deletelogicaldrive *[Optional Parameters]*
@@ -442,26 +437,11 @@ deletelogicaldrive *[Optional Parameters]*
 #### Description
 Deletes logical drives from the selected controller.
 
-
-
-
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
@@ -475,14 +455,32 @@ Use this flag to delete all logical drives on a controller.
 
 Use this flag to override the "are you sure?" text when deleting a logical drive. 
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
-None 
-
+None
 
 #### Outputs
-None 
-
+None
 
 ### Drivesanitize command
 
@@ -508,7 +506,6 @@ One or more properties were changed and will not take effect until system is res
 Sanitization will occur on the next system reboot.
 </pre>
 
-
 #### Syntax
 
 drivesanitize *[Optional Parameters]*
@@ -516,26 +513,11 @@ drivesanitize *[Optional Parameters]*
 #### Description
 Erase/Sanitizes physical drives.
 
-
-
-
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
@@ -549,7 +531,26 @@ Include this flag to perform a coldboot command function after completion of ope
 
 Use this flag to sanitize all physical drives on a controller.
 
+#### Login Parameters
 
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -557,14 +558,9 @@ None
 #### Outputs
 None 
 
-
 ### Factoryresetcontroller command
 
 > Factoryresetcontroller example commands:
-
-<aside class="notice">
-By default all available smart array controllers are included. Use '--controller' to target a specific index or slot for a factory reset.
-</aside>
 
 > To factory reset a controller run this command and specify it's index with the `--controller` option.
 
@@ -573,14 +569,11 @@ ilorest > <font color="#01a982">factoryresetcontroller --controller=1</font>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
-> To factory reset all controllers `--all` option.
+> To factory reset all controllers run this command and include the `--all` option.
 
 <pre> 
-ilorest > <font color="#01a982">factoryresetcontroller --all</font>
-Are you sure you would like to factory reset all available smart array controllers? (y/n) <font color="#01a982">y</font>
-[1]: Slot 0 - has been reset to factory defaults.
-[2]: Slot 1 - has been reset to factory defaults.
-[3]: Slot 3 - has been reset to factory defaults.
+ilorest > factoryresetcontroller <font color="#01a982">--all</font>
+One or more properties were changed and will not take effect until system is reset.
 </pre>
 
 #### Syntax
@@ -590,39 +583,36 @@ factoryresetcontroller *[Optional Parameters]*
 #### Description
 Restores a controller to factory defaults.
 
-
-
-
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
 
-- **--all**
+#### Login Parameters
 
-Use this flag to factory reset all controllers.
+The following parameters can be included to login to a server in the same line as the command is run.
 
-- **--force**
+- **--url=URL**
 
-Use this flag to override the "are you sure?" text when performing a factory reset to selected smart array controllers. 
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 

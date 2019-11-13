@@ -2,6 +2,18 @@
 
 This section lists all global options available.
 
+**-h, --help**
+
+Including the help flag will display general help for the tool.
+
+**-c, --config=CONFIGFILE**
+
+Use the provided configuration file instead of the default.
+
+**--cache-dir=CACHEPATH**
+
+Use the provided directory as the location to cache data instead of the default.
+
 **-v, --verbose**
 
 Display verbose information.
@@ -9,6 +21,10 @@ Display verbose information.
 **-d, --debug**
 
 Display debug information.
+
+**--logdir=LOGPATH**
+
+Use the provided directory as the location for the log file instead of the default.
 
 **--nocache**
 
@@ -18,19 +34,19 @@ During execution the application will temporarily store data only in memory.
 
 Include to block copyright and logo.
 
+**--proxy=PROXYURL**
+
+Use the provided proxy for communication.
+
 **--redfish**
 
-Use this flag if you wish to enable Redfish only compliance. It is enabled by default in systems with iLO5 and above.
+Use this flag if you wish to enable Redfish only compliance. It is enabled by default in systems with iLO 5 and above.
 
 <aside class="notice">The --redfish global option is not required for iLO 5.</aside>
 
 **--latestschema**
 
 Optionally use the latest schema instead of the one requested by the file. 
-
-**--proxy=URL**
-
-Use the provided proxy for communication. 
 
 <aside class="notice">
 Might cause errors in some data retrieval due to difference in schema versions.
@@ -344,13 +360,26 @@ iLOrest > select
 Current selection: Bios.v1_0_0
 </pre>
 
+> An IPv4, IPv6, or hostname can be specified. IPv6 should use the following format.
+
+<pre>
+iLOrest > <font color="#01a982">login [xxxx::xxxx:xxxx:xxxx:xxxx] -u username -p password</font>
+Discovering data...Done
+</pre>
+
+> Here a SSL certificate was included so iLOrest validates the HTTPS connection
+
+<pre>
+iLOrest > login system.domain.net -u username -p password <font color="#01a982">--https \path\to\SSLcert.crt</font>
+Discovering data...Done
+</pre>
+
 > Here the URL, username, and password information are not specified here or in the configuration file, and the server was logged in to locally.
 
 <pre>
 iLOrest > <font color="#01a982">login</font>
 Discovering data...Done
 </pre>
-
 
 #### Syntax
 
@@ -362,7 +391,7 @@ Connects to a server, establishes a secure session, and discovers data from iLO.
 
 #### Usage in Other Commands
 
-Login remotely as part of other commands by including the *--url*, *(-u, --user)*, and *(-p, --password)* flags. Locally you will be logged in automatically unless running in higher security modes (see [Higher Security Modes](#higher-security-modes)).
+Login remotely as part of other commands by including the *--url*, *(-u, --user)*, and *(-p, --password)* flags. Optionally include the *--https* flag to validate the SSL certificate when logging in. Locally you will be logged in automatically unless running in higher security modes (see [Higher Security Modes](#higher-security-modes)).
 
 #### Parameters
 
@@ -372,7 +401,7 @@ Connect to the server located at the provided URL.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-u User**
 
@@ -381,6 +410,11 @@ Connect to the server as the provided user.
 - **-p Password**
 
 Connect to the server with the password corresponding to the given user.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **--includelogs**
 
@@ -396,7 +430,7 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be /rest/v1.
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but include your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -532,19 +566,32 @@ The `types` command displays all selectable types available within the currently
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **--fulltypes**
+
+Optionally include this flag if you would prefer to return the full type name instead of the simplified versions.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **--includelogs**
 
@@ -554,13 +601,9 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 - **--path=PATH**
 
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but include your login information, you can still specify the path flag there.</aside>
-
-- **-fulltypes**
-
-Optionally include this flag if you would prefer to return the full type name instead of the simplified versions.
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -650,19 +693,34 @@ Specify the type you want to select. Omitting a type to select will cause select
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **--biospassword=BIOSPASSWORD**
+
+Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This option is only used on Gen 9 systems.</aside>
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **--includelogs**
 
@@ -672,15 +730,9 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 - **--path=PATH**
 
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
-
-- **--biospassword=BIOSPASSWORD**
-
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
-
-<aside class="notice">This option is only used on Gen 9 systems.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -790,19 +842,42 @@ Supplying a property or multiple properties will cause list to display the curre
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
+
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
+
+<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
+
+- **---j, --json**
+
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure can make the information easier to parse.
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **--includelogs**
 
@@ -810,26 +885,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 <aside class="notice">Use this option to limit long login times.</aside>
 
-- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
-
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
-
-<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
-
-
-- **---j, --json**
-
-Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure can make the information easier to parse.
-
 - **--path=PATH**
 
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -1000,25 +1060,7 @@ Displays detailed information about a property within a selected type. Informati
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **--includelogs**
-
-Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
-
-<aside class="notice">Use this option to limit long login times.</aside>
+Including the help flag will display help for the command.
 
 - **--latestschema**
 
@@ -1030,15 +1072,42 @@ Optionally use the latest schema instead of the one requested by the file.
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
 
-- **--path=PATH**
-
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
-
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
+
+- **--includelogs**
+
+Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
+
+- **--path=PATH**
+
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
+
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -1179,25 +1248,7 @@ Supplying a property or multiple properties will cause get to display the curren
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **--includelogs**
-
-Optionally include this flag to set the **includelogs** flag. This will include logs in the data retrieval process.
-
-<aside class="notice">Use this option to limit long login times.</aside>
+Including the help flag will display help for the command.
 
 -**--selector=SELECTOR**
 
@@ -1205,27 +1256,54 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally include to set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
 
-<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the <b>filter</b> flag to narrow down results based on properties.</aside>
+<aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
 - **-j, --json**
 
 Optionally include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
 
-- **--path=PATH**
+- **--noreadonly**
 
-Optionally include this flag to set a starting point for data collection. If you do not specify a starting point, the default path will be `/rest/v1`.
-
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+Optionally include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
 
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
-- **--noreadonly**
+#### Login Parameters
 
-Optionally include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
+
+- **--includelogs**
+
+Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
+
+- **--path=PATH**
+
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
+
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -1256,7 +1334,7 @@ AdminName=Jason E
 ServiceName=ExampleService
 </pre>
 
-> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, the `set` command is used to set the `AdminName` property to `Jason E`, and the commit flag has been added to apply the changes to the server.
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), and then selects the `Bios.` type. The `set` command is used to set the `AdminName` property to `Jason E`, and the commit flag has been added to apply the changes to the server.
 
 <pre>
 iLOrest > <font color="#01a982">set "AdminName=Jason E" --url xx.xx.xx.xx -u username -p password --select Bios. --commit</font>
@@ -1286,7 +1364,7 @@ AdminName=Jason E
 
 Changes the value of a property in a currently selected type. Multiple properties can be set simultaneously.
 
-<aside class="warning">No changes you have set will be reflected on the server unless you commit your changes afterward.</aside>
+<aside class="warning">The changes set will be reflected on the server only after committing them.</aside>
 
 #### Syntax
 
@@ -1304,7 +1382,7 @@ set *[Property=Value] [Path] [Optional Parameters]*
 
 - `set AdminName=””`
 
-**Correct** syntax. Use this syntax if you wish to remove the `AdminName` property value, using quotes that have nothing between them.
+**Correct** syntax. Use this syntax, only quotes with no value, to remove the `AdminName` property value.
 
 - `set AdminName=’’`
 
@@ -1326,25 +1404,7 @@ Supplying a property and a value will stage an update to that property with the 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **--includelogs**
-
-Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
-
-<aside class="notice">Use this option to limit long login times.</aside>
+Including the help flag will display help for the command.
 
 - **--selector=SELECTOR**
 
@@ -1352,7 +1412,7 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1364,17 +1424,7 @@ Optionally use the latest schema instead of the one requested by the file.
 
 - **--commit**
 
-Use this flag when you are ready to commit all the changes for the current selection. Including the --commit flag will log you out of the server after the command is run. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
-
-- **--path=PATH**
-
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
-
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+Use this flag when you are ready to commit all pending changes. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -1389,6 +1439,43 @@ Use this flag to perform a reboot command function after completion of operation
 - **--uniqueitemoverride**
 
 Override the measures stopping the tool from writing over items that are system unique.
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
+
+- **--includelogs**
+
+Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
+
+- **--path=PATH**
+
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
+
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -1454,6 +1541,15 @@ Configuration saved to: ilorest.json
 ]
 ```
 
+> Use the multisave option to specify multiple types to save in a single file. This file can be sent to load in order to load multiple types with a single command. All type strings are delimited by a ','.
+
+<pre>
+iLOrest > <font color="#01a982">save --multisave Bios.,ComputerSystem.</font>
+Discovering data...Done
+Saving configuration...
+Configuration saved to: ilorest.json
+</pre>
+
 > This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, saves the JSON response to a file called `BiosInfo.json` in a local directory, and then logs out. 
 
 <pre>
@@ -1476,29 +1572,11 @@ Saves the JSON information of a selected type to a local file. Use this command 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
 Use this flag if you wish to use a different filename than the default one. The default filename is `ilorest.json`.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **--includelogs**
-
-Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
-
-<aside class="notice">Use this option to limit long login times.</aside>
 
 - **--selector=SELECTOR**
 
@@ -1508,9 +1586,9 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 Optionally include this flag to save multiple types of single file. Override the currently selected type.
 
-- **--filter [ATTRIBUTE]=[VALUE]**
+- **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type.
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1518,19 +1596,46 @@ Optionally set a filter value for a filter attribute. This uses the provided fil
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
 
-- **--path=PATH**
+- **--encryption=ENCRYPTION**
 
-Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /rest/v1`.
-
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged in to the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the login command, but include your login information, you can still specify the <b>path</b> flag there.</aside>
+Optionally include this flag to encrypt a file using the key provided.
 
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
-- **-e ENCRYPTION, --encryption=ENCRYPTION**
+#### Login Parameters
 
-Optionally include this flag to encrypt a file using the key provided.
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
+
+- **--includelogs**
+
+Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
+
+<aside class="notice">Use this option to limit long login times.</aside>
+
+- **--path=PATH**
+
+Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
+
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -1604,23 +1709,11 @@ Loads the server configuration from a file. Run this command without parameters 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
 Use this flag if you wish to use a different filename than the default one. The default filename is `ilorest.json`.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **--latestschema**
 
@@ -1634,10 +1727,6 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 <aside class="notice">This option is only used on Gen 9 systems.</aside>
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 - **--uniqueitemoverride**
 
 Override the measures stopping the tool from writing over items that are system unique.
@@ -1650,9 +1739,34 @@ Optionally supply a filename to a multi-processing file to load concurrently on 
 
 Use the provided directory to output data for a multiple server configuration.
 
-- **-e ENCRYPTION, --encryption=ENCRYPTION**
+- **--encryption=ENCRYPTION**
 
 Optionally include this flag to decrypt a file using the key provided.
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -1710,7 +1824,7 @@ Displays all pending changes, regardless of which type is currently selected. Al
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 #### Inputs
 
@@ -1786,7 +1900,7 @@ To commit at the end of a command, include the *--commit* option. Not all comman
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -1844,7 +1958,7 @@ To log out at the end of a command, include the *--logout* option. Not all comma
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 #### Inputs
 
@@ -1878,7 +1992,7 @@ Use the `exit` command if you wish to exit from the interactive shell. Using exi
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 #### Inputs
 

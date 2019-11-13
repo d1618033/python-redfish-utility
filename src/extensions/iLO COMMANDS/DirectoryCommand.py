@@ -21,49 +21,55 @@ import re
 import sys
 import getpass
 
-from optparse import OptionParser, OptionValueError, SUPPRESS_HELP
+from argparse import ArgumentParser, REMAINDER, Action
 
 from redfish.ris.rmc_helper import IloResponseError
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, IncompatibleiLOVersionError,\
                     InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, UI,\
                     ResourceExists, Encryption
 
-def directory_parse(option, opt_str, value, parser):
-    """ Helper for parsing options """
-    if opt_str.endswith('disable'):
-        parser.values.enable = False
-    elif opt_str.endswith('enable'):
-        parser.values.enable = True
-    elif opt_str.endswith('enablelocalauth'):
-        parser.values.localauth = False
-    elif opt_str.endswith('disablelocalauth'):
-        parser.values.localauth = True
-    elif opt_str == '--removerolemap':
-        setattr(parser.values, option.dest, {'remove': []})
-        for role in value.split(','):
-            role = role.replace('"', '')
-            if role:
-                parser.values.roles['remove'].append(role)
-    elif opt_str == '--addrolemap':
-        setattr(parser.values, option.dest, {'add': []})
-        for role in value.split(','):
-            role = role.replace('"', '')
-            if role and re.match('.*:.*', role):
-                parser.values.roles['add'].append(role)
-            else:
-                raise OptionValueError("Supply roles to add in form <local role>:<remote group>")
-    elif opt_str == '--addsearch':
-        setattr(parser.values, option.dest, {'add': []})
-        for search in value.split(','):
-            if search:
-                parser.values.search['add'].append(search)
-    elif opt_str == '--removesearch':
-        setattr(parser.values, option.dest, {'remove': []})
-        for search in value.split(','):
-            if search:
-                parser.values.search['remove'].append(search)
+class _DirectoryParse(Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(_DirectoryParse, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_strings):
+        """ Helper for parsing options """
+        if option_strings.endswith('disable'):
+            setattr(namespace, self.dest, False)
+        elif option_strings.endswith('enable'):
+            setattr(namespace, self.dest, True)
+        elif option_strings.endswith('enablelocalauth'):
+            setattr(namespace, self.dest, False)
+        elif option_strings.endswith('disablelocalauth'):
+            setattr(namespace, self.dest, True)
+        elif option_strings == '--removerolemap':
+            setattr(namespace, self.dest, {'remove': []})
+            for role in next(iter(values)).split(','):
+                role = role.replace('"', '')
+                if role:
+                    namespace.roles['remove'].append(role)
+        elif option_strings == '--addrolemap':
+            setattr(namespace, self.dest, {'add': []})
+            for role in next(iter(values)).split(','):
+                role = role.replace('"', '')
+                if role and re.match('.*:.*', role):
+                    namespace.roles['add'].append(role)
+                else:
+                    try:
+                        parser.error("Supply roles to add in form <local role>:<remote group>")
+                    except:
+                        raise InvalidCommandLineErrorOPTS("")
+        elif option_strings == '--addsearch':
+            setattr(namespace, self.dest, {'add': []})
+            for search in next(iter(values)).split(','):
+                if search:
+                    namespace.search['add'].append(search)
+        elif option_strings == '--removesearch':
+            setattr(namespace, self.dest, {'remove': []})
+            for search in next(iter(values)).split(','):
+                if search:
+                    namespace.search['remove'].append(search)
 
 class DirectoryCommand(RdmcCommandBase):
     """ Update directory settings on the server """
@@ -75,7 +81,7 @@ class DirectoryCommand(RdmcCommandBase):
             ' service.\n\texample: directory ldap --serviceaddress x.x.y.z --addsearch string1,'\
             'string2 --enable username password\n\n\tAdd service address, port, and realm for '\
             'Kerberos.\n\texample: directory kerberos --serviceaddress x.x.y.z --port 8888 '\
-            '--realm arealm\n\n\tAdd 2 directory roles.\n\texample:directory ldap --addrolemap '\
+            '--realm arealm\n\n\tAdd 2 directory roles.\n\texample: directory ldap --addrolemap '\
             '"LocalRole1:RemoteGroup3,LocalRole2:RemoteGroup4:SID"\n\n\tRemove 2 directory '\
             'roles.\n\texample: directory ldap --removerolemap LocalRole1,LocalRole2\n\n\tStart a '\
             'directory test.\n\texample: directory test start\n\n\tStop a directory test\n\t'\
@@ -84,7 +90,7 @@ class DirectoryCommand(RdmcCommandBase):
             summary='Update directory settings, add/delete directory roles, and test directory '\
                     'settings.',\
             aliases=['ad', 'activedirectory'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -98,7 +104,7 @@ class DirectoryCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -173,7 +179,7 @@ class DirectoryCommand(RdmcCommandBase):
             if options.authmode:
                 payload.update({'Oem':{'Hpe':{'DirectorySettings': \
                                               {'LdapAuthenticationMode': options.authmode}}}})
-            
+
             if not payload and not keytab:
                 if options.json:
                     UI().print_out_json({name: results, 'LocalAccountAuth': local_auth, \
@@ -405,8 +411,10 @@ class DirectoryCommand(RdmcCommandBase):
                 final_searches['BaseDistinguishedNames'] = new_searches['add']
         elif 'remove' in new_searches:
             to_remove = []
+
             if 'BaseDistinguishedNames' not in curr_searches:
                 raise NoContentsFoundForOperationError("No search strings to remove")
+
             for search in new_searches['remove']:
                 if search in curr_searches['BaseDistinguishedNames']:
                     to_remove.append(search)
@@ -414,6 +422,10 @@ class DirectoryCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Unable to find search %s to delete" % search)
             for item in to_remove:
                 final_searches['BaseDistinguishedNames'].remove(item)
+
+            if not final_searches['BaseDistinguishedNames']:
+                sys.stdout.write('Attempting to delete all searches.\n')
+                final_searches['BaseDistinguishedNames'].append("")
 
         return final_searches
 
@@ -426,25 +438,22 @@ class DirectoryCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except Exception:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -452,6 +461,8 @@ class DirectoryCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -467,106 +478,88 @@ class DirectoryCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--enable',
             '--disable',
             dest='enable',
-            action='callback',
-            callback=directory_parse,
+            type=str,
+            nargs=REMAINDER,
+            action=_DirectoryParse,
             help="Optionally add this flag to enable or disable LDAP or Kerberos services.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--serviceaddress',
             dest='serviceaddress',
             help="Optionally include this flag to set the service address of the LDAP or "\
             "Kerberos Services.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--port',
             dest='port',
             help="Optionally include this flag to set the port of the LDAP or Kerberos services.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--realm',
             dest='realm',
             help="Optionally include this flag to set the Kerberos realm.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--keytab',
             dest='keytab',
             help="Optionally include this flag to import a Kerberos Keytab by it's URI location.",
             default="",
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--enablelocalauth',
             '--disablelocalauth',
             dest='localauth',
-            action="callback",
-            callback=directory_parse,
+            nargs=REMAINDER,
+            type=str,
+            action=_DirectoryParse,
             help="Optionally include this flag if you wish to enable or disable authentication "\
             "for local accounts.",
             default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--authentication',
             dest='authmode',
-            type='choice',
             choices=['DefaultSchema', 'ExtendedSchema'],
             help="Optionally include this flag if you would like to choose a LDAP authentication "
             "mode Valid choices are: DefaultSchema (Directory Default Schema or Schema-free) or "\
             "ExtendedSchema (HPE Extended Schema).",
             default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--addsearch',
             '--removesearch',
             dest='search',
-            action='callback',
-            callback=directory_parse,
+            nargs=REMAINDER,
+            action=_DirectoryParse,
             help="Optionally add this flag to add or remove search strings for "\
             "generic LDAP services. EX: --addsearch search1,search2",
-            type="string",
+            type=str,
             default={},
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--addrolemap',
             '--removerolemap',
             dest='roles',
-            action='callback',
-            callback=directory_parse,
+            nargs=REMAINDER,
+            action=_DirectoryParse,
             help="Optionally add this flag to add or remove Role Mapping(s) for the LDAP and "\
             "Kerberos services. Remove EX: --removerolemap LocalRole1,LocalRole2 "\
             'Add EX: --addrolemap "LocalRole1:RemoteGroup3,LocalRole2:RemoteGroup4"',
-            type="string",
+            type=str,
             default={},
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -575,12 +568,4 @@ class DirectoryCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

@@ -19,10 +19,10 @@
 from __future__ import absolute_import
 import sys
 
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
                         NoContentsFoundForOperationError, \
                         NoChangesFoundOrMadeError, LOGGER
 from .lib.RestHelpers import RestHelpers
@@ -39,7 +39,7 @@ class ClearPendingConfigCommand(RdmcCommandBase):
                                        "\texample: clearpmmpendingconfig",
                                  summary="Clear pending config tasks",
                                  aliases=["clearpmmpendingconfig"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
 
@@ -90,7 +90,7 @@ class ClearPendingConfigCommand(RdmcCommandBase):
         # pylint: disable=unused-variable
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:

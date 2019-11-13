@@ -1,5 +1,5 @@
 ---
-title: RESTful Interface Tool 2.5.0 User Guide
+title: RESTful Interface Tool 3.0.0 User Guide
 
 language_tabs:
   - shell: Shell
@@ -20,9 +20,10 @@ includes:
   - ilocommands
   - ilorepositorycommands
   - smartarraycommands
-  - scalablepmemcommands
+  - persistentmemorycommands
   - rawcommands
   - macrocommandsandscripts
+  - gowrong
   - support
   - errors
 

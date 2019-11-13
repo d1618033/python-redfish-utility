@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import re
 import sys
 import json
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                 NicMissingOrConfigurationError, BootOrderMissingEntriesError, Encryption
 
@@ -56,7 +56,7 @@ class IscsiConfigCommand(RdmcCommandBase):
                         'boot attempt:\n\texample: iscsiconfig --delete 1',\
             summary='Displays and configures the current iscsi settings.',\
             aliases=['iscsiconfig'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -75,7 +75,7 @@ class IscsiConfigCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -83,14 +83,19 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         self.iscsiconfigurationvalidation(options)
 
-        if self.typepath.defs.biospath[-1] == '/':
-            iscsipath = self.typepath.defs.biospath + 'iScsi/'
-            iscsisettingspath = self.typepath.defs.biospath + 'iScsi/settings/'
-            bootpath = self.typepath.defs.biospath + 'Boot/'
+        if self.typepath.defs.isgen10:
+            iscsipath = self.gencompatpaths(selector="HpeiSCSISoftwareInitiator.", rel=False)
+            iscsisettingspath = iscsipath + 'settings'
+            bootpath = self.gencompatpaths(selector="HpeServerBootSettings.")
         else:
-            iscsipath = self.typepath.defs.biospath + '/iScsi'
-            iscsisettingspath = self.typepath.defs.biospath + '/iScsi/settings'
-            bootpath = self.typepath.defs.biospath + '/Boot'
+            if self.typepath.defs.biospath[-1] == '/':
+                iscsipath = self.typepath.defs.biospath + 'iScsi/'
+                iscsisettingspath = self.typepath.defs.biospath + 'iScsi/settings/'
+                bootpath = self.typepath.defs.biospath + 'Boot/'
+            else:
+                iscsipath = self.typepath.defs.biospath + '/iScsi'
+                iscsisettingspath = self.typepath.defs.biospath + '/iScsi/settings'
+                bootpath = self.typepath.defs.biospath + '/Boot'
 
         if options.list:
             self.listoptionhelper(options, iscsipath, iscsisettingspath, bootpath)
@@ -114,6 +119,29 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         #Return code
         return ReturnCodes.SUCCESS
+
+    def gencompatpaths(self, selector=None, rel=False):
+        """Helper function for finding gen compatible paths
+
+        :param selector: the type selection for the get operation
+        :type selector: str.
+        :param rel: flag to tell select function to reload selected instance
+        :type rel: boolean.
+        :returns: returns urls
+        """
+
+        # TODO: gen9 bool check.
+        # Don't think it's grabbing a path
+        self._rdmc.app.select(selector=selector, rel=rel)
+        props = self._rdmc.app.getprops(skipnonsetting=False)
+        for prop in props:
+            name = prop.get('Name')
+            if 'current' in name.lower():
+                try:
+                    path = prop.get('@odata.id')
+                except:
+                    sys.stdout.write('ERROR: URI path could not be found.')
+        return path
 
     def addoptionhelper(self, options, iscsipath, iscsisettingspath, bootpath):
         """ Helper function to add option for iscsi
@@ -147,7 +175,7 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         foundlocation = False
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
-                           verbose=False, jsonflag=True, path=iscsisettingspath)
+                           jsonflag=True, path=iscsisettingspath)
 
         count = 0
         attemptinstancenumber = self.bootattemptcounter(iscsibootsources\
@@ -237,7 +265,7 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         foundlocation = False
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
-                        verbose=False, jsonflag=False, path=iscsisettingspath)
+                        jsonflag=False, path=iscsisettingspath)
         holdetag = iscsibootsources.getheader('etag')
         iscsibootsources = json.loads(iscsibootsources.read)
 
@@ -309,7 +337,7 @@ class IscsiConfigCommand(RdmcCommandBase):
 
         self.selobj.selectfunction("HpiSCSISoftwareInitiator.")
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
-                        verbose=False, jsonflag=True, path=iscsisettingspath)
+                        jsonflag=True, path=iscsisettingspath)
         structeredlist = list()
 
         self.pcidevicehelper(devicealloc, iscsipath, bootpath, pcideviceslist)
@@ -341,8 +369,8 @@ class IscsiConfigCommand(RdmcCommandBase):
         if structeredlist is None:
             sys.stderr.write('No entries found for iscsi boot sources.\n\n')
         elif options.filename:
-            output = json.dumps(structeredlist, indent=2, cls=redfish.ris.JSONEncoder)
-
+            output = json.dumps(structeredlist, indent=2, cls=redfish.ris.JSONEncoder, \
+                                                                                    sort_keys=True)
             filehndl = open(options.filename[0], "w")
             filehndl.write(output)
             filehndl.close()
@@ -419,7 +447,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             raise InvalidCommandLineError("%s" % excp)
 
         iscsibootsources = self.rawdatahandler(action="GET", silent=True, \
-                           verbose=False, jsonflag=True, path=iscsisettingspath)
+                           jsonflag=True, path=iscsisettingspath)
 
         count = 0
         resultsdict = list()
@@ -496,7 +524,7 @@ class IscsiConfigCommand(RdmcCommandBase):
                        options, results=True, uselist=False, filtervals=("MemberType", \
                                                             "HpServerPciDevice.*"))), None)["Items"]
         try:
-            self.rawdatahandler(action="GET", silent=True, verbose=False, \
+            self.rawdatahandler(action="GET", silent=True, \
                             jsonflag=True, path=iscsipath)['iSCSINicSources']
         except:
             raise NicMissingOrConfigurationError('No iSCSI nic sources available.')
@@ -504,8 +532,7 @@ class IscsiConfigCommand(RdmcCommandBase):
         _ = [x['UEFIDevicePath'] for x in pcideviceslist]
         removal = list()
 
-        bios = self.rawdatahandler(action="GET", silent=True, verbose=False, \
-                                                jsonflag=True, path=bootpath)
+        bios = self.rawdatahandler(action="GET", silent=True, jsonflag=True, path=bootpath)
 
         for item in devicealloc:
             if item['Associations'] and item['Associations'][0] in bios.keys():
@@ -580,13 +607,14 @@ class IscsiConfigCommand(RdmcCommandBase):
         sys.stdout.write('\t' * indent + outstring)
 
         if content:
-            sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder))
+            sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder, \
+                                                                                    sort_keys=True))
         else:
             sys.stdout.write('\t' * indent + "No entries currently configured.\n")
 
         sys.stdout.write('\n\n')
 
-    def rawdatahandler(self, action="None", path=None, silent=True, verbose=False, jsonflag=False):
+    def rawdatahandler(self, action="None", path=None, silent=True, jsonflag=False):
         """ Helper function to get and put the raw data
 
         :param action: current rest action
@@ -595,13 +623,11 @@ class IscsiConfigCommand(RdmcCommandBase):
         :type path: str.
         :param silent: flag to determine silent mode
         :type silent: boolean.
-        :param verbose: flag to determine verbosity
-        :type verbose: boolean.
         :param jsonflag: flag to determine json output
         :type jsonflag: boolean.
         """
         if action == "GET":
-            rawdata = self._rdmc.app.get_handler(put_path=path, silent=silent, verbose=verbose)
+            rawdata = self._rdmc.app.get_handler(put_path=path, silent=silent)
 
         if jsonflag is True:
             rawdata = json.loads(rawdata.read)
@@ -643,25 +669,22 @@ class IscsiConfigCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -669,6 +692,8 @@ class IscsiConfigCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
             self.lobobj.loginfunction(inputline)
 
@@ -681,29 +706,9 @@ class IscsiConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '-f',
             '--filename',
             dest='filename',
@@ -713,28 +718,28 @@ class IscsiConfigCommand(RdmcCommandBase):
             action="append",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--add',
             dest='add',
             help="Use this iSCSI configuration option to add an iSCSI"\
             " configuration option.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--delete',
             dest='delete',
             help="Use this iSCSI configuration option to delete an iSCSI"\
             " configuration option.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--modify',
             dest='modify',
             help="Use this iSCSI configuration option to modify an iSCSI"\
             " configuration option.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--list',
             dest='list',
             action="store_true",
@@ -742,7 +747,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             " of the different iSCSI configurations.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
@@ -750,19 +755,11 @@ class IscsiConfigCommand(RdmcCommandBase):
             " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--reboot',
             dest='reboot',
             help="Use this flag to perform a reboot command function after"\
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

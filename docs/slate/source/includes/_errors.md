@@ -1,6 +1,6 @@
 # Error Codes
 
-<aside class="notice">The error codes listed below are returned by the RESTful Interface Tool, not the managed server.</aside>
+<aside class="notice">The error codes listed below are returned by the RESTful Interface Tool, not by the managed server.</aside>
 
 The RESTful Interface Tool uses the following error codes:
 
@@ -68,14 +68,14 @@ Error Code | Description
 76	| iLO RESTful API BLOB override error.
 77	| Error occurred during the blob operation after maximum retries.
 80	| Resource allocation errors. 
-81	| Error occured during encryption.
+81	| Error occurred during encryption.
 82	| The drive is missing.
 83	| The requested path is unavailable. 
 100	| BIOS provider is unregistered. Please refer to the documentation for details on this issue.
 101	| Failed to download component.
 102	| Update service busy.
-104	| Error occured in the order of task queue items.
 103	| Failed to upload component. 
+104	| Error occurred in the order of task queue items.
 255	| A general error occurred while manipulating server settings. See the error message for details.
 
 <aside class="warning">You might encounter the following error message: <b>Missing token required for operation</b>. <b>Please add the proper token</b>. To resolve this error, add the BIOS password for the server when executing the commands.</aside>

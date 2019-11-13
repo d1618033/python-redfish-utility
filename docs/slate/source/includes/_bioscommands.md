@@ -149,23 +149,11 @@ The boot order can be specified as a list of numbers or as a list of partial str
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--commit**
 
-Use this flag when you are ready to commit all the changes for the current selection. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
+Use this flag when you are ready to commit all pending changes. Some changes made in this way will be updated instantly, while others will be reflected the next time the server is started.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -192,6 +180,27 @@ Use this to disable either continuous or one-time boot modes.
 - **--securebootkeys=SECUREBOOT**
 
 Use this flag to perform actions on secure boot keys. Possible values include defaultkeys: resets all keys to default, deletekeys: deletes all keys, deletepk: deletes all product keys.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -254,19 +263,7 @@ Sets the BIOS settings of the currently logged in server back to the default set
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -285,6 +282,27 @@ Sets bios to user defaults instead of factory defaults.
 - **--manufacturingdefaults**
 
 Sets bios to manufacturer defaults instead of factory defaults.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -490,23 +508,11 @@ Use this iSCSI configuration option to list the details of the different iSCSI c
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
 Optionally include this flag to use the provided filename instead of the default `ilorest.json` file.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -517,6 +523,27 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 - **--reboot=REBOOT**
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -558,19 +585,28 @@ Show the results of any changes, which require a system reboot to take effect.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -584,7 +620,7 @@ None
 
 > Pending example commands:
 
-> Run `pending` with no arguments show current changes that *have* been committed to the server and are awaiting a reboot. In this example, no changes have been found.
+> Run `pending` with no arguments to show current changes that *have* been committed to the server and are awaiting a reboot. In this example, no changes have been found.
 
 <pre>
 iLOrest > <font color="#01a982">pending</font>
@@ -665,19 +701,28 @@ Displays pending committed changes that will be applied after a reboot.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-p PASSWORD, --password=PASSWORD**
+- **--https**
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -727,25 +772,42 @@ setpassword *[NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]*
 
 #### Description
 
-Sets the bios admin password and poweron password.
+Sets the BIOS admin password and power on password.
 
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **--poweron**
+
+Use this flag to set power on password instead of the BIOS admin password.
+
+- **--reboot=REBOOT**
+
+Use this flag to perform a reboot command function after completion of operations. 'REBOOT' is replaceable parameter that can have multiple values. For help with parameters and descriptions regarding the reboot flag, run help reboot.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, including this flag along with the password and URL flags can be used to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--reboot=REBOOT**
+- **--https**
 
-Use this flag to perform a reboot command function after completion of operations. 'REBOOT' is replaceable parameter that can have multiple values. For help with parameters and descriptions regarding the reboot flag, run help reboot.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 

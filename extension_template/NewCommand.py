@@ -3,7 +3,7 @@
 
 import sys
 
-from optparse import OptionParser
+from argparse import ArgumentParser
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
@@ -16,7 +16,7 @@ class NewCommand(RdmcCommandBase):
                 'working\n\texample: newcommand',\
             summary='New command tutorial.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
 
@@ -40,7 +40,7 @@ class NewCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -72,7 +72,7 @@ class NewCommand(RdmcCommandBase):
         # TODO: This is where you add all your command line arguments.
         #       For more information on this section research optparse for python
 
-        customparser.add_option(
+        customparser.add_argument(
             '--name',
             dest='name',
             help="""Use the provided the output name.""",

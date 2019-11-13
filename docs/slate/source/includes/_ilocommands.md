@@ -21,8 +21,6 @@ iLO commands that are supported for a specific HPE server generation:
 </ul>
 </aside>
 
-
-
 > Certificate example commands:
 
 > To Generate an https certificate signing request use the `csr` argument along with the following information `Organization Name`, `Organization Unit`, `Common Name`, `Country`, `State`, `City`. Use quotes to include parameters which contain whitespace.
@@ -75,23 +73,32 @@ Command for importing both iLO and login authorization certificates as well as g
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **-f FILENAME, --filename=FILENAME**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Use this flag if you wish to use a different filename for the certificate signing request. The default filename is certificate.txt.
 
-- **-p Password, --password=PASSWORD**
+#### Login Parameters
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **-f FILENAME, --filename=FILENAME**
+- **-u User, --user=USER**
 
-Use this flag if you wish to use a different filename for the certificate signing request. The default filename is certificate.txt.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -128,19 +135,28 @@ Clears the persistent RESTful API state. Generally not needed and shouldn't be d
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 
 #### Inputs
@@ -180,23 +196,32 @@ Disable iLO functionality on the current logged in server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **--force**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Ignore any critical task checking and force disable iLO.
 
-- **-p Password, --password=PASSWORD**
+#### Login Parameters
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--force**
+- **-u User, --user=USER**
 
-Ignore any critical task checking and force disable iLO.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -233,19 +258,28 @@ Command for testing connections to the Enterprise Secure Key Manager system and 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -255,7 +289,7 @@ None
 
 ### Factorydefaults command
 
-<aside class="warning">This command will wipe all iLO user setting data and reset iLO. Default credentials are required to access iLO after a factory reset.</aside>
+<aside class="warning">This command will erase all iLO user setting data and reset iLO. Default credentials are required to access iLO after a factory reset.</aside>
 
 > Factorydefaults example commands:
 
@@ -282,19 +316,28 @@ Reset iLO to factory defaults in the current logged in server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 
 #### Inputs
@@ -339,23 +382,32 @@ Perform a firmware integrity check on the current logged in server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **--results**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Optionally include this flag to show results of firmware integrity check.
 
-- **-p Password, --password=PASSWORD**
+#### Login Parameters
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--results**
+- **-u User, --user=USER**
 
-Optionally include this flag to show results of firmware integrity check.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -367,7 +419,7 @@ None
 
 ### Reboot command
 
-<aside class="notice">The reboot command logs the user out of the server. Wait for the system to fully reboot before attempting a login or data such as Bios may be unavailable.</aside>
+<aside class="notice">The reboot command will log out, the user, from the server. Wait for the system to fully reboot before attempting to login, or data such as Bios may be unavailable.</aside>
 <aside class="notice">Arguments are not case-sensitive.</aside>
 
 > Reboot example commands:
@@ -406,8 +458,6 @@ Please wait for the server to boot completely to login again.
 Turning on the server in 3 seconds...
 iLO response with code [400]: The operation was not successful due to the current power state (for example, attempting to turn the power off when it is already off).
 </pre>
-
-
 
 #### Syntax
 
@@ -453,29 +503,38 @@ Immediately removes power from the server, followed by a restart of the system.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **--confirm**
+
+Optionally include to request user confirmation for reboot.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **--includelogs**
 
 You can optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
 <aside class="notice">This option can be used to limit long login times.</aside>
-
-- **--confirm**
-
-Optionally include to request user confirmation for reboot.
 
 #### Inputs
 
@@ -514,31 +573,38 @@ The operation completed successfully.
 
 #### Syntax
 
-sendtest *[Command] [Optional Parameters]*
+sendtest *[Test Type] [Optional Parameters]*
 
 #### Description
 
 Command for triggering various tests to iLO.
 
-
-
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 
 #### Inputs
@@ -692,8 +758,6 @@ EntryType=Oem
 Severity=OK
 </pre>
 
-
-
 #### Syntax
 
 serverlogs *--selectlog=[Log_Selection] [Optional Parameters]*
@@ -718,41 +782,25 @@ Use this with the --selectlog option to perform operations on the IEL logs.
 
 Use this with the --selectlog option to perform operations on the IML logs.
 
+- **SA**
+
+Use this with the --selectlog option to perfrom opertation on the Security logs.
+
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
 Use this flag if you wish to use a different filename than the default one. The default filename is ilorest.json.
 
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
 - **--filter=FILTER**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the selected log. 
-
-<aside class="notice">
-Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties Usage: --filter [ATTRIBUTE]=[VALUE].
-</aside>
+Optionally set a filter value and a filter attribute to filter logs. 
 
 - **-j, --json**
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 - **--selectlog=SERVICE**
 
@@ -795,6 +843,31 @@ Used to indicate the logs to be downloaded on multiple servers. Allowable values
 
 Repair the IML log with the given ID.
 
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
+
 #### Inputs
 None
 
@@ -836,19 +909,28 @@ Run this command to reset iLO on the currently logged in server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -911,19 +993,7 @@ Run this command to manage the hpeipprofile data store.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
@@ -936,6 +1006,27 @@ Look for the key or keys in the ipprofile manager and delete.
 - **-s START_IP, --start=START_IP**
 
 Copies the specified ip profile into the job queue and starts it.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -990,23 +1081,32 @@ Point the **firmwareupdate** command towards the .bin file that holds the file f
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **--tpmenabled**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Use this flag if the server you are currently logged into has a TPM chip installed.
 
-- **-p Password, --password=PASSWORD**
+#### Login Parameters
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--tpmenabled**
+- **-u User, --user=USER**
 
-Use this flag if the server you are currently logged into has a TPM chip installed.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -1138,6 +1238,49 @@ iLOrest > <font color="#01a982">iloaccounts delete USERNAME</font>
 The account was removed successfully.
 </pre>
 
+> To add a certificate to an account run the command with the `addcert` argument, specifying the `Id` or `Username` of the account followed by the path to an x.509 certificate.
+
+<pre>
+iLOrest > <font color="#01a982">iloaccounts addcert 3 C:\Temp\cert.txt</font>
+The account was modified successfully.
+</pre>
+
+> To delete a certificate from an account run the command with the `deletecert` argument, specifying either the `Id` or `Username` of the account.
+
+<pre>
+iLOrest > <font color="#01a982">iloaccounts deletecert 3</font>
+The account was modified successfully.
+</pre>
+
+> To verify the certificate run a `rawget`
+
+<pre>
+iLOrest > <font color="#01a982">rawget "/redfish/v1/AccountService/UserCertificateMapping/?$expand=."</font>
+[200] The operation completed successfully.
+{
+	... Truncated...
+	"Members": [
+	{
+	      "@odata.context": "/redfish/v1/$metadata#HpeiLOAccountCertificateMap.HpeiLOAccountCertificateMap", 
+	      "@odata.id": "/redfish/v1/AccountService/UserCertificateMapping/1/", 
+	      "@odata.type": "#HpeiLOAccountCertificateMap.v1_0_1.HpeiLOAccountCertificateMap", 
+	      "Fingerprint": "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00", 
+	      "FingerprintDigestAlgorithm": "SHA256", 
+	      "Id": "1", 
+	      "UserName": "Administrator"
+	},
+	{
+	      "@odata.context": "/redfish/v1/$metadata#HpeiLOAccountCertificateMap.HpeiLOAccountCertificateMap", 
+	      "@odata.id": "/redfish/v1/AccountService/UserCertificateMapping/9/", 
+	      "@odata.type": "#HpeiLOAccountCertificateMap.v1_0_1.HpeiLOAccountCertificateMap", 
+	      "Fingerprint": "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00", 
+	      "FingerprintDigestAlgorithm": "SHA256", 
+	      "Id": "3", 
+	      "UserName": "USERNAME"
+	}
+	]
+}
+</pre>
 
 
 #### Syntax
@@ -1174,8 +1317,8 @@ Adds/deletes an iLO account on the currently logged in server and modifies iLO a
 <aside class="notice">By default, only login privilege is added to the newly created account with role "ReadOnly" in iLO 5 and no privileges in iLO 4. To modify these privileges, you can remove properties that would be set by using --removeprivs or you can directly set which privileges are given using --addprivs.</aside>
 
 <aside class="notice">
-Please make sure the order of arguments is correct. The
-parameters are extracted based on their position in the arguments list.
+Please make sure the order of arguments is correct. The 
+parameters are extracted based on their position in the arguments list. 
 Only privileges available to the logged in account can be set to the new account.
 </aside>
 
@@ -1188,19 +1331,7 @@ Account credentials are case-sensitive.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--addprivs=OPTPRIVS**
 
@@ -1217,6 +1348,27 @@ Optionally include this flag if you would like to specify Privileges by role. Va
 - **-j, --json**
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1336,19 +1488,7 @@ The json file created by the save command is tailored for the iLO clone command.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
                         
@@ -1370,6 +1510,26 @@ Override the measures stoppping the tool from writing over items that are system
 
 Optionally include this flag to encrypt/decrypt a file using the key provided.
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1392,7 +1552,7 @@ The federation key must be 8 characters or greater.
 > Ilofederation example commands:
 
 
-> To add an iLO federation group to the current logged in server include the `add` argument with the new federation name and federation key.
+> To add an iLO federation group to the current logged in server include the `add` argument with the new federation name and federation key. To optionally specify privileges at creation, use the `--addprivs` option with numbers from the privilege list.
 
 <pre>
 iLOrest > ilofederation
@@ -1409,7 +1569,7 @@ HostBIOSConfigPriv=False
 VirtualPowerAndResetPriv=False
 LoginPriv=True
 SystemRecoveryConfigPriv=False
-iLOrest > <font color="#01a982">ilofederation add newfedname 8charfedkey</font>
+iLOrest > <font color="#01a982">ilofederation add newfedname 8charfedkey --addprivs 1,3,5</font>
 The resource has been created successfully.
 iLOrest > ilofederation
 iLO Federation Id list with Privileges:
@@ -1427,16 +1587,16 @@ LoginPriv=True
 SystemRecoveryConfigPriv=False
 
 Name=newfedname:
-HostNICConfigPriv=True
-HostStorageConfigPriv=True
-RemoteConsolePriv=True
-iLOConfigPriv=True
+HostNICConfigPriv=False
+HostStorageConfigPriv=False
+RemoteConsolePriv=False
+iLOConfigPriv=False
 VirtualMediaPriv=True
 UserConfigPriv=True
-HostBIOSConfigPriv=True
-VirtualPowerAndResetPriv=True
+HostBIOSConfigPriv=False
+VirtualPowerAndResetPriv=False
 LoginPriv=True
-SystemRecoveryConfigPriv=True
+SystemRecoveryConfigPriv=False
 </pre>
 
 
@@ -1515,77 +1675,130 @@ LoginPriv=True
 SystemRecoveryConfigPriv=False
 </pre>
 
+> To modify an iLO federation group include the `modify` argument with the federation name you'd like to update.
+
+<pre>
+iLOrest > <font color="#01a982">ilofederation modify newfederation 8charfedkey --addprivs 1,2,3,4</font>
+The resource has been created successfully.
+iLOrest > ilofederation
+iLO Federation Id list with Privileges:
+
+Name=DEFAULT:
+HostNICConfigPriv=False
+HostStorageConfigPriv=False
+RemoteConsolePriv=False
+iLOConfigPriv=False
+VirtualMediaPriv=False
+UserConfigPriv=False
+HostBIOSConfigPriv=False
+VirtualPowerAndResetPriv=False
+LoginPriv=True
+SystemRecoveryConfigPriv=False
+
+Name=newfederation
+HostNICConfigPriv=False
+HostStorageConfigPriv=False
+RemoteConsolePriv=True
+iLOConfigPriv=True
+VirtualMediaPriv=False
+UserConfigPriv=True
+HostBIOSConfigPriv=False
+VirtualPowerAndResetPriv=False
+LoginPriv=True
+SystemRecoveryConfigPriv=False
+iLOrest > <font color="#01a982">ilofederation modify newfederation --removeprivs 1,2,3</font>
+The operation completed successfully
+iLOrest > ilofederation
+Name=DEFAULT:
+HostNICConfigPriv=False
+HostStorageConfigPriv=False
+RemoteConsolePriv=False
+iLOConfigPriv=False
+VirtualMediaPriv=False
+UserConfigPriv=False
+HostBIOSConfigPriv=False
+VirtualPowerAndResetPriv=False
+LoginPriv=True
+SystemRecoveryConfigPriv=False
+
+Name=newfederation
+HostNICConfigPriv=False
+HostStorageConfigPriv=False
+RemoteConsolePriv=False
+iLOConfigPriv=True
+VirtualMediaPriv=False
+UserConfigPriv=False
+HostBIOSConfigPriv=False
+VirtualPowerAndResetPriv=False
+LoginPriv=False
+SystemRecoveryConfigPriv=False
+</pre>
 
 
 #### Syntax
 
-ilofederation *[Optional Parameters]*
+ilofederation *[COMMAND] [ARGUMENTS] [OPTIONS]*
 
 #### Description
 
-Adds / deletes an iLO federaion group on the currently logged in server.
-- *FEDERATIONNAME*: The name (Id) of the federation group.
-- *KEY*:  The key required to join the federation.
+Adds, deletes, or modifies an iLO federaion group on the currently logged in server.
 
+- **FEDERATIONNAME**: The name (Id) of the federation group.
+- **KEY**:  The key required to join the federation.
+- **Id**: The number associated with an iLO federation.
+
+- **PRIVILEGES:**
+  * 1: Login
+  * 2: Remote Console
+  * 3: User Config
+  * 4: iLO Config
+  * 5: Virtual Media
+  * 6: Virtual Power and Reset
+
+- **iLO 5 added privileges:**
+  * 7: Host NIC Config
+  * 8: Host Bios Config
+  * 9: Host Storage Config
+  * 10: System Recovery Config
 
 #### Parameters
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **--addprivs=PRIVS**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Optionally include this flag if you wish to specify which privileges you want added to the iLO federation. This overrides the default of duplicating privileges of the currently logged in federation on the new federation. Pick privileges from the privilege list in the above help text.
 
-- **-p Password, --password=PASSWORD**
+Example: --addprivs=1,2,4
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+- **--removeprivs=PRIVS**
+
+Optionally include this flag if you wish to specify which privileges you want removed from the iLO federation. This overrides the default of duplicating privileges of the currently logged in federation on the new federation. Pick privileges from the privilege list in the above help text. 
+
+Example: --removeprivs=1,2,4
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--noremoteconsolepriv**
+- **-u User, --user=USER**
 
-Optionally include this flag if you wish to set the remote console privileges to false.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
-- **--noiloconfigpriv**
+- **-p Password, --password=PASSWORD**
 
-Optionally include this flag if you wish to set the ilo config privileges to false.
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--novirtualmediapriv**  
+- **--https**
 
-Optionally include this flag if you wish to set the virtual media privileges to false.
-
-- **--nouserconfigpriv**    
-
-Optionally include this flag if you wish to set the userconfig privileges to false.
-
-- **--novirtualprpriv**     
-
-Optionally include this flag if you wish to set the virtual power and reset privileges to false.
-
-- **--nologinpriv**
-
-Optionally include this flag if you wish to set the login privileges to false.
-
-- **--nobiosconfigpriv**
-
-Optionally include this flag if you wish to set the host BIOS config privileges to false. Only available on gen10 servers.
-
-- **--nonicconfigpriv**
-
-Optionally include this flag if you wish to set the host NIC config privileges to false. Only available on gen10 servers.
- 
- - **--nohoststorageconfigpriv** 
- 
- Optionally include this flag if you wish to set the host storage config privileges to false. Only available on gen10 servers.
- 
- - **--nosysrecoveryconfigpriv**
- 
- Optionally include this flag if you wish to set the system recovery config privileges to false. Only available on gen10 servers.
-
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1621,19 +1834,28 @@ Applies an iLO license on the currently logged in server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1668,19 +1890,28 @@ Returns the current state of the server.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -1720,19 +1951,28 @@ The sigrecompute command is not available on Redfish systems.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1788,19 +2028,28 @@ Command for all single sign on available actions.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **--https**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -1857,19 +2106,7 @@ Command for inserting and removing virtual media.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--reboot=REBOOT**
 
@@ -1882,6 +2119,27 @@ Use this flag to remove the media from the selection.
 - **--bootnextreset**
 
 Use this flag if you wish to boot from the image on next server reboot. 
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 <aside class="notice">
 The image will be ejected automatically on the second server reboot so that the server does not boot to the image twice.
@@ -1929,19 +2187,7 @@ Backup and restore iLO to a server using a **.bak** file.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u USER, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p PASSWORD, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **-f FILENAME, --filename=FILENAME**
 
@@ -1950,6 +2196,27 @@ Use this command to specify the which backup file to restore. By default, the co
 - **--filepass=FPASS**
 
 Use the provided password when creating the backup file. The same password must be used for restoring.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -2180,19 +2447,7 @@ Use this parameter to perform directory tests.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u USER, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p PASSWORD, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **--enable, --disable**
 
@@ -2233,6 +2488,27 @@ Use this command to add or remove Role Mapping(s) for the LDAP and Kerberos serv
 <aside class="notice">
 When adding role map, SID is optional.
 </aside>
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 - **-j, --json**
 
@@ -2293,19 +2569,7 @@ Performs One Button Erase on a system. Erases all iLO settings, Bios settings, U
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u USER, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p PASSWORD, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **--nomonitor**
 
@@ -2314,6 +2578,27 @@ Use this command to skip monitoring of the one button erase process and simply t
 - **--confirm**
 
 Use this command to skip the confirmation prompt before starting One Button Erase and begin the operation.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -2615,9 +2900,11 @@ Creates a JSON formatted clone file of a system's iLO and Bios configuration by 
 
 <aside class="notice">When loading a clone file, login using an iLO account with full administrative privileges (such as the Administrator account) to ensure all system parameters are cloned successfully.</aside>
 
-<aside class="notice">When working with iLO Managment Accounts or iLO Federation Groups, remove entries from the JSON clone file (within the relevant dictionary) in order to perform deletion. In order to create new accounts on the server, simply add relevant nested dictionaries to the JSON file. <font color="#ff0000"> The default Administrator account can not be deleted using serverclone.</font>
+<aside class="notice">When working with iLO Managment Accounts or iLO Federation Groups, remove entries from the JSON clone file (within the relevant dictionary) in order to perform deletion. In order to create new accounts on the server, simply add relevant nested dictionaries to the JSON file.</aside>
 
-<aside class="notice">If settings for a particular type should not be changed, it is suggested to completely omit this dictionary from the JSON clone file.
+<aside class="notice">The Administrator account can not be deleted using serverclone.</aside>
+
+<aside class="notice">If settings for a particular type should not be changed, it is suggested to completely omit this dictionary from the JSON clone file.</aside>
 
 #### Parameters
 
@@ -2631,23 +2918,7 @@ Used to load a clone file.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command. 
-
-- **-u USER, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p PASSWORD, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--logout=LOGOUT**
-
-Use this command to logout.
+Including the help flag will display help for the command.
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -2690,6 +2961,31 @@ This is an optional command used to include configuration of iLO Smart Array Dev
 - **--nobios**
 
 This is an optional command used to remove Bios configuration  during save or load processes.
+
+- **--logout=LOGOUT**
+
+Use this command to logout.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 

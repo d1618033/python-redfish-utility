@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,57 +18,23 @@
 """ Clear Controller Configuration Command for rdmc """
 
 import sys
-from collections import OrderedDict
 
-from optparse import OptionParser, SUPPRESS_HELP
-from six.moves import input
-
-from rdmc_base_classes import RdmcCommandBase
+from argparse import ArgumentParser
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
-
-def controller_parse(option, opt_str, value, parser):
-    """ Controller Option Parsing
-
-        :param option: command line option
-        :type option: attributes
-        :param opt_str: parsed option string
-        :type opt_str: string
-        :param value: parsed option value
-        :type value: attribute
-        :param parser: OptionParser instance
-        :type parser: object
-    """
-    setattr(parser.values, option.dest, [])
-    use_slot = False
-    use_indx = False
-    for _opt in value.split(','):
-        if _opt.isdigit() and not use_slot:
-            use_indx = True
-            parser.values.controller.append(int(_opt))
-        elif "slot" in _opt.lower() and not use_indx:
-            use_slot = True
-            parser.values.controller.append((_opt.replace('\"', '')).strip())
-        else:
-            raise InvalidCommandLineErrorOPTS("An invalid option or combination of options were " \
-                                              "used to specify a smart array controller.")
-    if use_indx:
-        parser.values.controller.sort()
 
 class ClearControllerConfigCommand(RdmcCommandBase):
     """ Drive erase/sanitize command """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='clearcontrollerconfig',\
-            usage='clearcontrollerconfig [OPTIONS]\n\n\tTo clear a specific controller'\
+            usage='clearcontrollerconfig [OPTIONS]\n\n\tTo clear a controller'\
             ' config.\n\texample: clearcontrollerconfig --controller=1'
-            '\n\tor by slot position.' \
-            '\n\texample: clearcontrollerconfig --controller "Slot 0"' \
-            '\n\n\tTo clear all configurations across all available controllers' \
-            '\n\texample: clearcontrollerconfig --all', \
+            '\n\texample: clearcontrollerconfig --controller=\"Slot0"',\
             summary='Clears smart array controller configuration.',\
             aliases=['clearcontrollerconfig'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -82,7 +48,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -91,57 +57,33 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         self.clearcontrollerconfigvalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = OrderedDict()
-        for controller in self._rdmc.app.getprops():
+        content = self._rdmc.app.getprops()
+
+        if not options.controller:
+            raise InvalidCommandLineError('You must include a controller to select.')
+
+        if options.controller:
+            controllist = []
+            contentsholder = {"Actions": [{"Action": "ClearConfigurationMetadata"}], \
+                                                        "DataGuard": "Disabled"}
+
             try:
-                content[int(controller.get('Location', None).split(' ')[-1])] = controller
-            except (AttributeError, KeyError):
-                pass
-
-        controldict = {}
-        use_slot = False
-        use_indx = False
-
-        for _opt in options.controller:
-            found = False
-            for pos, control in enumerate(content):
-                if isinstance(_opt, int) and not use_slot:
-                    if pos == (_opt - 1):
-                        controldict[_opt] = content[control]
-                        found = True
-                        use_indx = True
-                elif _opt.lower() == content[control]["Location"].lower() and not use_indx:
-                    controldict[int(content[control]["Location"].split(' ')[-1])] = \
-                                                                            content[control]
-                    found = True
-                    use_slot = True
-                if found:
-                    break
-
-            if not found:
-                sys.stderr.write("\nController \'%s\' not found in the current inventory " \
-                                     "list.\n" % _opt)
-        if options.all:
-            controldict.update(content)
-
-        if not options.force:
-            while True:
-                if options.all:
-                    ans = input("Are you sure you would like to clear all available smart array "
-                                "controller configurations? (y/n)\n")
+                if options.controller.isdigit():
+                    if int(options.controller) > 0:
+                        controllist.append(content[int(options.controller) - 1])
                 else:
-                    ans = input("Are you sure you would like to clear configuration on " \
-                                "controller(s): \'%s\' ? (y/n)\n" % controldict.keys())
-                if ans.lower() == 'y':
-                    break
-                elif ans.lower() == 'n':
-                    sys.stdout.write("Aborting clear controller configuration.\n")
-                    return None
-
-        for controller in controldict:
-            self._rdmc.app.patch_handler(controldict[controller]["@odata.id"], \
-                                         {"Actions": [{"Action": "ClearConfigurationMetadata"}], \
-                                          "DataGuard": "Disabled"})
+                    slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
+                    for control in content:
+                        if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].\
+                                                                                        lstrip():
+                            controllist.append(control)
+                if not controllist:
+                    raise InvalidCommandLineError("")
+            except InvalidCommandLineError:
+                raise InvalidCommandLineError("Selected controller not found in the current "\
+                                              "inventory list.")
+            for controller in controllist:
+                self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -156,25 +98,22 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -182,6 +121,8 @@ class ClearControllerConfigCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline or not client:
             runlogin = True
@@ -190,9 +131,6 @@ class ClearControllerConfigCommand(RdmcCommandBase):
 
         if runlogin:
             self.lobobj.loginfunction(inputline)
-
-        if not options.all and not options.controller:
-            raise InvalidCommandLineErrorOPTS("Please specify a controller or use \'--all\'.")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -203,59 +141,12 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--controller',
             dest='controller',
-            action='callback',
-            callback=controller_parse,
-            help="""Use this flag to select the corresponding controller "\
-                "using either the slot number or index.""",
-            type="string",
-            default=[],
-        )
-        customparser.add_option(
-            '--all',
-            dest='all',
-            help="""Use this flag to clear all smart array controller configurations """ \
-                """controller.""",
-            action="store_true",
-            default=False,
-        )
-        customparser.add_option(
-            '--force',
-            dest='force',
-            help="""Use this flag to override the "are you sure?" text when " \
-                 "clearing controller configuration.""",
-            action="store_true",
-            default=False,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help="Use this flag to select the corresponding controller " \
+                "using either the slot number or index.",
+            default=None,
         )

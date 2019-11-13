@@ -10,6 +10,42 @@ Interactive mode is started when you run the RESTful Interface Tool without any 
 
 ![Interactive Mode](images/InteractiveMode_1.png "Interactive Mode")
 
+#### Tab complete
+
+Tab complete is available for interactive mode in multiple capacities. See the features below.
+
+##### Commands
+
+Tab complete is available for viewing and completing commands.
+
+![Tab complete commands](images/tab_command.gif "Tab complete commands")
+
+##### Types
+
+Tab complete is available for viewing and completing types.
+
+- You must be logged in
+
+![Tab complete types](images/tab_types.gif "Tab complete types")
+
+##### Properties and sub-properties
+
+Tab complete is available for viewing and completing properties.
+
+- You must be logged in and have a type selected
+- Also available for set and list
+
+![Tab complete props](images/tab_props.gif "Tab complete props")
+
+##### Schema information for properties
+
+Tab complete can also show schema information for properties.
+
+- You must be logged in and have a type selected
+- Also available for set and list
+
+![Tab complete schema](images/tab_schema.gif "Tab complete schema")
+
 ### Scriptable Mode
 
 > The following script retrieves information regarding the Bios type:
@@ -199,6 +235,9 @@ Running iLOrest on multiple systems locally can be done using automation tools s
 # option to use the provided password to login
 # password = password
 
+# option to use the provided ssl certificate or certificate bundle for HTTPS validation
+#sslcert = .\
+
 #####         Commit Settings        #####
 ##########################################
 # flag to commit in all places where applicable
@@ -253,6 +292,9 @@ Running iLOrest on multiple systems locally can be done using automation tools s
 
 # option to use the provided password to login
 # password = password
+
+# option to use the provided ssl certificate or certificate bundle for HTTPS validation
+#sslcert = ./
 
 #####         Commit Settings        #####
 ##########################################

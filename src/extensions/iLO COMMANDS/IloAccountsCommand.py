@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,49 +17,54 @@
 # -*- coding: utf-8 -*-
 """ Add Account Command for rdmc """
 
+import os
 import sys
 import json
 import getpass
 
-from optparse import OptionParser, OptionValueError, SUPPRESS_HELP
+from argparse import ArgumentParser, Action
 
+from redfish.ris.ris import SessionExpired
 from redfish.ris.rmc_helper import IdTokenError
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, ResourceExists, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, \
-                IncompatibleiLOVersionError, Encryption
+                IncompatibleiLOVersionError, Encryption, InvalidFileInputError
 
-def account_parse(option, opt_str, value, parser):
-    """ Account privileges option helper"""
+class _AccountParse(Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(_AccountParse, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_strings):
+        """ Account privileges option helper"""
 
-    privkey = {1: 'LoginPriv', 2: 'RemoteConsolePriv', 3:'UserConfigPriv', 4:'iLOConfigPriv', \
-     5: 'VirtualMediaPriv', 6: 'VirtualPowerAndResetPriv', 7: 'HostNICConfigPriv', \
-     8: 'HostBIOSConfigPriv', 9: 'HostStorageConfigPriv', 10: 'SystemRecoveryConfigPriv'}
+        privkey = {1: 'LoginPriv', 2: 'RemoteConsolePriv', 3:'UserConfigPriv', 4:'iLOConfigPriv', \
+         5: 'VirtualMediaPriv', 6: 'VirtualPowerAndResetPriv', 7: 'HostNICConfigPriv', \
+         8: 'HostBIOSConfigPriv', 9: 'HostStorageConfigPriv', 10: 'SystemRecoveryConfigPriv'}
 
-    privs = value.split(',')
-    if account_parse.counter == 0:
-        setattr(parser.values, option.dest, [])
-    if any(arg for arg in parser.rargs if (arg.startswith('--add') or arg.startswith('--remove'))):
-        account_parse.counter += 1
-    else:
-        account_parse.counter = 0
-    for priv in privs:
-        try:
-            priv = int(priv)
-        except ValueError:
-            raise OptionValueError("Invalid privilege entered: %s. Privileges must be numbers." %\
-                                   priv)
-        try:
-            if opt_str.startswith('--add'):
-                parser.values.optprivs.append({privkey[priv]: True})
-            elif opt_str.startswith('--remove'):
-                parser.values.optprivs.append({privkey[priv]: False})
-        except KeyError:
-            raise OptionValueError("Invalid privilege entered: %s. Number does not match a "\
-                                   "privilege." % priv)
-
-account_parse.counter = 0
+        for priv in next(iter(values)).split(','):
+            try:
+                priv = int(priv)
+            except ValueError:
+                try:
+                    parser.error("Invalid privilege entered: %s. Privileges must " \
+                                           "be numbers." % priv)
+                except:
+                    raise InvalidCommandLineErrorOPTS("")
+            try:
+                if not isinstance(namespace.optprivs, list):
+                    namespace.optprivs = list()
+                if option_strings.startswith('--add'):
+                    namespace.optprivs.append({privkey[priv]: True})
+                elif option_strings.startswith('--remove'):
+                    namespace.optprivs.append({privkey[priv]: False})
+            except KeyError:
+                try:
+                    parser.error("Invalid privilege entered: %s. Number does not " \
+                                           "match an available privilege." % priv)
+                except:
+                    raise InvalidCommandLineErrorOPTS("")
+    #account_parse.counter = 0
 
 class IloAccountsCommand(RdmcCommandBase):
 
@@ -80,24 +85,31 @@ class IloAccountsCommand(RdmcCommandBase):
             'iloaccounts modify USERNAMEorID# --addprivs 3,5 --removeprivs 10\n\n\t'\
             'Delete an iLO account.\n\t'\
             'iloaccounts delete [USERNAMEorID#]\n\t'\
-            'example: iloaccounts delete accountUserName\n\n'\
-            '\tDESCRIPTIONS:\n\tLOGINNAME:  The account name, not used ' \
-            'to login.\n\tUSERNAME: The account username name, used' \
-            ' to login. \n\tPASSWORD:  The account password, used to login.'
+            'example: iloaccounts delete accountUserName\n\n\t'\
+            'Add a certificate to a user account.\n\t'\
+            'iloaccounts addcert [USERNAMEorID#] <path to an x.509 certification string>\n\t'\
+            'example: iloaccounts addcert accountUserName C:\Users\user\cert.txt\n\n\t'\
+            'Delete a certificate from an iLO account.\n\t'\
+            'example: iloaccounts deletecert [USERNAMEorID#]\n\n'\
+            '\tDESCRIPTIONS:\n\tNOTE: UserName and LoginName are reversed '\
+            'in the GUI for Redfish compatibility.'\
+            '\n\tLOGINNAME:  The account name, not used '\
+            'to login.\n\tUSERNAME: The account username name, used'\
+            ' to login. \n\tPASSWORD:  The account password, used to login.'\
             '\n\tId: The number associated with an iLO user account.'\
             '\n\n\tPRIVILEGES:\n\t1: Login\n\t2: Remote Console\n\t3: User Config\n\t4: iLO Config'\
             '\n\t5: Virtual Media\n\t6: Virtual Power and Reset\n\n\tiLO 5 added privileges:\n\t7:'\
             ' Host NIC Config\n\t8: Host Bios Config\n\t9: Host Storage Config\n\t10: '\
-            'System Recovery Config\n\n\tNOTE: please make sure the order of arguments is ' \
+            'System Recovery Config\n\n\tNOTE: please make sure the order of arguments is '\
             'correct. The\n\tparameters are extracted based on their ' \
-            'position in the arguments list.\n\tBy default only login privilege is added to ' \
+            'position in the arguments list.\n\tBy default only login privilege is added to '\
             'the newly created account with role "ReadOnly"\n\tin iLO 5 and no privileges in'\
             ' iLO 4.\n\tTo modify these privileges you can remove properties that would be set by '\
             'using --removeprivs\n\tor you can directly set which privileges are given using'\
             ' --addprivs.\n\n\tNote: account credentials are case-sensitive.',\
             summary='Adds / deletes an iLO account on the currently logged in server.',\
             aliases=['iloaccount'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -111,10 +123,10 @@ class IloAccountsCommand(RdmcCommandBase):
         :type line: str.
         """
         mod_acct = None
-        valid_args = ['add', 'delete', 'modify', 'changepass']
+        valid_args = ['add', 'delete', 'modify', 'changepass', 'addcert', 'deletecert']
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -126,13 +138,13 @@ class IloAccountsCommand(RdmcCommandBase):
         arg_cnt = 0
         for arg in args:
             if arg in valid_args:
-                arg_cnt+=1
+                arg_cnt += 1
         if arg_cnt > 1:
             raise InvalidCommandLineError('Invalid command.')
 
         self.iloaccountsvalidation(options)
 
-        redfish = self._rdmc.app.current_client.monolith.is_redfish
+        redfish = self._rdmc.app.monolith.is_redfish
         path = self.typepath.defs.accountspath
         results = self._rdmc.app.get_handler(path, service=True, silent=True).dict
 
@@ -182,7 +194,7 @@ class IloAccountsCommand(RdmcCommandBase):
                 outdict[keyval] = privs
                 outdict[keyval]['ServiceAccount'] = service.split('=')[-1].lower()
             if options.json:
-                sys.stdout.write(str(json.dumps(outdict, indent=2)))
+                sys.stdout.write(str(json.dumps(outdict, indent=2, sort_keys=True)))
                 sys.stdout.write('\n')
         elif args[0].lower() == 'changepass':
             if not mod_acct:
@@ -264,6 +276,41 @@ class IloAccountsCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Unable to find the specified account.")
             self._rdmc.app.delete_handler(path)
 
+        elif 'cert' in args[0].lower():
+            certpath = '/redfish/v1/AccountService/UserCertificateMapping/'
+            privs = self.getsesprivs()
+            if self.typepath.defs.isgen9:
+                IncompatibleiLOVersionError("This operation is only available on gen 10 "\
+                                                  "and newer machines.")
+            elif privs['UserConfigPriv'] == False:
+                raise IdTokenError("The currently logged in account must have The User "\
+                                     "Config privilege to manage certificates for users.")
+            else:
+                if args[0].lower() == 'addcert':
+                    if not mod_acct:
+                        raise InvalidCommandLineError("Unable to find the specified account.")
+                    body = {}
+                    args.remove('addcert')
+                    username = acct['UserName']
+                    account = acct['Id']
+                    if not len(args) == 2:
+                        raise InvalidCommandLineError("Invalid number of parameters.")
+                    fingerprintfile = args[1]
+                    if os.path.exists(fingerprintfile):
+                        with open(fingerprintfile, 'r') as fingerfile:
+                            fingerprint = fingerfile.read()
+                    else:
+                        raise InvalidFileInputError('%s cannot be read.' % fingerprintfile)
+                    body = {"Fingerprint": fingerprint, "UserName": username}
+                    self._rdmc.app.post_handler(certpath, body)
+                
+                elif args[0].lower() == 'deletecert':
+                    if not mod_acct:
+                        raise InvalidCommandLineError("Unable to find the specified account.")
+                    args.remove('deletecert')
+                    certpath += acct['Id']
+                    self._rdmc.app.delete_handler(certpath)
+
         else:
             raise InvalidCommandLineError('Invalid command.')
 
@@ -277,17 +324,19 @@ class IloAccountsCommand(RdmcCommandBase):
         """
         sesprivs = self.getsesprivs()
         setprivs = {}
+        availableprivs = self.getsesprivs(availableprivsopts=True)
 
-        for priv in options.optprivs:
-            priv = next(iter(priv.keys()))
-            if priv not in sesprivs:
-                raise IncompatibleiLOVersionError("Privilege %s is not available on this "\
-                                                                            "iLO version." % priv)
         if not 'UserConfigPriv' in sesprivs.keys():
-            raise IdTokenError("The currently logged in account does not have the User Config "\
-                             "privilege and cannot add or modify user accounts.")
+                raise IdTokenError("The currently logged in account does not have the User Config "\
+                                 "privilege and cannot add or modify user accounts.")
 
         if options.optprivs:
+            for priv in options.optprivs:
+                priv = next(iter(priv.keys()))
+                if priv not in availableprivs:
+                    raise IncompatibleiLOVersionError("Privilege %s is not available on this "\
+                                                                            "iLO version." % priv)
+
             if all(priv.values()[0] for priv in options.optprivs):
                 if any(priv for priv in options.optprivs if 'SystemRecoveryConfigPriv' in priv) and\
                                             'SystemRecoveryConfigPriv' not in sesprivs.keys():
@@ -301,24 +350,35 @@ class IloAccountsCommand(RdmcCommandBase):
 
         return setprivs
 
-    def getsesprivs(self):
-        """Finds and returns the curent session's privileges"""
+    def getsesprivs(self, availableprivsopts=False):
+        """Finds and returns the curent session's privileges
+        
+        :param availableprivsopts: return available privileges
+        :type availableprivsopts: boolean.
+        """
         if self._rdmc.app.current_client:
-            sespath = self._rdmc.app.current_client._rest_client._RestClientBase__session_location
-            sespath = self._rdmc.app.current_client._rest_client.default_prefix + \
+            sespath = self._rdmc.app.current_client.session_location
+            sespath = self._rdmc.app.current_client.default_prefix + \
                                 sespath.split(self._rdmc.app.current_client.\
-                                              _rest_client.default_prefix)[-1]
+                                              default_prefix)[-1]
 
             ses = self._rdmc.app.get_handler(sespath, service=False, silent=True)
 
+            if not ses:
+                raise SessionExpired("Invalid session. Please logout and "\
+                                    "log back in or include credentials.")
+
             sesprivs = ses.dict['Oem'][self.typepath.defs.oemhp]['Privileges']
+            availableprivs = ses.dict['Oem'][self.typepath.defs.oemhp]['Privileges'].keys()
             for priv, val in sesprivs.items():
                 if not val:
                     del sesprivs[priv]
         else:
             sesprivs = None
-
-        return sesprivs
+        if availableprivsopts:
+            return availableprivs
+        else:
+            return sesprivs
 
     def credentialsvalidation(self, username='', loginname='', password='', accounts=[], \
                                                                             check_password=False):
@@ -375,25 +435,22 @@ class IloAccountsCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -401,6 +458,8 @@ class IloAccountsCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
             if not inputline:
                 sys.stdout.write('Local login initiated...\n')
@@ -415,29 +474,9 @@ class IloAccountsCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--serviceaccount',
             dest='serviceacc',
             action="store_true",
@@ -445,40 +484,39 @@ class IloAccountsCommand(RdmcCommandBase):
             "to be a service account.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--addprivs',
             dest='optprivs',
-            callback=account_parse,
-            action="callback",
-            type="string",
+            nargs='*',
+            action=_AccountParse,
+            type=str,
             help="Optionally include this flag if you wish to specify "\
             "which privileges you want added to the iLO account. This overrides the default of "\
             "duplicating privileges of the currently logged in account on the new account. Pick "\
             "privileges from the privilege list in the above help text. EX: --addprivs=1,2,4",
-            default=[]
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--removeprivs',
             dest='optprivs',
-            callback=account_parse,
-            action="callback",
-            type="string",
+            nargs='*',
+            action=_AccountParse,
+            type=str,
             help="Optionally include this flag if you wish to specify "\
             "which privileges you want removed from the iLO account. This overrides the default of"\
             " duplicating privileges of the currently logged in account on the new account. Pick "\
             "privileges from the privilege list in the above help text. EX: --removeprivs=1,2,4",
-            default=[]
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--role',
             dest='role',
-            type='choice',
             choices=['Administrator', 'ReadOnly', 'Operator'],
             help="Optionally include this flag if you would like to specify Privileges by role. "\
                 "Valid choices are: Administrator, ReadOnly, Operator",
             default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -487,12 +525,4 @@ class IloAccountsCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

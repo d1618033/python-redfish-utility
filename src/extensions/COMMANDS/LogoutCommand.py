@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@
 
 import sys
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser, SUPPRESS
 from rdmc_base_classes import RdmcCommandBase
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
 class LogoutCommand(RdmcCommandBase):
     """ Constructor """
@@ -33,7 +33,7 @@ class LogoutCommand(RdmcCommandBase):
                     ' from the server\n\texample: logout',\
             summary='Ends the current session and disconnects from the server.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
 
@@ -44,26 +44,12 @@ class LogoutCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
-        except:
+            (_, _) = self._parse_arglist(line)
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
-
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-            client = self._rdmc.app.get_current_client()
-        try:
-            if options.user and options.password:
-                client = self._rdmc.app.get_current_client()
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
-        except:
-            pass
 
         self._rdmc.app.logout("")
 
@@ -73,11 +59,8 @@ class LogoutCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        try:
-            sys.stdout.write("Logging session out.\n")
-            self.logoutfunction(line)
-        except Exception as excp:
-            raise excp
+        sys.stdout.write("Logging session out.\n")
+        self.logoutfunction(line)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -90,27 +73,28 @@ class LogoutCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
+
+        customparser.add_argument(
             '-u',
             '--user',
             dest='user',
-            help="Pass this flag along with the password flag if you are"\
+            help="Pass this flag along with the password flag if you are "\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-p',
             '--password',
             dest='password',
-            help="Pass this flag along with the user flag if you are"\
+            help="Pass this flag along with the user flag if you are "\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-e',
             '--enc',
             dest='encode',
             action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help=SUPPRESS,
+            default=False
         )

@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,40 +18,11 @@
 """ Smart Array Command for rdmc """
 
 import sys
-from collections import OrderedDict
 
-from optparse import OptionParser, SUPPRESS_HELP
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+from argparse import ArgumentParser
+from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
-
-def controller_parse(option, opt_str, value, parser):
-    """ Controller Option Parsing
-
-        :param option: command line option
-        :type option: attributes
-        :param opt_str: parsed option string
-        :type opt_str: string
-        :param value: parsed option value
-        :type value: attribute
-        :param parser: OptionParser instance
-        :type parser: object
-    """
-    setattr(parser.values, option.dest, [])
-    use_slot = False
-    use_indx = False
-    for _opt in value.split(','):
-        if _opt.isdigit() and not use_slot:
-            use_indx = True
-            parser.values.controller.append(int(_opt))
-        elif "slot" in _opt.lower() and not use_indx:
-            use_slot = True
-            parser.values.controller.append((_opt.replace('\"', '')).strip())
-        else:
-            raise InvalidCommandLineErrorOPTS("An invalid option or combination of options were " \
-                                              "used to specify a smart array controller.")
-    if use_indx:
-        parser.values.controller.sort()
 
 class SmartArrayCommand(RdmcCommandBase):
     """ Smart array command """
@@ -59,14 +30,14 @@ class SmartArrayCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='smartarray',\
             usage='smartarray [OPTIONS]\n\n\tRun without arguments for the ' \
-                'current list of available smart array controllers.' \
-                '\n\n\tTo obtain more details on a specific controller select ' \
-                'it by index.\n\texample: smartarray --controller=1' \
-                '\n\tor by slot position.\n\texample: smartarray --controller "Slot 0"' \
-                '\n\n\tNOTE: Multiple controller selections are possible using comma delimitors.' \
-                '\n\texample: smartarray --controller=1,2\n\tor by slot position.' \
-                '\n\texample: smartarray --controller "Slot 0,Slot 1"' \
-                '\n\n\tIn order to get a list of all physical drives for the ' \
+                'current list of smart array controllers.\n\texample: ' \
+                'smartarray\n\n\tTo get more details on a specific controller '\
+                'select it by index.\n\texample: smartarray --controller=2' \
+                '\n\n\tTo get more details on a specific controller select ' \
+                'it by location.\n\texample: smartarray --controller="Slot0"' \
+                '\n\texample: smartarray --controller "Slot 0"' \
+                '\n\tNOTE: Selection by location can be done with or without spacing.' \
+                '\n\n\tIn order to get a list of all physical drives for ' \
                 'each controller.\n\texample: smartarray --physicaldrives' \
                 '\n\n\tTo obtain details about physical drives for a ' \
                 'specific controller.\n\texample: smartarray --controller=3 ' \
@@ -77,12 +48,12 @@ class SmartArrayCommand(RdmcCommandBase):
                 'smartarray --logicaldrives\n\n\tTo obtain details about ' \
                 'logical drives for a specific controller.\n\texample: ' \
                 'smartarray --controller=3 --logicaldrives\n\n\tTo obtain ' \
-                'details regarding a specific logical drive associated to a specific ' \
+                'details about a specific logical drive for a specific ' \
                 'controller.\n\texample: smartarray --controller=3 --ldrive=1',\
             summary='Discovers all storage controllers installed in the ' \
                     'server and managed by the SmartStorage.',\
             aliases=['smartarray'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -97,7 +68,7 @@ class SmartArrayCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -105,14 +76,8 @@ class SmartArrayCommand(RdmcCommandBase):
 
         self.smartarrayvalidation(options)
 
-        self.selobj.selectfunction("SmartStorageConfig.")
-
-        content = OrderedDict()
-        for controller in self._rdmc.app.getprops():
-            try:
-                content[int(controller.get('Location', None).split(' ')[-1])] = controller
-            except (AttributeError, KeyError):
-                pass
+        self.selobj.selectfunction("SmartStorageConfig")
+        content = sorted(self._rdmc.app.getprops(), key = lambda idx: idx["Location"])
 
         if options.controller:
             self.selection_output(options, content)
@@ -126,78 +91,70 @@ class SmartArrayCommand(RdmcCommandBase):
         """ Selection of output for smart array command
 
         :param options: command line options
-        :type options: attributes
-        :param content: ordered dictionary of properties
-        :type content: dictionary
+        :type options: list.
+        :param options: list of contents
+        :type options: list.
         """
-        controldict = {}
+        controllist = []
         outputcontent = False
-        use_slot = False
-        use_indx = False
 
-        for _opt in options.controller:
-            found = False
-            for pos, control in enumerate(content):
-                if isinstance(_opt, int) and not use_slot:
-                    if pos == (_opt - 1):
-                        controldict[_opt] = content[control]
-                        found = True
-                        use_indx = True
-                elif _opt.lower() == content[control]["Location"].lower() and not use_indx:
-                    controldict[int(content[control]["Location"].split(' ')[-1])] = content[control]
-                    found = True
-                    use_slot = True
-                if found:
-                    break
+        try:
+            if options.controller.isdigit():
+                if int(options.controller) > 0:
+                    controllist.append(content[int(options.controller) - 1])
+            else:
+                slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
+                for control in content:
+                    if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                        controllist.append(control)
+            if not controllist:
+                raise InvalidCommandLineError("")
+        except InvalidCommandLineError:
+            raise InvalidCommandLineError("Selected controller not found in the current inventory "\
+                                          "list.")
 
-            if not found:
-                sys.stderr.write("\nController \'%s\' not found in the current inventory " \
-                                "list.\n" % _opt)
+        for controller in controllist:
+            if options.physicaldrives or options.pdrive:
+                outputcontent = True
+                try:
+                    self.get_drives(options, controller["PhysicalDrives"], physical=True)
+                except KeyError as excp:
+                    if excp.message == "PhysicalDrives":
+                        raise IncompatableServerTypeError("Cannot "\
+                            "configure physical drives using this controller.")
 
-        if controldict:
-            for controller in controldict:
-                if options.physicaldrives or options.pdrive:
-                    outputcontent = True
-                    try:
-                        self.get_drives(options, controldict[controller]["PhysicalDrives"], \
-                                        physical=True)
-                    except KeyError as excp:
-                        if excp.message == "PhysicalDrives":
-                            raise IncompatableServerTypeError("Cannot "\
-                                "configure physical drives using this controller.")
+            if options.logicaldrives or options.ldrive:
+                outputcontent = True
+                self.get_drives(options, controller["LogicalDrives"], logical=True)
 
-                if options.logicaldrives or options.ldrive:
-                    outputcontent = True
-                    self.get_drives(options, controldict[controller]["LogicalDrives"], logical=True)
+            if not outputcontent:
+                for k in list(controller.keys()):
+                    if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
+                        del controller[k]
 
-                if not outputcontent:
-                    for k in list(controldict[controller].keys()):
-                        if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
-                            del controldict[controller][k]
-
-                    UI().print_out_json_ordered(controldict[controller])
+                UI().print_out_json(controller)
 
     def discovery_output(self, options, content):
         """ Discovery of output for smart array command
 
         :param options: command line options
-        :type options: attributes
-        :param content: ordered dictionary of properties
-        :type content: dictionary
+        :type options: list.
+        :param options: list of contents
+        :type options: list.
         """
-        for enum_indx, dict_indx in enumerate(content):
-            sys.stdout.write("[%d]: %s\n" % (enum_indx + 1, content[dict_indx]["Location"]))
+        for idx, val in enumerate(content):
+            sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
 
             if options.physicaldrives:
                 try:
-                    self.get_drives(options, content[dict_indx]["PhysicalDrives"], physical=True)
+                    self.get_drives(options, val["PhysicalDrives"], physical=True)
                 except KeyError as excp:
                     if excp.message == "PhysicalDrives":
                         raise IncompatableServerTypeError("Cannot "\
                             "configure physical drives using this controller.")
 
             if options.logicaldrives:
-                self.get_drives(options, content[dict_indx]["LogicalDrives"], logical=True)
+                self.get_drives(options, val["LogicalDrives"], logical=True)
 
     def get_drives(self, options, drives, physical=False, logical=False):
         """ Selection of output for smart array command
@@ -253,7 +210,7 @@ class SmartArrayCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Selected drive not " \
                                           "found in the current drives list.")
                 else:
-                    UI().print_out_json_ordered(driveloc)
+                    UI().print_out_json(driveloc)
             else:
                 for idx, drive in enumerate(drives):
                     if physical:
@@ -287,7 +244,7 @@ class SmartArrayCommand(RdmcCommandBase):
                     if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
                         del drive[k]
 
-                UI().print_out_json_ordered(drive)
+                UI().print_out_json(drive)
 
     def smartarrayvalidation(self, options):
         """ Smart array validation function
@@ -299,25 +256,22 @@ class SmartArrayCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -325,6 +279,8 @@ class SmartArrayCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline or not client:
             runlogin = True
@@ -343,39 +299,16 @@ class SmartArrayCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-                " with the password and URL flags can be used to log into a"\
-                " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--controller',
             dest='controller',
-            action='callback',
-            callback=controller_parse,
-            help="""Use this flag to select the corresponding controller "\
+            help="Use this flag to select the corresponding controller "\
                 "using either the slot number or index.""",
-            type="string",
-            default=[],
+            default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--physicaldrives',
             dest='physicaldrives',
             action="store_true",
@@ -383,7 +316,7 @@ class SmartArrayCommand(RdmcCommandBase):
             """controller selected.""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--logicaldrives',
             dest='logicaldrives',
             action="store_true",
@@ -391,23 +324,15 @@ class SmartArrayCommand(RdmcCommandBase):
             """controller selected.""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--pdrive',
             dest='pdrive',
             help="""Use this flag to select the corresponding physical disk.""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--ldrive',
             dest='ldrive',
             help="""Use this flag to select the corresponding logical disk.""",
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

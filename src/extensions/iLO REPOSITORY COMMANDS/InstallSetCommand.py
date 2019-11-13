@@ -1,5 +1,5 @@
 # ##
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import sys
 import json
 import datetime
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
@@ -52,7 +52,7 @@ class InstallSetCommand(RdmcCommandBase):
             '"Command": "ResetServer"\n\t\t}\n\t]',\
             summary='Manages install sets for iLO.',\
             aliases=['Installset'], \
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -67,7 +67,7 @@ class InstallSetCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -248,7 +248,7 @@ class InstallSetCommand(RdmcCommandBase):
             outjson = dict()
             for setvar in sets:
                 outjson[setvar['Name']] = setvar
-            sys.stdout.write(str(json.dumps(outjson, indent=2))+'\n')
+            sys.stdout.write(str(json.dumps(outjson, indent=2, sort_keys=True))+'\n')
 
     def validatefile(self, installsetfile):
         """ validates json file
@@ -312,25 +312,22 @@ class InstallSetCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -338,6 +335,8 @@ class InstallSetCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
             if not inputline:
                 sys.stdout.write('Local login initiated...\n')
@@ -352,43 +351,23 @@ class InstallSetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '-n',
             '--name',
             dest='name',
             help="""Install set name to create, remove, or invoke.""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--removeall',
             action='store_true',
             dest='removeall',
             help="""Remove all install sets.""",
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -398,7 +377,7 @@ class InstallSetCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--expire',
             dest='exafter',
             help="Optionally include this flag if you wish to set the"\
@@ -407,7 +386,7 @@ class InstallSetCommand(RdmcCommandBase):
             "state to Expired",
             default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--startafter',
             dest='safter',
             help="Optionally include this flag if you wish to set the"\
@@ -415,7 +394,7 @@ class InstallSetCommand(RdmcCommandBase):
             "time string to be used.",
             default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--tpmover',
             dest='tover',
             action="store_true",
@@ -423,7 +402,7 @@ class InstallSetCommand(RdmcCommandBase):
             "associated flash operations",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--updaterecoveryset',
             dest='uset',
             action="store_true",
@@ -431,19 +410,11 @@ class InstallSetCommand(RdmcCommandBase):
             " to replace matching contents in the Recovery Set.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--cleartaskqueue',
             dest='ctakeq',
             action="store_true",
             help="This option allows previous items in the task queue to"\
             " be cleared before the Install Set is invoked",
             default=False
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

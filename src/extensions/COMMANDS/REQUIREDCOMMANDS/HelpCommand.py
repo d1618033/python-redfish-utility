@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 
 import sys
 
-from optparse import OptionParser
+from argparse import ArgumentParser
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
 
@@ -33,7 +33,7 @@ class HelpCommand(RdmcCommandBase):
             summary='Displays command line syntax and help menus for individual commands.'\
                     ' Example: help login',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.config_required = False
         self._rdmc = None
         if 'rdmc' in kwargs:
@@ -47,7 +47,7 @@ class HelpCommand(RdmcCommandBase):
         """
         try:
             (_, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -76,7 +76,7 @@ class HelpCommand(RdmcCommandBase):
                     for cmd in cmddict[key]:
                         if cmd.ismatch(args[0]):
                             cmd.print_help()
-                            return
+                            return ReturnCodes.SUCCESS
 
                 raise InvalidCommandLineError("Command '%s' not found." % args[0])
         #Return code

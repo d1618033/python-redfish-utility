@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@
 
 import sys
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser, SUPPRESS
 
 from redfish.ris.rmc_helper import NothingSelectedError
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError,\
-                        NoChangesFoundOrMadeError, NoCurrentSessionEstablished, Encryption
+                        NoChangesFoundOrMadeError, NoCurrentSessionEstablished
 
 class CommitCommand(RdmcCommandBase):
     """ Constructor """
@@ -36,7 +36,7 @@ class CommitCommand(RdmcCommandBase):
                     ' the current session\n\texample: commit',\
             summary='Applies all the changes made during the current session.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
@@ -53,16 +53,16 @@ class CommitCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        self.commitvalidation(options)
+        self.commitvalidation()
 
         sys.stdout.write("Committing changes...\n")
 
         if options:
             if options.biospassword:
-                self._rdmc.app.update_bios_password(options.biospassword)
+                self._rdmc.app.current_client.bios_password = options.biospassword
         try:
             failure = False
-            commit_opp = self._rdmc.app.commit(verbose=self._rdmc.opts.verbose)
+            commit_opp = self._rdmc.app.commit()
             for path in commit_opp:
                 if self._rdmc.opts.verbose:
                     sys.stdout.write('Changes are being made to path: %s\n' % path)
@@ -89,7 +89,7 @@ class CommitCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -100,20 +100,11 @@ class CommitCommand(RdmcCommandBase):
         #Return code
         return ReturnCodes.SUCCESS
 
-    def commitvalidation(self, options):
+    def commitvalidation(self):
         """ Commit method validation function """
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             raise NoCurrentSessionEstablished("Please login and make setting" \
                                       " changes before using commit command.")
@@ -126,43 +117,43 @@ class CommitCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
+        customparser.add_argument(
             '-u',
             '--user',
             dest='user',
             help="Pass this flag along with the password flag if you are"\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-p',
             '--password',
             dest='password',
             help="Pass this flag along with the username flag if you are"\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--reboot',
             dest='reboot',
             help="Use this flag to perform a reboot command function after"\
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
             " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-e',
             '--enc',
             dest='encode',
             action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help=SUPPRESS,
+            default=False
         )

@@ -47,7 +47,6 @@ Deletes firmware from the iLO repository.
 You cannot delete firmware that is part of a task from the task queue or an install set.
 </aside>
 
-
 #### Parameters
 
 - **ID/Name(s)**
@@ -56,32 +55,38 @@ The name or Id(s) of the components for deletion. Multiple components should be 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **-a, --all**
 
 Delete all firmware.
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
 
-
 #### Outputs
 None
-
 
 ### Downloadcomp command
 
@@ -100,8 +105,6 @@ Download complete
 <aside class="warning">The output directory and files in that directory must be set to writable.</aside>
 <aside class="warning">Any file in the output directory with the same name as the downloading firmware will be overwritten.</aside>
 
-
-
 #### Syntax
 
 downloadcomp *[File Path] [Optional Parameters]*
@@ -118,7 +121,7 @@ The path to the firmware to download.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-u User, --user=USER**
 
@@ -206,19 +209,7 @@ The path to the (.fwpkg) file for flashing or the (.fwpkg) file itself if it is 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **--url=URL**
-
-If you are not logged in yet, use this flag along with the provided iLO URL to login to the server.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **--forceupload**
 
@@ -227,6 +218,27 @@ Include this flag to force upload firmware with the same name already on the rep
 - **--ignorechecks**
 
 Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file. 
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -360,19 +372,7 @@ Command to perform operations on install sets.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **-n NAME, --name=NAME**
 
@@ -405,6 +405,27 @@ If set then the components in the flash operations are used to replace matching 
 - **--cleartaskqueue**
 
 This option clears previous items in the task queue before the Install Set is invoked.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -449,19 +470,32 @@ Command to list the firmware on the iLO repository of the currently logged in sy
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
+
+- **-j, --json**
+
+Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
 - **-u User, --user=USER**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-j, --json**
+- **--https**
 
-Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -520,19 +554,7 @@ Command to add, remove, or delete maintenance windows from the iLO repository.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet , use this flag along with the provided iLO URL to login.
+Including the help flag will display help for the command.
 
 - **-j, --json**
 
@@ -549,6 +571,27 @@ Optionally include this flag to name the maintenance window created by you. If a
 - **-e EXPIRE, --expire=EXPIRE**
 
 Optionally include this flag to add the time a maintenance window expires.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None
@@ -757,15 +800,7 @@ Command to add or remove tasks from the task queue. Added tasks are appended to 
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **-r, --resetqueue**
 
@@ -782,6 +817,27 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 - **--tpmover**
 
 Include this flag when updating firmware if you have a TPM installed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 
@@ -803,6 +859,17 @@ Waiting for iLO UpdateService to finish processing the component
 0 hour(s) 1 minute(s) 43 second(s)
 </pre>
 
+> By default the firmware is uploaded to the iLO Repository. For firmware iLO is capable of flashing you can instead directly flash it.
+To do this you need to include the `--update_repository`  flag to not include the firmware in the iLO repository and the `--update_target` 
+flag to trigger iLO to flash.
+
+<pre>
+iLOrest > uploadcomp --component ilo5_140.bin <font color="#01a982">--update_repository --update_target</font>
+[200] The operation completed successfully.
+Component ilo5_140.bin uploaded successfully
+Waiting for iLO UpdateService to finish processing the component
+0 hour(s) 1 minute(s) 56 second(s)
+</pre>
 
 
 #### Syntax
@@ -817,19 +884,7 @@ Command to upload firmware on to iLO repository.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+Including the help flag will display help for the command.
 
 - **--includelogs**
 
@@ -838,10 +893,6 @@ Optionally include logs in the data retrieval process.
 - **-j, --json**
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 - **--component=COMPONENT**
   
@@ -862,6 +913,31 @@ If true, uploads the component/binary on to the Repository. The default is set t
 - **--update_target**
 
 If true, the uploaded component/binary will be flashed. The default is set to False.
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 None 

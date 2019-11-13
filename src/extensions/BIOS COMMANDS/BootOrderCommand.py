@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,15 +23,14 @@ import copy
 import fnmatch
 
 from functools import reduce
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
 import six
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     InvalidCommandLineErrorOPTS, BootOrderMissingEntriesError,\
                     InvalidOrNothingChangedSettingsError
-
 
 class BootOrderCommand(RdmcCommandBase):
     """ Changes the boot order for the server that is currently logged in """
@@ -45,7 +44,7 @@ class BootOrderCommand(RdmcCommandBase):
                 'example: bootorder [5,4,3,2,1] --commit\n\n\tSetting partial' \
                 ' boot order is also supported.\n\tMissing entries are ' \
                 'concatenated at the end.\n\texample: bootorder [5] --commit\n\n\t' \
-                'You can also set the boot order using parial string matching.\n\t' \
+                'You can also set the boot order using partial string matching.\n\t' \
                 'example: bootorder NIC.*v4 HD* Generic.USB.1.1 --commit\n\n\tThis will set ' \
                 'All v4 NICs first, followed by all hard drives,\n\tfollowed by Generic.USB.1.1. ' \
                 'Everything not listed will be\n\tadded to the end of the boot order.' \
@@ -70,7 +69,7 @@ class BootOrderCommand(RdmcCommandBase):
                 'Continuous and one\n\ttime boot options".\n\n\t',\
             summary='Displays and sets the current boot order.',\
             aliases=['bootorder'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -84,7 +83,7 @@ class BootOrderCommand(RdmcCommandBase):
         """ Main boot order worker function """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -100,10 +99,27 @@ class BootOrderCommand(RdmcCommandBase):
 
             return ReturnCodes.SUCCESS
 
+        self._rdmc.app.select(selector="HpeServerBootSettings.", rel=True)
+
+        props = self._rdmc.app.getprops(skipnonsetting=False)
+
+        for prop in props:
+            bootname = prop.get('Name')
+
+            if 'current' in bootname.lower():
+                try:
+                    bootpath = prop.get('@odata.id')
+                except:
+                    bootpath = prop.get('links')
+            else:
+                bootpath = '/rest/v1/systems/1/bios/Boot'
+
+        bootsources = self._rdmc.app.get_handler(bootpath,\
+                        service=True, silent=True).dict['BootSources']
+
         bootoverride = None
         self.selobj.selectfunction("HpBios.")
-        bootmode = self.getobj.getworkerfunction("BootMode", options, \
-                                    results=True, uselist=True)
+        bootmode = self.getobj.getworkerfunction("BootMode", options, results=True, uselist=True)
 
         self.selobj.selectfunction("ComputerSystem.")
         onetimebootsettings = next(iter(self.getobj.getworkerfunction(\
@@ -122,14 +138,8 @@ class BootOrderCommand(RdmcCommandBase):
                             ['Boot/UefiTargetBootSourceOverride'], options, \
                             results=True, uselist=True)), None)
 
-        currentsettings = self._rdmc.app.get_handler(\
-                                            self.typepath.defs.systempath, \
-                                            verbose=self._rdmc.opts.verbose, \
+        currentsettings = self._rdmc.app.get_handler(self.typepath.defs.systempath, \
                                             service=True, silent=True)
-        bootsources = self._rdmc.app.get_handler(\
-                                '/rest/v1/systems/1/bios/Boot', \
-                                verbose=self._rdmc.opts.verbose,\
-                                service=True, silent=True).dict['BootSources']
 
         if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
             #Gen 9
@@ -159,13 +169,11 @@ class BootOrderCommand(RdmcCommandBase):
                                                                     not options.disablebootflag:
             self.selobj.selectfunction("HpServerBootSettings.")
             bootsettings = next(iter(self.getobj.getworkerfunction(\
-                          "PersistentBootConfigOrder", options, results=True, \
-                          uselist=True)), None)
+                          "PersistentBootConfigOrder", options, results=True, uselist=True)), None)
 
             if not args:
                 self.print_out_boot_order(bootsettings, onetimebootsettings, \
-                  uefionetimebootsettings, bootmode, bootsources, bootstatus, \
-                                                                targetstatus)
+                  uefionetimebootsettings, bootmode, bootsources, bootstatus, targetstatus)
             elif len(args) == 1 and args[0][0] == '[':
                 bootlist = args[0][1:-1].split(",")
                 currentlist = bootsettings["PersistentBootConfigOrder"]
@@ -334,7 +342,7 @@ class BootOrderCommand(RdmcCommandBase):
                             self._rdmc.app.patch_handler(self.typepath.defs.systempath, \
                                                 {"Boot": {"UefiTargetBootSourceOverride": entry}},\
                                                 silent=True, service=True)
-                            self._rdmc.app.select(selector=self._rdmc.app.get_selector(), rel=True)
+                            self._rdmc.app.select(selector=self._rdmc.app.selector, rel=True)
                             newlist = ""
                             newlist += bootoverride
                     else:
@@ -469,21 +477,19 @@ class BootOrderCommand(RdmcCommandBase):
             sys.stdout.write('Current one time boot: {0}\n\n'.format(boottoval))
 
         if onetimecontent is None:
-            raise BootOrderMissingEntriesError("No entries found for one" \
-                                                " time boot options.\n\n")
+            raise BootOrderMissingEntriesError("No entries found for one time boot options.\n\n")
         else:
             self.print_boot_helper(onetimecontent["Boot"], \
                                    "Continuous and one time boot options:")
 
-        if bootmode and any([boot.get("BootMode", None)=="Uefi" for boot in bootmode]):
+        if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
             if uefionetimecontent is None:
                 sys.stdout.write("Continuous and one time boot uefi options:\n")
                 sys.stdout.write("No entries found for one-time UEFI options or boot source mode "\
                                  "is not set to UEFI.")
             else:
                 self.print_boot_helper(uefionetimecontent["Boot"], \
-                           "Continuous and one time boot uefi options:",\
-                           bootsources=bootsources)
+                           "Continuous and one time boot uefi options:", bootsources=bootsources)
 
     def print_boot_helper(self, content, outstring, indent=0, bootsources=None):
         """ Print boot helper
@@ -542,28 +548,24 @@ class BootOrderCommand(RdmcCommandBase):
         if self._rdmc.app.config._ac__commit.lower() == 'true':
             options.commit = True
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
-
+            client = self._rdmc.app.current_client
             if options.biospassword:
-                self._rdmc.app.update_bios_password(options.biospassword)
+                client.bios_password = options.biospassword
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -571,6 +573,8 @@ class BootOrderCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -584,29 +588,9 @@ class BootOrderCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
@@ -614,7 +598,7 @@ class BootOrderCommand(RdmcCommandBase):
             " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--onetimeboot',
             dest='onetimeboot',
             help="Use this flag to configure a one-time boot option."\
@@ -622,7 +606,7 @@ class BootOrderCommand(RdmcCommandBase):
             " only on the very next time the server is booted.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--continuousboot',
             dest='continuousboot',
             help="Use this flag to enable a continuous boot option. Using"\
@@ -630,15 +614,14 @@ class BootOrderCommand(RdmcCommandBase):
             " device every time the system boots.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--disablebootflag',
             dest='disablebootflag',
             action="store_true",
-            help="Use this to disable either continuous or"\
-            " one-time boot modes.",
+            help="Use this to disable either continuous or one-time boot modes.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--securebootkeys',
             dest='secureboot',
             help="Use this flag to perform actions on secure boot keys."\
@@ -646,7 +629,7 @@ class BootOrderCommand(RdmcCommandBase):
             "deletekeys: deletes all keys, deletepk: deletes all product keys.",
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--commit',
             dest='commit',
             action="store_true",
@@ -658,7 +641,7 @@ class BootOrderCommand(RdmcCommandBase):
             " server is started.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--reboot',
             dest='reboot',
             help="Use this flag to perform a reboot command function after"\
@@ -666,20 +649,12 @@ class BootOrderCommand(RdmcCommandBase):
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--ignorematcherror',
             dest='ime',
             action="store_true",
             help="Use this flag when you want to run multiple matches and "\
-            "not throw error in case there are no matches found for given "\
+            "not throw an error in case there are no matches found for given "\
             "expression.",
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

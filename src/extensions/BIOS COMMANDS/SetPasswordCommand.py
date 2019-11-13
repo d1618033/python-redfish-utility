@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 import sys
 import getpass
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
 
@@ -39,9 +39,9 @@ class SetPasswordCommand(RdmcCommandBase):
                 ' newpassword oldpassword --poweron\n\n\tNOTE: please make sure' \
                 ' the order of passwords is maintained.\n\tThe passwords are' \
                 ' extracted base on their position in the arguments list.', \
-            summary='Sets the admin password and poweron password',\
+            summary='Sets the admin password and power-on password',\
             aliases=None,\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -60,7 +60,7 @@ class SetPasswordCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -102,7 +102,7 @@ class SetPasswordCommand(RdmcCommandBase):
 
         if self.typepath.defs.isgen10:
             bodydict = self._rdmc.app.get_handler(self.typepath.defs.biospath,\
-                verbose=self._rdmc.opts.verbose, service=True, silent=True).dict
+                service=True, silent=True).dict
 
             for item in bodydict['Actions']:
                 if 'ChangePassword' in item:
@@ -144,25 +144,22 @@ class SetPasswordCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -170,6 +167,8 @@ class SetPasswordCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -186,29 +185,9 @@ class SetPasswordCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--reboot',
             dest='reboot',
             help="Use this flag to perform a reboot command function after "\
@@ -217,18 +196,10 @@ class SetPasswordCommand(RdmcCommandBase):
                 "descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--poweron',
             dest='poweron',
             action="store_true",
             help="""Use this flag to set power on password instead""",
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

@@ -1,5 +1,5 @@
 # ##
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import sys
 import json
 
 from six.moves import input
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from rdmc_base_classes import RdmcCommandBase
 
@@ -42,7 +42,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
             'components before running for best results.',\
             summary='Creates install sets for iLO.',\
             aliases=['MInstallset'], \
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -68,7 +68,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -181,14 +181,14 @@ class MakeInstallSetCommand(RdmcCommandBase):
             body = {"Name":installsetname, "Description":description, \
                     "IsRecovery":isrecovery, "Sequence":totcomps}
 
-            sys.stdout.write(str(json.dumps(body, indent=2))+'\n')
+            sys.stdout.write(str(json.dumps(body, indent=2, sort_keys=True))+'\n')
 
             if options.filename:
                 filename = options.filename
             else:
                 filename = 'myinstallset.json'
             with open(filename, 'w') as outfile:
-                json.dump(body, outfile, indent=2)
+                json.dump(body, outfile, indent=2, sort_keys=True)
 
             sys.stdout.write("installset saved to %s\n" % filename)
 
@@ -245,7 +245,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
                          "been added to the installset:\n")
         for comp in self.comps:
             count += 1
-            sys.stdout.write("[%d] %s\n" % (count, comp['Name'].encode("ascii","ignore")))
+            sys.stdout.write("[%d] %s\n" % (count, comp['Name'].encode("ascii", "ignore")))
         while True:
             userinput = input("Select the number of the component you want to add to "\
                              "the install set: ")
@@ -265,7 +265,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
         """ makeinstallset validation function"""
 
         try:
-            _ = self._rdmc.app.get_current_client()
+            _ = self._rdmc.app.current_client
             loggedin = True
         except:
             loggedin = False
@@ -281,7 +281,7 @@ class MakeInstallSetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             '-f',
             '--filename',
             dest='filename',
@@ -289,5 +289,5 @@ class MakeInstallSetCommand(RdmcCommandBase):
             " filename than the default one. The default filename is" \
             " myinstallset.json",
             action="append",
-            default=None,
+            default=None
         )

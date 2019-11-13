@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import os
 import sys
 import json
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidFileFormattingError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, Encryption
 
@@ -39,7 +39,7 @@ class RawPatchCommand(RdmcCommandBase):
                     '"AssetTag": "NewAssetTag"\n\t    }\n\t}',\
             summary='Raw form of the PATCH command.',\
             aliases=['rawpatch'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -52,24 +52,16 @@ class RawPatchCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        url = None
         headers = {}
         results = None
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
-        if options.sessionid:
-            url = self.sessionvalidation(options)
-        else:
-            self.patchvalidation(options)
+        self.patchvalidation(options)
 
         contentsholder = None
         if len(args) == 1:
@@ -79,7 +71,7 @@ class RawPatchCommand(RdmcCommandBase):
 
             try:
                 inputfile = open(args[0], 'r')
-                contentsholder = json.loads(inputfile.read())                
+                contentsholder = json.loads(inputfile.read())
             except:
                 raise InvalidFileFormattingError("Input file '%s' was not " \
                                                  "format properly." % args[0])
@@ -106,12 +98,9 @@ class RawPatchCommand(RdmcCommandBase):
                 returnresponse = True
 
             results = self._rdmc.app.patch_handler(contentsholder["path"], \
-                  contentsholder["body"], verbose=self._rdmc.opts.verbose, \
-                  url=url, sessionid=options.sessionid, headers=headers, \
+                  contentsholder["body"], headers=headers, \
                   response=returnresponse, silent=options.silent, \
-                  optionalpassword=options.biospassword, is_redfish=self._rdmc.opts.is_redfish, \
-                  service=options.service, providerheader=options.providerid, \
-                  username=options.user, password=options.password)
+                  optionalpassword=options.biospassword, service=options.service)
         else:
             raise InvalidFileFormattingError("Input file '%s' was not format properly." % args[0])
 
@@ -134,23 +123,24 @@ class RawPatchCommand(RdmcCommandBase):
         inputline = list()
 
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
 
             if options.biospassword:
-                self._rdmc.app.update_bios_password(options.biospassword)
+                client.bios_password = options.biospassword
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -158,27 +148,10 @@ class RawPatchCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
             self.lobobj.loginfunction(inputline, skipbuild=True)
-
-    def sessionvalidation(self, options):
-        """ Raw patch session validation function
-
-        :param options: command line options
-        :type options: list.
-        """
-
-        url = None
-        if options.user or options.password or options.url:
-            if options.url:
-                url = options.url
-        else:
-            if self._rdmc.app.config.get_url():
-                url = self._rdmc.app.config.get_url()
-        if url and not "https://" in url:
-            url = "https://" + url
-
-        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -189,89 +162,48 @@ class RawPatchCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
-            '--sessionid',
-            dest='sessionid',
-            help="Optionally include this flag if you would prefer to "\
-            "connect using a session id instead of a normal login.",
-            default=None
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--silent',
             dest='silent',
             action="store_true",
             help="""Use this flag to silence responses""",
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--response',
             dest='response',
             action="store_true",
             help="Use this flag to return the iLO response body.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--getheaders',
             dest='getheaders',
             action="store_true",
             help="Use this flag to return the iLO response headers.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--headers',
             dest='headers',
             help="Use this flag to add extra headers to the request."\
             "\t\t\t\t\t Usage: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--service',
             dest='service',
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
             " flag if second-level BIOS authentication is needed for the"\
             " command to execute. This option is only used on Gen 9 systems.",
             default=None,
-        )
-        customparser.add_option(
-            '--providerid',
-            dest='providerid',
-            help="""Use this flag to pass in the provider id header""",
-            default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

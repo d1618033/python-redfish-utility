@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import os
 import re
 import sys
 import getpass
-import optparse
 import subprocess
 
 if os.name == 'nt':
@@ -221,118 +220,3 @@ class CLI(object):
         i = str(i)
 
         return i.strip()
-
-class ArgumentHolder(object):
-    """Data holder required for positional parameters"""
-    def __init__(self, args):
-        self.option_groups = []
-        self.option_list = args
-
-class PositionalArgument(optparse.Option):
-    """A work around for optparse's lack of support for positional arguments"""
-    def __init__(self, *opts, **attrs):
-        attrs['action'] = 'store_true'
-        optparse.Option.__init__(self, *opts, **attrs)
-
-    def prompt(self):
-        """Helper for prompt_password"""
-        if self.prompt_masked is None:
-            return None
-
-        return CLI.prompt_password(self.prompt_masked)
-
-class CustomOptionParser(optparse.OptionParser):
-    """An option parser with support for positional parameter help"""
-    optparse.Option.ATTRS.append('prompt_masked')
-    def __init__(self, usage=None, option_list=None, \
-                 option_class=optparse.Option, version=None, \
-                 conflict_handler="error", description=None, formatter=None, \
-                 add_help_option=True, prog=None, epilog=None, \
-                 argument_heading="Arguments"):
-
-        optparse.OptionParser.__init__(self, usage, option_list, option_class, \
-                                       version, conflict_handler, description, \
-                                       formatter, add_help_option, prog)
-
-        self._argument_heading = argument_heading
-        self._args = []
-        self._repattern = re.compile(r'^\s*\-+')
-
-    def format_help(self, formatter=None):
-        """Function to help format help.
-
-        :param formatter: formatter
-        :type formatter: formatter
-        """
-        argh = ArgumentHolder(self._args)
-
-        if formatter is None:
-            formatter = self.formatter
-
-        result = []
-        formatter.store_option_strings(argh)
-
-        if self.usage:
-            result.append(self.get_usage() + "\n")
-
-        if self.description:
-            result.append(self.format_description(formatter) + "\n")
-
-        if self._argument_heading:
-            result.append(formatter.format_heading(self._argument_heading))
-
-        if self._args:
-            result.append(self.format_argument_help(formatter))
-
-        result.append(self.format_option_help(formatter))
-        result.append(self.format_epilog(formatter))
-
-        return "".join(result)
-
-    def add_argument(self, argument):
-        """Add a positional argument.
-
-        :param argument: positional argument to add
-        :type argument: PositionalArgument object
-        """
-        self._args.append(argument)
-
-    def get_arguments(self):
-        """List of PostitionalArgument objects"""
-        return self._args
-
-    def format_argument_help(self, formatter):
-        """Function to help format argument help.
-
-        :param formatter: formatter
-        :type formatter: formatter
-        """
-        if not self._args:
-            return ""
-
-        result = []
-        for option in self._args:
-            if not option.help is optparse.SUPPRESS_HELP:
-                output = formatter.format_option(option)
-                output = self._repattern.sub('  ', output)
-                result.append(output)
-
-        return '%s\n' % "".join(result)
-
-    def get_usage(self):
-        """A usage generator with support for positional parameters"""
-        if self.usage:
-            usg = self.expand_prog_name(self.usage)
-
-            if self._args:
-                for arg in self._args:
-                    attrval = getattr(arg, 'prompt_masked')
-
-                    if attrval:
-                        continue
-
-                    usg += ' %s' % arg.metavar.replace('-', '')
-
-            return self.formatter.format_usage(usg)
-        else:
-            return ""

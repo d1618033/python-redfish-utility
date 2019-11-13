@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,57 +18,25 @@
 """ Factory Reset Controller Command for rdmc """
 
 import sys
-from collections import OrderedDict
 
-from optparse import OptionParser, SUPPRESS_HELP
-from six.moves import input
-
-from rdmc_base_classes import RdmcCommandBase
+from argparse import ArgumentParser
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
-
-def controller_parse(option, opt_str, value, parser):
-    """ Controller Option Parsing
-
-        :param option: command line option
-        :type option: attributes
-        :param opt_str: parsed option string
-        :type opt_str: string
-        :param value: parsed option value
-        :type value: attribute
-        :param parser: OptionParser instance
-        :type parser: object
-    """
-    setattr(parser.values, option.dest, [])
-    use_slot = False
-    use_indx = False
-    for _opt in value.split(','):
-        if _opt.isdigit() and not use_slot:
-            use_indx = True
-            parser.values.controller.append(int(_opt))
-        elif "slot" in _opt.lower() and not use_indx:
-            use_slot = True
-            parser.values.controller.append((_opt.replace('\"', '')).strip())
-        else:
-            raise InvalidCommandLineErrorOPTS("An invalid option or combination of options were " \
-                                              "used to specify a smart array controller.")
-    if use_indx:
-        parser.values.controller.sort()
 
 class FactoryResetControllerCommand(RdmcCommandBase):
     """ Factory reset controller command """
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='factoryresetcontroller',\
-            usage='factoryresetcontroller [OPTIONS]\n\n\tTo factory reset a controller ' \
+            usage='factoryresetcontroller [OPTIONS]\n\n\tRun without ' \
+                'arguments for the current controller options.\n\texample: ' \
+                'factoryresetcontroller\n\n\tTo factory reset a controller ' \
                 'by index.\n\texample: factoryresetcontroller --controller=2' \
-                '\n\tor by slot position.' \
-                '\n\texample: factoryresetcontroller --controller "Slot1" ' \
-                '\n\n\tTo factory reset all available smart array controllers' \
-                '\n\texample: factoryresetcontroller --all', \
+                '\n\texample: factoryresetcontroller --controller="Slot1" ',\
             summary='Factory resets a controller by index or location.',\
             aliases=['factoryresetcontroller'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -82,7 +50,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -91,61 +59,32 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         self.frcontrollervalidation(options)
 
         self.selobj.selectfunction("SmartStorageConfig.")
-        content = OrderedDict()
-        for controller in self._rdmc.app.getprops():
-            try:
-                content[int(controller.get('Location', None).split(' ')[-1])] = controller
-            except (AttributeError, KeyError):
-                pass
+        content = self._rdmc.app.getprops()
 
-        controldict = {}
-        use_slot = False
-        use_indx = False
+        if options.controller:
+            controllist = []
 
-        for _opt in options.controller:
-            found = False
-            for pos, control in enumerate(content):
-                if isinstance(_opt, int) and not use_slot:
-                    if pos == (_opt - 1):
-                        controldict[_opt] = content[control]
-                        found = True
-                        use_indx = True
-                elif _opt.lower() == content[control]["Location"].lower() and not use_indx:
-                    controldict[int(content[control]["Location"].split(' ')[-1])] = \
-                                                                                content[control]
-                    found = True
-                    use_slot = True
-                if found:
-                    break
-
-            if not found:
-                sys.stderr.write("\nController \'%s\' not found in the current inventory " \
-                                 "list.\n" % _opt)
-
-        if options.all:
-            controldict.update(content)
-
-        if not options.force:
-            while True:
-                if options.all:
-                    ans = input("Are you sure you would like to factory reset all available " \
-                                "smart array controllers? (y/n)\n")
-                else:
-                    ans = input("Are you sure you would like to factory reset controller(s): " \
-                                "\'%s\' ? (y/n)\n" % controldict.keys())
-                if ans.lower() == 'y':
-                    break
-                elif ans.lower() == 'n':
-                    sys.stdout.write("Aborting factory reset of controllers.\n")
-                    return None
-
-        for indx, controller in enumerate(controldict):
-            self._rdmc.app.patch_handler(controldict[controller]["@odata.id"], \
-                                         {"Actions": [{"Action": "FactoryReset"}], \
-                                          "DataGuard": "Disabled"})
-
-            sys.stdout.write("[%d]: %s - has been reset to factory defaults.\n" % (indx + 1, \
-                                                              controldict[controller]["Location"]))
+        try:
+            if options.controller.isdigit():
+                if int(options.controller) > 0:
+                    controllist.append(content[int(options.controller) - 1])
+            else:
+                slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
+                for control in content:
+                    if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                        controllist.append(control)
+            if not controllist:
+                raise InvalidCommandLineError("")
+        except InvalidCommandLineError:
+            raise InvalidCommandLineError("Selected controller not found in the current inventory "\
+                                          "list.")
+        for controller in controllist:
+            contentsholder = {"Actions": [{"Action": "FactoryReset"}], \
+                                                "DataGuard": "Disabled"}
+            self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
+        
+        for idx, val in enumerate(content):
+            sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -160,25 +99,22 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -186,6 +122,8 @@ class FactoryResetControllerCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline or not client:
             runlogin = True
@@ -194,9 +132,6 @@ class FactoryResetControllerCommand(RdmcCommandBase):
 
         if runlogin:
             self.lobobj.loginfunction(inputline)
-
-        if not options.all and not options.controller:
-            raise InvalidCommandLineErrorOPTS("Please specify a controller or use \'--all\'.")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -207,59 +142,12 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--controller',
             dest='controller',
-            action='callback',
-            callback=controller_parse,
-            help="""Use this flag to select the corresponding controller "\
-                 "using either the slot number or index.""",
-            type="string",
-            default=[],
-        )
-        customparser.add_option(
-            '--all',
-            dest='all',
-            help="""Use this flag to reset all available smart array controllers to factory """ \
-                 """defaults """,
-            action="store_true",
-            default=False,
-        )
-        customparser.add_option(
-            '--force',
-            dest='force',
-            help="""Use this flag to override the "are you sure?" text when """ \
-                 """clearing controller configuration.""",
-            action="store_true",
-            default=False,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help="""Use this flag to select the corresponding controller """\
+                """using either the slot number or index.""",
+            default=None,
         )

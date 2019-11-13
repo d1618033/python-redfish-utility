@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@
 import sys
 import json
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser, SUPPRESS
+
+from redfish.ris.utils import merge_dict
 
 from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
@@ -37,7 +39,7 @@ class StatusCommand(RdmcCommandBase):
             summary='Displays all pending changes within a selected type'\
                     ' that need to be committed.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
@@ -50,7 +52,7 @@ class StatusCommand(RdmcCommandBase):
         """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -58,7 +60,7 @@ class StatusCommand(RdmcCommandBase):
 
         self.statusvalidation(options)
         contents = self._rdmc.app.status()
-        selector = self._rdmc.app.get_selector()
+        selector = self._rdmc.app.selector
 
         if contents and options.json:
             self.jsonout(contents)
@@ -89,8 +91,8 @@ class StatusCommand(RdmcCommandBase):
                         [content["value"].strip('"\'')] if len(content["value"]) else [""]
                     cont = reduce(createdict, reversed([path]+content['path'].strip('/').\
                                   split('/')+val))
-                    self._rdmc.app.merge_dict(totdict, cont)
-        sys.stdout.write(json.dumps(totdict, indent=2))#, cls=JSONEncoder)
+                    merge_dict(totdict, cont)
+        sys.stdout.write(json.dumps(totdict, indent=2, sort_keys=True))#, cls=JSONEncoder)
         sys.stdout.write('\n')
 
     def outputpatches(self, contents, selector):
@@ -174,12 +176,7 @@ class StatusCommand(RdmcCommandBase):
             options.password = Encryption.decode_credentials(options.password)
 
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             raise NoCurrentSessionEstablished("Please login and make setting" \
                                       " changes before using status command.")
@@ -192,23 +189,23 @@ class StatusCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
+        customparser.add_argument(
             '-u',
             '--user',
             dest='user',
             help="Pass this flag along with the password flag if you are"\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-p',
             '--password',
             dest='password',
             help="Pass this flag along with the username flag if you are"\
             "running in local higher security modes.""",
-            default=None,
+            default=None
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -218,11 +215,11 @@ class StatusCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-e',
             '--enc',
             dest='encode',
             action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
+            help=SUPPRESS,
+            default=False
         )

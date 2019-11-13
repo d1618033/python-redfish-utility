@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
 
 # -*- coding: utf-8 -*-
 """ List Command for RDMC """
-from optparse import OptionParser, SUPPRESS_HELP
+
+from argparse import ArgumentParser
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidCommandLineError, \
                         Encryption
 
@@ -38,7 +39,7 @@ class ListCommand(RdmcCommandBase):
                     ' property(ies) within a selected type including'\
                     ' reserved properties.',\
             aliases=['ls'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -53,7 +54,7 @@ class ListCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -90,25 +91,22 @@ class ListCommand(RdmcCommandBase):
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -116,6 +114,8 @@ class ListCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline and options.selector:
             if options.includelogs:
@@ -138,7 +138,7 @@ class ListCommand(RdmcCommandBase):
         else:
             try:
                 inputline = list()
-                selector = self._rdmc.app.get_selector()
+                selector = self._rdmc.app.selector
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
@@ -148,7 +148,7 @@ class ListCommand(RdmcCommandBase):
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except InvalidCommandLineErrorOPTS:
+            except redfish.ris.NothingSelectedError:
                 raise redfish.ris.NothingSelectedError
 
     def definearguments(self, customparser):
@@ -160,36 +160,9 @@ class ListCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
-            '--includelogs',
-            dest='includelogs',
-            action="store_true",
-            help="Optionally include logs in the data retrieval process.",
-            default=False,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser, full=True)
+
+        customparser.add_argument(
             '--selector',
             dest='selector',
             help="Optionally include this flag to select a type to run"\
@@ -199,7 +172,7 @@ class ListCommand(RdmcCommandBase):
               " you currently have selected.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--filter',
             dest='filter',
             help="Optionally set a filter value for a filter attribute."\
@@ -212,7 +185,7 @@ class ListCommand(RdmcCommandBase):
             "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -222,7 +195,7 @@ class ListCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--logout',
             dest='logout',
             action="store_true",
@@ -231,29 +204,11 @@ class ListCommand(RdmcCommandBase):
             " not logged in will have no effect",
             default=None,
         )
-        customparser.add_option(
-            '--path',
-            dest='path',
-            help="Optionally set a starting point for data collection during login."\
-            " If you do not specify a starting point, the default path"\
-            " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login. Warning: Only for advanced users, and generally "\
-            "not needed for normal operations.",
-            default=None,
-        )
-        customparser.add_option(
+        customparser.add_argument(
             '--refresh',
             dest='ref',
             action="store_true",
             help="Optionally reload the data of selected type and clear "\
                                             "patches from current selection.",
-            default=False,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
             default=False,
         )

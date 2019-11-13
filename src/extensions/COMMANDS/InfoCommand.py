@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,14 @@
 
 import sys
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
 import redfish.ris
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, InfoMissingEntriesError,\
                         Encryption
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group
 
 class InfoCommand(RdmcCommandBase):
     """ Constructor """
@@ -42,7 +42,7 @@ class InfoCommand(RdmcCommandBase):
                     'are available for info command\n\texample: info',\
             summary='Displays detailed information about a property within a selected type.',\
             aliases=[],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -59,7 +59,7 @@ class InfoCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -69,13 +69,14 @@ class InfoCommand(RdmcCommandBase):
 
         if args:
             for item in args:
-                if self._rdmc.app.get_selector().lower().startswith('bios.') \
+                if self._rdmc.app.selector.lower().startswith('bios.') \
                                         and not 'attributes' in item.lower():
                     if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
                         item = "Attributes/" + item
 
-                outdata = self._rdmc.app.info(selector=item, dumpjson=options.json, \
-                                                                latestschema=options.latestschema)
+                outdata = self._rdmc.app.info(props=item, dumpjson=options.json, \
+                                                latestschema=options.latestschema)
+
                 if autotest:
                     return outdata
                 if outdata and options.json:
@@ -91,7 +92,7 @@ class InfoCommand(RdmcCommandBase):
                         sys.stdout.write("\n************************************"\
                                      "**************\n")
         else:
-            results = sorted(self._rdmc.app.info(selector=None,\
+            results = sorted(self._rdmc.app.info(props=None,\
                    ignorelist=HARDCODEDLIST, latestschema=options.latestschema))
 
             if results and autotest:
@@ -125,25 +126,22 @@ class InfoCommand(RdmcCommandBase):
         if self._rdmc.app.config._ac__format.lower() == 'json':
             options.json = True
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -151,6 +149,8 @@ class InfoCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline and options.selector:
             if options.includelogs:
@@ -171,7 +171,7 @@ class InfoCommand(RdmcCommandBase):
         else:
             try:
                 inputline = list()
-                selector = self._rdmc.app.get_selector()
+                selector = self._rdmc.app.selector
                 if options.includelogs:
                     inputline.extend(["--includelogs"])
                 if options.path:
@@ -179,7 +179,7 @@ class InfoCommand(RdmcCommandBase):
 
                 inputline.extend([selector])
                 self.selobj.selectfunction(inputline)
-            except InvalidCommandLineErrorOPTS:
+            except redfish.ris.NothingSelectedError:
                 raise redfish.ris.NothingSelectedError
 
     def definearguments(self, customparser):
@@ -190,36 +190,10 @@ class InfoCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
-            '--includelogs',
-            dest='includelogs',
-            action="store_true",
-            help="Optionally include logs in the data retrieval process.",
-            default=False,
-        )
-        customparser.add_option(
+
+        add_login_arguments_group(customparser, full=True)
+
+        customparser.add_argument(
             '--selector',
             dest='selector',
             help="Optionally include this flag to select a type to run"\
@@ -229,7 +203,7 @@ class InfoCommand(RdmcCommandBase):
               " you currently have selected.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -239,7 +213,7 @@ class InfoCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--logout',
             dest='logout',
             action="store_true",
@@ -248,17 +222,7 @@ class InfoCommand(RdmcCommandBase):
             " not logged in will have no effect",
             default=None,
         )
-        customparser.add_option(
-            '--path',
-            dest='path',
-            help="Optionally set a starting point for data collection during login."\
-            " If you do not specify a starting point, the default path"\
-            " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login. Warning: Only for advanced users, and generally "\
-            "not needed for normal operations.",
-            default=None,
-        )
-        customparser.add_option(
+        customparser.add_argument(
             '--latestschema',
             dest='latestschema',
             action='store_true',
@@ -266,12 +230,4 @@ class InfoCommand(RdmcCommandBase):
             "requested by the file. Note: May cause errors in some data "\
             "retrieval due to difference in schema versions.",
             default=None
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

@@ -1,5 +1,5 @@
 # ##
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,13 @@
 import os
 import sys
 import json
-import random
 import shutil
 import zipfile
+import tempfile
 
-from optparse import OptionParser, SUPPRESS_HELP
-from string import ascii_lowercase
+from argparse import ArgumentParser
 
-
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption, \
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
@@ -48,6 +46,8 @@ def _get_comp_type(payload):
     else:
         for device in payload['Devices']['Device']:
             for image in device['FirmwareImages']:
+                if 'DirectFlashOk' not in image.keys():
+                    raise InvalidFileInputError("Cannot flash this firmware.")
                 if image['DirectFlashOk']:
                     ctype = 'A'
                     if image['ResetRequired']:
@@ -74,7 +74,7 @@ class FwpkgCommand(RdmcCommandBase):
               'component.fwpkg --ignorechecks',\
             summary='Flashes fwpkg components using the iLO repository.',\
             aliases=['Fwpkg'], \
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -92,7 +92,7 @@ class FwpkgCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -194,17 +194,14 @@ class FwpkgCommand(RdmcCommandBase):
         files = []
         imagefiles = []
         payloaddata = None
-        tempfoldername = ''.join(random.choice(ascii_lowercase) for i in range(12))
+        tempdir = tempfile.mkdtemp()
 
-        tempdir = os.path.join(self._rdmc.app.config.get_cachedir(), tempfoldername)
-        if not os.path.exists(tempdir):
-            os.makedirs(tempdir)
         try:
             zfile = zipfile.ZipFile(pkgfile)
             zfile.extractall(tempdir)
             zfile.close()
-        except:
-            raise InvalidFileInputError("Unable to unpack file.")
+        except Exception as excp:
+            raise InvalidFileInputError("Unable to unpack file. " + str(excp))
 
         files = os.listdir(tempdir)
 
@@ -265,7 +262,7 @@ class FwpkgCommand(RdmcCommandBase):
         for component in components:
             taskqueuecommand = ' create %s ' % os.path.basename(component)
             if options.tover:
-                taskqueuecommand = ' create %s --tpmover' % component
+                taskqueuecommand = ' create %s --tpmover' % os.path.basename(component)
             if component.endswith('.fwpkg') or component.endswith('.zip'):
                 uploadcommand = '--component %s' % component
             else:
@@ -311,12 +308,8 @@ class FwpkgCommand(RdmcCommandBase):
         inputline = list()
         client = None
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
+            client = self._rdmc.app.current_client
             if options.user and options.password:
                 if not client.get_username():
                     client.set_username(options.user)
@@ -327,9 +320,15 @@ class FwpkgCommand(RdmcCommandBase):
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -337,6 +336,8 @@ class FwpkgCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if not inputline and not client:
             sys.stdout.write('Local login initiated...\n')
@@ -352,29 +353,9 @@ class FwpkgCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--forceupload',
             dest='forceupload',
             action="store_true",
@@ -382,7 +363,7 @@ class FwpkgCommand(RdmcCommandBase):
                     'already on the repository.',
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--ignorechecks',
             dest='ignore',
             action="store_true",
@@ -390,19 +371,11 @@ class FwpkgCommand(RdmcCommandBase):
                     'before attempting to process the .fwpkg file.',
             default=False,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--tpmover',
             dest='tover',
             action="store_true",
             help="If set then the TPMOverrideFlag is passed in on the "\
             "associated flash operations",
             default=False
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

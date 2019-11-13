@@ -59,7 +59,7 @@ EthernetInterface.v1_4_1(/redfish/v1/Managers/1/EthernetInterfaces/2/) (Currentl
 --filter [FILTER_PROPERTY=FILTER_VALUE]
 
 #### Description
-If there is more than one instance of a Type on the system, when you select it, the `filter` option can be used to narrow down the results. With this narrowed result, you can set specific instance properties, list specific instance properties, or get specific instance properties.
+If there is more than one instance of a type on the system, when you select it, the `filter` option can be used to narrow down the results. With this narrowed result, you can set specific instance properties, list specific instance properties, or get specific instance properties.
 
 <aside class="notice"> The filter option can be used in the get, list, and set commands.</aside>
 

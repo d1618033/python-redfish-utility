@@ -13,7 +13,6 @@ iLOrest > <font color="#01a982">rawpatch rawpatch.json</font>
 The operation completed successfully.
 </pre>
 
-
 > The following **rawpatch.json** file was used in the above example:
 
 ```json
@@ -25,8 +24,6 @@ The operation completed successfully.
 }
 
 ```
-
-
 
 #### Syntax
 
@@ -55,23 +52,7 @@ Include the filename to use the data in the input file to send the patch. See th
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+Including the help flag will display help for the command.
 
 - **--silent**
 
@@ -97,13 +78,30 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 <aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
-- **--providerid=PROVIDERID**
-
-Use to pass in the provider ID header.
-
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -122,7 +120,7 @@ None
 > To get the complete JSON response directly from the URI requested run the command specifying a URI to retrieve.
 
 <pre>
-LOrest > <font color="#01a982">rawget /redfish/v1/systems/1</font>
+iLOrest > <font color="#01a982">rawget /redfish/v1/systems/1</font>
 [200] The operation completed successfully.
 {
   "BiosVersion": "U32 v2.10 (12/14/2018)",
@@ -233,19 +231,7 @@ Pass the path to the `rawget` command to point it at a location.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--response**
 
@@ -265,10 +251,6 @@ Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 Use this flag to silence responses
 
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
-
 - **-f FILENAME, --filename=FILENAME**
 
  Write results to the specified file.
@@ -284,6 +266,27 @@ Use this flag to enable service mode and increase the function speed.
 - **--expand**
 
 Use this flag to expand the path specified using the expand notation '?$expand=.'
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -302,7 +305,7 @@ If you include the `filename` flag, this command will return an output file of t
 > To directly post to a URI with JSON data run the command supplying a filename with a json payload.
 
 <aside class="notice">
-If a full path is not given, the tool searches for the file where the RESTful Interface Tool is started.
+If a full path is not given, the tool searches for the file where the RESTful Interface Tool is initiated.
 </aside>
 
 <pre>
@@ -352,19 +355,7 @@ Include the filename to send a post from the data included in this input file. A
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Including the help flag will display help for the command.
 
 - **--response**
 
@@ -384,17 +375,30 @@ Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 Use this flag to silence responses.
 
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
-
-- **--providerid=PROVIDERID**
-
-Use to pass in the provider ID header.
-
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -461,15 +465,7 @@ Include the filename to send a PUT from the data included in this input file. Ex
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+Including the help flag will display help for the command.
 
 - **--response**
 
@@ -489,27 +485,36 @@ Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 Use this flag to silence responses.
 
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
 - **--biospassword=BIOSPASSWORD**
 
 Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
 
 <aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
-- **--providerid=PROVIDERID**
-
-Use to pass in the provider ID header.
-
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -550,31 +555,32 @@ Pass in the path to point the HTTP RESTful DELETE command.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
-- **-u User, --user=USER**
+- **--service**
 
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
+Use this flag to enable service mode and increase the function speed.
 
-- **-p Password, --password=PASSWORD**
+#### Login Parameters
 
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+The following parameters can be included to login to a server in the same line as the command is run.
 
 - **--url=URL**
 
 If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
 
-- **--providerid=PROVIDERID**
+- **-u User, --user=USER**
 
-Use to pass in the provider ID header.
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
 
-- **--sessionid=SESSIONID**
+- **-p Password, --password=PASSWORD**
 
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--service**
+- **--https**
 
-Use this flag to enable service mode and increase the function speed.
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -622,31 +628,15 @@ Pass in the path to point the HTTP RESTful HEAD command.
 
 - **-h, --help**
 
-Including the help flag on this command will display help on the usage of this command.
+Including the help flag will display help for the command.
 
 - **-f, --filename=Filename**
 
 Include the filename to perform the current operation.
 
-- **-u User, --user=USER**
-
-If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
 - **--silent**
 
 Use this flag to silence responses.
-
-- **--sessionid=SESSIONID**
-
-Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
 - **-f FILENAME, --filename=FILENAME**
 
@@ -655,6 +645,27 @@ Optionally include this flag if you would prefer to connect using a session id i
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect 
+securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
@@ -665,5 +676,3 @@ None
 File
 
 If you specify the `filename` flag, the `rawhead` command will output a file containing the information retrieved when performing the `rawhead` command.
-
-

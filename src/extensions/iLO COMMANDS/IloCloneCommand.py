@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,13 @@ import time
 import getpass
 import redfish.ris
 
-from six.moves import input
 from collections import (OrderedDict)
-from six.moves.urllib.request import urlopen
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from six.moves import input
+from six.moves.urllib.request import urlopen
+
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError,\
                     InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
                     InvalidFileInputError, NoContentsFoundForOperationError, \
@@ -56,7 +57,7 @@ class IloCloneCommand(RdmcCommandBase):
             summary='Clone the iLO config of the currently logged in server ' \
                 'and copy it to the server in the arguments.',\
             aliases=['iloclone'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -75,7 +76,7 @@ class IloCloneCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -84,9 +85,9 @@ class IloCloneCommand(RdmcCommandBase):
                          "in a future release. Please use the \'serverclone\' command instead.\n")
         self.clonevalidation(options)
 
-        isredfish = self._rdmc.app.current_client.monolith.is_redfish
-        hrefstring = self._rdmc.app.current_client.monolith._hrefstring
-        typestring = self._rdmc.app.current_client.monolith._typestring
+        isredfish = self._rdmc.app.monolith.is_redfish
+        hrefstring = self.typepath.defs.hrefstring
+        typestring = self.typepath.defs.typestring
 
         if not self.typepath.flagiften:
             raise IncompatibleiLOVersionError("iloclone command is only " \
@@ -161,7 +162,7 @@ class IloCloneCommand(RdmcCommandBase):
 
         self.selobj.run(self.typepath.defs.resourcedirectorytype)
 
-        for item in self._rdmc.app.current_client.monolith.iter(self.\
+        for item in self._rdmc.app.monolith.iter(self.\
                                         typepath.defs.resourcedirectorytype):
             respobj = item.resp.obj
             break
@@ -258,7 +259,7 @@ class IloCloneCommand(RdmcCommandBase):
          :type testing: bool
          """
         clone = self.load_clone(myfile, options)
-        if self._rdmc.app.current_client.get_base_url() == "blobstore://.":
+        if self._rdmc.app.current_client.base_url == "blobstore://.":
             logininfo = ""
             ping = True
         elif options.url and options.user and options.password:
@@ -427,7 +428,7 @@ class IloCloneCommand(RdmcCommandBase):
         if delete2:
             try:
                 self.json_traversal_delete(data=body)
-                    
+
             except Exception as exp:
                 sys.stdout.write("An exception occured while processing.\n")
 
@@ -563,14 +564,13 @@ class IloCloneCommand(RdmcCommandBase):
 
         if dhcpsettingsv4['UseWINSServers']:
             del v4vals['WINSServers']
-        
+
         #if the ClientIDType is custom and we are missing the ClientID then this property can
         #not be set.
         if 'ClientIdType' in dhcpsettingsv4.keys():
             if dhcpsettingsv4['ClientIdType'] == 'Custom' and 'ClientID' not in \
                                                                             dhcpsettingsv4.keys():
                 del data['Oem'][self.typepath.defs.oemhp]['DHCPv4']['ClientIdType']
-            
 
         if data['AutoNeg'] or data['AutoNeg'] is None:
             del data['FullDuplex']
@@ -681,7 +681,7 @@ class IloCloneCommand(RdmcCommandBase):
         :type testing: bool
         """
 
-        typestr = self._rdmc.app.current_client.monolith._hrefstring
+        typestr = self.typepath.defs.hrefstring
         newaccounts = {'Members': []}
         data = []
 
@@ -736,7 +736,7 @@ class IloCloneCommand(RdmcCommandBase):
         :param testing: flag for automatic testing
         :type testing: bool
         """
-        typestr = self._rdmc.app.current_client.monolith._hrefstring
+        typestr = self.typepath.defs.hrefstring
         federations = []
 
         if 'Members' in data:
@@ -989,34 +989,31 @@ class IloCloneCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
                 if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", \
-                                  self._rdmc.app.config.get_username()])
+                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", \
-                                  self._rdmc.app.config.get_password()])
+                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline:
             self.loginobj.loginfunction(inputline)
@@ -1032,29 +1029,10 @@ class IloCloneCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '-f',
             '--filename',
             dest='filename',
@@ -1063,7 +1041,7 @@ class IloCloneCommand(RdmcCommandBase):
             " clone.json.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--ssocert',
             dest='ssocert',
             help="Use this flag during iloclone save if you wish to import a SSO"\
@@ -1071,7 +1049,7 @@ class IloCloneCommand(RdmcCommandBase):
             "URL to be used to the working directory before running clone load.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--httpscert',
             dest='httpscert',
             help="Use this flag during iloclone save if you wish to import a SSO"\
@@ -1079,7 +1057,7 @@ class IloCloneCommand(RdmcCommandBase):
             " be used to the working directory before running clone load.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--uniqueitemoverride',
             dest='uniqueoverride',
             action='store_false',
@@ -1087,18 +1065,10 @@ class IloCloneCommand(RdmcCommandBase):
             "over items that are system unique.",
             default=True
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--encryption',
             dest='encryption',
             help="Optionally include this flag to encrypt/decrypt a file "\
             "using the key provided.",
             default=None
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

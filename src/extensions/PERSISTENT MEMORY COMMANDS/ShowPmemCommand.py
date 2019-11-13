@@ -20,11 +20,11 @@ from __future__ import absolute_import, division
 
 import re
 import sys
-from optparse import OptionParser
+from argparse import ArgumentParser, REMAINDER, Action
 
 from enum import Enum
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     NoContentsFoundForOperationError, LOGGER
 
 from .lib.DisplayHelpers import DisplayHelpers, OutputFormats
@@ -33,6 +33,19 @@ from .lib.MapperRenderers import MappingTable
 from .lib.PmemHelpers import PmemHelpers
 from .lib.RestHelpers import RestHelpers
 
+
+class _ParseOptionsList(Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(_ParseOptionsList, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_strings):
+        """
+        Callback to parse a comma-separated list into an array.
+        Then store the array in the option's destination
+        """
+        try:
+            setattr(namespace, self.dest, next(iter(values)).split(","))
+        except:
+            raise InvalidCommandLineError("Values in a list must be separated by a comma.")
 
 class DefaultAttributes(Enum):
     """
@@ -75,7 +88,7 @@ class ShowPmemCommand(RdmcCommandBase):
                                        "Persistent Memory modules \n\texample: showpmm --device",
                                  summary="Display information about Persistent Memory modules.",
                                  aliases=["showpmm"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
@@ -137,7 +150,7 @@ class ShowPmemCommand(RdmcCommandBase):
         # Call 'show_pmem_module_device()' when either the user specifies '--device' flag
         # or specifies no flag at all
         if (not options.device and not options.config and not options.logical
-            and not options.summary) or options.device:
+                and not options.summary) or options.device:
             self.show_pmem_module_device(selected_pmem_members, options)
 
         elif options.config:
@@ -266,7 +279,7 @@ class ShowPmemCommand(RdmcCommandBase):
         LOGGER.info("PMM: %s", self.name)
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -331,18 +344,6 @@ class ShowPmemCommand(RdmcCommandBase):
                 if not re.match(r"^[1-9]\@([1-9]|[1]\d)$", dimm_id):
                     raise InvalidCommandLineError(error_dimm_range)
 
-    @staticmethod
-    # pylint: disable=unused-argument
-    def parse_options_list(option, opt, value, parser):
-        """
-        Callback to parse a comma-separated list into an array.
-        Then store the array in the option's destination
-        """
-        try:
-            setattr(parser.values, option.dest, value.split(","))
-        except:
-            raise InvalidCommandLineError("Values in a list must be separated by a comma.")
-
     def definearguments(self, customparser):
         """
         Wrapper function for new command main function
@@ -352,7 +353,7 @@ class ShowPmemCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             "-j",
             "--json",
             action="store_true",
@@ -361,7 +362,7 @@ class ShowPmemCommand(RdmcCommandBase):
             default=False
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-D",
             "--device",
             action="store_true",
@@ -373,7 +374,7 @@ class ShowPmemCommand(RdmcCommandBase):
                  " the --dimm flag."
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-C",
             "--config",
             action="store_true",
@@ -385,7 +386,7 @@ class ShowPmemCommand(RdmcCommandBase):
                  " the --dimm flag."
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-L",
             "--logical",
             action="store_true",
@@ -394,7 +395,7 @@ class ShowPmemCommand(RdmcCommandBase):
             help="Show the Persistent Memory Regions."
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-M",
             "--summary",
             action="store_true",
@@ -403,15 +404,15 @@ class ShowPmemCommand(RdmcCommandBase):
             help="Show the summary of the persistent memory resources."
         )
 
-        customparser.add_option(
+        customparser.add_argument(
             "-I",
             "--dimm",
-            type="string",
-            action="callback",
+            type=str,
+            action=_ParseOptionsList,
             metavar="IDLIST",
-            callback=self.parse_options_list,
+            nargs=1,
             dest="dimm",
             help=" To view specific devices, supply a comma-separated list"
-                 " of DIMM IDs in the format P@S,"
+                 " of DIMM IDs in the format P@S (without spaces),"
                  " where P=processor and S=slot. Example: '1@1,1@12'"
         )

@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import gzip
 import base64
 
 from datetime import datetime
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
 import six
 
@@ -34,7 +34,7 @@ from six import StringIO
 
 import redfish
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
                     InvalidFileFormattingError, UnableToDecodeError, Encryption, \
                     PathUnavailableError, InvalidFileInputError, NoContentsFoundForOperationError
@@ -60,7 +60,7 @@ class IPProfilesCommand(RdmcCommandBase):
                     'and starts it.\n\texample: ipprofiles --start=<profile ID>',\
             summary='This is used to manage hpeipprofile data store.',\
             aliases=['ipprofiles'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -82,7 +82,7 @@ class IPProfilesCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -145,10 +145,11 @@ class IPProfilesCommand(RdmcCommandBase):
                     if result is not None:
                         j2python[val] = result
 
-            results.read = json.dumps(j2python, ensure_ascii=False)
+            results.read = json.dumps(j2python, ensure_ascii=False, sort_keys=True)
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder)
+                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder, \
+                                        sort_keys=True)
 
                     filehndl = open(options.filename[0], "w")
                     filehndl.write(output)
@@ -373,7 +374,7 @@ class IPProfilesCommand(RdmcCommandBase):
         """
 
         get_results = self._rdmc.app.get_handler(self.path,\
-                verbose=self._rdmc.opts.verbose, silent=True)
+                silent=True)
 
         j2python = json.loads(get_results.read)
         copy_job = {}
@@ -398,8 +399,7 @@ class IPProfilesCommand(RdmcCommandBase):
         payload["path"] = self.ipjobs
         payload["body"] = copy_job
 
-        self._rdmc.app.put_handler(payload["path"], payload["body"],\
-              verbose=self._rdmc.opts.verbose)
+        self._rdmc.app.put_handler(payload["path"], payload["body"])
 
     def inipstate(self, ipprovider):
         """
@@ -411,7 +411,7 @@ class IPProfilesCommand(RdmcCommandBase):
 
         if ipprovider.startswith('/redfish/'):
             get_results = self._rdmc.app.get_handler(ipprovider,\
-                verbose=self._rdmc.opts.verbose, silent=True)
+                silent=True)
             result = json.loads(get_results.read)
 
             is_inip = None
@@ -433,7 +433,7 @@ class IPProfilesCommand(RdmcCommandBase):
         """
 
         results = self._rdmc.app.get_handler(self.path,\
-                verbose=self._rdmc.opts.verbose, silent=True)
+                silent=True)
 
         j2python = json.loads(results.read)
         for _, val in enumerate(j2python.keys()):
@@ -459,7 +459,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return is_provider: None or string.
         """
         get_results = self._rdmc.app.get_handler(self.syspath, \
-                verbose=self._rdmc.opts.verbose, silent=True)
+                silent=True)
 
         result = json.loads(get_results.read)
 
@@ -480,25 +480,22 @@ class IPProfilesCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            _ = self._rdmc.app.get_current_client()
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -506,6 +503,8 @@ class IPProfilesCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
             self.lobobj.loginfunction(inputline)
 
@@ -542,16 +541,14 @@ class IPProfilesCommand(RdmcCommandBase):
         if filename:
             if not os.path.isfile(filename):
                 raise InvalidFileInputError("File '%s' doesn't exist. "\
-                    "Please create file by running 'save' command."\
-                     % filename)
+                    "Please create file by running 'save' command." % filename)
 
             try:
                 inputfile = open(filename, 'r')
                 contentsholder = json.loads(inputfile.read())
             except:
                 raise InvalidFileFormattingError("Input file '%s' was not "\
-                                                 "format properly."
-                                                 % filename)
+                                                 "format properly." % filename)
 
             try:
                 text = json.dumps(contentsholder)
@@ -585,29 +582,9 @@ class IPProfilesCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to login to a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '-r',
             '--running',
             dest='running_jobs',
@@ -615,7 +592,7 @@ class IPProfilesCommand(RdmcCommandBase):
             action="store_true",
             help="""Show status of the currently running or last job executed""",
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-D',
             '--diags',
             help="""Get result of last HVT (diagnostics) run as part of an ipprofile job""",
@@ -623,7 +600,7 @@ class IPProfilesCommand(RdmcCommandBase):
             action='store_true',
             dest='get_hvt'
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-f',
             '--filename',
             dest='filename',
@@ -631,7 +608,7 @@ class IPProfilesCommand(RdmcCommandBase):
             action="append",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-d',
             '--delete',
             dest='del_key',
@@ -639,18 +616,10 @@ class IPProfilesCommand(RdmcCommandBase):
             help='Look for the key or keys in the ipprofile manager and delete',
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-s',
             '--start',
             dest='start_ip',
             help='Copies the specified ip profile into the job queue and starts it',
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ This is the main module for Redfish Utility which handles all of the CLI and UI 
 
 #---------Imports---------
 
+from __future__ import unicode_literals
 import os
 import sys
 import ssl
@@ -29,12 +30,13 @@ import errno
 import shlex
 import ctypes
 import logging
-import readline
 import traceback
 import importlib
 import collections
 
 from six.moves import input
+from prompt_toolkit import PromptSession
+from prompt_toolkit.shortcuts import CompleteStyle
 
 import redfish.ris
 import redfish.hpilo
@@ -60,20 +62,23 @@ from rdmc_helper import ReturnCodes, ConfigurationFileError, \
                     UploadError, BirthcertParseError, ResourceExists,\
                     IncompatableServerTypeError, IloLicenseError, \
                     InvalidKeyError, UnableToDecodeError, \
-                    UnabletoFindDriveError, Encryption, PathUnavailableError, TaskQueueError
+                    UnabletoFindDriveError, Encryption, PathUnavailableError, TaskQueueError,\
+                    TabAndHistoryCompletionClass
 
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 if os.name != 'nt':
-    import setproctitle
+    try:
+        import setproctitle
+    except ImportError as error:
+        pass
 
 #import all extensions dynamically
 for name in extensions.classNames:
     pkgName, cName = name.rsplit('.', 1)
     pkgName = 'extensions' + pkgName
     try:
-        extensions.Commands[cName] = getattr(\
-                                        importlib.import_module(pkgName), cName)
+        extensions.Commands[cName] = getattr(importlib.import_module(pkgName), cName)
     except Exception as excp:
         sys.stderr.write("Error locating extension %s at location %s\n" % \
                                                 (cName, 'extensions' + name))
@@ -88,8 +93,7 @@ try:
     CLI = cliutils.CLI()
 except cliutils.ResourceAllocationError as excp:
     sys.stdout.write("Unable to allocate more resources.\n")
-    sys.stdout.write("ILOREST return code: %s\n" % \
-                     ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
+    sys.stdout.write("ILOREST return code: %s\n" % ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
     sys.exit(ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
 
 try:
@@ -99,8 +103,7 @@ try:
     if Encryption.check_fips_mode_os() and not ssl.FIPS_mode():
         ssl.FIPS_mode_set(long(1))
         if ssl.FIPS_mode():
-            FIPSSTR = "FIPS mode enabled using openssl version %s.\n" % \
-                                                        ssl.OPENSSL_VERSION
+            FIPSSTR = "FIPS mode enabled using openssl version %s.\n" % ssl.OPENSSL_VERSION
         else:
             sys.stderr.write("WARNING: Unable to enable FIPS mode!\n")
 except AttributeError:
@@ -114,7 +117,7 @@ class RdmcCommand(RdmcCommandBase):
             usage=versioning.__shortname__ +' [command]', \
             summary='HPE RESTful Interface Tool', \
             aliases=[versioning.__shortname__], \
-            optparser=RdmcOptionParser())
+            argparser=RdmcOptionParser())
         Args.append('--showwarnings')
         self._commands = collections.OrderedDict()
         self.commands_dict = extensions.Commands
@@ -223,7 +226,9 @@ class RdmcCommand(RdmcCommandBase):
 
                 curr.append(argument[1])
 
-        (self.opts, _) = self.parser.parse_args(curr)
+        self.opts = self.parser.parse_args(curr)
+
+        self.app.verbose = self.opts.verbose
 
         try:
             Encryption.encode_credentials('test')
@@ -260,8 +265,7 @@ class RdmcCommand(RdmcCommandBase):
 
             # Create a file logger since we got a logdir
             lfile = logging.FileHandler(filename=logfile)
-            formatter = logging.Formatter("%(asctime)s %(levelname)s\t: " \
-                                                                "%(message)s")
+            formatter = logging.Formatter("%(asctime)s %(levelname)s\t: %(message)s")
 
             lfile.setFormatter(formatter)
             lfile.setLevel(logging.DEBUG)
@@ -272,8 +276,7 @@ class RdmcCommand(RdmcCommandBase):
         if self.opts.nocache:
             self.app.config.set_cache(False)
         else:
-            self.app.config.set_cachedir(os.path.join(self.opts.config_dir, \
-                                                                        'cache'))
+            self.app.config.set_cachedir(os.path.join(self.opts.config_dir, 'cache'))
             cachedir = self.app.config.get_cachedir()
 
         if cachedir:
@@ -289,16 +292,18 @@ class RdmcCommand(RdmcCommandBase):
                         and not (any(x.startswith(("-h", "--h")) for x in nargv) or "help" in line):
             self.app.logout()
         else:
-            self.app.restore()
-            self.opts.is_redfish = self.app.updatedefinesflag(redfishflag=\
-                                                        self.opts.is_redfish)
+            creds, enc = self._pull_creds(nargv)
+            self.app.restore(creds=creds, enc=enc)
+            self.opts.is_redfish = self.app.typepath.updatedefinesflag(\
+                                                                redfishflag=self.opts.is_redfish)
 
         if nargv:
             try:
                 self.retcode = self._run_command(self.opts, nargv)
-                if self.app.config.get_cache():
+                if self.app.cache:
                     if ("logout" not in line) and ("--logout" not in line):
                         self.app.save()
+                        self.app.redfishinst = None
                 else:
                     self.app.logout()
             except Exception as excp:
@@ -308,7 +313,7 @@ class RdmcCommand(RdmcCommandBase):
         else:
             self.cmdloop(self.opts)
 
-            if self.app.config.get_cache():
+            if self.app.cache:
                 self.app.save()
             else:
                 self.app.logout()
@@ -348,13 +353,24 @@ class RdmcCommand(RdmcCommandBase):
                 self.candidates[item] = []
 
         self._redobj = TabAndHistoryCompletionClass(dict(self.candidates))
-        readline.set_completer(self._redobj.main_completer_handler)
-        readline.parse_and_bind("tab: complete")
-        #***************************************************
+        try:
+            session = PromptSession(completer=self._redobj, \
+                                                        complete_style=CompleteStyle.READLINE_LIKE)
+
+        except:
+            LOGGER.info("Console error: Tab complete is unavailable.")
+            session = None
 
         while True:
-            line = input(versioning.__shortname__+' > ')
-            readline.add_history(line)
+            try:
+                if session:
+                    line = session.prompt(versioning.__shortname__+ u' > ', \
+                                bottom_toolbar=self._redobj.bottom_toolbar)
+                else:
+                    line = input(versioning.__shortname__+ u' > ')
+
+            except (EOFError, KeyboardInterrupt) as error:
+                line = "quit\n"
 
             if not len(line):
                 continue
@@ -385,6 +401,7 @@ class RdmcCommand(RdmcCommandBase):
         :param excp: captured exception to be handled
         :type excp: exception.
         """
+        # pylint: disable=redefined-argument-from-local
         try:
             if excp:
                 errorstr = "Exception: {0}".format(excp.__class__.__name__)
@@ -539,7 +556,7 @@ class RdmcCommand(RdmcCommandBase):
                 UI().printmsg(excp.message)
             else:
                 UI().printmsg(u"Logged-in account does not have the privilege "\
-                              " required to fulfill the request or a required "\
+                              " required to fulfill the request or a required"\
                               " token is missing."\
                               "\nEX: biospassword flag if bios password present "\
                               "or tpmenabled flag if TPM module present.")
@@ -558,7 +575,7 @@ class RdmcCommand(RdmcCommandBase):
                           "--latestschema flag.")
             self.retcode = ReturnCodes.RIS_SCHEMA_PARSE_ERROR
         # ****** RMC/RIS ERRORS ******
-        except redfish.rest.v1.RetriesExhaustedError as excp:
+        except redfish.rest.connections.RetriesExhaustedError as excp:
             self.retcode = ReturnCodes.V1_RETRIES_EXHAUSTED_ERROR
             UI().retries_exhausted_attemps()
         except redfish.rest.v1.InvalidCredentialsError as excp:
@@ -571,11 +588,11 @@ class RdmcCommand(RdmcCommandBase):
             self.retcode = \
                     ReturnCodes.V1_SERVER_DOWN_OR_UNREACHABLE_ERROR
             UI().error(excp)
-        except redfish.rest.v1.ChifDriverMissingOrNotFound as excp:
+        except redfish.rest.connections.ChifDriverMissingOrNotFound as excp:
             self.retcode = ReturnCodes.V1_CHIF_DRIVER_MISSING_ERROR
             UI().printmsg("Chif driver not found, please check that the " \
                                             "chif driver is installed.")
-        except redfish.rest.v1.SecurityStateError as excp:
+        except redfish.rest.connections.SecurityStateError as excp:
             self.retcode = ReturnCodes.V1_SECURITY_STATE_ERROR
             if isinstance(excp.message, int):
                 UI().printmsg("High security mode [%s] has been enabled. " \
@@ -639,6 +656,11 @@ class RdmcCommand(RdmcCommandBase):
         except redfish.ris.ris.BiosUnregisteredError as excp:
             self.retcode = ReturnCodes.RIS_RIS_BIOS_UNREGISTERED_ERROR
             UI().bios_unregistered_error()
+        # ****** FILE/IO ERRORS ******
+        except IOError:
+            self.retcode = ReturnCodes.INVALID_FILE_INPUT_ERROR
+            UI().printmsg("Error accessing the file path. Verify the file path is correct and " \
+                                                "you have proper permissions.")
         # ****** GENERAL ERRORS ******
         except SystemExit:
             self.retcode = ReturnCodes.GENERAL_ERROR
@@ -669,8 +691,9 @@ class RdmcCommand(RdmcCommandBase):
 
         # get/set/info options
         getlist = list()
+
         try:
-            typestr = self.app.current_client.monolith._typestring
+            typestr = self.app.typepath.defs.typestring
             templist = self.app.getprops()
             dictcopy = copy.copy(templist[0])
 
@@ -704,15 +727,13 @@ class RdmcCommand(RdmcCommandBase):
                                     infovals.update({item:reg[attribute]})
                                     break
 
-                        changes["infovals"] = infovals
+                        changes["nestedinfo"] = infovals
 
                     elif schema:
-                        for item in getlist:
-                            infovals.update({item:schema[item]})
-
-                        changes["infovals"] = infovals
+                        changes["nestedinfo"] = schema
 
             changes["get"] = getlist
+            changes["nestedprop"] = dictcopy['Attributes'] if 'Attributes' in dictcopy else dictcopy
             changes["set"] = getlist
             changes["info"] = getlist
             changes["val"] = []
@@ -723,143 +744,22 @@ class RdmcCommand(RdmcCommandBase):
         if changes:
             self._redobj.updates_tab_completion_lists(changes)
 
-class TabAndHistoryCompletionClass(object):
-    """ Tab and History Class used by interactive mode """
-    def __init__(self, options):
-        self.options = options
-        self.current_candidates = []
-        self.possible_vals = []
-        self.val_pos = 0
-        return
-
-    def main_completer_handler(self, text, state):
-        """ Handler of all input entries, tabs, and history
-
-        :param text: input text
-        :type text: string.
-        :param state: current state
-        :type state: string.
-        """
-        response = None
-        all_equals = []
-        value = False
-        equals = []
-
-        # Build match list on first iteration else continue
-        if state == 0:
-            origline = readline.get_line_buffer()
-            begin = readline.get_begidx()
-            end = readline.get_endidx()
-            being_completed = origline[begin:end]
-            words = origline.split()
-
-            if not words:
-                # option for words list
-                self.current_candidates = sorted(self.options.keys())
-            else:
-                # traverse all words entries and passing accordingly
-                try:
-                    if begin == 0:
-                        # first word
-                        candidates = list(self.options.keys())
-                    else:
-                        # later word
-                        if '=' in words[len(words)-1] and len(words) > 1:
-                            #use possible values as candidates
-                            value = True
-                            equals = words[len(words)-1].split('=')
-                            if equals[1]:
-                                all_equals = [i.split('=') for i in words if '=' in i]
-
-                                if len(all_equals) > 1 and not all_equals[-2]\
-                                [0] == all_equals[-1][0]and self.val_pos > 1:
-                                #reset candidates if new item
-                                    candidates = []
-                                else:
-                                    candidates = self.options["val"]
-                            else:
-                                #use properties as candidates
-                                first = words[0]
-                                candidates = self.options[first]
-                        else:
-                            #use command items as candidates
-                            first = words[0]
-                            candidates = self.options[first]
-                            self.possible_vals = []
-                    if being_completed or equals:
-                        #possible value being_completed
-                        if equals:
-                            if equals[1] and not equals[1] in candidates:
-                                #match value
-                                being_completed = equals[1]
-                            else:
-                                #match property
-                                being_completed = equals[0]
-                        # match options with portion of input being completed
-                        self.current_candidates = [w for w in candidates\
-                               if w and w.lower().startswith(being_completed.lower())]
-
-                        # return possible vals
-                        self.possible_vals = []
-                        if len(self.current_candidates) == 1 and 'set' in words[0] or equals:
-                            # second tab, return vals
-                            if being_completed == self.current_candidates[0]:
-                                #grab possible values
-                                for item in self.options['infovals']:
-                                    if being_completed == item:
-                                        val = self.options['infovals'][item]
-                                        try:
-                                            if 'Enumeration' in val['Type']:
-                                                self.possible_vals = \
-                                                        [v['ValueName'] for v in val['Value']]
-                                        except:
-                                            if 'boolean' in val['type']:
-                                                self.possible_vals = [w for w in ['True', 'False']]
-                                            elif 'string' in val['type']:
-                                                self.possible_vals = [w for w \
-                                                        in val['enum'] if w is not None]
-
-                                            if self.possible_vals and 'null' \
-                                            in val['type']:
-                                                self.possible_vals.append('None')
-                                        break
-                                if self.possible_vals:
-                                    self.options["val"] = self.possible_vals
-                                    self.val_pos = 0
-                            # first tab, complete
-                            else:
-                                self.possible_vals.append(self.current_candidates[0])
-                                self.val_pos += 1
-                    else:
-                        # matching empty string so use all candidates
-                        self.current_candidates = candidates
-
-                except (KeyError, IndexError):
-                    self.current_candidates = []
-
-        # Return the state from the match list if found otherwise return None.
+    def _pull_creds(self, args):
+        """Pull creds from the arguments for blobstore"""
+        cred_args = {}
+        enc = False
+        arg_iter = iter(args)
         try:
-            if self.possible_vals:
-                response = self.possible_vals[state]
-            else:
-                response = self.current_candidates[state]
-        except:
-            # No candidate found for state
-            response = None
-
-        # Response return
-        return response
-
-    def updates_tab_completion_lists(self, options):
-        """ Function to update tab completion lists
-
-        :param options: options list
-        :type options: list.
-        """
-        # Loop through options passed and add them to them
-        # to the current tab options list
-        for key, value in options.items():
-            self.options[key] = value
+            for arg in arg_iter:
+                if arg in ('--enc', '-e'):
+                    enc = True
+                if arg in ('-u', '--user'):
+                    cred_args['username'] = next(arg_iter)
+                elif arg in ('-p', '--password'):
+                    cred_args['password'] = next(arg_iter)
+        except StopIteration:
+            return {}
+        return cred_args, enc
 
 if __name__ == '__main__':
     # Initialization of main command class
@@ -891,7 +791,7 @@ if __name__ == '__main__':
                 sys.stderr.write("\t" + str(excp) + '\n')
 
     # Main execution function call wrapper
-    if os.name != 'nt':
+    if "setproctitle" in sys.modules:
         FOUND = False
         VARIABLE = setproctitle.getproctitle()
 

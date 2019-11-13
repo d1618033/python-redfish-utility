@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@
 
 import sys
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
 
@@ -40,7 +40,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
                 "\n\texample: biosdefaults --manufacturingdefaults",\
             summary='Set the currently logged in server to default BIOS settings.',\
             aliases=['biosdefaults'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
@@ -52,7 +52,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
         """ Main BIOS defaults worker function """
         try:
             (options, _) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -67,7 +67,6 @@ class BiosDefaultsCommand(RdmcCommandBase):
 
         if self.typepath.defs.isgen10 and not options.manufdefaults:
             bodydict = self._rdmc.app.get_handler(self.typepath.defs.biospath,\
-                                        verbose=self._rdmc.opts.verbose,\
                                         service=True, silent=True).dict
 
             for item in bodydict['Actions']:
@@ -112,25 +111,22 @@ class BiosDefaultsCommand(RdmcCommandBase):
         client = None
         inputline = list()
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -138,6 +134,8 @@ class BiosDefaultsCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline:
             self.lobobj.loginfunction(inputline)
@@ -154,29 +152,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--biospassword',
             dest='biospassword',
             help="Select this flag to input a BIOS password. Include this"\
@@ -184,7 +162,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
             " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--reboot',
             dest='reboot',
             help="Use this flag to perform a reboot command function after"\
@@ -192,7 +170,7 @@ class BiosDefaultsCommand(RdmcCommandBase):
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--userdefaults',
             dest='userdefaults',
             action="store_true",
@@ -200,19 +178,11 @@ class BiosDefaultsCommand(RdmcCommandBase):
                                                                 "defaults.",
             default=False
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--manufacturingdefaults',
             dest='manufdefaults',
             action="store_true",
             help="Reset all configuration settings to manufacturing defaults, "\
                                         "including boot order and secure boot.",
             default=False
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

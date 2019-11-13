@@ -32,7 +32,7 @@ Then, using this information along with the specified boot order provided in the
 
 After making all the changes to the boot order, the changes are finally committed with the commit command.
 
-All of the commands shown here are executed the same way in the actual `bootorder` command, and are called in the same order to execute the `bootorder` command. You can write your own scripts to combine commands just like bootorder did, to use the provided commands in the RESTful Interface Tool for higher level functionality.
+All of the commands shown here are executed the same way in the actual `bootorder` command, and are called in the same order to execute the `bootorder` command. You can write your own scripts to combine commands just like bootorder did, to use the provided commands in the RESTful Interface Tool for higher-level functionality.
 
 ## Changing BIOS Administrator Password example
 
@@ -56,7 +56,7 @@ In order to change the administrator password, you need to set the `AdminPasswor
 
 After you’ve set the values for `AdminPassword` and `OldAdminPassword`, you need to commit your changes and reboot your server:
 
-<aside class="notice">To change the administrator password, <b>AdminPassword</b> and <b>OldAdminPassword</b> MUST be set in the same line.</aside>
+<aside class="notice">To change the administrator password, <b>AdminPassword</b> and <b>OldAdminPassword</b> must be set in the same line.</aside>
 
 ![BIOS Password Example 4](images/BIOSPassword_4.png "BIOS Password Example 4")
 
@@ -134,7 +134,7 @@ To set the NIC, first login to the server. Then we will be using a `rawpatch` co
 
 ## Setting iLO Timezone
 
-In setting the iLO Timezone, we will be using both a rawpost and commands.
+In setting the iLO Timezone, we will be using both rawpost and commands.
 
 ![Timezone Example 1](images/timezone1.png "Time Zone example 1")
 

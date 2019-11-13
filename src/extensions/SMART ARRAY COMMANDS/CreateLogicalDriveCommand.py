@@ -1,5 +1,5 @@
 ###
-# Copyright 2016 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,41 +18,12 @@
 """ Create Logical Drive Command for rdmc """
 
 import sys
-from collections import OrderedDict
 
-from optparse import OptionParser, SUPPRESS_HELP
+from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
-
-def controller_parse(option, opt_str, value, parser):
-    """ Controller Option Parsing
-
-        :param option: command line option
-        :type option: attributes
-        :param opt_str: parsed option string
-        :type opt_str: string
-        :param value: parsed option value
-        :type value: attribute
-        :param parser: OptionParser instance
-        :type parser: object
-    """
-    setattr(parser.values, option.dest, [])
-    use_slot = False
-    use_indx = False
-    for _opt in value.split(','):
-        if _opt.isdigit() and not use_slot:
-            use_indx = True
-            parser.values.controller.append(int(_opt))
-        elif "slot" in _opt.lower() and not use_indx:
-            use_slot = True
-            parser.values.controller.append((_opt.replace('\"', '')).strip())
-        else:
-            raise InvalidCommandLineErrorOPTS("An invalid option or combination of options were " \
-                                              "used to specify a smart array controller.")
-    if use_indx:
-        parser.values.controller.sort()
 
 class CreateLogicalDriveCommand(RdmcCommandBase):
     """ Create logical drive command """
@@ -62,7 +33,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             usage='createlogicaldrive [OPTIONS]\n\n\tTo create a quick ' \
                 'logical drive.\n\texample: createlogicaldrive quickdrive ' \
                 '<raid-level> <num-drives> <media-type> <interface-type> ' \
-                '<drive-location> --controller=1 --minimumSize=5\n\n\tTo create a custom ' \
+                '<drive-location> --controller=1\n\n\tTo create a custom ' \
                 'logical drive.\n\texample: createlogicaldrive customdrive ' \
                 '<raid-level> <physicaldriveindex(s)> --controller=1 '\
                 '--name=drivename ' \
@@ -73,13 +44,15 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 'media-type:\t\tSSD,HDD\n\tinterface-type:' \
                 '\t\tSAS, SATA\n\tdrive-location:\t\tInternal, External\n\t' \
                 '--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t' \
-                'ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid'\
+                'ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid' \
+                '\n\t--capacityGiB:\t\t-1 (for Max Size)\n\t--capacityBlocks:\t' \
+                '-1 (for Max Size)\n\n\t' \
                 'NOTE: When you select multiple physicaldrives you can select by both\n\t'\
                 'physical drive name and by the index at the same time.\n\t' \
                 'You can also select controllers by slot number as well as index.',\
             summary='Creates a new logical drive on the selected controller.',\
             aliases=['createlogicaldrive'],\
-            optparser=OptionParser())
+            argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
@@ -93,7 +66,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         """
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
@@ -101,8 +74,11 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
 
         self.createlogicaldrivevalidation(options)
 
+        self.selobj.selectfunction("SmartStorageConfig.")
+        content = self._rdmc.app.getprops()
         if not options.controller:
             raise InvalidCommandLineError('You must include a controller to select.')
+        controllist = []
         if not args:
             raise InvalidCommandLineError('Please choose customdrive or quickdrive creation.')
         elif args[0].lower() == 'customdrive' and not len(args) == 3:
@@ -112,61 +88,34 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         elif not args[0] in ['quickdrive', 'customdrive']:
             raise InvalidCommandLineError('Please choose customdrive or quickdrive creation.')
 
-        self.selobj.selectfunction("SmartStorageConfig.")
-        content = OrderedDict()
-        for controller in self._rdmc.app.getprops():
-            try:
-                content[int(controller.get('Location', None).split(' ')[-1])] = controller
-            except (AttributeError, KeyError):
-                pass
+        try:
+            if options.controller.isdigit():
+                if int(options.controller) > 0:
+                    controllist.append(content[int(options.controller) - 1])
+            else:
+                slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
+                for control in content:
+                    if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].\
+                                                                                        lstrip():
+                        controllist.append(control)
+            if not controllist:
+                raise InvalidCommandLineError("")
+        except InvalidCommandLineError:
+            raise InvalidCommandLineError("Selected controller not found in the current inventory "\
+                                          "list.")
+        for controller in controllist:
+            if self.createlogicaldrive(args[0], args[1:], options, controller):
+                controller['DataGuard'] = "Disabled"
 
-        controldict = {}
-        use_slot = False
-        use_indx = False
-
-        for _opt in options.controller:
-            found = False
-            for pos, control in enumerate(content):
-                if isinstance(_opt, int) and not use_slot:
-                    if pos == (_opt - 1):
-                        controldict[_opt] = content[control]
-                        found = True
-                        use_indx = True
-                elif _opt.lower() == content[control]["Location"].lower() and not use_indx:
-                    controldict[int(content[control]["Location"].split(' ')[-1])] = content[control]
-                    found = True
-                    use_slot = True
-                if found:
-                    break
-
-            if not found:
-                sys.stderr.write("\nController \'%s\' not found in the current inventory " \
-                                     "list.\n" % _opt)
-
-        for controller in controldict:
-            if self.createlogicaldrive(args[0], args[1:], options, controldict[controller]):
-                controldict[controller]['DataGuard'] = "Disabled"
-
-                self._rdmc.app.put_handler(controldict[controller]["@odata.id"], \
-                        controldict[controller], \
-                        headers={'If-Match': self.getetag(controldict[controller]['@odata.id'])})
-                self._rdmc.app.reloadmonolith(controldict[controller]["@odata.id"])
+                self._rdmc.app.put_handler(controller["@odata.id"], \
+                        controller, headers={'If-Match': self.getetag(controller['@odata.id'])})
+                self._rdmc.app.download_path([controller["@odata.id"]], rel=True, \
+                                             crawl=False)
         #Return code
         return ReturnCodes.SUCCESS
 
     def createlogicaldrive(self, drivetype, args, options, controller):
-        """ Create logical drive
-        :param drivetype: command line input specifying the logical drivetype to be created
-        :type drivetype: string
-        :param args: command line arguments
-        :type args: list
-        :param options: command line option flags
-        :type options: attributes
-        :param controller: dictionary of properties
-        :type controller: dictionary
-
-        """
-
+        """ Create logical drive """
         raidlvllist = ['Raid0', 'Raid1', 'Raid1ADM', 'Raid10', 'Raid10ADM',\
                                         'Raid5', 'Raid50', 'Raid6', 'Raid60']
         interfacetypelist = ['SAS', 'SATA']
@@ -222,7 +171,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
 
             if drivecount > len(newdrive["DataDrives"]):
                 raise InvalidCommandLineError("Not all of the selected drives could " \
-                                              "be found in the specified locations.")
+                                                  "be found in the specified locations.")
 
             if options.sparetype:
                 itemadded = False
@@ -313,7 +262,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             if options.stripesize:
                 try:
                     stripesize = int(options.stripesize)
-                except:
+                except ValueError:
                     raise InvalidCommandLineError('Stripe size is not an integer.')
 
                 newdrive["StripeSizeBytes"] = stripesize
@@ -365,7 +314,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
     def getetag(self, path):
         """ get etag from path """
         etag = None
-        instance = self._rdmc.app.current_client.monolith.path(path)
+        instance = self._rdmc.app.monolith.path(path)
         if instance:
             etag = instance.resp.getheader('etag') if 'etag' in instance.resp.getheaders() \
                                             else instance.resp.getheader('ETag')
@@ -408,25 +357,22 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         inputline = list()
         runlogin = False
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
         try:
-            client = self._rdmc.app.get_current_client()
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
+            client = self._rdmc.app.current_client
         except:
             if options.user or options.password or options.url:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
+                    if options.encode:
+                        options.user = Encryption.decode_credentials(options.user)
                     inputline.extend(["-u", options.user])
                 if options.password:
+                    if options.encode:
+                        options.password = Encryption.decode_credentials(options.password)
                     inputline.extend(["-p", options.password])
+                if options.https_cert:
+                    inputline.extend(["--https", options.https_cert])
             else:
                 if self._rdmc.app.config.get_url():
                     inputline.extend([self._rdmc.app.config.get_url()])
@@ -434,6 +380,8 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                     inputline.extend(["-u", self._rdmc.app.config.get_username()])
                 if self._rdmc.app.config.get_password():
                     inputline.extend(["-p", self._rdmc.app.config.get_password()])
+                if self._rdmc.app.config.get_ssl_cert():
+                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
 
         if inputline or not client:
             runlogin = True
@@ -452,39 +400,16 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
-            '--url',
-            dest='url',
-            help="Use the provided iLO URL to login.",
-            default=None,
-        )
-        customparser.add_option(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to log into a"\
-            " server in the same command.""",
-            default=None,
-        )
-        customparser.add_option(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            default=None,
-        )
-        customparser.add_option(
+        add_login_arguments_group(customparser)
+
+        customparser.add_argument(
             '--controller',
             dest='controller',
-            action='callback',
-            callback=controller_parse,
-            help="""Use this flag to select the corresponding controller "\
-                "using either the slot number or index.""",
-            type="string",
-            default=[],
+            help="""Use this flag to select the corresponding controller """\
+                """using either the slot number or index.""",
+            default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '-n',
             '--name',
             dest='drivename',
@@ -492,14 +417,21 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 """custom creation only).""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--spare-drives',
             dest='sparedrives',
             help="""Optionally include to set the spare drives by the """ \
                 """physical drive's index. (usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
+            '--minimumSize',
+            dest='minimumsize',
+            help="""Optionally include to set the minimum size of the drive """ \
+                """in GiB. (usable in quick creation only, use -1 for max size)""",
+            default=None,
+        )
+        customparser.add_argument(
             '--capacityGiB',
             dest='capacitygib',
             help="""Optionally include to set the capacity of the drive in """ \
@@ -507,80 +439,65 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 """size)""",
             default=None,
         )
-        customparser.add_option(
-            '--minimumSize',
-            dest='minimumsize',
-            help="""Optionally include to set the minimum size of the drive """ \
-                """in GiB. (usable in quick creation only, use -1 for max size)""",
-            default=None,
-            )
-        customparser.add_option(
+        customparser.add_argument(
             '--spare-type',
             dest='sparetype',
             help="""Optionally include to choose the spare drive type. """ \
                 """(usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--accelerator-type',
             dest='acceleratortype',
             help="""Optionally include to choose the accelerator type.""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--legacy-boot',
             dest='legacyboot',
             help="""Optionally include to choose the legacy boot priority. """ \
                 """(usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--capacityBlocks',
             dest='capacityblocks',
             help="""Optionally include to choose the capacity in blocks. """ \
                 """(use -1 for max size, usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--paritygroupcount',
             dest='paritygroup',
             help="""Optionally include to include the number of parity """ \
                 """groups to use. (only valid for certain RAID levels)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--paritytype',
             dest='paritytype',
             help="""Optionally include to choose the parity initialization""" \
                 """ type. (usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--block-size-bytes',
             dest='blocksize',
             help="""Optionally include to choose the block size of the disk""" \
                 """ drive. (usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--strip-size-bytes',
             dest='stripsize',
             help="""Optionally include to choose the strip size in bytes. """ \
                 """(usable in custom creation only)""",
             default=None,
         )
-        customparser.add_option(
+        customparser.add_argument(
             '--stripe-size-bytes',
             dest='stripesize',
             help="""Optionally include to choose the stripe size in bytes. """ \
                 """(usable in custom creation only)""",
             default=None,
-        )
-        customparser.add_option(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS_HELP,
-            default=False,
         )

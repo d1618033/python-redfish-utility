@@ -20,10 +20,10 @@
 from __future__ import absolute_import
 import sys
 
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     LOGGER, NoContentsFoundForOperationError
 
 from .lib.DisplayHelpers import DisplayHelpers, OutputFormats
@@ -46,7 +46,7 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
                                        "\texample: showpmmpendingconfig --json",
                                  summary="Shows the pending configuration for PMM.",
                                  aliases=["showpmmpendingconfig"],
-                                 optparser=OptionParser())
+                                 argparser=ArgumentParser())
         self.define_arguments(self.parser)
         self._rdmc = rdmcObj
         self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
@@ -64,7 +64,7 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        customparser.add_option(
+        customparser.add_argument(
             "-j",
             "--json",
             action="store_true",
@@ -82,7 +82,7 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
         LOGGER.info("PMM Pending Configuration: %s", self.name)
         try:
             (options, args) = self._parse_arglist(line)
-        except:
+        except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
