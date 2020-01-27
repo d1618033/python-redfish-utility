@@ -143,6 +143,9 @@ class BiosDefaultsCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Please login or pass credentials" \
                                           " to complete the operation.")
 
+        if options.encode:
+            options.biospassword = Encryption.decode_credentials(options.biospassword)
+
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
 

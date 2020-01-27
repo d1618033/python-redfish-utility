@@ -43,6 +43,8 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidKeyError, E
             InvalidCommandLineErrorOPTS, InvalidFileInputError, NoChangesFoundOrMadeError, \
             NoContentsFoundForOperationError, ResourceExists, NoDifferencesFoundError
 
+from redfish.ris.rmc_helper import ValueChangedError
+
 #default file name
 __DEFAULT__ = "<p/k>"
 __MINENCRYPTIONLEN__ = 16
@@ -214,11 +216,9 @@ class ServerCloneCommand(RdmcCommandBase):
 
         if self.save:
             self.gatherandsavefunction(self.getilotypes(options), options)
-            sys.stdout.write('Saving of clonefile to \'%s\' is complete.\n' % self.clone_file)
         elif self.load:
             self.loadfunction(options)
-            sys.stdout.write("Loading of clonefile \'%s\' to server is complete. Review the "\
-                             "changelog file \'%s\'.\n" % (self.clone_file, self.change_log_file))
+
         self.cleanup()
         return ReturnCodes.SUCCESS
 
@@ -281,19 +281,19 @@ class ServerCloneCommand(RdmcCommandBase):
         """
 
         supported_types_list = ['ManagerAccount', 'AccountService', 'Bios', \
-                                'Manager', 'SmartStorageConfig', 'SNMP', 'iLOLicense', \
+                                'Manager', 'SNMP', 'iLOLicense', 'ManagerNetworkService', \
                                 'EthernetNetworkInterface', 'iLODateTime', \
                                 'iLOFederationGroup', 'iLOSSO', 'ESKM', 'ComputerSystem', \
                                 'EthernetInterface', 'ServerBootSettings', 'SecureBoot', \
-                                'ManagerNetworkService', 'SmartStorageConfig']
+                                'SmartStorageConfig']
 
-        if options.noBIOS:
-            sys.stdout.write("Bios configuration will be excluded from save operation.\n")
-            supported_types_list.remove('Bios')
-        if options.iLOSSA:
-            sys.stdout.write("Smart storage configuration will be included in save operation.\n")
-        else:
-            supported_types_list.remove('SmartStorageConfig')
+        if self.save:
+            if options.noBIOS:
+                sys.stdout.write("Bios configuration will be excluded.\n")
+                supported_types_list.remove('Bios')
+            if not options.iLOSSA:
+                sys.stdout.write("Smart storage configuration will not be included.\n")
+                supported_types_list.remove('SmartStorageConfig')
 
         unsupported_types_list = ['Collection', 'PowerMeter', 'BiosMapping']
 
@@ -352,7 +352,7 @@ class ServerCloneCommand(RdmcCommandBase):
         self._fdata = self.file_handler(self.clone_file, operation='r+', options=options)
         self.loadhelper(options)
         self.loadpatch(options)
-        self.getsystemstatus()
+        self.getsystemstatus(options)
 
         if not options.silentcopy:
             while True:
@@ -369,22 +369,24 @@ class ServerCloneCommand(RdmcCommandBase):
         if reset_confirm:
             if self._rdmc.app.config.get_url: #reset process in remote mode
                 sys.stdout.write("Resetting System...\n")
-                self.ilorebootobj.run("ForceRestart")
+                #self.ilorebootobj.run("ForceRestart") #force restart 
+                self._rdmc.app.post_handler(self.typepath.defs.systempath + \
+                                            '/Actions/ComputerSystem.Reset/', 
+                                            {'Action': 'ComputerSystem.Reset', 'ResetType': \
+                                             'ForceRestart'})
                 sys.stdout.write("Resetting iLO...\n")
                 self.iloresetobj.run("")
                 sys.stdout.write("You will need to re-login to access this system...\n")
             else: #reset process in local mode
                 sys.stdout.write("Resetting local iLO...\n")
                 self.iloresetobj.run("")
-                sys.stdout.write("Sleeping 120 seconds for iLO reset...\n")
-                time.sleep(120)
-                self.loginobj.run("")
-                sys.stdout.write("Resetting System...\n")
-                self.ilorebootobj.run("ForceRestart")
+                sys.stdout.write("Your system may require a reboot...use at your discretion\n")
+
         else:
             sys.stdout.write("Aborting Server Reboot and iLO reset...\n")
-            sys.stdout.write("TestMode...%s\n" % options.testmode)
-            sys.stdout.write("Reset...%s\n" % reset_confirm)
+
+        sys.stdout.write("Loading of clonefile \'%s\' to server is complete. Review the "\
+                             "changelog file \'%s\'.\n" % (self.clone_file, self.change_log_file))
 
     def loadhelper(self, options):
         """
@@ -578,7 +580,7 @@ class ServerCloneCommand(RdmcCommandBase):
             _tmp_sel = {}
             _key = (next(iter(_sect)))
             _tmp_sel[_key.split('.')[0] + '.'] = _sect[_key]
-            self.file_handler(self.tmp_sel_file, 'w+', options, [_tmp_sel], True)
+            self.file_handler(self.tmp_sel_file, 'w', options, [_tmp_sel], True)
             self.loadpatch_helper(_key, _sect, options)
 
     @log_decor
@@ -615,6 +617,7 @@ class ServerCloneCommand(RdmcCommandBase):
             self.gatherandsavehelper(_type, data, options)
 
         self.file_handler(self.clone_file, 'w+', options, data, False)
+        sys.stdout.write('Saving of clone file to \'%s\' is complete.\n' % self.clone_file)
 
     def gatherandsavehelper(self, _type, data, options):
         """
@@ -682,7 +685,7 @@ class ServerCloneCommand(RdmcCommandBase):
             sys.stdout.write("An error occurred saving type: %s\nError: \"%s\"\n" % (_typep, excp))
 
     @log_decor
-    def getsystemstatus(self):
+    def getsystemstatus(self, options):
         """
         Retrieve system status information and save to a changelog file. This
         file will be added to an archive if the archive selection is made.
@@ -696,7 +699,7 @@ class ServerCloneCommand(RdmcCommandBase):
             status_list.append(item)
 
         if status_list:
-            self.file_handler(self.change_log_file, 'w+', options, status_list, True)
+            self.file_handler(self.change_log_file, 'w', options, status_list, True)
         else:
             sys.stdout.write("No changes pending.\n")
 
@@ -716,41 +719,44 @@ class ServerCloneCommand(RdmcCommandBase):
         :returns: returns boolean indicating if the type/path was found.
         '''
         identified = False
+        _typep = _type.split('.')[0]
+        if '#' in _typep:
+            _typep = _typep.split('#')[1]
 
-        if 'EthernetInterfaces' in path:
+        if 'EthernetInterfaces' in _typep:
             identified = True
             #save function not needed
             if self.load:
                 self.load_ethernet(data[_type][path], _type, path)
 
-        elif 'DateTime' in path:
+        elif 'DateTime' in _typep:
             #do not use identified=True. Kind of a hack to have additional items patched.
             #save function not needed
             if self.load:
                 self.load_datetime(data[_type][path], path)
 
-        elif 'LicenseService' in path:
+        elif 'LicenseService' in path and 'License' in _typep:
             identified = True
             if self.save:
                 data = self.save_license(data, _type, options)
             elif self.load:
                 self.load_license(data[_type][path])
 
-        elif 'AccountService/Accounts' in path and 'AccountService' not in  _type.split('.')[0]:
+        elif 'AccountService/Accounts' in path and 'AccountService' not in  _typep:
             identified = True
             if self.save:
                 data = self.save_accounts(data, _type, options)
             elif self.load:
                 self.load_accounts(data[_type][path], _type, path)
 
-        elif 'FederationGroups' in path:
+        elif 'FederationGroups' in _typep:
             identified = True
             if self.save:
                 data = self.save_federation(data, _type, options)
             elif self.load:
                 self.load_federation(data[_type][path])
 
-        elif 'smartstorageconfig' in path:
+        elif 'SmartStorageConfig' in _typep:
             #do not use identified=True. Kind of a hack to have the settings patched.
             if self.save:
                 data = self.save_smartstorage(data, _type)
@@ -776,17 +782,17 @@ class ServerCloneCommand(RdmcCommandBase):
         :returns: boolean indicating if the delete option occurred.
         """
 
-        if not options.silentcopy:
+        def userprompt(data):
             while True:
-                ans = input("Are you sure you would like to delete the entry:\n %s" %
-                            json.dumps(data.dict, indent=1, sort_keys=True))
+                ans = input("\n%s\nAre you sure you would like to delete the entry?:\n" %
+                            json.dumps(data, indent=1, sort_keys=True))
                 if ans.lower() == 'y':
                     sys.stdout.write("Proceeding with Deletion...\n")
-                    break
-                elif ans.lower() == 'n':
-                    sys.stdout.write("Aborting deletion. No changes have been made made to the " \
-                                     "server.\n")
                     return True
+                elif ans.lower() == 'n':
+                    sys.stdout.write("Aborting deletion. No changes have been made made to "\
+                                     "the server.\n")
+                    return False
                 else:
                     sys.stdout.write("Invalid input...\n")
 
@@ -800,26 +806,32 @@ class ServerCloneCommand(RdmcCommandBase):
                     try:
                         if 'UserName' in curr_sel.dict.keys():
                             curr_un = curr_sel.dict['UserName']
-                        if curr_un != user_name:
                             #check file to make sure this is not to be added later?
-                            for fpath in fdata:
-                                try:
-                                    if fdata[fpath]['UserName'] == data['UserName']:
-                                        sys.stdout.write("Account \'%s\' exists in \'%s\', not "
-                                                         "deleting.\n" % (data['UserName'], \
-                                                                                self.clone_file))
-                                        return False
-                                except:
-                                    continue
-                        else:
-                            if data['UserName'] != "Administrator":
-                                sys.stdout.write("Manager Account, \'%s\' was not found in the "\
-                                                 "clone file. Deleting entry from server.\n"\
-                                                  % data['UserName'])
-                                self.iloacctsobj.run("delete "+ data['UserName'])
+                        for fpath in fdata:
+                            try:
+                                if fdata[fpath]['UserName'] == data['UserName']:
+                                    sys.stdout.write("Account \'%s\' exists in \'%s\', not "
+                                                     "deleting.\n" % (data['UserName'], \
+                                                                            self.clone_file))
+                                    return False
+                            except:
+                                continue
+
+                        if data['UserName'] != "Administrator":
+                            sys.stdout.write("Manager Account, \'%s\' was not found in the "\
+                                             "clone file. Deleting entry from server.\n"\
+                                              % data['UserName'])
+                            if not options.silentcopy:
+                                ans = userprompt(data)
                             else:
-                                sys.stdout.write("Deletion of the System Administrator Account "\
-                                                 "is not allowed.\n")
+                                ans = True
+                            if ans:
+                                self.iloacctsobj.run("delete "+ data['UserName'])
+                            del fdata[fpath]
+                            return False
+                        else:
+                            sys.stdout.write("Deletion of the System Administrator Account "\
+                                             "is not allowed.\n")
                     except (KeyError, NameError):
                         sys.stderr.write("Unable to obtain the account information for: \'%s\'\'s'"\
                                          "account.\n" % user_name)
@@ -844,10 +856,14 @@ class ServerCloneCommand(RdmcCommandBase):
                         sys.stdout.write("Account \'%s\' exists in file, not deleting."
                                          "\n" % data[fed_identifier])
                         return False
-                self.ilofedobj.run("delete "+ data[fed_identifier])
+                if not options.silentcopy:
+                    ans = userprompt(data)
+                else:
+                    ans = True
+                if ans:
+                    self.ilofedobj.run("delete "+ data[fed_identifier])
             else:
-                sys.stdout.write("Deletion of the Default iLO Federation Group is not "\
-                                 "allowed.\n")
+                sys.stdout.write("Deletion of the Default iLO Federation Group is not allowed.\n")
             return False
         return True
 
@@ -1076,7 +1092,6 @@ class ServerCloneCommand(RdmcCommandBase):
             #delete DHCP4 DNSServers from IPV4 dict if UseDNSServers Enabled
             #can wait to apply at the end
             if dhcpv4conf.get('UseDNSServers'): #and ethernet_data.get('NameServers'):
-                #del_sections('NameServers', ethernet_data)
                 self.json_traversal_delete_empty(data=ethernet_data, remove_list=['NameServers'])
         except (KeyError, NameError, TypeError, AttributeError):
             pass
@@ -1557,19 +1572,19 @@ class ServerCloneCommand(RdmcCommandBase):
             if user_pass == __DEFAULT__:
                 sys.stderr.write("The default password will be attempted.")
             try:
-                sys.stdout.write("Adding user \'%s\' to iLO Accounts.\n" % user_name)
                 if found_user:
                     raise ResourceExists('')
-                if role_id or config_privs_str:
-                    #if the user includes both role_id and privileges then the role is applied
-                    #first then the privileges are added. Since adding can cause a resource exists
+                sys.stdout.write("Adding user \'%s\' to iLO Accounts.\n" % user_name)
+                if config_privs_str or role_id:
+                    #if the user includes both role_id and privileges then the privilege is applied
+                    #first, if missing, roles are used. Since adding can cause a resource exists
                     #issue here then we just let it happen and perform a modify on the account.
-                    if role_id:
-                        self.iloacctsobj.run("add "+ user_name +" "+ login_name +" "+ \
-                                             user_pass +" "+ " --role " + role_id)
                     if config_privs_str:
                         self.iloacctsobj.run("add "+ user_name +" "+ login_name +" "+ \
                                              user_pass +" "+ " --addprivs "+ config_privs_str)
+                    elif role_id:
+                        self.iloacctsobj.run("add "+ user_name +" "+ login_name +" "+ \
+                                             user_pass +" "+ " --role " + role_id)
                 else:
                     self.iloacctsobj.run("add "+ user_name + " "+ login_name + " "+ user_pass)
             except ResourceExists:
@@ -1577,15 +1592,15 @@ class ServerCloneCommand(RdmcCommandBase):
                                  "Checking for account modifications.\n" % user_name)
                 sys.stdout.write("Changing account password for \'%s\'.\n" % user_name)
                 self.iloacctsobj.run("changepass "+ user_name + " "+ user_pass)
-                #if the user includes both role_id and privileges then the role is applied first.
-                #privileges are modified after, if they exist. Extra steps, yes, in certain cases
+                #if the user includes both role_id and privileges then privileges are applied
+                # first skipping roles, if they exist. Extra steps, yes, in certain cases
                 #but not necessarily.
                 if config_privs_str or role_id:
                     sys.stdout.write("Changing roles and privileges for \'%s\'.\n" % user_name)
-                    if role_id:
-                        self.iloacctsobj.run("modify "+ user_name + " --role " + role_id)
                     if config_privs_str:
                         self.iloacctsobj.run("modify "+ user_name +" --addprivs "+ config_privs_str)
+                    elif role_id:
+                        self.iloacctsobj.run("modify "+ user_name + " --role " + role_id)
 
         else:
             raise Exception("A password was not provided for account: \'%s\', path: \'%s\'. "\
@@ -1742,31 +1757,18 @@ class ServerCloneCommand(RdmcCommandBase):
         ignore_list = 'ValueChangedError', None, ""
         errors = []
 
-        smc_str = "smartstorageconfig"
-        controller_index = 0
-        try:
-            tmp = path.split('/')[-3]
-            if smc_str in tmp:
-                i = 1
-                for char in reversed(tmp):
-                    if char.isdigit():
-                        controller_index += int(char)*i
-                    else:
-                        break
-                    i *= 10
-        except ValueError:
-            controller_index = 1
-
         if 'LogicalDrives' in drive_data.keys():
-            for l_drive in drive_data['LogicalDrives']:
+            for l_drive in drive_data.get('LogicalDrives'):
                 logical_drive_str = ''
                 logical_drive_str += 'customdrive '
                 logical_drive_str += str(l_drive['Raid']) + ' '
-                for drive_index in l_drive['DataDrives']:
+                for drive_index in l_drive.get('DataDrives', dict()):
                     logical_drive_str += drive_index[-1] + ','
                 if logical_drive_str[-1] == ',':
                     logical_drive_str = logical_drive_str[:-1]
-                logical_drive_str += ' --controller=' + str(controller_index)
+                #logical_drive_str += ' --controller=' + str(controller_index)
+                logical_drive_str += ' --controller=\"' + drive_data.get('Location').replace(" ", \
+                                                                                        "") + '"'             
                 if 'Accelerator' in l_drive:
                     if l_drive['Accelerator']:
                         logical_drive_str += ' --accelerator-type=' + \
@@ -1843,55 +1845,52 @@ class ServerCloneCommand(RdmcCommandBase):
 
         checks = []
         try:
-            curr_sys_info = self._rdmc.app.create_save_header\
-                                            (selectignore=True)["Comments"]
+            curr_sys_info = self._rdmc.app.create_save_header(selectignore=True)["Comments"]
             curr_iloversion = curr_sys_info['iLOVersion'].split('v')[0].strip()
             curr_ilorev = curr_sys_info['iLOVersion'].split('v')[1].strip()
             file_iloversion = sys_info['iLOVersion'].split('v')[0].strip()
             file_ilorev = sys_info['iLOVersion'].split('v')[1].strip()
-            sys.stdout.write("This system has BIOS Version %s.\n"% \
-                                                    curr_sys_info['BIOSFamily'])
+            sys.stdout.write("This system has iLO Version %s. \n"% curr_sys_info['iLOVersion'])
+            sys.stdout.write("This system has BIOS Version %s.\n"% curr_sys_info['BIOSFamily'])
             if curr_sys_info['BIOSFamily'] == sys_info['BIOSFamily']:
                 sys.stdout.write("BIOS Versions are compatible.\n")
                 checks.append(True)
             else:
                 sys.stdout.write("BIOS Versions are different. Suggest to have"\
-                    " \'%s\' in place before upgrading.\n" % sys_info['BIOSFamily'])
+                                   " \'%s\' in place before upgrading.\n" % sys_info['BIOSFamily'])
                 checks.append(False)
-            sys.stdout.write("This system has has %s with firmware revision "\
-                             "%s.\n" % (curr_iloversion, curr_ilorev))
-            if curr_iloversion == file_iloversion:
-                sys.stdout.write("iLO Versions are compatible.\n")
+            sys.stdout.write("This system has has %s with firmware revision %s.\n" % \
+                                                                    (curr_iloversion, curr_ilorev))
+            if curr_iloversion == file_iloversion and curr_ilorev == file_ilorev:
+                sys.stdout.write("iLO Versions are fully compatible.\n")
                 checks.append(True)
-                if curr_ilorev.split('.')[0].strip() == \
-                                            file_ilorev.split('.')[0].strip():
-                    sys.stdout.write("iLO Firmware Revisions are compatible.\n")
-                else:
-                    sys.stdout.write("The iLO firmware revisions are different"\
-                        ". Suggest to upgrade to revision %s.\n" % file_ilorev)
+            elif curr_iloversion == file_iloversion and curr_ilorev != file_ilorev:
+                sys.stdout.write("The iLO Versions are compatible; however, the revisions "\
+                    "differ (system version: %s %s, file version: %s %s). Some differences in "\
+                    "properties, schemas and incompatible dependencies may exist. Proceed with "\
+                    "caution.\n" % (curr_iloversion, curr_ilorev, file_iloversion, file_ilorev))
+                checks.append(False)
             else:
-                sys.stdout.write("The iLO Versions are different. Suggest to "\
-                    "have \'%s v%s\' in place before upgrading.\n" % \
-                                            (file_iloversion, file_ilorev))
+                sys.stdout.write("The iLO Versions are different. Compatibility issues may exist "\
+                                 "attempting to commit changes to this system.\n "
+                                 "(system version: %s %s, file version: %s %s) " % \
+                                 (curr_iloversion, curr_ilorev, file_iloversion, file_ilorev))
                 checks.append(False)
         except KeyError as exp:
             if 'iLOVersion' in exp:
-                sys.stderr.write("iLOVersion not found in clone file "\
-                                 "\'Comments\' dictionary.\n")
+                sys.stderr.write("iLOVersion not found in clone file \'Comments\' dictionary.\n")
             elif 'BIOSFamily' in exp:
-                sys.stderr.write("BIOS Family not found in clone file "\
-                                 "\'Comments\' dictionary.\n")
+                sys.stderr.write("BIOS Family not found in clone file \'Comments\' dictionary.\n")
             else:
                 raise Exception("%s" % exp)
 
         if (len(checks) is 0 or False in checks) and not options.silentcopy:
             while True:
-                ans = input("Would you like to continue with migration of iLO"\
-                            " configuration from \'%s\' to \'%s\'? (y/n)\n" % \
-                            (sys_info['Model'], curr_sys_info['Model']))
+                ans = input("Would you like to continue with migration of iLO configuration from "\
+                    "\'%s\' to \'%s\'? (y/n)\n" % (sys_info['Model'], curr_sys_info['Model']))
                 if ans.lower() == 'n':
-                    raise NoChangesFoundOrMadeError("Aborting load operation. "\
-                                               "No changes made to the server.")
+                    raise NoChangesFoundOrMadeError("Aborting load operation. No changes made to "\
+                                                    "the server.")
                 elif ans.lower() == 'y':
                     break
                 else:

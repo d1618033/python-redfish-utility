@@ -202,11 +202,13 @@ class IloAccountsCommand(RdmcCommandBase):
             if len(args) == 2:
                 sys.stdout.write('Please input the new password.\n')
                 tempinput = getpass.getpass()
-                self.credentialsvalidation('', '', tempinput, '', True)
+                self.credentialsvalidation('', '', tempinput, '', True, options)
                 args.extend([tempinput])
             if len(args) == 3:
                 account = args[1].lower()
-                self.credentialsvalidation('', '', args[2].split('\r')[0], '', True)
+                if options.encode:
+                    args[2] = Encryption.decode_credentials(args[2])
+                self.credentialsvalidation('', '', args[2].split('\r')[0], '', True, options)
                 body = {'Password': args[2].split('\r')[0]}
 
                 if path and body:
@@ -222,11 +224,14 @@ class IloAccountsCommand(RdmcCommandBase):
                 sys.stdout.write('Please input the account password.\n')
                 tempinput = getpass.getpass()
 
-                self.credentialsvalidation('', '', tempinput, '', True)
+                self.credentialsvalidation('', '', tempinput, '', True, options)
                 args.extend([tempinput])
 
             if not len(args) == 3:
                 raise InvalidCommandLineError('Invalid number of parameters.')
+
+            if options.encode:
+                args[2] = Encryption.decode_credentials(args[2])
 
             privs = self.getprivs(options)
             path = self.typepath.defs.accountspath
@@ -235,7 +240,7 @@ class IloAccountsCommand(RdmcCommandBase):
                                         typepath.defs.oemhp: {"LoginName": args[1]}}}
             if privs:
                 body["Oem"][self.typepath.defs.oemhp].update({"Privileges": privs})
-            self.credentialsvalidation(args[0], args[1], args[2], results, True)
+            self.credentialsvalidation(args[0], args[1], args[2], results, True, options)
             if options.serviceacc:
                 body["Oem"][self.typepath.defs.oemhp].update({"ServiceAccount": True})
             if options.role:
@@ -381,7 +386,7 @@ class IloAccountsCommand(RdmcCommandBase):
             return sesprivs
 
     def credentialsvalidation(self, username='', loginname='', password='', accounts=[], \
-                                                                            check_password=False):
+                                                            check_password=False, options=None):
         """ sanity validation of credentials
         :param username: username to be added
         :type username: str.

@@ -24,7 +24,7 @@ from argparse import ArgumentParser
 
 from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption
+                        Encryption, UnableToDecodeError
 
 class SetPasswordCommand(RdmcCommandBase):
     """ Set password class command """
@@ -86,7 +86,7 @@ class SetPasswordCommand(RdmcCommandBase):
                 tempnewpass = '""'
             args.extend([tempnewpass, tempoldpass])
 
-        if not len(args) == 2:
+        if len(args) < 2:
             raise InvalidCommandLineError("Please pass both new password and old password.")
 
         count = 0
@@ -100,6 +100,14 @@ class SetPasswordCommand(RdmcCommandBase):
 
             count += 1
 
+        if options.encode:
+            _args = []
+            for arg in args:
+                try:
+                    _args.append(Encryption.decode_credentials(arg))
+                except UnableToDecodeError:
+                    _args.append(arg)
+            args = _args
         if self.typepath.defs.isgen10:
             bodydict = self._rdmc.app.get_handler(self.typepath.defs.biospath,\
                 service=True, silent=True).dict
