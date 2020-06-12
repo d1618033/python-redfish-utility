@@ -99,7 +99,7 @@ try:
     # enable fips mode if our special functions are available in _ssl and OS is
     # in FIPS mode
     FIPSSTR = ""
-    if Encryption.check_fips_mode_os() and not ssl.FIPS_mode():
+    if Encryption.check_fips_mode_os() and not Encryption.check_fips_mode_ssl():
         ssl.FIPS_mode_set(long(1))
         if ssl.FIPS_mode():
             FIPSSTR = "FIPS mode enabled using openssl version %s.\n" % ssl.OPENSSL_VERSION

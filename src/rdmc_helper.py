@@ -536,6 +536,24 @@ class Encryption(object):
                 fips = False
         return fips
 
+    @staticmethod
+    def check_fips_mode_ssl():
+        """Function to check for the SSL fips mode
+
+        Uses custom cpython ssl module API, if available. Otheriwse
+        probes using ctypes.cdll APIs.
+
+        :returns: returns True if FIPS mode is active, False otherwise
+
+        """
+        import ssl
+        if hasattr(ssl, 'FIPS_mode'):
+            return ssl.FIPS_mode()
+
+        from ctypes import cdll
+        libcrypto = cdll.LoadLibrary(ssl._ssl.__file__)
+        return libcrypto.FIPS_mode()
+
     def encrypt_file(self, filetxt, key):
         """ encrypt a file given a key
 
