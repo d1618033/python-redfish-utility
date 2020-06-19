@@ -40,7 +40,7 @@ Running the utility from command line
 
 .. code-block:: console
 
-	python.exe rdmc.py
+	python rdmc.py
 	
 Building an executable from file source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,7 +49,8 @@ Building an executable from file source
 
 .. code-block:: console
 
-	python.exe pyinstaller rdmc-pyinstaller-windows.spec
+	Windows : python pyinstaller rdmc-pyinstaller-windows.spec
+	Linux   : python pyinstaller rdmc-pyinstaller-lin.spec
 
 Documentation
 ~~~~~~~~~~~~~
@@ -66,7 +67,7 @@ Contributing
  5. Submit a pull request :D
 
 History
-----------
+-------
 
   * 03/29/2017: Initial release of version 1.9.0
   * 04/25/2017: Release of version 1.9.1
@@ -80,11 +81,13 @@ History
   * 04/03/2019: Release of version 2.4.1
   * 07/05/2019: Release of version 2.5.0
   * 09/13/2019: Release of version 2.5.1
+  * 11/14/2019: Release of version 3.0.0
+  * 01/28/2028: Release of version 3.0.1
 
 License
-----------
+-------
 
-Copyright 2017 Hewlett Packard Enterprise Development LP
+Copyright 2020 Hewlett Packard Enterprise Development LP
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -107,3 +110,6 @@ Authors
 .. _Matthew Kocurek: http://github.com/Yergidy
 -  `Prithvi Subrahmanya`_
 .. _Prithvi Subrahmanya: http://github.com/PrithviBS
+-  `Rajeevalochana Kallur`_
+.. _Rajeevalochana Kallur: http://github.com/rajeevkallur
+
