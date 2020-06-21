@@ -82,7 +82,7 @@ History
   * 07/05/2019: Release of version 2.5.0
   * 09/13/2019: Release of version 2.5.1
   * 11/14/2019: Release of version 3.0.0
-  * 01/28/2028: Release of version 3.0.1
+  * 01/28/2020: Release of version 3.0.1
 
 License
 -------
