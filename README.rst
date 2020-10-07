@@ -1,9 +1,5 @@
 python-ilorest-utility
 ======================
-.. image:: https://travis-ci.org/HewlettPackard/python-redfish-utility.svg?branch=master
-    :target: https://travis-ci.org/HewlettPackard/python-redfish-utility
-.. image:: https://img.shields.io/github/release/HewlettPackard/python-redfish-utility.svg?maxAge=2592000
-	:target: https://github.com/HewlettPackard/python-redfish-utility/releases
 .. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
 	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSE
 .. image:: https://img.shields.io/badge/python-2.7-blue.svg?maxAge=2592000
@@ -19,7 +15,7 @@ Description
  The Redfish Utility is a command line interface that allows you to manage servers that take advantage of Redfish APIs. For this release of the utility, you can manage any server running a Redfish API. You can install the utility on your computer for remote use. In addition to using the utility manually to execute individual commands, you can create scripts to automate tasks.
 
  You can download the windows and linux tool directly from HPE's website  `here <https://www.hpe.com/us/en/product-catalog/detail/pip.7630408.html#/>`_
- or download the windows, linux, debian, and mac versions from the github `releases section <https://github.hpe.com/intelligent-provisioning/python-restful-interface-tool/releases>`_.
+ or download the windows, linux, debian, and mac versions from the github `releases section <https://hewlettpackard.github.io/python-redfish-utility/releases>`_.
 
 Requirements
 ------------
@@ -53,9 +49,9 @@ Building an executable from file source
 
 Documentation
 ~~~~~~~~~~~~~
- For further usage please refer to our slate documentation: 
+For further usage please refer to our slate documentation: 
  
- `https://pages.github.hpe.com/intelligent-provisioning/python-restful-interface-tool/ <https://pages.github.hpe.com/intelligent-provisioning/python-restful-interface-tool/>`_
+https://hewlettpackard.github.io/python-redfish-utility/
 
 Contributing
 ----------
@@ -82,6 +78,7 @@ History
   * 07/05/2019: Release of version 2.5.0
   * 09/13/2019: Release of version 2.5.1
   * 11/14/2019: Release of version 3.0.0
+  * 10/05/2020: Release of version 3.1.0
 
 License
 ----------
@@ -109,5 +106,7 @@ Authors
 .. _Matthew Kocurek: http://github.com/Yergidy
 -  `Prithvi Subrahmanya`_
 .. _Prithvi Subrahmanya: http://github.com/PrithviBS
+-  `Grant OConner`_
+.. _Grant OConner: https://github.com/KeepSummerSaf3
 -  `Rajeevalochana Kallur`_
 .. _Rajeevalochana Kallur: http://github.com/rajeevkallur
