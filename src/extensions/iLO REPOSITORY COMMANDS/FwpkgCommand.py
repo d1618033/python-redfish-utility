@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,13 @@ import tempfile
 
 from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+import ctypes
+from ctypes import c_char_p, c_int, c_bool
+
+from redfish.hpilo.risblobstore2 import BlobStore2
+
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption, \
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
@@ -78,8 +84,7 @@ class FwpkgCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
         self.uploadobj = rdmcObj.commands_dict["UploadComponentCommand"](rdmcObj)
         self.taskqueueobj = rdmcObj.commands_dict["UpdateTaskQueueCommand"](rdmcObj)
         self.fwupdateobj = rdmcObj.commands_dict["FirmwareUpdateCommand"](rdmcObj)
@@ -143,15 +148,16 @@ class FwpkgCommand(RdmcCommandBase):
         finally:
             if tempdir:
                 shutil.rmtree(tempdir)
-            if 'ilo' in args[0].lower():
-                self.logoutobj.run("")
+
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def taskqueuecheck(self):
         """ Check taskqueue for potential issues before starting """
 
         select = "ComputerSystem."
-        results = self._rdmc.app.select(selector=select, rel=True)
+        results = self._rdmc.app.select(selector=select, path_refresh=True)
 
         try:
             results = results[0]
@@ -217,10 +223,27 @@ class FwpkgCommand(RdmcCommandBase):
         if comptype == 'C':
             imagefiles = [self.type_c_change(tempdir, pkgfile)]
         else:
+            results = self._rdmc.app.getprops(selector="UpdateService.", \
+                                                                props=['Oem/Hpe/Capabilities'])
+
             for device in payloaddata['Devices']['Device']:
                 for firmwareimage in device['FirmwareImages']:
                     if firmwareimage['FileName'] not in imagefiles:
                         imagefiles.append(firmwareimage['FileName'])
+
+        if comptype in ['A','B'] and results and 'UpdateFWPKG' in results[0]['Oem']['Hpe']\
+                                                                                ['Capabilities']:
+            dll = BlobStore2.gethprestchifhandle()
+            dll.isFwpkg20.argtypes = [c_char_p, c_int]
+            dll.isFwpkg20.restype = c_bool
+
+            with open(pkgfile, 'rb') as fwpkgfile:
+                fwpkgdata = fwpkgfile.read()
+
+            fwpkg_buffer = ctypes.create_string_buffer(fwpkgdata)
+            if dll.isFwpkg20(fwpkg_buffer, 2048):
+                imagefiles = [pkgfile]
+                tempdir = ''
 
         return imagefiles, tempdir, comptype
 
@@ -305,44 +328,7 @@ class FwpkgCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-        client = None
-
-        try:
-            client = self._rdmc.app.current_client
-            if options.user and options.password:
-                if not client.get_username():
-                    client.set_username(options.user)
-                if not client.get_password():
-                    client.set_password(options.password)
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if not client or inputline:
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

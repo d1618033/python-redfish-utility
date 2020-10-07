@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to get the           #
 #               persistent mouse and keyboard status.             #
@@ -14,12 +14,12 @@
 #            iLO 5 - All versions                                 #
 
 runLocal(){
-  ilorest list Oem/Hpe/PersistentMouseKeyboardEnabled selector=Manager. -u USER_LOGIN -p PASSWORD
+  ilorest list Oem/Hpe/PersistentMouseKeyboardEnabled --selector=Manager. -u USER_LOGIN -p PASSWORD
   ilorest logout
 }
 
 runRemote(){
-  ilorest list Oem/Hpe/PersistentMouseKeyboardEnabled selector=Manager. --url=$1 --user $2 --password $3
+  ilorest list Oem/Hpe/PersistentMouseKeyboardEnabled --selector=Manager. --url=$1 --user $2 --password $3
   ilorest logout
 }
 

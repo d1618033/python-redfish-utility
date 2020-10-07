@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #       RESTful Interface Tool Script for HPE iLO Products        #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to mount the SPP     #
 #               media image, reboot the system, and boot to it.   #

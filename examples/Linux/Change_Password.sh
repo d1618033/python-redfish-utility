@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to change a user's   #
 #               password in the database of local users on        #

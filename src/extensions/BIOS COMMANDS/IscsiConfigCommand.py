@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ from argparse import ArgumentParser
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                 NicMissingOrConfigurationError, BootOrderMissingEntriesError, Encryption
 
@@ -60,7 +61,6 @@ class IscsiConfigCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
         self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
         self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
         self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
@@ -88,6 +88,7 @@ class IscsiConfigCommand(RdmcCommandBase):
             iscsisettingspath = iscsipath + 'settings'
             bootpath = self.gencompatpaths(selector="HpeServerBootSettings.")
         else:
+            #TODO: update gencompats to handle the nesting of these links within the gen 9 version.
             if self.typepath.defs.biospath[-1] == '/':
                 iscsipath = self.typepath.defs.biospath + 'iScsi/'
                 iscsisettingspath = self.typepath.defs.biospath + 'iScsi/settings/'
@@ -117,6 +118,7 @@ class IscsiConfigCommand(RdmcCommandBase):
         if options.reboot:
             self.rebootobj.run(options.reboot)
 
+        logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -130,9 +132,7 @@ class IscsiConfigCommand(RdmcCommandBase):
         :returns: returns urls
         """
 
-        # TODO: gen9 bool check.
-        # Don't think it's grabbing a path
-        self._rdmc.app.select(selector=selector, rel=rel)
+        self._rdmc.app.select(selector=selector, path_refresh=rel)
         props = self._rdmc.app.getprops(skipnonsetting=False)
         for prop in props:
             name = prop.get('Name')
@@ -165,10 +165,9 @@ class IscsiConfigCommand(RdmcCommandBase):
                 if "EmbNicEnable" in item["Associations"] or "EmbNicConfig" in item["Associations"]:
                     _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
-                for assoc in item["Associations"]:
-                    if re.match("FlexLom[0-9]Enable", str(assoc)) or \
-                                    re.match("PciSlot[0-9]Enable", str(assoc)):
-                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
+                if re.match("FlexLom[0-9]+Enable", item["Associations"][0]) or re.match(\
+                        "PciSlot[0-9]+Enable", item["Associations"][0]):
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         self.selobj.selectfunction("HpiSCSISoftwareInitiator.")
         self.validateinput(deviceallocsize=len(devicealloc), options=options)
@@ -313,10 +312,9 @@ class IscsiConfigCommand(RdmcCommandBase):
                 if "EmbNicEnable" in item["Associations"] or "EmbNicConfig" in item["Associations"]:
                     _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
-                for assoc in item["Associations"]:
-                    if re.match("FlexLom[0-9]Enable", str(assoc)) or \
-                                    re.match("PciSlot[0-9]Enable", str(assoc)):
-                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
+                if re.match("FlexLom[0-9]+Enable", item["Associations"][0]) or re.match(\
+                        "PciSlot[0-9]+Enable", item["Associations"][0]):
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         if self.typepath.defs.isgen10:
             newpcilist = []
@@ -398,10 +396,9 @@ class IscsiConfigCommand(RdmcCommandBase):
                 if "EmbNicEnable" in item["Associations"] or "EmbNicConfig" in item["Associations"]:
                     _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
-                for assoc in item["Associations"]:
-                    if re.match("FlexLom[0-9]Enable", str(assoc)) or \
-                                    re.match("PciSlot[0-9]Enable", str(assoc)):
-                        _ = [devicealloc.append(x) for x in item["Subinstances"]]
+                if re.match("FlexLom[0-9]+Enable", item["Associations"][0]) or re.match(\
+                        "PciSlot[0-9]+Enable", item["Associations"][0]):
+                    _ = [devicealloc.append(x) for x in item["Subinstances"]]
 
         if self.typepath.defs.isgen10:
             newpcilist = []
@@ -667,35 +664,7 @@ class IscsiConfigCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
         if options.encode:
             options.biospassword = Encryption.decode_credentials(options.biospassword)

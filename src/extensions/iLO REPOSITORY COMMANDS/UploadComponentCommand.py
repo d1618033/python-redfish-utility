@@ -36,7 +36,8 @@ from six.moves import input
 import redfish.hpilo.risblobstore2 as risblobstore2
 from redfish.ris.rmc_helper import InvalidPathError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, UploadError, \
             InvalidCommandLineError, IncompatibleiLOVersionError, TimeOutError
 
@@ -76,8 +77,6 @@ class UploadComponentCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
         self.fwpkgprepare = rdmcObj.commands_dict["FwpkgCommand"].preparefwpkg
 
     def run(self, line):
@@ -125,12 +124,13 @@ class UploadComponentCommand(RdmcCommandBase):
                 path, _ = os.path.split((filestoupload[0])[1])
                 shutil.rmtree(path)
             elif fwpkg:
-                shutil.rmtree(loc)
-            if options.logout:
-                self.logoutobj.run("")
+                if os.path.exists(loc):
+                    shutil.rmtree(loc)
         else:
             ret = ReturnCodes.SUCCESS
 
+        logout_routine(self, options)
+        #Return code
         return ret
 
     def componentvalidation(self, options, filelist):
@@ -213,7 +213,10 @@ class UploadComponentCommand(RdmcCommandBase):
             filebasename = filename[:filename.rfind('.')]
             tempfoldername = "bmn" + ''.join(choice(ascii_lowercase) for i in range(12))
 
-            tempdir = os.path.join(self._rdmc.app.config.get_cachedir(), tempfoldername)
+            if self._rdmc.app.cache:
+                tempdir = os.path.join(self._rdmc.app.cachedir, tempfoldername)
+            else:
+                tempdir = os.path.join(sys.executable, tempfoldername)
 
             sys.stdout.write("Spliting component. Temporary " \
                                             "cache directory at %s\n" % tempdir)
@@ -317,7 +320,7 @@ class UploadComponentCommand(RdmcCommandBase):
                 output = fle.read()
             data.append(('file', (ilo_upload_filename, output, 'application/octet-stream')))
 
-            res = self._rdmc.app.post_handler(str(urltosend), data, response=True, \
+            res = self._rdmc.app.post_handler(str(urltosend), data, \
                  headers={'Cookie': 'sessionKey=' + sessionkey})
 
             if res.status != 200:
@@ -333,7 +336,7 @@ class UploadComponentCommand(RdmcCommandBase):
 
         return ReturnCodes.SUCCESS
 
-    def wait_for_state_change(self, wait_time=420):
+    def wait_for_state_change(self, wait_time=1200):
         """ Wait for the iLO UpdateService to a move to terminal state.
         :param options: command line options
         :type options: list.
@@ -499,49 +502,7 @@ class UploadComponentCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-        client = None
-
-        if not options.component:
-            raise InvalidCommandLineError("The component option is required"\
-                                          " for this operation.")
-
-        if not os.path.exists(options.component):
-            raise InvalidPathError("Component not found at specified path.")
-
-        if options.componentsig  and (not os.path.exists(options.componentsig)):
-            raise InvalidCommandLineError("Component signature not found.")
-
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if not client or inputline:
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Define command line argument for the upload command
@@ -563,15 +524,6 @@ class UploadComponentCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
-        )
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
-            default=None,
         )
         customparser.add_argument(
             '--component',

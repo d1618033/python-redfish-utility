@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample XML script to set the power      ::
 ::               alert threshold for Integrated Lights-Out(iLO).   ::

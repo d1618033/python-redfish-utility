@@ -21,7 +21,7 @@ Description
 -----------
 
 :program:`ilorest` is a command line tool which simplifies the process of
-applying firmware for your HP ProLiant server.   :program:`hp-rest`
+applying firmware for your HPE ProLiant server.   :program:`ilorest`
 is designed for administrators looking to script and automate firmware
 deployment.
 
@@ -32,8 +32,8 @@ When firmware is found :program:`ilorest` will guide you through the process
 of applying it to your system.
 
 In order to populate the ``/usr/lib/<triplet>`` directory you must
-download and install HP firmware packages from the
-ProLiant Software Delivery Repository http://downloads.linux.hp.com/SDR/ 
+download and install HPE firmware packages from the
+ProLiant Software Delivery Repository http://downloads.linux.hpe.com/SDR/ 
 
 :program:`ilorest` includes integrated online help.  To access it run the
 :program:`ilorest` command without any arguments.

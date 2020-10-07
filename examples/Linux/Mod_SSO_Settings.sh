@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description: This a sample bash script to configure HPE SIM     #
 #              Single Sign-ON (SSO) settings on Integrated        #
@@ -24,10 +24,10 @@ runLocal(){
   ilorest select SSO. -u USER_LOGIN -p PASSWORD
   # Specify the desired trust mode value                          #
   #  Options: TrustNone    (default)                              #
-  #           TrustbyCert (recommended)                           #
+  #           Trustbycert (recommended)                           #
   #           TrustbyName                                         #
   #           TrustAll                                            #
-  ilorest set SSOsettings/SSOTrustMode=TrustbyCert
+  ilorest set SSOsettings/SSOTrustMode=Trustbycert
 
   # Specify the privileges assigned to the user role              #
   ilorest set SSOsettings/UserPrivilege/LoginPriv=True
@@ -65,10 +65,10 @@ runRemote(){
   ilorest select SSO. --url=$1 --user $2 --password $3
   # Specify the desired trust mode value                          #
   #  Options: TrustNone    (default)                              #
-  #           TrustbyCert (recommended)                           #
+  #           Trustbycert (recommended)                           #
   #           TrustbyName                                         #
   #           TrustAll                                            #
-  ilorest set SSOsettings/SSOTrustMode=TrustbyCert
+  ilorest set SSOsettings/SSOTrustMode=Trustbycert
 
   # Specify the privileges assigned to the user role              #
   ilorest set SSOsettings/UserPrivilege/LoginPriv=True

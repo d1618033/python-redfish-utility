@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ import sys
 
 from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                     NoContentsFoundForOperationError, InvalidFileInputError, Encryption, UploadError
 
@@ -43,7 +44,6 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
         self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
@@ -79,6 +79,8 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             raise InvalidCommandLineError("%s is not a valid option for this "\
                                           "command."% str(args[0]))
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def backupserver(self, options, skey):
@@ -114,7 +116,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             postdata.append(('password', options.fpass))
         sys.stdout.write("Downloading backup file %s..." % backupname)
         backupfile = self._rdmc.app.post_handler(backuplocation, postdata,\
-          service=True, silent=True, response=True)
+          service=True, silent=True)
 
         if backupfile:
             sys.stdout.write("Download complete.\n")
@@ -173,7 +175,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         postdata.append(('file', (filename, bakfile, 'application/octet-stream')))
 
         resp = self._rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True, \
-                                    headers={'Cookie': 'sessionKey=' + skey}, response=True)
+                                    headers={'Cookie': 'sessionKey=' + skey})
 
         if not resp.status == 200:
             if resp.ori == 'invalid_restore_password':
@@ -192,40 +194,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
-        inputline = list()
-
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline:
-            self.lobobj.loginfunction(inputline)
-        elif not client:
-            raise InvalidCommandLineError("Please login or pass credentials to complete the "\
-                                                                                    "operation.")
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

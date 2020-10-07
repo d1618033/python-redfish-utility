@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014-2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to delete a user    ::
 ::               from the database of local users on following     ::
@@ -23,11 +23,11 @@ if %argC% EQU 0 goto :local
 goto :error
 
 :local
-ilorest iloaccounts delete USERNAME
+ilorest iloaccounts delete testUser
 ilorest logout
 goto :exit
 :remote
-ilorest iloaccounts delete USERNAME --url=%1 --user %2 --password %3
+ilorest iloaccounts delete testUser --url=%1 --user %2 --password %3
 ilorest logout
 goto :exit
 

@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,11 +34,11 @@ class RestHelpers(object):
         Perform a GET request for the specified URL
         :param url: the URL of the resource to fetch
         :type: string
-        :returns: object containing the REST response
+        :returns: object containing the REST responsed
         :rtype: RestResponse object
         """
         accepted_status = [200, 202]
-        resp = self._rdmc.app.get_handler(url, service=True, silent=True, response=True)
+        resp = self._rdmc.app.get_handler(url, service=True, silent=True)
         if resp and resp.status in accepted_status and resp.dict:
             return resp.dict
         return None
@@ -226,7 +226,7 @@ class RestHelpers(object):
         :returns: status code
         """
         accepted_status = [200, 201, 202, 204]
-        resp = self._rdmc.app.post_handler(path, body, service=True, silent=True, response=True)
+        resp = self._rdmc.app.post_handler(path, body, service=True, silent=True)
         if resp and resp.status in accepted_status:
             return resp.status
         return None

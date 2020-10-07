@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description: This a sample batch script to delete an HPE SIM    #
 #        Single Sign-On (SSO) server record by index.             #

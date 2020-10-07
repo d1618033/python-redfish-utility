@@ -1,4 +1,4 @@
-# Use case Examples and Macro Commands
+﻿# Use case Examples and Macro Commands
 
 The command catalog provided by the RESTful Interface Tool enables a wide variety of options to manipulate and work with the server. Multiple commands chained together have the potential to provide higher-level functionality and meet any needs that arise depending on the task at hand. Some of the more common commands, such as the `bootorder` command, have already been built into the command catalog. The `bootorder` example below shows how the available commands in the command catalog can be combined to manipulate the order of boot devices.
 

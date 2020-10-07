@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to update the       ::
 ::               Integrated Lights-Out(iLO) firmware.              ::
@@ -35,14 +35,14 @@ goto :error
 ilorest login -u USER_LOGIN -p PASSWORD
 ilorest firmwareupdate https://IMAGE_LOCATION.bin
 ::  Use the line below instead if your server uses TPM:            ::
-::ilorest firmwareupdate https://IMAGE_LOCATION.bin --tpmenabled -u USER_LOGIN -p PASSWORD
+::ilorest firmwareupdate https://IMAGE_LOCATION.bin --tpmenabled -u USER_LOGIN -p PASSWORD ::
 ilorest logout
 goto :exit
 :remote
 ilorest login %1 -u %2 -p %3
 ilorest firmwareupdate https://IMAGE_LOCATION.bin
 ::  Use the line below instead if your server uses TPM:            ::
-::ilorest firmwareupdate https://IMAGE_LOCATION.bin --tpmenabled --url=%1 -u %2 -p %3
+::ilorest firmwareupdate https://IMAGE_LOCATION.bin --tpmenabled --url=%1 -u %2 -p %3 ::
 ilorest logout
 goto :exit
 

@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,8 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     NoDifferencesFoundError, MultipleServerConfigError, \
                     InvalidMSCfileInputError, Encryption
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
+                                login_select_validation
 
 #default file name
 __filename__ = 'ilorest.json'
@@ -65,11 +66,9 @@ class LoadCommand(RdmcCommandBase):
         self.mpfilename = None
         self.queue = queue.Queue()
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
         self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main load worker function
@@ -205,63 +204,24 @@ class LoadCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-        runlogin = False
 
         if self._rdmc.opts.latestschema:
             options.latestschema = True
 
-        if self._rdmc.app.config._ac__format.lower() == 'json':
-            options.json = True
-
         try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline:
-            runlogin = True
-            if not inputline:
-                sys.stdout.write('Local login initiated...\n')
-        if options.biospassword:
-            inputline.extend(["--biospassword", options.biospassword])
-
-        try:
-            if runlogin:
-                self.lobobj.loginfunction(inputline)
-        except Exception as excp:
+            login_select_validation(self, options)
+        except Exception:
             if options.mpfilename:
                 pass
             else:
-                raise excp
+                raise
 
         #filename validations and checks
         if options.filename:
             self.filenames = options.filename
-        elif self._rdmc.app.config:
-            if self._rdmc.app.config._ac__loadfile:
-                self.filenames = [self._rdmc.app.config._ac__loadfile]
+        elif self._rdmc.config:
+            if self._rdmc.config.defaultloadfilename:
+                self.filenames = [self._rdmc.config.defaultloadfilename]
 
         if not self.filenames:
             self.filenames = [__filename__]
@@ -308,7 +268,7 @@ class LoadCommand(RdmcCommandBase):
         :param outputdir: custom output directory
         :type outputdir: string.
         """
-        self.logoutobj.run("")
+        #self.logoutobj.run("")
         data = self.validatempfile(mpfile=mpfile, lfile=lfile)
 
         if not data:
@@ -346,7 +306,12 @@ class LoadCommand(RdmcCommandBase):
 
             finput = '\n'+ 'Output for '+ line[line.index('--url')+1]+': \n\n'
             urlvar = line[line.index('--url')+1]
-            listargforsubprocess = [sys.executable] + line
+
+            if 'python' in os.path.basename(sys.executable.lower()):
+                #If we are running from source we have to add the python file to the command
+                listargforsubprocess = [sys.executable, sys.argv[0]] + line
+            else:
+                listargforsubprocess = [sys.executable] + line
 
             if os.name is not 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
@@ -446,7 +411,7 @@ class LoadCommand(RdmcCommandBase):
             return
 
         add_login_arguments_group(customparser)
-
+        '''
         customparser.add_argument(
             '--logout',
             dest='logout',
@@ -456,6 +421,7 @@ class LoadCommand(RdmcCommandBase):
             " not logged in will have no effect",
             default=None,
         )
+        '''
         customparser.add_argument(
             '-f',
             '--filename',

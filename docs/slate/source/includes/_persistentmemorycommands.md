@@ -2,6 +2,115 @@
 
 This section covers commands related to the discovery and configuration of HPE Persistent Memory.
 
+### Clear Pending Configuration Command
+
+
+> Example: Clear all pending persistent memory configuration tasks.
+
+
+<pre>
+iLOrest > <font color="#01a982">clearpmmpendingconfig</font>
+
+Deleted Task #1948
+Deleted Task #1949
+Deleted Task #1950
+Deleted Task #1951
+Deleted Task #1952
+Deleted Task #1953
+
+</pre>
+
+
+#### Syntax
+
+
+clearpmmpendingconfig
+
+
+#### Description
+
+
+Clears all pending persistent memory configuration tasks.
+
+#### Parameters
+
+
+- **-h, --help**
+
+Displays help on the usage of this command.
+
+### Persistent Memory Advanced Configuration Command
+
+
+> Example: Configure all persistent memory modules on processors 1 and 3 to 50% Volatile with no persistent interleave regions.
+
+
+<pre>
+iLOrest > <font color="#01a982">provisionpmm -m 50 -i off -p 1,3</font>
+
+***WARNING: Configuration changes require reboot to take effect***
+
+Operation    PmemSize    VolatileSize    DimmIds
+CREATE       63.19 GB    63.19 GB        1@1
+CREATE       63.19 GB    63.19 GB        1@12
+CREATE       63.19 GB    63.19 GB        3@1
+CREATE       63.19 GB    63.19 GB        3@12
+
+</pre>
+
+
+> Example: Configure all installed persistent memory modules to 25% Volatile with persistent interleave regions.
+
+
+<pre>
+iLOrest > <font color="#01a982">provisionpmm -m 25 -i on</font>
+
+***WARNING: Configuration changes require reboot to take effect***
+
+Operation    PmemSize    VolatileSize    DimmIds
+DELETE       126.0 GB    126.76 GB       1@1, 1@12
+DELETE       126.0 GB    126.76 GB       2@1, 2@12
+CREATE       189.57 GB   63.19 GB        1@1, 1@12
+CREATE       189.57 GB   63.19 GB        2@1, 2@12
+
+</pre>
+
+
+#### Syntax
+
+
+provisionpmm [-h | --help] [-m | --memory-mode=(0|%)] [-i | --pmem-interleave=(On|Off)] [-p | --proc=(processorID)] [-f | --force]
+
+
+#### Description
+
+
+Applies user specified configuration to persistent memory modules.
+
+
+#### Parameters
+
+
+- **-h, --help**
+
+Displays help on the usage of this command.
+
+- **-m, --memory-mode**
+
+Optionally allows user to specify the percentage of total capacity that should be configured as Volatile. Defaults to 0% Volatile. The remaining capacity will be configured as Persistent.
+
+- **-i, --pmem-interleave**
+
+Indicates whether the persistent memory regions should be interleaved or not (Allowed values: "on", "off").
+
+- **-p, --proc**
+
+Optionally allows user to specify the processors (comma separated list of ProcessorNumbers) on which the selected configuration would be applied. Defaults to all processors.
+
+- **-f, --force**
+
+Allow the user to force the configuration by automatically accepting any prompts.
+
 ### Persistent Memory Discovery Command
 
 
@@ -183,77 +292,6 @@ Specify one of the predefined configIDs to apply to all persistent memory module
 Allow the user to force the configuration by automatically accepting any prompts.
 
 
-### Persistent Memory Advanced Configuration Command
-
-
-> Example: Configure all persistent memory modules on processors 1 and 3 to 50% Volatile with no persistent interleave regions.
-
-
-<pre>
-iLOrest > <font color="#01a982">provisionpmm -m 50 -i off -p 1,3</font>
-
-***WARNING: Configuration changes require reboot to take effect***
-
-Operation    PmemSize    VolatileSize    DimmIds
-CREATE       63.19 GB    63.19 GB        1@1
-CREATE       63.19 GB    63.19 GB        1@12
-CREATE       63.19 GB    63.19 GB        3@1
-CREATE       63.19 GB    63.19 GB        3@12
-
-</pre>
-
-
-> Example: Configure all installed persistent memory modules to 25% Volatile with persistent interleave regions.
-
-
-<pre>
-iLOrest > <font color="#01a982">provisionpmm -m 25 -i on</font>
-
-***WARNING: Configuration changes require reboot to take effect***
-
-Operation    PmemSize    VolatileSize    DimmIds
-DELETE       126.0 GB    126.76 GB       1@1, 1@12
-DELETE       126.0 GB    126.76 GB       2@1, 2@12
-CREATE       189.57 GB   63.19 GB        1@1, 1@12
-CREATE       189.57 GB   63.19 GB        2@1, 2@12
-
-</pre>
-
-
-#### Syntax
-
-
-provisionpmm [-h | --help] [-m | --memory-mode=(0|%)] [-i | --pmem-interleave=(On|Off)] [-p | --proc=(processorID)] [-f | --force]
-
-
-#### Description
-
-
-Applies user specified configuration to persistent memory modules.
-
-
-#### Parameters
-
-
-- **-h, --help**
-
-Displays help on the usage of this command.
-
-- **-m, --memory-mode**
-
-Optionally allows user to specify the percentage of total capacity that should be configured as Volatile. Defaults to 0% Volatile. The remaining capacity will be configured as Persistent.
-
-- **-i, --pmem-interleave**
-
-Indicates whether the persistent memory regions should be interleaved or not (Allowed values: "on", "off").
-
-- **-p, --proc**
-
-Optionally allows user to specify the processors (comma separated list of ProcessorNumbers) on which the selected configuration would be applied. Defaults to all processors.
-
-- **-f, --force**
-
-Allow the user to force the configuration by automatically accepting any prompts.
 
 
 ### Show Pending Configuration Command
@@ -298,44 +336,6 @@ Displays help on the usage of this command.
 - **-j, --json**
 
 Optionally use this flag to display output in JSON format.
-
-
-### Clear Pending Configuration Command
-
-
-> Example: Clear all pending persistent memory configuration tasks.
-
-
-<pre>
-iLOrest > <font color="#01a982">clearpmmpendingconfig</font>
-
-Deleted Task #1948
-Deleted Task #1949
-Deleted Task #1950
-Deleted Task #1951
-Deleted Task #1952
-Deleted Task #1953
-
-</pre>
-
-
-#### Syntax
-
-
-clearpmmpendingconfig
-
-
-#### Description
-
-
-Clears all pending persistent memory configuration tasks.
-
-#### Parameters
-
-
-- **-h, --help**
-
-Displays help on the usage of this command.
 
 
 ### Show Recommended Configuration Command

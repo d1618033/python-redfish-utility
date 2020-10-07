@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ from argparse import ArgumentParser
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                         InvalidCommandLineError, DownloadError, \
                         InvalidFileInputError, IncompatibleiLOVersionError, Encryption
@@ -62,8 +63,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Wrapper function for download command main function
@@ -110,9 +110,8 @@ class DownloadComponentCommand(RdmcCommandBase):
 
         sys.stdout.write("%s\n" % human_readable_time(time.time() - start_time))
 
-        if options.logout:
-            self.logoutobj.run("")
-
+        logout_routine(self, options)
+        #Return code
         return ret
 
     def downloadfunction(self, filepath, options=None):
@@ -195,39 +194,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         :param options: command options
         :type options: options.
         """
-        inputline = list()
-        client = None
-
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if not client or inputline:
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for download command main function
@@ -239,7 +206,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             return
 
         add_login_arguments_group(customparser)
-
+        '''
         customparser.add_argument(
             '--logout',
             dest='logout',
@@ -249,6 +216,7 @@ class DownloadComponentCommand(RdmcCommandBase):
             " not logged in will have no effect.",
             default=None,
         )
+        '''
         customparser.add_argument(
             '--outdir',
             dest='outdir',

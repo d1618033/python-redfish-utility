@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,8 +90,7 @@ class LoginCommand(RdmcCommandBase):
 
         self.loginvalidation(options, args)
 
-        proxy = self._rdmc.opts.proxy if self._rdmc.opts.proxy else \
-                                        self._rdmc.app.config.get_proxy()
+        proxy = self._rdmc.opts.proxy if self._rdmc.opts.proxy else self._rdmc.config.proxy
 
         self._rdmc.app.login(username=self.username, \
                       password=self.password, base_url=self.url, \
@@ -130,18 +129,16 @@ class LoginCommand(RdmcCommandBase):
         """
         # Fill user name/password from config file
         if not options.user:
-            options.user = self._rdmc.app.config.get_username()
+            options.user = self._rdmc.config.username
         if not options.password:
-            options.password = self._rdmc.app.config.get_password()
-        if not options.biospassword:
-            options.biospassword = self._rdmc.app.config.get_bios_password()
+            options.password = self._rdmc.config.password
         if not options.https_cert:
-            options.https_cert = self._rdmc.app.config.get_ssl_cert()
+            options.https_cert = self._rdmc.config.ssl_cert
 
         # Password and user name validation
         if options.user and not options.password:
             # Option for interactive entry of password
-            tempinput = getpass.getpass()
+            tempinput = getpass.getpass().rstrip()
 
             if tempinput:
                 options.password = tempinput
@@ -175,8 +172,8 @@ class LoginCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Empty username or password was entered.")
         else:
             # Check to see if there is a URL in config file
-            if self._rdmc.app.config.get_url():
-                self.url = self._rdmc.app.config.get_url()
+            if self._rdmc.config.url:
+                self.url = self._rdmc.config.url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -201,6 +198,7 @@ class LoginCommand(RdmcCommandBase):
             '--password',
             dest='password',
             help="""Use the provided iLO password to log in.""",
+            nargs='?',
             default=None
         )
         customparser.add_argument(
@@ -239,11 +237,11 @@ class LoginCommand(RdmcCommandBase):
             default=None
         )
         customparser.add_argument(
-        '--https',
-        dest='https_cert',
-        help="Use the provided CA bundle or SSL certificate with your login to connect "\
-            "securely to the system in remote mode. This flag has no effect in local mode.",
-        default=None
+            '--https',
+            dest='https_cert',
+            help="Use the provided CA bundle or SSL certificate with your login to connect "\
+                "securely to the system in remote mode. This flag has no effect in local mode.",
+            default=None
         )
         customparser.add_argument(
             '-e',

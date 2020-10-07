@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description: This a sample batch script to add an HPE SIM Single::
 ::              Sign-On (SSO) server record to the end of the      ::
@@ -52,7 +52,7 @@ ilorest singlesignon importdns hpesim01.hpe.net
 ilorest logout
 goto :exit
 :remote
-ilorest login --url=%1 --user %2 --password %3
+ilorest login %1 -u %2 -p %3
 :: Alternative 1: add an HPE SIM SSO server record by              ::
 ::                indirect import. iLO indirectly imports the      ::
 ::                encoded certificate by requesting it from        ::
@@ -68,7 +68,7 @@ goto :exit
 
 :error
 echo Usage:
-echo        remote: add_sso_rec.bat ^<iLO url^> ^<iLO username^>  ^<iLO password^>
-echo        local:  add_sso_rec.bat
+echo        remote: Add_sso_rec.bat ^<iLO url^> ^<iLO username^>  ^<iLO password^>
+echo        local:  Add_sso_rec.bat
 
 :exit

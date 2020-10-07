@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
-# Description:  This is a sample bash script to return current   #
-#               encryption settings.                              #
+# Description:  This is a sample bash script to return current    #
+#               smart array controller encryption settings        #
 
 # NOTE:  You will need to replace the USER_LOGIN and PASSWORD     #
 #        values with values that are appropriate for your         #

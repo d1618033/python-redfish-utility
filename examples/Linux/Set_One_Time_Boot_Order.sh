@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description: This is a sample bash script to Set One Time Boot  #
 #                 Order.                                          #
@@ -31,14 +31,14 @@
 
 runLocal(){
   ilorest login -u USER_LOGIN -p PASSWORD
-  ilorest bootorder --onetimeboot=None
+  ilorest bootorder --onetimeboot=Utilities
   ilorest commit
   ilorest logout
 }
 
 runRemote(){
   ilorest login $1 --user $2 --password $3
-  ilorest bootorder --onetimeboot=None
+  ilorest bootorder --onetimeboot=Utilities
   ilorest commit
   ilorest logout
 }

@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import base64
 
 from datetime import datetime
 from argparse import ArgumentParser
+from ctypes import create_string_buffer
 
 import six
 
@@ -34,7 +35,10 @@ from six import StringIO
 
 import redfish
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from redfish.hpilo.risblobstore2 import BlobStore2
+
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation,\
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI,\
                     InvalidFileFormattingError, UnableToDecodeError, Encryption, \
                     PathUnavailableError, InvalidFileInputError, NoContentsFoundForOperationError
@@ -66,10 +70,10 @@ class IPProfilesCommand(RdmcCommandBase):
         self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
         self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
         self.bootorderobj = rdmcObj.commands_dict["BootOrderCommand"](rdmcObj)
-        self.path = '/redfish/v1/systems/1/hpeip/HpeIpProfiles/'
-        self.ipjobs = '/redfish/v1/Systems/1/HpeIp/HpeIpJobs/'
-        self.running_jobs = '/redfish/v1/Systems/1/hpeip/hpeipjobs'
-        self.hvt_output = '/redfish/v1/Systems/1/hpeip/hpeiphvtdata'
+        self.path = ''
+        self.ipjobs = ''
+        self.running_jobs = ''
+        self.hvt_output = ''
         self.syspath = '/redfish/v1/Systems/1/'
         self.ipjobtype = ['langsel', 'hvt', 'ssa', 'install', 'rbsu']
 
@@ -88,10 +92,14 @@ class IPProfilesCommand(RdmcCommandBase):
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        self.getpaths()
+
         self.validation(options)
 
         self.ipprofileworkerfunction(options, args)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def ipprofileworkerfunction(self, options, args):
@@ -131,7 +139,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
 
-        results = self._rdmc.app.get_handler(self.path, silent=True, response=True)
+        results = self._rdmc.app.get_handler(self.path, silent=True)
         if results.status == 404:
             raise PathUnavailableError("The Intelligent Provisioning resource "\
                                    "is not available on this system. You may need"\
@@ -167,7 +175,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
 
-        results = self._rdmc.app.get_handler(self.running_jobs, silent=True, response=True)
+        results = self._rdmc.app.get_handler(self.running_jobs, silent=True)
         if results.status == 404:
             raise PathUnavailableError("The Intelligent Provisioning resource "\
                                    "is not available on this system. You may need"\
@@ -193,7 +201,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return returncode: int
         """
         return_value = {}
-        results = self._rdmc.app.get_handler(self.hvt_output, silent=True, response=True)
+        results = self._rdmc.app.get_handler(self.hvt_output, silent=True)
         if results.status == 404:
             raise PathUnavailableError("The Intelligent Provisioning resource "\
                                    "is not available on this system. You may need"\
@@ -373,8 +381,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :type jokbey: str.
         """
 
-        get_results = self._rdmc.app.get_handler(self.path,\
-                silent=True)
+        get_results = self._rdmc.app.get_handler(self.path, silent=True)
 
         j2python = json.loads(get_results.read)
         copy_job = {}
@@ -410,8 +417,7 @@ class IPProfilesCommand(RdmcCommandBase):
         """
 
         if ipprovider.startswith('/redfish/'):
-            get_results = self._rdmc.app.get_handler(ipprovider,\
-                silent=True)
+            get_results = self._rdmc.app.get_handler(ipprovider, silent=True)
             result = json.loads(get_results.read)
 
             is_inip = None
@@ -432,8 +438,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :return list_dict: list of dicts
         """
 
-        results = self._rdmc.app.get_handler(self.path,\
-                silent=True)
+        results = self._rdmc.app.get_handler(self.path, silent=True)
 
         j2python = json.loads(results.read)
         for _, val in enumerate(j2python.keys()):
@@ -458,8 +463,7 @@ class IPProfilesCommand(RdmcCommandBase):
 
         :return is_provider: None or string.
         """
-        get_results = self._rdmc.app.get_handler(self.syspath, \
-                silent=True)
+        get_results = self._rdmc.app.get_handler(self.syspath, silent=True)
 
         result = json.loads(get_results.read)
 
@@ -478,35 +482,7 @@ class IPProfilesCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.get_current_client()
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def decode_base64_string(self, str_b64):
         """
@@ -544,8 +520,8 @@ class IPProfilesCommand(RdmcCommandBase):
                     "Please create file by running 'save' command." % filename)
 
             try:
-                inputfile = open(filename, 'r')
-                contentsholder = json.loads(inputfile.read())
+                with open(filename, 'r') as fh:
+                    contentsholder = json.loads(fh.read())
             except:
                 raise InvalidFileFormattingError("Input file '%s' was not "\
                                                  "format properly." % filename)
@@ -572,6 +548,26 @@ class IPProfilesCommand(RdmcCommandBase):
                 raise UnableToDecodeError("Error while encoding string.")
 
         return payload
+
+    def getpaths(self):
+        """ Get paths for ipprofiles command """
+        if not all(iter([self.path, self.ipjobs, self.running_jobs, self.hvt_output])):
+            dll = BlobStore2.gethprestchifhandle()
+
+            profiles_path = create_string_buffer(50)
+            jobs_path = create_string_buffer(50)
+            running_jobs_path = create_string_buffer(50)
+            hvt_output_path = create_string_buffer(50)
+
+            dll.get_ip_profiles(profiles_path)
+            dll.get_ip_jobs(jobs_path)
+            dll.get_running_jobs(running_jobs_path)
+            dll.get_hvt_output(hvt_output_path)
+
+            self.path = profiles_path.value
+            self.ipjobs = jobs_path.value
+            self.running_jobs = running_jobs_path.value
+            self.hvt_output = hvt_output_path.value
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

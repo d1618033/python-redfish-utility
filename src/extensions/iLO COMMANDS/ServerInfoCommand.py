@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###
-
 # -*- coding: utf-8 -*-
 """ Server Info Command for rdmc """
 import re
@@ -24,9 +23,9 @@ from collections import OrderedDict
 
 import jsonpath_rw
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, UI, \
-                        Encryption
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, UI
 
 class ServerInfoCommand(RdmcCommandBase):
     """ Show details of a server """
@@ -34,6 +33,8 @@ class ServerInfoCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='serverinfo',\
             usage='serverinfo [OPTIONS]\n\n\t'\
+                'Show all information.\n\texample: serverinfo\n\t\t'\
+                ' serverinfo --all\n\n\t'\
                 'Show enabled fan, processor, and thermal information.\n\texample: ' \
                 'serverinfo --fans --processors --thermals\n\n\tShow all memory '\
                 'and fan information, including absent locations in json format.\n\t'\
@@ -44,8 +45,6 @@ class ServerInfoCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
 
     def run(self, line):
         """ Main serverinfo function.
@@ -67,16 +66,21 @@ class ServerInfoCommand(RdmcCommandBase):
 
         self.serverinfovalidation(options)
 
+        self.optionsvalidation(options)
+
         info = self.gatherinfo(options)
 
         if not info:
-            raise InvalidCommandLineError("Please add options to view server info.")
+            raise InvalidCommandLineError("Please verify the commands entered "\
+                                          "and try again.")
 
         if options.json:
             UI().print_out_json(info)
         else:
             self.prettyprintinfo(info, options.showabsent)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def gatherinfo(self, options):
@@ -373,42 +377,31 @@ class ServerInfoCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
-        inputline = list()
+        login_select_validation(self, options)
 
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
+    def optionsvalidation(self, options):
+        """ Checks/updates options.
+        :param options: command line options
+        :type options: list
+        """
+        optlist = [options.memory, options.thermals, options.fans, \
+           options.power, options.processors, options.system, options.showabsent]
+        if not any(optlist):
+            self.setalloptionstrue(options)
+        if options.all == True:
+            self.setalloptionstrue(options)
+        return options
 
-        if inputline or not client:
-            if not inputline:
-                sys.stdout.write('Local login initiated...\n')
-            self.lobobj.loginfunction(inputline)
-        elif not client:
-            raise InvalidCommandLineError("Please login or pass credentials" \
-                                          " to complete the operation.")
+    def setalloptionstrue(self, options):
+        """ Updates all selector options values to be True
+        """
+        options.memory = True
+        options.thermals = True
+        options.fans = True
+        options.processors = True
+        options.power = True
+        options.system = True
+        options.showabsent = True
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -421,6 +414,13 @@ class ServerInfoCommand(RdmcCommandBase):
 
         add_login_arguments_group(customparser)
 
+        customparser.add_argument(
+            '--all',
+            dest='all',
+            action="store_true",
+            help="Add information for all types.",
+            default=False
+        )
         customparser.add_argument(
             '--memory',
             dest='memory',

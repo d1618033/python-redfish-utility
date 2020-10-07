@@ -1,9 +1,11 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to modify a         ::
 ::               Federation group membership and associated        ::
 ::               privileges on Integrated Lights-Out(iLO).         ::
+:: NOTE:  Some privileges may not be configurable based on the     ::
+::        logged in user's privileges.
 
 :: NOTE:  You will need to replace the USER_LOGIN and PASSWORD     ::
 ::        and other values inside the quotation marks with         ::

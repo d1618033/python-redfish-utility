@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from argparse import ArgumentParser
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
 
 class SelectCommand(RdmcCommandBase):
@@ -64,7 +64,7 @@ class SelectCommand(RdmcCommandBase):
                 if options.ref:
                     LOGGER.warn("Patches from current selection will be cleared.")
                 selector = args[0]
-                selections = self._rdmc.app.select(selector=selector, rel=options.ref)
+                selections = self._rdmc.app.select(selector=selector, path_refresh=options.ref)
 
                 if self._rdmc.opts.verbose and selections:
                     templist = list()
@@ -90,6 +90,8 @@ class SelectCommand(RdmcCommandBase):
 
         except redfish.ris.InstanceNotFoundError as infe:
             raise redfish.ris.InstanceNotFoundError(infe)
+
+        logout_routine(self, options)
 
     def selectvalidation(self, options):
         """ Select data validation function
@@ -118,17 +120,23 @@ class SelectCommand(RdmcCommandBase):
                 if options.https_cert:
                     inputline.extend(["--https", options.https_cert])
             else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
+                if self._rdmc.config.url:
+                    inputline.extend([self._rdmc.config.url])
+                if self._rdmc.config.username:
+                    inputline.extend(["-u", self._rdmc.config.username])
+                if self._rdmc.config.password:
+                    inputline.extend(["-p", self._rdmc.config.password])
+                if self._rdmc.config.ssl_cert:
+                    inputline.extend(["--https", self._rdmc.config.ssl_cert])
 
         if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
+            try:
+                if self._rdmc.opts.verbose > 1:
+                    sys.stdout.write("Local login initiated...\n")
+                else:
+                    raise Exception
+            except Exception:
+                LOGGER.info("Local login initiated...\n")
         if inputline:
             runlogin = True
         if options.includelogs:
@@ -158,7 +166,7 @@ class SelectCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser, full=True)
+        add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--refresh',

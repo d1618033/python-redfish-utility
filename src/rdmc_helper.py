@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -491,7 +491,16 @@ class UI(object):
             content = content if isinstance(content, six.string_types) else str(content)
 
             content = '""' if not content else content
-            sys.stdout.write(content)
+            #Changed to support py3, verify if there is a unicode prit issue.
+            sys.stdout.write(content)#.encode('utf-8'))
+
+
+
+        #finally:
+        #    # restore stdout to its previous value
+        #    #NOTE: dup2 makes stdout_fd inheritable unconditionally
+        #    stdout.flush()
+        #    os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
 
 class Encryption(object):
     """ Encryption/Decryption object """

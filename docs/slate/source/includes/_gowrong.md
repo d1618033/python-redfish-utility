@@ -4,7 +4,17 @@ This section provides debug information to help when things go wrong. If this se
 
 ## I need return codes to script, but I'm not seeing any in the output.
 
-The verbose global flag (-v,--verbose) will output more information including return codes.
+### Symptom
+
+I am unable to see return codes in the output.
+
+### Cause
+
+The verbose global flag (-v,--verbose) is not being used.
+
+### Action
+
+Use the verbose global flag (-v,--verbose), which will output more information including return codes.
 
 > You can see return codes and other information with the verbose flag.
 
@@ -21,7 +31,17 @@ Monolith build process time: 0.259999990463
 
 ## How can I see exactly what iLOrest is sending to iLO?
 
-The debug global flag (-d, --debug) will provide the payloads we send and receive from iLO. It is printed to console and to the iLOrest.log file. Debug mode will show information such as X-Auth-Token headers. For this reason it's highly encouraged to only use the debug flag for debugging issues and not for production scripts.
+### Symptom
+
+I am unable to see what iLOrest is sending to iLO.
+
+### Cause
+
+The debug global flag (-d, --debug) is not being used.
+
+### Action
+
+Use the debug global flag (-d, --debug), which will provide the payloads that are sent and received from iLO. It is printed to console and to the iLOrest.log file. Debug mode will show information, such as X-Auth-Token headers. For this reason, it's highly encouraged to use only the debug flag for debugging issues and not for production scripts.
 
 > You can see full payloads with debug mode. The response is truncated for space.
 
@@ -57,9 +77,19 @@ Body Response of /redfish/v1/: {"@odata.con...
 
 ## Why am I getting extra data?
 
-If you are getting more data than you think you should, you may not be using a selector that is exclusive to the type you want.
+### Symptom
 
-It's also possible that the type you have selected has more than one instance. In this case the [filter option](#filter-option) can help you limit the results to the instance you want.
+I am getting more data than what I would like.
+
+### Cause
+
+You are not using a selector that is exclusive to the type you want and/or the type that you have selected has more than one instance.
+
+### Action
+
+1. Use a selector that is exclusive to the type you want.
+
+2. Verify that the type you have selected, does not have more than one instance. In this case, the [filter option](#filter-option) can help you limit the results to the instance you want.
 
 > In this example the selector returns both the instance and the collection type. Modifying the selector to limit the selection solves this problem. The easiest way to do that is to add a period to ensure you are only selecting one type.
 
@@ -98,19 +128,37 @@ Selected option(s): #EthernetInterface.v1_4_1.EthernetInterface
 iLOrest return code: 0
 </pre>
 
-## I can set a property, but the commit is failing...
+## I can set a property, but the commit is failing.
 
-This can happen for multiple reasons. We try to catch issues with commits when the property is initially set, but not all possible issues can be caught. 
+### Symptom
 
-First run the [status command](#status-command) to see what properties have failed to commit.
+The commit is failing, even though I can set a property.
 
-To ensure you are sending data that will be accepted by the server you can get schema information for the property that failed to commit with the [info command](#info-command).
+### Cause
 
-Some properties require other properties to be set first. You can view the <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/#resource-definitions">iLO REST API Doc's resource definitions</a> for the property you are trying to commit to see any additional information on modifying the property that is not in the schemas.
+This issue can happen for multiple reasons. The API tries  to catch issues with commits when the property is initially set, but not all possible issues can be caught.
+
+### Action
+
+1. Run the [status command](#status-command) to see what properties have failed to commit.
+
+2. To ensure you are sending data that will be accepted by the server, obtain schema information for the property that failed to commit with the [info command](#info-command).
+
+3. Some properties require other properties to be set first. You can view the <a href=" https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/#resource-definitions">iLO REST API Doc's resource definitions</a> for the property you are trying to commit to see any additional information on modifying the property that is not in the schemas.
 
 ## I think this property is an array, but I can't tell by the get/list output.
 
-Currently the human readable output does not distinguish between nested json objects and arrays. They both look similar in the output. You can use the -j,--json flags to distinguish between arrays and nested json objects.
+### Symptom
+
+It is difficult to tell the difference between arrays and nested JSON objects from the get/list output.
+
+### Cause
+
+The get/list output does not distinguish between nested JSON objects and arrays. They both look similar in the output.
+
+### Action
+
+Use the -j,--json flags to distinguish between arrays and nested JSON objects.
 
 > It's hard to tell where the array is in this output until you print the response in json format.
 
@@ -160,7 +208,17 @@ iLOrest return code: 0
 
 ## I need to change a property, but it's an array... How can I modify that?
 
-Currently Array types need to be set as a whole modified array inside brackets. ``[ ]``
+### Symptom
+
+I am unable to change a property for an array.
+
+### Cause
+
+Array types must be set as a whole modified array inside brackets. ``[ ]``
+
+### Action
+
+Set array types as a whole modified array inside brackets. ``[ ]``
 
 You can also modify lists using the [save](#save-command) and [load](#load-command) commands.
 
@@ -180,7 +238,15 @@ The operation completed successfully.
 
 ## Will this command reboot/reset my system?
 
-Some commands may reboot your system because it's required to complete the process. Others can be told to reboot the system using the --reboot flag. 
+### Symptom
+
+Some commands will reboot the system.
+
+### Cause
+
+Some commands will reboot the system because the reboot is required to complete the process. Other commands will tell you to reboot the system using the --reboot flag.
+
+### Action
 
 <aside class="warning">Please read the help for any warnings or notes specific to each command. Not all warnings are mentioned here and this list is only intended to describe some command behavior to be aware of.</aside>
 
@@ -213,8 +279,19 @@ This list describes any reboot or reset behavior for commands:
 
 ## Firmware uploading/flash issues
 
-This section will describe any known issues flashing certain versions or any intermidiate steps required to flash certain firmware.
+This section describes known issues flashing certain versions or any intermediate steps required to flash certain firmware.
 
-### iLO 5 firmware v2.10
+### Unable to flash or upload firmware
 
-When flashing or uploading iLO 5 firmware v2.10 or greater, the system you are flashing or uploading to must have iLO 5 firmware v1.40 or greater. Any iLO firmware version below iLO 5 v1.40 will cause a failure to flash/upload.
+#### Symptom
+
+You are unable to flash or upload iLO 5 firmware v2.10 or later to a system running an iLO firmware version earlier than iLO 5 v1.40.
+
+#### Cause
+
+The target system must be running iLO 5 firmware v1.40 or later before you attempt to flash or upload iLO 5 firmware v2.10 or later to the system.
+
+#### Action
+
+1. Flash or upload to iLO 5 firmware v1.40x.
+2. Flash or upload to iLO 5 firmware v2.10 or later on the system.

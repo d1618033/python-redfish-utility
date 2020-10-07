@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to get the Remote   ::
 ::               Console hot-keys.                                 ::
@@ -24,7 +24,7 @@ ilorest list Oem/Hpe/IntegratedRemoteConsole/Hotkeys --selector=Manager. -u USER
 ilorest logout
 goto :exit
 :remote
-ilorest list Oem/Hpe/IntegratedRemoteConsole/Hotkeys --selector=Manager.--url=%1 --user %2 --password %3
+ilorest list Oem/Hpe/IntegratedRemoteConsole/Hotkeys --selector=Manager. --url=%1 --user %2 --password %3
 ilorest logout
 goto :exit
 

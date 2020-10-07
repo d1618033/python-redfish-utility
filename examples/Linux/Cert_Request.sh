@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample batch script to get a certificate#
 #               signing request from following devices:           #
@@ -16,7 +16,7 @@
 
 #        Default:                                                 #
 #           If default is chosen, then run the script with just   #
-#           the CERTIFICATE_SIGNING_REQUEST tag, and the following#
+#           the certIFICATE_SIGNING_REQUEST tag, and the following#
 #           will be used for generating the certificate:          #
 #             Country Name: "US"                                  #
 #             State: "Texas"                                      #
@@ -48,8 +48,8 @@ runRemote(){
 
 error(){
   echo "Usage:"
-  echo        "remote: Cert_Request.sh ^<iLO url^> ^<iLO username^>  ^<iLO password^>"
-  echo        "local:  Cert_Request.sh"
+  echo        "remote: cert_Request.sh ^<iLO url^> ^<iLO username^>  ^<iLO password^>"
+  echo        "local:  cert_Request.sh"
 }
 
 if [ "$#" -eq "3" ]

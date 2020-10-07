@@ -2,81 +2,36 @@
 
 This section lists the raw HTTP RESTful operations that can be used through the RESTful Interface Tool. The commands in this section are the equivalents of HTTP RESTful **PATCH, GET, POST, PUT, DELETE**, and **HEAD**.
 
-### RawPatch command
+### RawDelete command
 
-> RawPatch example commands:
+> RawDelete example commands:
 
-> To directly patch to a URI with JSON data run the command supplying a filename with a json payload.
+> To directly delete a URI run the command specifying a URI to delete.
 
 <pre>
-iLOrest > <font color="#01a982">rawpatch rawpatch.json</font>
-The operation completed successfully.
+iLOrest > <font color="#01a982">rawdelete /redfish/v1/AccountService/Accounts/3/</font>
+The account was removed successfully.
 </pre>
 
-> The following **rawpatch.json** file was used in the above example:
 
-```json
-{
-	"path": "/redfish/v1/systems/1",
-	"body": {
-		"AssetTag": "NewAssetTag"
-	}
-}
-
-```
 
 #### Syntax
 
-rawpatch *[Filename] [Optional Parameters]*
+rawdelete *[Path] [Optional Parameters]*
 
 #### Description
 
-Use this command to perform an HTTP RESTful Patch command. Run to send a patch from the data in the input file.
+Use this command to perform an HTTP RESTful DELETE command. Run to delete data from the passed in path.
 
 #### Parameters
 
-> Filename parameter example:
+- **Path**
 
-```json
-{
-	"path": "/redfish/v1/systems/1",
-	"body": {
-		"AssetTag": "NewAssetTag"
-	}
-}
-```
-
-- **Filename**
-
-Include the filename to use the data in the input file to send the patch. See the example JSON file that can be used to rawpatch on the side.
+Pass in the path to point the HTTP RESTful DELETE command.
 
 - **-h, --help**
 
 Including the help flag will display help for the command.
-
-- **--silent**
-
-Use this flag to silence responses.
-
-- **--response**
-
-Use this flag to return the iLO response body.
-
-- **--getheaders**
-
-Use this flag to return the iLO response headers.
-
-- **--headers=HEADERS**
-
-Use this flag to add extra headers to the request.
-
-Usage: --headers=HEADER:VALUE,HEADER:VALUE
-
-- **--biospassword=BIOSPASSWORD**
-
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
-
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 - **--service**
 
@@ -100,14 +55,12 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 - **--https**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
+Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
 
-File
-
-Input the file containing the JSON information you wish to use for the HTTP RESTful PATCH command.
+None
 
 #### Outputs
 
@@ -285,7 +238,7 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 - **--https**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
+Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
@@ -297,298 +250,6 @@ None
 File
 
 If you include the `filename` flag, this command will return an output file of the information retrieved when the `rawget` command was executed.
-
-### RawPost command
-
-> RawPost example commands:
-
-> To directly post to a URI with JSON data run the command supplying a filename with a json payload.
-
-<aside class="notice">
-If a full path is not given, the tool searches for the file where the RESTful Interface Tool is initiated.
-</aside>
-
-<pre>
-iLOrest > <font color="#01a982">rawpost rawpost.json</font>
-The operation completed successfully.
-</pre>
-
-
-> The following **rawpost.json** file is used in the example above:
-
-```json
-{
-	"path": "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/",
-	"body": {
-		"ResetType": "ForceRestart"
-	}
-}
-
-```
-
-
-
-#### Syntax
-
-rawpost *[Filename] [Optional Parameters]*
-
-#### Description
-
-Use this command to perform an HTTP RESTful POST command. Run to post the data from the passed in path.
-
-#### Parameters
-
-> Example Filename parameter JSON file below:
-
-```json
-{
-	"path": "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/",
-	"body": {
-		"ResetType": "ForceRestart"
-	}
-}
-```
-
-- **Filename**
-
-Include the filename to send a post from the data included in this input file. An example JSON file is shown on the side.
-
-- **-h, --help**
-
-Including the help flag will display help for the command.
-
-- **--response**
-
-Use this flag to return the iLO response body.
-
-- **--getheaders**
-
-Use this flag to return the iLO response headers.
-
-- **--headers=HEADERS**
-
-Use this flag to add extra headers to the request.
-
-Usage: --headers=HEADER:VALUE,HEADER:VALUE
-
-- **--silent**
-
-Use this flag to silence responses.
-
-- **--service**
-
-Use this flag to enable service mode and increase the function speed.
-
-#### Login Parameters
-
-The following parameters can be included to login to a server in the same line as the command is run.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--https**
-
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
-
-#### Inputs
-
-File
-
-Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
-
-#### Outputs
-
-None
-
-### RawPut command
-
-> RawPut example commands:
-
-> To directly put to a URI with JSON data run the command supplying a filename with a json payload.
-
-<pre>
-iLOrest > <font color="#01a982">rawput put.json</font>
-One or more properties were changed and will not take effect until system is reset.
-</pre>
-
-
-> This example uses the following **put.json** file:
-
-```
-{
-	"path": "/redfish/v1/systems/1/bios/Settings/",
-	"body": {
-		"Attributes": {
-			"BaseConfig": "default"
-		}
-	}
-}
-
-```
-
-#### Syntax
-
-rawput *[Filename] [Optional Parameters]*
-
-#### Description
-
-Use this command to perform an HTTP RESTful PUT command. Run to retrieve data from the passed in path.
-
-#### Parameters
-
-> Example input file below:
-
-```json
-{
-	"path": "/redfish/v1/systems/1/bios/Settings/",
-	"body": {
-		"Attributes": {
-			"BaseConfig": "default"
-		}
-	}
-}
-```
-
-- **Filename**
-
-Include the filename to send a PUT from the data included in this input file. Example Input file shown on the side.
-
-- **-h, --help**
-
-Including the help flag will display help for the command.
-
-- **--response**
-
-Use this flag to return the iLO response body.
-
-- **--getheaders**
-
-Use this flag to return the iLO response headers.
-
-- **--headers=HEADERS**
-
-Use this flag to add extra headers to the request.
-
-Usage: --headers=HEADER:VALUE,HEADER:VALUE
-
-- **--silent**
-
-Use this flag to silence responses.
-
-- **--biospassword=BIOSPASSWORD**
-
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
-
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
-
-- **--service**
-
-Use this flag to enable service mode and increase the function speed.
-
-#### Login Parameters
-
-The following parameters can be included to login to a server in the same line as the command is run.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--https**
-
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
-
-#### Inputs
-
-File
-
-Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
-
-#### Outputs
-
-None
-
-### RawDelete command
-
-> RawDelete example commands:
-
-> To directly delete a URI run the command specifying a URI to delete.
-
-<pre>
-iLOrest > <font color="#01a982">rawdelete /redfish/v1/AccountService/Accounts/3/</font>
-The account was removed successfully.
-</pre>
-
-
-
-#### Syntax
-
-rawdelete *[Path] [Optional Parameters]*
-
-#### Description
-
-Use this command to perform an HTTP RESTful DELETE command. Run to delete data from the passed in path.
-
-#### Parameters
-
-- **Path**
-
-Pass in the path to point the HTTP RESTful DELETE command.
-
-- **-h, --help**
-
-Including the help flag will display help for the command.
-
-- **--service**
-
-Use this flag to enable service mode and increase the function speed.
-
-#### Login Parameters
-
-The following parameters can be included to login to a server in the same line as the command is run.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--https**
-
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
-
-#### Inputs
-
-None
-
-#### Outputs
-
-None
 
 ### RawHead command
 
@@ -664,7 +325,7 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 
 - **--https**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
+Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
 #### Inputs
@@ -676,3 +337,341 @@ None
 File
 
 If you specify the `filename` flag, the `rawhead` command will output a file containing the information retrieved when performing the `rawhead` command.
+
+### RawPatch command
+
+> RawPatch example commands:
+
+> To directly patch to a URI with JSON data run the command supplying a filename with a json payload.
+
+<pre>
+iLOrest > <font color="#01a982">rawpatch rawpatch.json</font>
+The operation completed successfully.
+</pre>
+
+> The following **rawpatch.json** file was used in the above example:
+
+```json
+{
+	"/redfish/v1/systems/1":
+	{
+		"AssetTag": "NewAssetTag"
+	}
+}
+
+```
+
+#### Syntax
+
+rawpatch *[Filename] [Optional Parameters]*
+
+#### Description
+
+Use this command to perform an HTTP RESTful Patch command. Run to send a patch from the data in the input file.
+
+#### Parameters
+
+> Filename parameter example:
+
+```json
+{
+	"path":{"json":"body"},
+  "path2": {"json": "body2"},
+  ...
+}
+```
+
+- **Filename**
+
+Include the filename to use the data in the input file to send the patch(es). One or more patches can be passed in one input file.
+An JSON file template is shown on the side.
+
+- **-h, --help**
+
+Including the help flag will display help for the command.
+
+- **--silent**
+
+Use this flag to silence responses.
+
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--biospassword=BIOSPASSWORD**
+
+Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
+- **--service**
+
+Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect
+securely to the system in remote mode. This flag has no effect in local mode.
+
+#### Inputs
+
+File
+
+Input the file containing the JSON information you wish to use for the HTTP RESTful PATCH command.
+
+#### Outputs
+
+None
+
+
+### RawPost command
+
+> RawPost example commands:
+
+> To directly post to a URI with JSON data run the command supplying a filename with a json payload.
+
+<aside class="notice">
+If a full path is not given, the tool searches for the file where the RESTful Interface Tool is initiated.
+</aside>
+
+<pre>
+iLOrest > <font color="#01a982">rawpost rawpost.json</font>
+The operation completed successfully.
+</pre>
+
+
+> The following **rawpost.json** file is used in the example above:
+
+```json
+{
+	"/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/":
+	{
+		"ResetType": "ForceRestart"
+	}
+}
+
+```
+
+
+
+#### Syntax
+
+rawpost *[Filename] [Optional Parameters]*
+
+#### Description
+
+Use this command to perform an HTTP RESTful POST command. Run to post the data from the passed in path.
+
+#### Parameters
+
+> Example Filename parameter JSON file below:
+
+```json
+{
+	"path":{"json":"body"},
+  "path2": {"json": "body2"},
+  ...
+}
+```
+
+- **Filename**
+
+Include the filename to send a post from the data included in this input file. One or more posts can be passed in one input file.
+An JSON file template is shown on the side.
+
+- **-h, --help**
+
+Including the help flag will display help for the command.
+
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses.
+
+- **--service**
+
+Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect
+securely to the system in remote mode. This flag has no effect in local mode.
+
+#### Inputs
+
+File
+
+Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
+
+#### Outputs
+
+None
+
+### RawPut command
+
+> RawPut example commands:
+
+> To directly put to a URI with JSON data run the command supplying a filename with a json payload.
+
+<pre>
+iLOrest > <font color="#01a982">rawput put.json</font>
+One or more properties were changed and will not take effect until system is reset.
+</pre>
+
+
+> This example uses the following **put.json** file:
+
+```json
+{
+	"/redfish/v1/systems/1/bios/Settings/":
+	{
+		"Attributes": {
+			"BaseConfig": "default"
+		}
+	}
+}
+
+```
+
+#### Syntax
+
+rawput *[Filename] [Optional Parameters]*
+
+#### Description
+
+Use this command to perform an HTTP RESTful PUT command. Run to retrieve data from the passed in path.
+
+#### Parameters
+
+> Example input file below:
+
+```json
+{
+	"path":{"json":"body"},
+  "path2": {"json": "body2"},
+  ...
+}
+```
+
+- **Filename**
+
+Include the filename to send a PUT from the data included in this input file. One or more puts can be passed in one input file.
+An JSON file template is shown on the side.
+
+- **-h, --help**
+
+Including the help flag will display help for the command.
+
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses.
+
+- **--biospassword=BIOSPASSWORD**
+
+Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
+
+- **--service**
+
+Use this flag to enable service mode and increase the function speed.
+
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--https**
+
+Use the provided CA bundle or SSL certificate with your login to connect
+securely to the system in remote mode. This flag has no effect in local mode.
+
+#### Inputs
+
+File
+
+Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
+
+#### Outputs
+
+None

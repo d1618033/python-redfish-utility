@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to delete a user    #
 #               from the database of local users on following     #
@@ -19,12 +19,12 @@
 #            iLO 4 - All versions.                                #
 
 runLocal(){
-  ilorest iloaccounts delete USERNAME -u USER_LOGIN -p PASSWORD
+  ilorest iloaccounts delete testUser -u USER_LOGIN -p PASSWORD
   ilorest logout
 }
 
 runRemote(){
-  ilorest iloaccounts delete USERNAME --url=$1 --user $2 --password $3
+  ilorest iloaccounts delete testUser --url=$1 --user $2 --password $3
   ilorest logout
 }
 

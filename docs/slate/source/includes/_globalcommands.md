@@ -34,6 +34,10 @@ During execution the application will temporarily store data only in memory.
 
 Include to block copyright and logo.
 
+**--notoolbar**
+
+Include to block bottom status bar.
+
 **--proxy=PROXYURL**
 
 Use the provided proxy for communication.
@@ -60,7 +64,7 @@ This section includes commands as well as their usage and examples of general co
 
 > Help example commands:
 
-> Entering help will list the global iLOrest options and all available commands.
+> Entering help will list the global options and all available commands for iLOREST.
 
 <pre>
 iLOrest > <font color="#01a982">help</font>
@@ -83,6 +87,7 @@ Options:
     --nocache           During execution the application will temporarily
                         store data only in memory.
     --nologo            Include to block copyright and logo.
+	--notoolbar         Include to block bottom status bar.
     --redfish           Use this flag if you wish to to enable Redfish only
                         compliance. It is enabled by default in systems with
                         iLO5 and above.
@@ -181,7 +186,7 @@ iLO COMMANDS
   iloclone                     - Clone the iLO config of the currently logged
                                   in server and copy it to the server in the
                                   arguments.
-  ilofederation                - Adds / deletes an iLO federaion group on the
+  ilofederation                - Adds / deletes an iLO federation group on the
                                   currently logged in server.
   ilolicense                   - Adds an iLO license key to the currently
                                   logged in server.
@@ -193,7 +198,7 @@ iLO COMMANDS
                                   server.
   sendtest                     - Command for sending various tests to iLO.
   serverclone                  - Creates a JSON formated clone file of a
-                                  system's iLO, Bios, and SSA configuration
+                                  system's iLO, BIOS, and SSA configuration
                                   which can be duplicated onto other systems.
                                   User editable JSON file can be manipulated to
                                   modify settings before being loaded onto

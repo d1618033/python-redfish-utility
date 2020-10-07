@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ from argparse import ArgumentParser
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, \
+                                login_select_validation
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
         InvalidCommandLineErrorOPTS, UI, InvalidOrNothingChangedSettingsError
 
 class SetCommand(RdmcCommandBase):
@@ -45,10 +46,8 @@ class SetCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
 
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
         self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
         #remove reboot option if there is no reboot command
         try:
@@ -149,9 +148,12 @@ class SetCommand(RdmcCommandBase):
                                          "returning to the original value.\n")
                     else:
                         for content in contents:
-                            if self._rdmc.opts.verbose:
-                                sys.stdout.write("Added the following patch:\n")
-                                UI().print_out_json(content)
+                            try:
+                                if self._rdmc.opts.verbose:
+                                    sys.stdout.write("Added the following patch:\n")
+                                    UI().print_out_json(content)
+                            except AttributeError:
+                                pass
 
                 except redfish.ris.ValidationError as excp:
                     errs = excp.get_errors()
@@ -183,8 +185,8 @@ class SetCommand(RdmcCommandBase):
             if options.reboot and not options.commit:
                 self.rebootobj.run(options.reboot)
 
-            if options.logout:
-                self.logoutobj.run("")
+            #if options.logout:
+            #    self.logoutobj.run("")
 
         else:
             raise InvalidCommandLineError("Missing parameters for 'set' command.\n")
@@ -204,74 +206,15 @@ class SetCommand(RdmcCommandBase):
 
     def setvalidation(self, options):
         """ Set data validation function """
-        inputline = list()
 
         if self._rdmc.opts.latestschema:
             options.latestschema = True
-        if self._rdmc.app.config._ac__commit.lower() == 'true':
+        if self._rdmc.config.commit.lower() == 'true':
             options.commit = True
-
         try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline and options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-            if options.biospassword:
-                inputline.extend(["--biospassword", options.biospassword])
-
-            inputline.extend(["--selector", options.selector])
-            self.lobobj.loginfunction(inputline)
-        elif options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-            if options.biospassword:
-                inputline.extend(["--biospassword", options.biospassword])
-
-            inputline.extend([options.selector])
-            self.selobj.selectfunction(inputline)
-        else:
-            try:
-                inputline = list()
-                selector = self._rdmc.app.selector
-                if options.includelogs:
-                    inputline.extend(["--includelogs"])
-                if options.path:
-                    inputline.extend(["--path", options.path])
-                if options.biospassword:
-                    inputline.extend(["--biospassword", options.biospassword])
-
-                inputline.extend([selector])
-                self.selobj.selectfunction(inputline)
-            except redfish.ris.NothingSelectedError:
-                raise redfish.ris.NothingSelectedSetError
+            login_select_validation(self, options)
+        except redfish.ris.NothingSelectedError:
+            raise redfish.ris.NothingSelectedSetError("")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -282,7 +225,7 @@ class SetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser, full=True)
+        add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -311,14 +254,13 @@ class SetCommand(RdmcCommandBase):
             '--commit',
             dest='commit',
             action="store_true",
-            help="Use this flag when you are ready to commit all the"\
-            " changes for the current selection. Including the commit"\
-            " flag will log you out of the server after the command is"\
-            " run. Note that some changes made in this way will be updated"\
+            help="Use this flag when you are ready to commit all pending"\
+            " changes. Note that some changes made in this way will be updated"\
             " instantly, while others will be reflected the next time the"\
             " server is started.",
             default=None,
         )
+        '''
         customparser.add_argument(
             '--logout',
             dest='logout',
@@ -328,6 +270,7 @@ class SetCommand(RdmcCommandBase):
             " not logged in will have no effect",
             default=None,
         )
+        '''
         customparser.add_argument(
             '--biospassword',
             dest='biospassword',

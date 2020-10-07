@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description: This is a sample batch script to Set One Time Boot ::
 ::                 Order.                                          ::
@@ -32,13 +32,13 @@ goto :error
 
 :local
 ilorest login -u USER_LOGIN -p PASSWORD
-ilorest bootorder --onetimeboot=None
+ilorest bootorder --onetimeboot=Utilities
 ilorest commit
 ilorest logout
 goto :exit
 :remote
 ilorest login %1 -u %2 -p %3
-ilorest bootorder --onetimeboot=None
+ilorest bootorder --onetimeboot=Utilities
 ilorest commit
 ilorest logout
 goto :exit

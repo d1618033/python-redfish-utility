@@ -1,10 +1,12 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to configure the     #
 #               encryption Settings for Integrated Lights-Out(iLO)#
+# NOTE: Secondary Server Address & Port values are not necessarily#
+#       optional on certain versions of iLO5                      #
 
 # NOTE:  You will need to replace the USER_LOGIN and PASSWORD     #
 #        and other values inside the quotation marks with values  #
@@ -33,10 +35,9 @@ runLocal(){
   ilorest set KeyManagerConfig/ESKMLocalCertificateName=certname
   ilorest set KeyServerRedundancyReq=True
   ilorest set PrimaryKeyServerAddress=0.0.0.0
-  ilorest set PrimaryKeyServerPort=0
-  # Secondary Server Address & Port values are optional             #
-  ilorest set SecondaryKeyServerAddress=""
-  ilorest set SecondaryKeyServerPort=""
+  ilorest set PrimaryKeyServerPort=1
+  ilorest set SecondaryKeyServerAddress=0.0.0.0
+  ilorest set SecondaryKeyServerPort=1
   ilorest commit
   ilorest logout
 }
@@ -49,10 +50,9 @@ runRemote(){
   ilorest set KeyManagerConfig/ESKMLocalCertificateName=certname
   ilorest set KeyServerRedundancyReq=True
   ilorest set PrimaryKeyServerAddress=0.0.0.0
-  ilorest set PrimaryKeyServerPort=0
-  # Secondary Server Address & Port values are optional             #
-  ilorest set SecondaryKeyServerAddress=""
-  ilorest set SecondaryKeyServerPort=""
+  ilorest set PrimaryKeyServerPort=1
+  ilorest set SecondaryKeyServerAddress=0.0.0.0
+  ilorest set SecondaryKeyServerPort=1
   ilorest commit
   ilorest logout
 }

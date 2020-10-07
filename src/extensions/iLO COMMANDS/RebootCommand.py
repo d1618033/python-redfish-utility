@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import time
 
 from argparse import ArgumentParser
 from six.moves import input
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
@@ -31,7 +32,12 @@ class RebootCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self,\
             name='reboot',\
-            usage='reboot [OPTIONS]\n\n\tTurning the system on\n\texample: ' \
+            usage='reboot [OPTIONS]\n\n\tRemotely control system power state commands such as, ' \
+                '\n\t1. Turning the system on.\n\t2. Turning the system off.\n\t3. Power ' \
+                'cycling/rebooting.\n\t4. Issuing a Non-Maskable Interrupt (NMI).\n\t5. Any ' \
+                'number of pre-defined operations through virtual power-button presses.' \
+                '\n\n\tNote: By default a force ' \
+                'restart will occur, if the system is in an applicable power state.\n\texample: ' \
                 'reboot On\n\n\tOPTIONAL PARAMETERS AND DESCRIPTIONS:' \
                 '\n\tOn \t\t(Turns the system on.)\n\tForceOff  ' \
                 '\t(Performs an immediate non-graceful shutdown.)' \
@@ -41,21 +47,19 @@ class RebootCommand(RdmcCommandBase):
                 '\t\t(Generates a Non-Maskable Interrupt to cause' \
                 ' an\n\t\t\t immediate system halt.)\n\tPushPowerButton ' \
                 '(Simulates the pressing of the physical power ' \
-                'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND'\
-                ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the'\
-                ' physical power button\n\t\t\t on this system.)\n\t'\
-                'PressAndHold\t(Simulates pressing and holding of the power'\
-                ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately'\
-                ' Removes power from the server,\n\t\t\tfollowed by a restart'\
-                ' of the system)',\
+                'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND' \
+                ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the' \
+                ' physical power button\n\t\t\t on this system.)\n\t' \
+                'PressAndHold\t(Simulates pressing and holding of the power' \
+                ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately' \
+                ' Removes power from the server,\n\t\t\tfollowed by a restart' \
+                ' of the system)', \
             summary='Reboot operations for the current logged in server.',\
             aliases=['reboot'],\
             argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main reboot worker function
@@ -154,8 +158,8 @@ class RebootCommand(RdmcCommandBase):
                     break
 
         self._rdmc.app.post_handler(put_path, body)
-        self.logoutobj.run("")
 
+        logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -219,37 +223,7 @@ class RebootCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.current_client
-        except Exception:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            if not inputline:
-                sys.stdout.write('Local login initiated...\n')
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

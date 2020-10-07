@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,15 @@
 # -*- coding: utf-8 -*-
 """ RawPost Command for rdmc """
 
+import re
 import sys
 import json
 
+from collections import OrderedDict
+
 from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                     InvalidFileFormattingError, Encryption
@@ -32,17 +36,18 @@ class RawPostCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='rawpost',\
             usage='rawpost [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
-                    'the data in the input file.\n\texample: rawpost rawpost.' \
-                    'txt\n\n\tExample input file:\n\t{\n\t    "path": "/' \
+                    'the data in the input file.\n\tMultiple POSTs can be performed in sequence by'\
+                    ' \n\tadding more path/body key/value pairs.\n'
+                    '\n\texample: rawpost rawpost.' \
+                    'txt\n\n\tExample input file:\n\t{\n\t    "/' \
                     'redfish/v1/systems/(system ID)/Actions/ComputerSystem.'
-                    'Reset",\n\t    "body": {\n\t        "ResetType": '\
+                    'Reset":\n\t    {\n\t        "ResetType": '\
                     '"ForceRestart"\n\t    }\n\t}',\
             summary='Raw form of the POST command.',\
             aliases=['rawpost'],\
             argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
 
     def run(self, line):
         """ Main raw patch worker function
@@ -51,7 +56,7 @@ class RawPostCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,22 +64,21 @@ class RawPostCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         headers = {}
-        results = None
+        results = []
 
         self.postvalidation(options)
 
         contentsholder = None
 
-        if len(args) == 1:
-            try:
-                inputfile = open(args[0], 'r')
-                contentsholder = json.loads(inputfile.read())
-            except Exception as excp:
-                raise InvalidFileInputError("%s" % excp)
-        elif len(args) > 1:
-            raise InvalidCommandLineError("Raw post only takes 1 argument.\n")
-        else:
-            raise InvalidCommandLineError("Missing raw post file input argument.\n")
+        try:
+            with open(options.path, 'r') as _if:
+                contentsholder = json.loads(_if.read(), object_pairs_hook=OrderedDict)
+        except IOError:
+            raise InvalidFileInputError("File '%s' doesn't exist. " \
+                                "Please create file by running 'save' command." % options.path)
+        except (ValueError):
+            raise InvalidFileFormattingError("Input file '%s' was not " \
+                                                            "formatted properly." % options.path)
         if options.encode:
             if "body" in contentsholder and "UserName" in contentsholder["body"] and \
                         "Password" in contentsholder["body"] and \
@@ -96,25 +100,31 @@ class RawPostCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            returnresponse = False
-
-            if options.response or options.getheaders:
-                returnresponse = True
-
-            results = self._rdmc.app.post_handler(contentsholder["path"], \
+            results.append(self._rdmc.app.post_handler(contentsholder["path"], \
                   contentsholder["body"], headers=headers, \
-                  response=returnresponse, silent=options.silent, service=options.service)
+                  silent=options.silent, service=options.service))
+        elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
+            for path, body in contentsholder.items():
+                results.append(self._rdmc.app.post_handler(path, \
+                                            body, headers=headers, \
+                                            silent=options.silent, service=options.service))
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
-                                             "formatted properly." % args[0])
+                                             "formatted properly." % options.path)
+        returnresponse = False
+
+        if options.response or options.getheaders:
+            returnresponse = True
 
         if results and returnresponse:
-            if options.getheaders:
-                sys.stdout.write(json.dumps(dict(results.getheaders())) + "\n")
+            for result in results:
+                if options.getheaders:
+                    sys.stdout.write(json.dumps(dict(result.getheaders())) + "\n")
 
-            if options.response:
-                sys.stdout.write(results.ori + "\n")
+                if options.response:
+                    sys.stdout.write(result.ori + "\n")
 
+        logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -124,35 +134,7 @@ class RawPostCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            self.lobobj.loginfunction(inputline, skipbuild=True)
+        login_select_validation(self, options, skipbuild=True)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -165,6 +147,10 @@ class RawPostCommand(RdmcCommandBase):
 
         add_login_arguments_group(customparser)
 
+        customparser.add_argument(
+            'path',
+            help="Path to the JSON file containing the data to be patched.",
+        )
         customparser.add_argument(
             '--response',
             dest='response',

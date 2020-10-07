@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,9 @@
 
 from argparse import ArgumentParser
 
-import redfish.ris
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidCommandLineError, \
-                        Encryption
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidCommandLineError
 
 class ListCommand(RdmcCommandBase):
     """ Constructor """
@@ -42,8 +40,6 @@ class ListCommand(RdmcCommandBase):
             argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
         self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
 
     def run(self, line):
@@ -78,6 +74,8 @@ class ListCommand(RdmcCommandBase):
 
         self.getobj.getworkerfunction(args, options, filtervals=fvals, uselist=False)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def listvalidation(self, options):
@@ -86,70 +84,7 @@ class ListCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        if self._rdmc.app.config._ac__format.lower() == 'json':
-            options.json = True
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline and options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-
-            inputline.extend(["--selector", options.selector])
-            self.lobobj.loginfunction(inputline)
-        elif options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-            if options.ref:
-                inputline.extend(["--refresh"])
-
-            inputline.extend([options.selector])
-            self.selobj.selectfunction(inputline)
-        else:
-            try:
-                inputline = list()
-                selector = self._rdmc.app.selector
-                if options.includelogs:
-                    inputline.extend(["--includelogs"])
-                if options.path:
-                    inputline.extend(["--path", options.path])
-                if options.ref:
-                    inputline.extend(["--refresh"])
-
-                inputline.extend([selector])
-                self.selobj.selectfunction(inputline)
-            except redfish.ris.NothingSelectedError:
-                raise redfish.ris.NothingSelectedError
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -160,7 +95,7 @@ class ListCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser, full=True)
+        add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -195,6 +130,7 @@ class ListCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
+        '''
         customparser.add_argument(
             '--logout',
             dest='logout',
@@ -204,6 +140,7 @@ class ListCommand(RdmcCommandBase):
             " not logged in will have no effect",
             default=None,
         )
+        '''
         customparser.add_argument(
             '--refresh',
             dest='ref',

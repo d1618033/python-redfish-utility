@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to abort directory  ::
 ::               test on following device:                         ::
@@ -31,7 +31,7 @@ goto :exit
 
 :error
 echo Usage:
-echo        remote: UID_Control.bat ^<iLO url^> ^<iLO username^>  ^<iLO password^>
-echo        local:  UID_Control.bat
+echo        remote: Abort_Directory_Test.bat ^<iLO url^> ^<iLO username^>  ^<iLO password^>
+echo        local:  Abort_Directory_Test.bat
 
 :exit

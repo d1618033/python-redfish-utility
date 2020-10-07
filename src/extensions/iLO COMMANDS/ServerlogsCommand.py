@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ from redfish.ris.utils import filter_output
 
 from redfish.rest.connections import SecurityStateError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, \
                 InvalidMSCfileInputError, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                 LOGGER, InvalidCListFileError, NoContentsFoundForOperationError, \
@@ -96,9 +97,7 @@ class ServerlogsCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = self._rdmc.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
         self.dontunmount = None
         self.queue = queue.Queue()
         self.abspath = None
@@ -126,9 +125,8 @@ class ServerlogsCommand(RdmcCommandBase):
 
         self.serverlogsworkerfunction(options)
 
-        if options.logout:
-            self.logoutobj.run("")
-
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def serverlogsworkerfunction(self, options):
@@ -236,7 +234,12 @@ class ServerlogsCommand(RdmcCommandBase):
             urlvar = line[line.index('--url')+1]
             urlfilename = urlvar.split('//')[-1]
             line[line.index('-f')+1] = str(line[line.index('-f')+1]) + urlfilename
-            listargforsubprocess = [sys.executable] + line
+
+            if 'python' in os.path.basename(sys.executable.lower()):
+                #If we are running from source we have to add the python file to the command
+                listargforsubprocess = [sys.executable, sys.argv[0]] + line
+            else:
+                listargforsubprocess = [sys.executable] + line
 
             if os.name is not 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
@@ -1192,39 +1195,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
-        inputline = list()
-
-        try:
-            client = self._rdmc.app.current_client
-        except Exception:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if inputline or not client:
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -1258,15 +1229,6 @@ class ServerlogsCommand(RdmcCommandBase):
             " the properties of only one of those objects, use the filter"\
             " flag to narrow down results based on properties."\
             "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
-        )
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
             default=None,
         )
         customparser.add_argument(

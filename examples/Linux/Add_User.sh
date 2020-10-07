@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 #      Description: This is a sample bash script to add an iLO    #
 #                   account to the server either locally or       #
@@ -17,14 +17,14 @@
 #            NEWACCOUNTNAME, and PASSWORD with values that are    #
 #            appropriate for your environment.                    #
 #                                                                 #
-#            This script was designed to be ran with iLOrest 2.0  #
+#            This script was designed to be ran with iLOREST 2.0  #
 #            or greater. Note some account privileges are only    #
 #            available on later iLO firmware versions.            #
 
-#      Firmware supported for iLOrest 2.3 and greater:            #
+#      Firmware supported for iLOREST 2.3 and greater:            #
 #          iLO 4 version 2.10 and greater                         #
 #          iLO 5 all versions                                     #
-#      Firmware supported for iLOrest 2.0 to 2.2:                 #
+#      Firmware supported for iLOREST 2.0 to 2.2:                 #
 #          iLO 4 version 2.00 and greater                         #
 #          iLO 5 all versions                                     #
 

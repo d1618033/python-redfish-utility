@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import json
 from six.moves import input
 from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, logout_routine
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError
@@ -88,6 +88,8 @@ class MakeInstallSetCommand(RdmcCommandBase):
 
         self.minstallsetworker(options)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def minstallsetworker(self, options):
@@ -280,6 +282,8 @@ class MakeInstallSetCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+
+        add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '-f',

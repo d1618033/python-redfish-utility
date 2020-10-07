@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@ import re
 import sys
 import json
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from random import randint
 
 from redfish.ris.rmc_helper import ValidationError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption
@@ -36,25 +37,15 @@ class MaintenanceWindowCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='maintenancewindow', \
-            usage='maintenancewindow [OPTIONS] \n\n\t'\
-            'Run to add, remove, or delete maintenance windows from the iLO ' \
-              'repository.\n\n\tPrint maintenance windows on the system.'\
-              '\n\texample: maintenancewindow\n\n\tCreate new maintenance window '\
-               'with startup time 1998-11-21T00:00:00 and user defined expire time,'\
-               ' name, and description.\n\texample: maintenancewindow add '\
-               '1998-11-21T00:00:00 --expire=1998-11-22T00:00:00 --name='\
-               'MyMaintenanceWindow --description "My maintenance window description."'\
-               '\n\n\tDelete a maintenance window by name:\n\texample: '\
-               'maintenancewindow delete MyMaintenanceWindow\n\t'\
-               'Note: You can delete maintenance windows by Id or Name.',\
+            usage=None, \
+            description='Add or delete maintenance windows from the iLO repository.\nTo '\
+                  ' view help on specific sub-commands run: serverclone <sub-command> -h\n\n' \
+                  'NOTE: iLO 5 required.',
             summary='Manages the maintenance windows for iLO.',\
-            aliases=['Maintenancewindow'], \
-            argparser=ArgumentParser())
+            aliases=['Maintenancewindow'])
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main update maintenance window worker function
@@ -63,7 +54,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -78,23 +69,16 @@ class MaintenanceWindowCommand(RdmcCommandBase):
 
         windows = self._rdmc.app.getcollectionmembers(\
                                 '/redfish/v1/UpdateService/MaintenanceWindows/')
-        if not args:
-            self.listmainenancewindows(options, windows)
-        elif args[0].lower() == 'add':
-            if not len(args) == 2:
-                raise InvalidCommandLineError("Adding a maintenance window only "\
-                                              "requires one argument.")
-            else:
-                self.addmaintenancewindow(options, windows, args[1])
-        elif args[0].lower() == 'delete':
-            if not len(args) == 2:
-                raise InvalidCommandLineError("Deleting a maintenance window only"\
-                                              " requires one argument.")
-            else:
-                self.deletemaintenancewindow(windows, args[1])
-        else:
-            raise InvalidCommandLineError('Invalid command entered.')
 
+        if options.command.lower() == 'add':
+            self.addmaintenancewindow(options, windows, options.time_window)
+        elif options.command.lower() == 'delete':
+            self.deletemaintenancewindow(windows, options.identifier)
+        else:
+            self.listmainenancewindows(options, windows)
+
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def addmaintenancewindow(self, options, windows, startafter):
@@ -229,39 +213,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-        client = None
-
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if not client or inputline:
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -273,8 +225,15 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             return
 
         add_login_arguments_group(customparser)
+        subcommand_parser = customparser.add_subparsers(dest='command')
 
-        customparser.add_argument(
+        #default sub-parser
+        default_parser = subcommand_parser.add_parser(
+            'default',
+            help='Running without any sub-command will return all maintenace windows on the '\
+                 'currently logged in server.'
+        )
+        default_parser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -284,14 +243,31 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_argument(
+        add_login_arguments_group(default_parser)
+        #add sub-parser
+        add_help='Adds a maintenance window to iLO'
+        add_parser = subcommand_parser.add_parser(
+            'add',
+            help=add_help,
+            description=add_help+'\nexample: maintenancewindow add 1998-11-21T00:00:00 '\
+                        '--expire=1998-11-22T00:00:00 --name=MyMaintenanceWindow --description '\
+                        '"My maintenance window description.,"',
+            formatter_class=RawDescriptionHelpFormatter
+        )
+        add_parser.add_argument(
+            'time_window',
+            help='Specify the time window start period in DateTime format.\ni.e. YEAR-MONTH-DAY'
+                 'THOUR:MINUTE:SECOND.\nexample: 1998-11-21T10:59:58',
+            metavar='TIMEWINDOW'
+        )
+        add_parser.add_argument(
             '--description',
             dest='description',
             help="Optionally include this flag if you would like to add a "\
             "description to the maintenance window you create",
             default=None
         )
-        customparser.add_argument(
+        add_parser.add_argument(
             '-n',
             '--name',
             dest='name',
@@ -300,10 +276,27 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             " a unique name will be added.",
             default=None
         )
-        customparser.add_argument(
+        add_parser.add_argument(
             '--expire',
             dest='expire',
             help="Optionally include this flag if you would like to add a "\
             "time the maintenance window expires.",
             default=None
         )
+        add_login_arguments_group(add_parser)
+        #delete sub-parser
+        delete_help='Deletes the specified maintenance window on the currently logged in server.'
+        delete_parser = subcommand_parser.add_parser(
+            'delete',
+            help=delete_help,
+            description=delete_help+'\nexample: maintenancewindow delete mymaintenancewindowname\n'\
+                        'Note: The maintenance window identifier can be referenced by Name or ID#.'
+            'iloaccounts delete username',
+            formatter_class=RawDescriptionHelpFormatter
+        )
+        delete_parser.add_argument(
+            'identifier',
+            help='The unique identifier provided by iLO or the identifier provided by \'--name\' ' \
+                 'when the maintenance window was created.'
+        )
+        add_login_arguments_group(delete_parser)

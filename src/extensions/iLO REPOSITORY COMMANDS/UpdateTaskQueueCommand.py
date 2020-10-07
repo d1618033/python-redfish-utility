@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +21,12 @@ import sys
 import json
 
 from random import randint
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from redfish.ris.rmc_helper import IdTokenError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption, \
                         TaskQueueError
@@ -35,25 +36,14 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='taskqueue', \
-            usage='taskqueue [OPTIONS] \n\n\tRun to add or remove tasks from the' \
-              ' task queue. Added tasks are appended to the end of the queue.'\
-              '\n\n\tPrint update task queue.\n\texample: taskqueue'\
-              '\n\n\tCreate new wait task for 30 secs.\n\texample: '\
-              'taskqueue create 30\n\n\tCreate new reboot task.\n\t'\
-              'example: taskqueue create reboot\n\n\tCreate new '\
-              'component task.\n\texample: taskqueue create compname.exe\n\n\tCreate multiple'\
-              ' tasks at once.\n\texample: taskqueue create 30 compname.exe compname2.exe '\
-              'reboot\n\n\tDelete all tasks from update task queue.\n\texample: taskqueue '\
-              '--resetqueue\n\n\tRemove all finished or errored tasks, leaving '\
-              'pending.\n\texample: taskqueue --cleanqueue',\
+            usage=None, \
+            description='Run to add or remove tasks from the task queue. Added tasks are '\
+                        'appended to the end of the queue.\nNote: iLO 5 required.',\
             summary='Manages the update task queue for iLO.',\
-            aliases=['Taskqueue'], \
-            argparser=ArgumentParser())
+            aliases=['Taskqueue'])
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main update task queue worker function
@@ -62,7 +52,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -75,17 +65,17 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             raise IncompatibleiLOVersionError(\
                       'iLO Repository commands are only available on iLO 5.')
 
-        if options.resetqueue:
-            self.resetqueue()
-        elif options.cleanqueue:
-            self.cleanqueue()
-        elif not args:
-            self.printqueue(options)
-        elif args[0].lower() == 'create':
-            self.createtask(args[1:], options)
+        if options.command.lower() == 'create':
+            self.createtask(options.keywords.split(), options)
         else:
-            raise InvalidCommandLineError('Invalid command entered.')
+            if options.resetqueue:
+                self.resetqueue()
+            elif options.cleanqueue:
+                self.cleanqueue()
+            self.printqueue(options)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def resetqueue(self):
@@ -226,39 +216,26 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-        client = None
+        login_select_validation(self, options)
 
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
+    @staticmethod
+    def options_argument_group(parser):
+        """ Define optional arguments group
 
-        if not inputline and not client:
-            sys.stdout.write('Local login initiated...\n')
-        if not client or inputline:
-            self.lobobj.loginfunction(inputline)
+        :param parser: The parser to add the --addprivs option group to
+        :type parser: ArgumentParser/OptionParser
+        """
+        group = parser.add_argument_group('GLOBAL OPTIONS', 'Options are available for all ' \
+                                                'arguments within the scope of this command.')
+
+        group.add_argument(
+            '--tpmover',
+            dest='tover',
+            action="store_true",
+            help="If set then the TPMOverrideFlag is passed in on the "\
+            "associated flash operations",
+            default=False
+        )
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -271,23 +248,31 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
         add_login_arguments_group(customparser)
 
-        customparser.add_argument(
+        subcommand_parser = customparser.add_subparsers(dest='command')
+
+        default_parser = subcommand_parser.add_parser(
+            'default',
+            help='Running without any sub-command will return the current task \n' \
+                 'queue information on the currently logged in server.'
+        )
+        default_parser.add_argument(
             '-r',
             '--resetqueue',
             action='store_true',
             dest='resetqueue',
-            help="""Remove all update tasks in the queue.""",
+            help='Remove all update tasks in the queue.\n\texample: taskqueue --resetqueue',
             default=False,
         )
-        customparser.add_argument(
+        default_parser.add_argument(
             '-c',
             '--cleanqueue',
             action='store_true',
             dest='cleanqueue',
-            help="""Clean up all finished or errored tasks - leave pending.""",
+            help='Clean up all finished or errored tasks left pending.\n\texample: taskqueue '\
+                 '--cleanqueue',
             default=False,
         )
-        customparser.add_argument(
+        default_parser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -297,11 +282,28 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_argument(
-            '--tpmover',
-            dest='tover',
-            action="store_true",
-            help="If set then the TPMOverrideFlag is passed in on the "\
-            "associated flash operations",
-            default=False
+        add_login_arguments_group(default_parser)
+        self.options_argument_group(default_parser)
+        #create
+        create_help='\tCreate a new task queue task.'
+        create_parser = subcommand_parser.add_parser(
+            'create',
+            help=create_help,
+            description=create_help + '\n\n\tCreate a new task for 30 secs:\n\t\ttaskqueue '\
+                    'create 30\n\n\tCreate a new reboot task.\n\t\ttaskqueue create reboot'\
+                    '\n\n\tCreate a new component task.\n\t\ttaskqueue create compname.exe'\
+                    '\n\n\tCreate multiple tasks at once.\n\t\ttaskqueue create 30 '\
+                    '\"compname.exe compname2.exe reboot\"',
+            formatter_class=RawDescriptionHelpFormatter
         )
+        create_parser.add_argument(
+            'keywords',
+            help='Keyword for a task queue item. *Note*: Multiple tasks can be created by '\
+                 'using quotations wrapping all tasks, delimited by whitespace.',
+            metavar='KEYWORD',
+            type=str,
+            nargs='?',
+            default=''
+        )
+        add_login_arguments_group(create_parser)
+        self.options_argument_group(create_parser)

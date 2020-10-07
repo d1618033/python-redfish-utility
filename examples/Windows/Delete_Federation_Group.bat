@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to delete a         ::
 ::               Federation group membership on the following      ::
@@ -23,11 +23,11 @@ if %argC% EQU 0 goto :local
 goto :error
 
 :local
-ilorest ilofederation delete federationname
+ilorest ilofederation delete newfedname
 ilorest logout
 goto :exit
 :remote
-ilorest ilofederation delete federationname --url=%1 --user %2 --password %3
+ilorest ilofederation delete newfedname --url=%1 --user %2 --password %3
 ilorest logout
 goto :exit
 

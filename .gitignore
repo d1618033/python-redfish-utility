@@ -7,3 +7,6 @@ src/ilorest.log
 /dist
 
 .settings
+.idea/
+.cache/
+*.py

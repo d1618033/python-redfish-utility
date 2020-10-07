@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to get the automatic #
 #               power on and power on delay settings of the       #
@@ -16,12 +16,12 @@
 #            iLO 4 - All versions.                                #
 
 runLocal(){
-  ilorest get AutoPowerOn --selctor=Bios. -u USER_LOGIN -p PASSWORD
+  ilorest get AutoPowerOn --selector=Bios. -u USER_LOGIN -p PASSWORD
   ilorest logout
 }
 
 runRemote(){
-  ilorest get AutoPowerOn --selctor=Bios. --url=$1 --user $2 --password $3
+  ilorest get AutoPowerOn --selector=Bios. --url=$1 --user $2 --password $3
   ilorest logout
 }
 

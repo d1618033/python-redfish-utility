@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ from argparse import ArgumentParser
 
 import six
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     InvalidCommandLineErrorOPTS, BootOrderMissingEntriesError,\
                     InvalidOrNothingChangedSettingsError
@@ -73,10 +74,9 @@ class BootOrderCommand(RdmcCommandBase):
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
         self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
-        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
         self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
         self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line):
@@ -99,7 +99,7 @@ class BootOrderCommand(RdmcCommandBase):
 
             return ReturnCodes.SUCCESS
 
-        self._rdmc.app.select(selector="HpeServerBootSettings.", rel=True)
+        self._rdmc.app.select(selector="HpeServerBootSettings.", path_refresh=True)
 
         props = self._rdmc.app.getprops(skipnonsetting=False)
 
@@ -342,7 +342,7 @@ class BootOrderCommand(RdmcCommandBase):
                             self._rdmc.app.patch_handler(self.typepath.defs.systempath, \
                                                 {"Boot": {"UefiTargetBootSourceOverride": entry}},\
                                                 silent=True, service=True)
-                            self._rdmc.app.select(selector=self._rdmc.app.selector, rel=True)
+                            self._rdmc.app.select(selector=self._rdmc.app.selector, path_refresh=True)
                             newlist = ""
                             newlist += bootoverride
                     else:
@@ -383,6 +383,8 @@ class BootOrderCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Invalid entry passed for one"\
                           " time boot. Please run boot \n       order without"\
                           " arguments to view available options.\n")
+
+        logout_routine(self, options)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -545,40 +547,14 @@ class BootOrderCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if self._rdmc.app.config._ac__commit.lower() == 'true':
+        if self._rdmc.config.commit.lower() == 'true':
             options.commit = True
 
-        try:
-            client = self._rdmc.app.current_client
-            if options.biospassword:
-                client.bios_password = options.biospassword
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
+        login_select_validation(self, options)
 
         if inputline:
             self.lobobj.loginfunction(inputline)
-            
+
         if options.encode:
             options.biospassword = Encryption.decode_credentials(options.biospassword)
 
@@ -636,10 +612,8 @@ class BootOrderCommand(RdmcCommandBase):
             '--commit',
             dest='commit',
             action="store_true",
-            help="Use this flag when you are ready to commit all the"\
-            " changes for the current selection. Including the commit"\
-            " flag will log you out of the server after the command is"\
-            " run. Note that some changes made in this way will be updated"\
+            help="Use this flag when you are ready to commit all pending"\
+            " changes. Note that some changes made in this way will be updated"\
             " instantly, while others will be reflected the next time the"\
             " server is started.",
             default=None,

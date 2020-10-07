@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,9 @@ from collections import OrderedDict
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                            logout_routine
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                             InvalidCommandLineError, InvalidFileFormattingError, Encryption
 
 #default file name
@@ -49,9 +50,8 @@ class SaveCommand(RdmcCommandBase):
         self.filename = None
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
         self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main save worker function
@@ -87,7 +87,7 @@ class SaveCommand(RdmcCommandBase):
                   " parameter format [filter_attribute]=[filter_value]")
 
             instances = self._rdmc.app.select(selector=self._rdmc.app.selector, \
-                                                                                fltrvals=(sel, val))
+                                                fltrvals=(sel, val), path_refresh=options.ref)
             contents = self.saveworkerfunction(instances=instances)
         else:
             contents = self.saveworkerfunction()
@@ -100,6 +100,7 @@ class SaveCommand(RdmcCommandBase):
         if not contents:
             raise redfish.ris.NothingSelectedError
         else:
+            #TODO: Maybe add this to the command. Not sure we use it elsewhere in the lib
             contents = self.add_save_file_header(contents)
 
         if options.encryption:
@@ -112,8 +113,7 @@ class SaveCommand(RdmcCommandBase):
                                                                             sort_keys=True))
         sys.stdout.write("Configuration saved to: %s\n" % self.filename)
 
-        if options.logout:
-            self.logoutobj.run("")
+        logout_routine(self, options)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -180,78 +180,22 @@ class SaveCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
 
-        if self._rdmc.app.config._ac__format.lower() == 'json':
-            options.json = True
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline and options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-
-            inputline.extend(["--selector", options.selector])
-            self.lobobj.loginfunction(inputline)
-        elif options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-
-            inputline.extend([options.selector])
-            self.selobj.selectfunction(inputline)
-        elif options.multisave:
+        if options.multisave:
             options.multisave = options.multisave.replace('"', '').replace("'", '')
             options.multisave = options.multisave.replace(' ', '').split(',')
             if not len(options.multisave) >= 1:
                 raise InvalidCommandLineError("Invalid number of types in multisave option.")
-            if inputline:
-                inputline.extend(['--selector', options.multisave[0]])
-                self.lobobj.loginfunction(inputline)
-            else:
-                inputline.extend([options.multisave[0]])
-                self.selobj.selectfunction(inputline)
+#             if inputline:
+#                 inputline.extend(['--selector', options.multisave[0]])
+#                 self.lobobj.loginfunction(inputline)
+#             else:
+#                 inputline.extend([options.multisave[0]])
+#                 self.selobj.selectfunction(inputline)
+            options.selector = options.multisave[0]
             options.multisave = options.multisave[1:]
-        else:
-            try:
-                inputline = list()
-                selector = self._rdmc.app.selector
-                if options.includelogs:
-                    inputline.extend(["--includelogs"])
-                if options.path:
-                    inputline.extend(["--path", options.path])
 
-                inputline.extend([selector])
-                self.selobj.selectfunction(inputline)
-            except redfish.ris.NothingSelectedError:
-                raise redfish.ris.NothingSelectedError
+        login_select_validation(self, options)
 
         #filename validations and checks
         self.filename = None
@@ -260,9 +204,9 @@ class SaveCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Save command doesn't support multiple filenames.")
         elif options.filename:
             self.filename = options.filename[0]
-        elif self._rdmc.app.config:
-            if self._rdmc.app.config._ac__savefile:
-                self.filename = self._rdmc.app.config._ac__savefile
+        elif self._rdmc.config:
+            if self._rdmc.config.defaultsavefilename:
+                self.filename = self._rdmc.config.defaultsavefilename
 
         if not self.filename:
             self.filename = __filename__
@@ -292,56 +236,48 @@ class SaveCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser, full=True)
-
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
-            default=None,
-        )
+        add_login_arguments_group(customparser)
         customparser.add_argument(
             '-f',
             '--filename',
             dest='filename',
-            help="Use this flag if you wish to use a different"\
-            " filename than the default one. The default filename is" \
-            " %s." % __filename__,
+            help="Use this flag if you wish to use a different filename than the default one. "\
+            "The default filename is %s." % __filename__,
             action="append",
             default=None,
         )
         customparser.add_argument(
             '--selector',
             dest='selector',
-            help="Optionally include this flag to select a type to run"\
-             " the current command on. Use this flag when you wish to"\
-             " select a type without entering another command, or if you"\
-              " wish to work with a type that is different from the one"\
-              " you currently have selected.",
+            help="Optionally include this flag to select a type to run the current command on. "\
+            "Use this flag when you wish to select a type without entering another command, "\
+            "or if you wish to work with a type that is different from the one currently "\
+            "selected.",
             default=None,
         )
         customparser.add_argument(
             '--multisave',
             dest='multisave',
-            help="Optionally include this flag to save multiple types to a "\
-            "single file. Overrides the currently selected type."\
-            "\t\t\t\t\t Usage: --multisave type1.,type2.,type3.",
+            help="Optionally include this flag to save multiple types to a single file. "\
+            "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
             default='',
         )
         customparser.add_argument(
             '--filter',
             dest='filter',
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            help="Optionally set a filter value for a filter attribute. This uses the provided "\
+            "filter for the currently selected type. Note: Use this flag to narrow down your "\
+            "results. For example, selecting a common type might return multiple objects that "\
+            "are all of that type. If you want to modify the properties of only one of those "\
+            "objects, use the filter flag to narrow down results based on properties."\
+            "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            default=None,
+        )
+        customparser.add_argument(
+            '--refresh',
+            dest='ref',
+            help="Optionally reload the data of selected type and save.\n*Note*: Will clear "\
+            "any non-committed data.",
             default=None,
         )
         customparser.add_argument(
@@ -349,15 +285,14 @@ class SaveCommand(RdmcCommandBase):
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
-            default=False
+            help="Optionally include this flag if you wish to change the displayed output to "\
+            "JSON format. Preserving the JSON data structure makes the information easier to "\
+            "parse.",
+            default=False,
         )
         customparser.add_argument(
             '--encryption',
             dest='encryption',
-            help="Optionally include this flag to encrypt/decrypt a file "\
-            "using the key provided.",
-            default=None
+            help="Optionally include this flag to encrypt/decrypt a file using the key provided.",
+            default=None,
         )

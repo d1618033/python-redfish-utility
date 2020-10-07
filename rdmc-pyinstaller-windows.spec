@@ -70,4 +70,5 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True )
+          console=True,
+          icon='win32\\hpe.ico')

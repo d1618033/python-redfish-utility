@@ -41,8 +41,8 @@ source_suffix = '.rst'
 master_doc = 'ilorest'
 
 # General information about the project.
-project = u'HP RESTful Interface Tool'
-copyright = u'2014, Hewlett-Packard Company'
+project = u'HPE RESTful Interface Tool'
+copyright = u'2016-2018, Hewlett Packard Enterprise Development LP'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -180,7 +180,7 @@ htmlhelp_basename = 'hp-rmcdoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('ilorest', 'ilorest.tex', u'ilorest Documentation',
-   u'Hewlett-Packard Company <Linux_SWdeliverables@external.groups.hp.com>', 'manual'),
+   u'Hewlett Packard Enterprise <Linux_SWdeliverables@external.groups.hpe.com>', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,18 +213,18 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('ilorest', 'ilorest',
-     u'HP RESTful Interface Tool',
-     [u'Hewlett-Packard Company <Linux_SWdeliverables@external.groups.hp.com>'], 8)
+     u'HPE RESTful Interface Tool',
+     [u'Hewlett Packard Enterprise <Linux_SWdeliverables@external.groups.hpe.com>'], 8)
 ]
 
 
 # -- Options for Epub output ---------------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'HP REST Management Command'
-epub_author = u'Hewlett-Packard Company'
-epub_publisher = u'Hewlett-Packard Company'
-epub_copyright = u'2013, Hewlett-Packard Company'
+epub_title = u'HPE RESTful Interface Tool'
+epub_author = u'Hewlett Packard Enterprise'
+epub_publisher = u'Hewlett Packard Enterprise'
+epub_copyright = u'2016-2018, Hewlett Packard Enterprise Development LP'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.

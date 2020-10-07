@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,26 +46,25 @@ import cliutils
 import versioning
 import extensions
 
-from rdmc_helper import ReturnCodes, ConfigurationFileError, \
-                    CommandNotEnabledError, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
-                    NoChangesFoundOrMadeError, InvalidFileInputError, UI, \
-                    LOGGER, LERR, NoContentsFoundForOperationError, \
-                    InfoMissingEntriesError, MultipleServerConfigError, \
-                    InvalidOrNothingChangedSettingsError, \
-                    NoDifferencesFoundError, InvalidMSCfileInputError, \
-                    FirmwareUpdateError, BootOrderMissingEntriesError, \
-                    NicMissingOrConfigurationError, StandardBlobErrorHandler, \
-                    NoCurrentSessionEstablished, FailureDuringCommitError,\
-                    IncompatibleiLOVersionError, InvalidCListFileError,\
-                    PartitionMoutingError, TimeOutError, DownloadError, \
-                    UploadError, BirthcertParseError, ResourceExists,\
-                    IncompatableServerTypeError, IloLicenseError, \
-                    InvalidKeyError, UnableToDecodeError, \
-                    UnabletoFindDriveError, Encryption, PathUnavailableError, TaskQueueError,\
-                    TabAndHistoryCompletionClass
+from config.rdmc_config import RdmcConfig
+
+from rdmc_helper import ReturnCodes, ConfigurationFileError, CommandNotEnabledError, \
+                    InvalidCommandLineError, InvalidCommandLineErrorOPTS, UI, LOGGER, LERR, \
+                    InvalidFileFormattingError, NoChangesFoundOrMadeError, InvalidFileInputError, \
+                    NoContentsFoundForOperationError, InfoMissingEntriesError, \
+                    MultipleServerConfigError, InvalidOrNothingChangedSettingsError, \
+                    NoDifferencesFoundError, InvalidMSCfileInputError, FirmwareUpdateError, \
+                    BootOrderMissingEntriesError, NicMissingOrConfigurationError, \
+                    StandardBlobErrorHandler, NoCurrentSessionEstablished, InvalidCListFileError, \
+                    FailureDuringCommitError, IncompatibleiLOVersionError, PartitionMoutingError, \
+                    TimeOutError, DownloadError, UploadError, BirthcertParseError, ResourceExists, \
+                    IncompatableServerTypeError, IloLicenseError, InvalidKeyError, \
+                    UnableToDecodeError, UnabletoFindDriveError, Encryption, PathUnavailableError, \
+                    TaskQueueError, TabAndHistoryCompletionClass#, #redirect_stdout
 
 from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
+
+from contextlib import contextmanager
 
 if os.name != 'nt':
     try:
@@ -118,7 +117,7 @@ class RdmcCommand(RdmcCommandBase):
             summary='HPE RESTful Interface Tool', \
             aliases=[versioning.__shortname__], \
             argparser=RdmcOptionParser())
-        Args.append('--showwarnings')
+
         self._commands = collections.OrderedDict()
         self.commands_dict = extensions.Commands
         self.interactive = False
@@ -126,13 +125,12 @@ class RdmcCommand(RdmcCommandBase):
                                       versioning.__longname__)
         self.opts = None
         self.encoding = None
-        self.config_file = None
-        self.app = redfish.ris.RmcApp(Args=Args)
+        self.config = RdmcConfig()
+        self.app = redfish.ris.RmcApp(showwarnings=True)
         self.retcode = 0
         self.candidates = dict()
         self.commlist = list()
         self._redobj = None
-        Args.remove('--showwarnings')
 
     def add_command(self, newcmd, section=None):
         """ Handles to addition of new commands
@@ -179,7 +177,7 @@ class RdmcCommand(RdmcCommandBase):
 
         if opts.debug:
             LOGGER.setLevel(logging.DEBUG)
-            LERR.setLevel(logging.DEBUG)
+            LERR.setLevel(logging.DEBUG)  
 
         if not (opts.nologo or cmd.nologo) and not self.interactive:
             sys.stdout.write(FIPSSTR)
@@ -203,8 +201,6 @@ class RdmcCommand(RdmcCommandBase):
             self.app.typepath.adminpriv = False
 
         nargv = []
-        curr = []
-        argfound = False
 
         if "--version" in line or "-V" in line:
             sys.stdout.write("""%(progname)s %(version)s\n""" % \
@@ -213,24 +209,21 @@ class RdmcCommand(RdmcCommandBase):
             sys.stdout.flush()
             sys.exit(self.retcode)
 
-        else:
-            for argument in enumerate(line):
-                if not argfound and not argument[1].startswith('-'):
-                    nargv = line[argument[0]:]
-                    break
-                else:
-                    argfound = False
+        (self.opts, nargv) = self.parser.parse_known_args(line)
+        
+        if self.opts.silent:
+            if isinstance(self.opts.silent, (int, float)):
+                new_tgt = os.devnull        
+            else:
+                new_tgt = self.opts.silent
 
-                if argument[1] == "-c":
-                    argfound = True
-
-                curr.append(argument[1])
-
-        self.opts = self.parser.parse_args(curr)
+            sys.stdout = open(new_tgt, 'w')
+            sys.stdout.write("Start stdout file.\n\n")
 
         self.app.verbose = self.opts.verbose
 
         try:
+            #Test encoding functions are there
             Encryption.encode_credentials('test')
             self.app.set_encode_funct(Encryption.encode_credentials)
             self.app.set_decode_funct(Encryption.decode_credentials)
@@ -243,13 +236,36 @@ class RdmcCommand(RdmcCommandBase):
                 self.retcode = ReturnCodes.CONFIGURATION_FILE_ERROR
                 sys.exit(self.retcode)
 
-            self.app.config_file = self.opts.config
+            self.config.configfile = self.opts.config
+        else:
+            # Default locations: Windows: executed directory Linux: /etc/ilorest/redfish.conf
+            self.config.configfile = os.path.join(os.path.dirname(sys.executable), \
+             'redfish.conf') if os.name == 'nt' else '/etc/ilorest/redfish.conf'
 
-        self.app.config_from_file(self.app.config_file)
+        if not os.path.isfile(self.config.configfile):
+            LOGGER.warning("Config file '%s' not found\n\n", self.config.configfile)
+
+        self.config.load()
+
+        cachedir = None
+        if not self.opts.nocache:
+            self.config.cachedir = os.path.join(self.opts.config_dir, 'cache')
+            cachedir = self.config.cachedir
+
+        if cachedir:
+            self.app.cachedir = cachedir
+            try:
+                os.makedirs(cachedir)
+            except OSError as ex:
+                if ex.errno == errno.EEXIST:
+                    pass
+                else:
+                    raise
+
         if self.opts.logdir and self.opts.debug:
             logdir = self.opts.logdir
         else:
-            logdir = self.app.config.get_logdir()
+            logdir = self.config.logdir
 
         if logdir and self.opts.debug:
             try:
@@ -271,22 +287,6 @@ class RdmcCommand(RdmcCommandBase):
             lfile.setLevel(logging.DEBUG)
             LOGGER.addHandler(lfile)
             self.app.LOGGER = LOGGER
-
-        cachedir = None
-        if self.opts.nocache:
-            self.app.config.set_cache(False)
-        else:
-            self.app.config.set_cachedir(os.path.join(self.opts.config_dir, 'cache'))
-            cachedir = self.app.config.get_cachedir()
-
-        if cachedir:
-            try:
-                os.makedirs(cachedir)
-            except OSError as ex:
-                if ex.errno == errno.EEXIST:
-                    pass
-                else:
-                    raise
 
         if ("login" in line or any(x.startswith("--url") for x in line) or not line)\
                         and not (any(x.startswith(("-h", "--h")) for x in nargv) or "help" in line):
@@ -555,7 +555,7 @@ class RdmcCommand(RdmcCommandBase):
             if excp.message:
                 UI().printmsg(excp.message)
             else:
-                UI().printmsg(u"Logged-in account does not have the privilege "\
+                UI().printmsg(u"Logged-in account does not have the privilege"\
                               " required to fulfill the request or a required"\
                               " token is missing."\
                               "\nEX: biospassword flag if bios password present "\
@@ -678,6 +678,8 @@ class RdmcCommand(RdmcCommandBase):
         :param command: command for auto tab completion
         :type command: string.
         """
+        #TODO: don't always update, only when we have a different selector.
+        #Try to use args to get specific nested posibilities?
         changes = dict()
 
         # select options

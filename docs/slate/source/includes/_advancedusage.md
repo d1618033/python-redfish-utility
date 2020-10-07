@@ -1,6 +1,6 @@
 ##Filtering and Other Advanced Options
 
-This section covers some of the advanced features and options available with the iLOrest tool.
+This section covers some of the advanced features and options available with the RESTful Interface Tool (iLOREST).
 
 ### Filter Option
 

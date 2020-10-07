@@ -1,5 +1,5 @@
 #    RESTful Interface Tool Sample Script for HPE iLO Products    #
-#  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP #
+#  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP #
 
 # Description:  This is a sample bash script to import LDAP CA    #
 #               certificate on following device:                  #
@@ -26,8 +26,8 @@ runRemote(){
 
 error(){
   echo "Usage:"
-  echo        "remote: Import_LDAP_CA_Cert.sh ^<iLO url^> ^<iLO username^>  ^<iLO password^>"
-  echo        "local:  Import_LDAP_CA_Cert.sh"
+  echo        "remote: Import_LDAP_CA_cert.sh ^<iLO url^> ^<iLO username^>  ^<iLO password^>"
+  echo        "local:  Import_LDAP_CA_cert.sh"
 }
 
 if [ "$#" -eq "3" ]

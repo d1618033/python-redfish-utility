@@ -1,5 +1,5 @@
 # ##
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import sys
 import json
 import datetime
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
@@ -35,29 +36,15 @@ class InstallSetCommand(RdmcCommandBase):
     def __init__(self, rdmcObj):
         RdmcCommandBase.__init__(self, \
             name='installset', \
-            usage='installset [OPTIONS] \n\n\tRun to perform operations on ' \
-            'install sets.\n\n\tList install sets.\n\texample: installset\n\n' \
-            '\tAdd install set.\n\texample: installset add installsetfile.json'\
-            ' --name=newinstallsetname\n\n\tDelete install set.\n\texample: ' \
-            'installset delete --name=installsetname\n\n\tInvoke install ' \
-            'set.\n\texample: installset invoke --name=installsetname\n\n\t' \
-            'Remove all install sets.\n\texample: installset --removeall\n' \
-            '\n\tExample install set json file:\n\t[\n\t\t{\n\t\t\t"Name": ' \
-            '"Wait",\n\t\t\t"UpdatableBy": ["RuntimeAgent"],\n\t\t\t'\
-            '"Command": "Wait",\n\t\t\t"WaitTimeSeconds": 60\n\t\t},\n\t\t{' \
-            '\n\t\t\t"Name": "uniqueName",\n\t\t\t"UpdatableBy": ' \
-            '["RuntimeAgent"],\n\t\t\t"Command": "ApplyUpdate",\n\t\t\t"' \
-            'Filename": "filename.exe"\n\t\t},\n\t\t{\n\t\t\t"Name": ' \
-            '"Reboot",\n\t\t\t"UpdatableBy": ["RuntimeAgent"],\n\t\t\t' \
-            '"Command": "ResetServer"\n\t\t}\n\t]',\
+            usage=None,\
+            description='\tRun to perform operations on install sets.\nTo view help on specific '\
+                        'sub-commands run: installset <sub-command> -h\n\n\tExample: installset '\
+                        'add -h\n\n\tNote: Support starting on iLO 5 systems.', \
             summary='Manages install sets for iLO.',\
-            aliases=['Installset'], \
-            argparser=ArgumentParser())
+            aliases=['Installset'])
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
         self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main listcomp worker function
@@ -66,7 +53,22 @@ class InstallSetCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            _subcommands = ['add', 'delete', 'invoke']
+            found = False
+            for i, arg in enumerate(line):
+                if arg in _subcommands:
+                    found = True
+                    try:
+                        if line[i+1] not in self.parser._option_string_actions.keys():
+                            (options, args) = self._parse_arglist(line)
+                        else:
+                            raise IndexError
+                    except (KeyError, IndexError):
+                        (options, args) = self._parse_arglist(line, default=True)
+                    else:
+                        continue
+            if not found:
+                (options, args) = self._parse_arglist(line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -79,28 +81,27 @@ class InstallSetCommand(RdmcCommandBase):
             raise IncompatibleiLOVersionError('iLO Repository commands are ' \
                                                     'only available on iLO 5.')
 
-        if args and args[0] in ['delete', 'invoke'] and not options.name:
-            raise InvalidCommandLineError('Name option is required for ' \
-                                          'delete and invoke commands.')
-        if options.name:
-            if options.name.startswith('"') and options.name.endswith('"'):
-                options.name = options.name[1:-1]
-        if options.removeall:
-            self.removeinstallsets()
-        elif not args:
-            self.printinstallsets(options)
-        elif args[0].lower() == 'add':
-            if not len(args) == 2:
+        if hasattr(options, 'name'):
+            if options.name:
+                if options.name.startswith('"') and options.name.endswith('"'):
+                    options.name = options.name[1:-1]
+        if hasattr(options, 'removeall'):
+            if options.removeall:
+                self.removeinstallsets()
+        if options.command.lower() == 'add':
+            if not options.json:
                 raise InvalidCommandLineError('add command requires an install set file.')
             else:
-                self.addinstallset(args[1], options.name)
-        elif args[0].lower() == 'delete':
+                self.addinstallset(options.json, options.name)
+        elif options.command.lower() == 'delete':
             self.deleteinstallset(options.name)
-        elif args[0].lower() == 'invoke':
+        elif options.command.lower() == 'invoke':
             self.invokeinstallset(options)
         else:
-            raise InvalidCommandLineError('%s is not a valid command.' % args[0])
+            self.printinstallsets(options)
 
+        logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     def addinstallset(self, setfile, name):
@@ -310,37 +311,7 @@ class InstallSetCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            if not inputline:
-                sys.stdout.write('Local login initiated...\n')
-            self.lobobj.loginfunction(inputline)
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -352,69 +323,148 @@ class InstallSetCommand(RdmcCommandBase):
             return
 
         add_login_arguments_group(customparser)
-
-        customparser.add_argument(
-            '-n',
-            '--name',
-            dest='name',
-            help="""Install set name to create, remove, or invoke.""",
-            default=None,
+        subcommand_parser = customparser.add_subparsers(dest='command')
+        #default sub-parser
+        default_parser = subcommand_parser.add_parser(
+            'default',
+            help='Running without any sub-command will return a list of all available install '\
+            'sets on the currently logged in server.'
         )
-        customparser.add_argument(
-            '--removeall',
-            action='store_true',
-            dest='removeall',
-            help="""Remove all install sets.""",
-            default=False,
-        )
-        customparser.add_argument(
+        default_parser.add_argument(
             '-j',
             '--json',
             dest='json',
             action="store_true",
             help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+                 " displayed output to JSON format. Preserving the JSON data"\
+                 " structure makes the information easier to parse.",
             default=False
         )
-        customparser.add_argument(
-            '--expire',
-            dest='exafter',
-            help="Optionally include this flag if you wish to set the"\
-            " time for installset to expire. ISO 8601 Redfish-style time "\
-            "string to be written after which iLO will automatically change "\
-            "state to Expired",
+        default_parser.add_argument(
+            '--removeall',
+            dest='removeall',
+            help='Optionally include this flag to remove all install sets on the currently logged '\
+                 'in server.',
+            action="store_true",
+            default=False
+        )
+        add_login_arguments_group(default_parser)
+        #add sub-parser
+        add_help='Adds an install set on the currently logged in server.'
+        add_parser = subcommand_parser.add_parser(
+            'add',
+            help=add_help,
+            description=add_help + '\n\texample: installset add installsetfile.json '\
+                '--name=newinstallsetname.\n\n\tNote: iLO will provide a default '\
+                'install set name if the flag \'--name\' is not provided.',
+            formatter_class=RawDescriptionHelpFormatter
+        )
+        add_parser.add_argument(
+            'json',
+            help='Json file containing the install set tasks and sequencing\n\n\texample install '\
+                 'set JSON file:\n\t[\n\t\t{\n\t\t\t"Name": ' \
+                 '"Wait",\n\t\t\t"UpdatableBy": ["RuntimeAgent"],\n\t\t\t'\
+                 '"Command": "Wait",\n\t\t\t"WaitTimeSeconds": 60\n\t\t},\n\t\t{' \
+                 '\n\t\t\t"Name": "uniqueName",\n\t\t\t"UpdatableBy": ' \
+                 '["RuntimeAgent"],\n\t\t\t"Command": "ApplyUpdate",\n\t\t\t"' \
+                 'Filename": "filename.exe"\n\t\t},\n\t\t{\n\t\t\t"Name": ' \
+                 '"Reboot",\n\t\t\t"UpdatableBy": ["RuntimeAgent"],\n\t\t\t' \
+                 '"Command": "ResetServer"\n\t\t}\n\t]',
+            metavar='JSONFILE'
+        )
+        add_parser.add_argument(
+            '-n',
+            '--name',
+            dest='name',
+            help="Install set name.",
             default=None
         )
-        customparser.add_argument(
-            '--startafter',
-            dest='safter',
-            help="Optionally include this flag if you wish to set the"\
-            " earliest execution time for installset. ISO 8601 Redfish-style "\
-            "time string to be used.",
-            default=None
+        add_login_arguments_group(add_parser)
+        #invoke sub-parser
+        invoke_help='Invoke execution of an install script on the currently logged in server.'
+        invoke_parser = subcommand_parser.add_parser(
+            'invoke',
+            help=invoke_help,
+            description=invoke_help + '\n\nExamples:\n\tTo simply invoke an install set\n\t'\
+                'installset invoke --name=installsetname',
+            formatter_class=RawDescriptionHelpFormatter
         )
-        customparser.add_argument(
-            '--tpmover',
-            dest='tover',
-            action="store_true",
-            help="If set then the TPMOverrideFlag is passed in on the "\
-            "associated flash operations",
-            default=False
+        invoke_parser.add_argument(
+            '-n',
+            '--name',
+            help="Install set name.",
+            metavar='NAME',
+            nargs='?',
+            default='',
+            required=True
         )
-        customparser.add_argument(
-            '--updaterecoveryset',
-            dest='uset',
-            action="store_true",
-            help="If set then the components in the flash operations are used"\
-            " to replace matching contents in the Recovery Set.",
-            default=False
-        )
-        customparser.add_argument(
+        invoke_parser.add_argument(
             '--cleartaskqueue',
             dest='ctakeq',
             action="store_true",
             help="This option allows previous items in the task queue to"\
-            " be cleared before the Install Set is invoked",
+                 " be cleared before the Install Set is invoked",
             default=False
         )
+        invoke_parser.add_argument(
+            '--expire',
+            dest='exafter',
+            help="Optionally include this flag if you wish to set the"\
+                 " time for installset to expire. ISO 8601 Redfish-style time "\
+                 "string to be written after which iLO will automatically change "\
+                 "state to Expired",
+            default=None
+        )
+        invoke_parser.add_argument(
+            '--startafter',
+            dest='safter',
+            help="Optionally include this flag if you wish to set the"\
+                 " earliest execution time for installset. ISO 8601 Redfish-style "\
+                 "time string to be used.",
+            default=None
+        )
+        invoke_parser.add_argument(
+            '--tpmover',
+            dest='tover',
+            action="store_true",
+            help="If set then the TPMOverrideFlag is passed in on the "\
+                 "associated flash operations",
+            default=False
+        )
+        invoke_parser.add_argument(
+            '--updaterecoveryset',
+            dest='uset',
+            action="store_true",
+            help="If set then the components in the flash operations are used"\
+                 " to replace matching contents in the Recovery Set.",
+            default=False
+        )
+        add_login_arguments_group(invoke_parser)
+        #delete sub-parser
+        delete_help='Delete one or more install sets from the currently logged in server.'
+        delete_parser = subcommand_parser.add_parser(
+            'delete',
+            help=delete_help,
+            description=delete_help + '\n\nExamples:\n\nTo delete a single install set:\n\t'\
+                'installset delete --name=installsetname.\n\nTo delete all install sets\n\t' \
+                'installset delete --removeall',
+            formatter_class=RawDescriptionHelpFormatter
+        )
+        delete_parser.add_argument(
+            '-n',
+            '--name',
+            help="Install set name",
+            metavar='NAME',
+            nargs='?',
+            default=''
+        )
+        delete_parser.add_argument(
+            '--removeall',
+            dest='removeall',
+            help='Optionally include this flag to remove all install sets on the currently logged '\
+                 'in server.',
+            action="store_true",
+            default=False
+        )
+        add_login_arguments_group(delete_parser)
+

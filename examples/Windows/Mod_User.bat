@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014-2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample bash script to modify an         ::
 ::               existing password and privileges in the database  ::
@@ -38,13 +38,13 @@ if %argC% EQU 0 goto :local
 goto :error
 
 :local
-ilorest login -u USER_LOGIN -p PASSWORD       
+ilorest login -u USER_LOGIN -p PASSWORD
 ilorest iloaccounts changepass ilousername newpassword
 ilorest iloaccounts modify ilousername --addprivs 4,5,6 --removeprivs 2
 ilorest logout
 goto :exit
 :remote
-ilorest iloaccounts changepass ilousername newpassword --url %1 --user %2 --password %3 
+ilorest iloaccounts changepass ilousername newpassword --url %1 --user %2 --password %3
 ilorest iloaccounts modify ilousername --addprivs 4,5,6 --removeprivs 2
 ilorest logout
 goto :exit

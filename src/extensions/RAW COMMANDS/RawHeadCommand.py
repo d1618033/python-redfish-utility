@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ from argparse import ArgumentParser
 
 import redfish
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group
+from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
+                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, UI, Encryption
 
@@ -50,7 +51,7 @@ class RawHeadCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self._parse_arglist(line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,15 +60,10 @@ class RawHeadCommand(RdmcCommandBase):
 
         self.headvalidation(options)
 
-        if len(args) > 1:
-            raise InvalidCommandLineError("Raw head only takes 1 argument.\n")
-        elif not args:
-            raise InvalidCommandLineError("Missing raw head input path.\n")
+        if options.path.startswith('"') and options.path.endswith('"'):
+            options.path = options.path[1:-1]
 
-        if args[0].startswith('"') and args[0].endswith('"'):
-            args[0] = args[0][1:-1]
-
-        results = self._rdmc.app.head_handler(args[0], silent=options.silent, \
+        results = self._rdmc.app.head_handler(options.path, silent=options.silent, \
 											  service=options.service)
 
         content = None
@@ -96,6 +92,7 @@ class RawHeadCommand(RdmcCommandBase):
         else:
             return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
 
+        logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -105,35 +102,7 @@ class RawHeadCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-            self.lobobj.loginfunction(inputline, skipbuild=True)
+        login_select_validation(self, options, skipbuild=True)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -146,6 +115,10 @@ class RawHeadCommand(RdmcCommandBase):
 
         add_login_arguments_group(customparser)
 
+        customparser.add_argument(
+            'path',
+            help="Uri on iLO to query HEAD.",
+        )
         customparser.add_argument(
             '--silent',
             dest='silent',

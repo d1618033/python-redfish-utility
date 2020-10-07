@@ -1,5 +1,5 @@
 ::    RESTful Interface Tool Sample Script for HPE iLO Products    ::
-::  Copyright 2014, 2019 Hewlett Packard Enterprise Development LP ::
+::  Copyright 2014, 2020 Hewlett Packard Enterprise Development LP ::
 
 :: Description:  This is a sample batch script to toggle the UID   ::
 ::               on the host server.                               ::
@@ -30,12 +30,14 @@ goto :error
 ilorest select ComputerSystem. -u USER_LOGIN -p PASSWORD
 :: Possible Values: None, Unknown, Lit, Blinking, Off.             ::
 ilorest set IndicatorLED=Lit
+ilorest commit
 ilorest logout
 goto :exit
 :remote
 ilorest select ComputerSystem. --url=%1 --user %2 --password %3
 :: Possible Values: None, Unknown, Lit, Blinking, Off.             ::
 ilorest set IndicatorLED=Lit
+ilorest commit
 ilorest logout
 goto :exit
 

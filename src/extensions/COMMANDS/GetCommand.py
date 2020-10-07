@@ -1,5 +1,5 @@
 ###
-# Copyright 2019 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,9 +23,11 @@ from argparse import ArgumentParser
 
 import six
 import redfish.ris
+from redfish.ris.utils import iterateandclear
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, Encryption, \
+from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
+                                login_select_validation, logout_routine
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, \
                     NoContentsFoundForOperationError, InvalidCommandLineError
 
 class GetCommand(RdmcCommandBase):
@@ -34,10 +36,12 @@ class GetCommand(RdmcCommandBase):
         RdmcCommandBase.__init__(self,\
             name='get',\
             usage='get [PROPERTY] [OPTIONS]\n\n\tTo retrieve all' \
-                    ' the properties run without arguments\n\texample: get' \
-                    '\n\n\tTo retrieve multiple properties use the following' \
-                    ' example\n\texample: get <property> <property> ' \
-                    '<property>\n\n\tTo change output style format provide'\
+                    ' the properties run without arguments. \n\t*Note*: '\
+                    'a type will need to be selected or this will return an '\
+                    'error.\n\texample: get\n\n\tTo retrieve multiple ' \
+                    'properties use the following example\n\texample: '\
+                    'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.' \
+                    '\n\n\tTo change output style format provide'\
                     ' the json flag\n\texample: get --json',\
             summary='Displays the current value(s) of a' \
                     ' property(ies) within a selected type.',\
@@ -45,9 +49,6 @@ class GetCommand(RdmcCommandBase):
             argparser=ArgumentParser())
         self.definearguments(self.parser)
         self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main get worker function
@@ -83,6 +84,7 @@ class GetCommand(RdmcCommandBase):
         self.getworkerfunction(args, options, results=None, uselist=True, filtervals=filtr,\
                                readonly=options.noreadonly)
 
+        logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -109,6 +111,8 @@ class GetCommand(RdmcCommandBase):
         nocontent = set()
         instances = None
         arg = None
+        argsdict = {}
+        multicontents = False
 
         #For rest redfish compatibility of bios.
         args = [args] if args and isinstance(args, six.string_types) else args
@@ -120,9 +124,26 @@ class GetCommand(RdmcCommandBase):
                                                                     fltrvals=filtervals)
 
         try:
-            contents = self._rdmc.app.getprops(props=args, remread=readonly, nocontent=nocontent, \
-                                                                                insts=instances)
-            uselist = False if readonly else uselist
+            if len(args) > 1:
+                contents = []
+                for arg in args:
+                    splitarg = arg.split('/')
+                    if splitarg[0] in argsdict:
+                        argsdict[splitarg[0]].append(splitarg[1])
+                    else:
+                        argsdict[splitarg[0]] = [splitarg[1]]
+                for key in argsdict.keys():
+                    contents = self._rdmc.app.getprops(props=key, \
+                       remread=readonly, nocontent=nocontent, insts=instances)
+                    values = argsdict[key]
+                    self.collectandclear(contents, key, values)
+                    self.checktoprint(options, contents, nocontent, arg)
+                multicontents = True
+                uselist = False if readonly else uselist
+            else:
+                contents = self._rdmc.app.getprops(props=args, remread=readonly,\
+                                   nocontent=nocontent, insts=instances)
+                uselist = False if readonly else uselist
         except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
             contents = self._rdmc.app.getprops(props=args, nocontent=nocontent)
         for ind, content in enumerate(contents):
@@ -137,23 +158,8 @@ class GetCommand(RdmcCommandBase):
             return contents
 
         contents = contents[0] if len(contents) == 1 else contents
-        if options and options.json and contents:
-            UI().print_out_json(contents)
-        elif contents:
-            UI().print_out_human_readable(contents)
-        else:
-            try:
-                if nocontent or not any(next(iter(contents))):
-                    raise Exception()
-            except:
-                strtoprint = ', '.join(str(val) for val in nocontent)
-                if not strtoprint and arg:
-                    strtoprint = arg
-                    raise NoContentsFoundForOperationError('No get contents found for entry: %s' \
-                                                       % strtoprint)
-                else:
-                    raise NoContentsFoundForOperationError('No get contents found for ' \
-                                                           'selected type.')
+        if not multicontents:
+            self.checktoprint(options, contents, nocontent, arg)
         if options.logout:
             self.logoutobj.run("")
 
@@ -178,76 +184,61 @@ class GetCommand(RdmcCommandBase):
                 if all([True if not test else False for test in entry[key]]):
                     del entry[key]
 
+    def checktoprint(self, options, contents, nocontent, arg):
+        """ function to decide what/how to print
+        :param options: list of options
+        :type options: list.
+        :param contents: dictionary value returned by getprops.
+        :type contents: dict.
+        :param nocontent: props not found are added to the list.
+        :type nocontent: list.
+        :param arg: string of args
+        :type arg: string
+        """
+        if options and options.json and contents:
+            UI().print_out_json(contents)
+        elif contents:
+            UI().print_out_human_readable(contents)
+        else:
+            try:
+                if nocontent or not any(next(iter(contents))):
+                    raise Exception()
+            except:
+                strtoprint = ', '.join(str(val) for val in nocontent)
+                if not strtoprint and arg:
+                    strtoprint = arg
+                    raise NoContentsFoundForOperationError('No get contents '\
+                                           'found for entry: %s' % strtoprint)
+                else:
+                    raise NoContentsFoundForOperationError('No get contents '\
+                                                   'found for selected type.')
+
+    def collectandclear(self, contents, key, values):
+        """ function to find and remove unneeded values from contents dictionary
+        :param contents: dictionary value returned by getprops
+        :type contents: dict.
+        :param key: string of keys
+        :type key: string.
+        :param values: list of values
+        :type values: list.
+        """
+        clearcontent = contents[0][key][00]
+        keyslist = clearcontent.keys()
+        clearedlist = keyslist
+        for arg in values:
+            for keys in keyslist:
+                if str(keys).lower() == str(arg).lower():
+                    clearedlist.remove(arg)
+        contents = iterateandclear(contents, clearedlist)
+        return contents
+
     def getvalidation(self, options):
         """ get method validation function
 
         :param options: command line options
         :type options: list.
         """
-        inputline = list()
-
-        if self._rdmc.app.config._ac__format.lower() == 'json':
-            options.json = True
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.app.config.get_url():
-                    inputline.extend([self._rdmc.app.config.get_url()])
-                if self._rdmc.app.config.get_username():
-                    inputline.extend(["-u", self._rdmc.app.config.get_username()])
-                if self._rdmc.app.config.get_password():
-                    inputline.extend(["-p", self._rdmc.app.config.get_password()])
-                if self._rdmc.app.config.get_ssl_cert():
-                    inputline.extend(["--https", self._rdmc.app.config.get_ssl_cert()])
-
-        if inputline and options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-
-            inputline.extend(["--selector", options.selector])
-            self.lobobj.loginfunction(inputline)
-        elif options.selector:
-            if options.includelogs:
-                inputline.extend(["--includelogs"])
-            if options.path:
-                inputline.extend(["--path", options.path])
-            if options.ref:
-                inputline.extend(["--refresh"])
-
-            inputline.extend([options.selector])
-            self.selobj.selectfunction(inputline)
-        else:
-            try:
-                inputline = list()
-                selector = self._rdmc.app.selector
-                if options.includelogs:
-                    inputline.extend(["--includelogs"])
-                if options.path:
-                    inputline.extend(["--path", options.path])
-                if options.ref:
-                    inputline.extend(["--refresh"])
-
-                inputline.extend([selector])
-                self.selobj.selectfunction(inputline)
-            except redfish.ris.NothingSelectedError:
-                raise redfish.ris.NothingSelectedError
+        login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -258,7 +249,7 @@ class GetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser, full=True)
+        add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -292,15 +283,6 @@ class GetCommand(RdmcCommandBase):
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
             default=False
-        )
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
-            default=None,
         )
         customparser.add_argument(
             '--noreadonly',

@@ -54,8 +54,8 @@ Tab complete can also show schema information for properties.
 :: This is a batch file that logs into a remote server,
 :: selects the Bios type, and gets the BootMode value
 
-:: Usage :: 
-:: selectget.bat [URI] [USERNAME] [PASSWORD] 
+:: Usage ::
+:: selectget.bat [URI] [USERNAME] [PASSWORD]
 @echo off
 
 set argC=0
@@ -131,7 +131,7 @@ When the example script is run, the following result is produced:
 
 ![File Mode example](images/FileBasedMode_1.png "File Based Mode example")
 
-Here, the `Bios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the `load` command is used to make these changes on the server. 
+Here, the `Bios` type is saved to a file called `ilorest1.json`. Then, after you modify any properties, the `load` command is used to make these changes on the server.
 
 The properties of `Bios` can be edited here, and then loaded on the server. When the file is loaded on the server, changes to read-only values are not reflected. The full list in this example is truncated to save space.
 
@@ -163,49 +163,49 @@ The properties of `Bios` can be edited here, and then loaded on the server. When
 
 ## Executing commands in parallel
 
-> Run the following command to start an iLOrest session in 10 different iLO servers:
+> Run the following command to start an iLOREST session in 10 different iLO servers:
 
 ```
-pdsh -R exec -w server[1-10] ilorest --cache-dir=%h login ilo-%h -u username -p password.
+pdsh -R exec -w server[1-10] ilorest --cache-dir %h login ilo-%h -u username -p password.
 ```
 
-> When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, the iLOrest tool saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2, the data is cached in directory server2.
+> When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, iLOREST saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2, the data is cached in directory server2.
 
 ```
-ilorest --cache-dir=server1 login ilo-server1 -u username -p password
+ilorest --cache-dir server1 login ilo-server1 -u username -p password
 
-ilorest --cache-dir=server2 login ilo-server2 -u username -p password
+ilorest --cache-dir server2 login ilo-server2 -u username -p password
 
-ilorest --cache-dir=server3 login ilo-server3 -u username -p password
+ilorest --cache-dir server3 login ilo-server3 -u username -p password
 
-ilorest --cache-dir=server4 login ilo-server4 -u username -p password
+ilorest --cache-dir server4 login ilo-server4 -u username -p password
 
-ilorest --cache-dir=server5 login ilo-server5 -u username -p password
+ilorest --cache-dir server5 login ilo-server5 -u username -p password
 
-ilorest --cache-dir=server6 login ilo-server6 -u username -p password
+ilorest --cache-dir server6 login ilo-server6 -u username -p password
 
-ilorest --cache-dir=server7 login ilo-server7 -u username -p password
+ilorest --cache-dir server7 login ilo-server7 -u username -p password
 
-ilorest --cache-dir=server8 login ilo-server8 -u username -p password
+ilorest --cache-dir server8 login ilo-server8 -u username -p password
 
-ilorest --cache-dir=server9 login ilo-server9 -u username -p password
+ilorest --cache-dir server9 login ilo-server9 -u username -p password
 
-ilorest --cache-dir=server10 login ilo-server10 -u username -p password
+ilorest --cache-dir server10 login ilo-server10 -u username -p password
 ```
 
-> Now that an iLOrest session is created on each iLO, you can **select**, **set**, or **get** information from them.
+> Now that an iLOREST session is created on each iLO, you can **select**, **set**, or **get** information from them.
 
-> The **-R exec** part of the example finds and locally executes the iLOrest executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, … 10`.
+> The **-R exec** part of the example finds and locally executes the iLOREST executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, … 10`.
 
 ```
-pdsh -R exec --cache-dir=server[1-10] ilorest <select, list, get or set> <Type or property>.
+pdsh -R exec --cache-dir server[1-10] ilorest <select, list, get or set> <Type or property>.
 ```
 
-iLOrest uses a caching method to locally save servers' data. To send iLOrest commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses `PDSH`, but any method of parallel scripting will work as long as you are specifying different cache directories.
+iLOREST uses a caching method to locally save servers' data. To send iLOREST commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses `PDSH`, but any method of parallel scripting will work as long as you are specifying different cache directories.
 
-Running iLOrest on multiple systems locally can be done using automation tools such as Ansible, Chef, and Puppet. 
+Running iLOREST on multiple systems locally can be done using automation tools such as Ansible, Chef, and Puppet.
 
-## Configuration file (ilorest.conf)
+## Configuration file (Redfish.conf)
 
 > Windows default configuration file
 
@@ -235,7 +235,7 @@ Running iLOrest on multiple systems locally can be done using automation tools s
 # option to use the provided password to login
 # password = password
 
-# option to use the provided ssl certificate or certificate bundle for HTTPS validation
+# option to use the provided SSL certificate or certificate bundle for HTTPS validation
 #sslcert = .\
 
 #####         Commit Settings        #####
@@ -293,7 +293,7 @@ Running iLOrest on multiple systems locally can be done using automation tools s
 # option to use the provided password to login
 # password = password
 
-# option to use the provided ssl certificate or certificate bundle for HTTPS validation
+# option to use the provided SSL certificate or certificate bundle for HTTPS validation
 #sslcert = ./
 
 #####         Commit Settings        #####
@@ -328,4 +328,4 @@ The configuration file contains the default settings for the tool. You can use a
 Configuration file locations:
 
 - Windows OS: The same location as the executable file that starts the tool.
-- Linux OS: `/etc/ilorest/ilorest.conf`
+- Linux OS: `/etc/ilorest/Redfish.conf`
