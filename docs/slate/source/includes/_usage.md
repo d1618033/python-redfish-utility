@@ -166,39 +166,39 @@ The properties of `Bios` can be edited here, and then loaded on the server. When
 > Run the following command to start an iLOrest session in 10 different iLO servers:
 
 ```
-pdsh -R exec -w server[1-10] ilorest --cache-dir %h login ilo-%h -u username -p password.
+pdsh -R exec -w server[1-10] ilorest --cache-dir=%h login ilo-%h -u username -p password.
 ```
 
 > When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, the iLOrest tool saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2, the data is cached in directory server2.
 
 ```
-ilorest --cache-dir server1 login ilo-server1 -u username -p password
+ilorest --cache-dir=server1 login ilo-server1 -u username -p password
 
-ilorest --cache-dir server2 login ilo-server2 -u username -p password
+ilorest --cache-dir=server2 login ilo-server2 -u username -p password
 
-ilorest --cache-dir server3 login ilo-server3 -u username -p password
+ilorest --cache-dir=server3 login ilo-server3 -u username -p password
 
-ilorest --cache-dir server4 login ilo-server4 -u username -p password
+ilorest --cache-dir=server4 login ilo-server4 -u username -p password
 
-ilorest --cache-dir server5 login ilo-server5 -u username -p password
+ilorest --cache-dir=server5 login ilo-server5 -u username -p password
 
-ilorest --cache-dir server6 login ilo-server6 -u username -p password
+ilorest --cache-dir=server6 login ilo-server6 -u username -p password
 
-ilorest --cache-dir server7 login ilo-server7 -u username -p password
+ilorest --cache-dir=server7 login ilo-server7 -u username -p password
 
-ilorest --cache-dir server8 login ilo-server8 -u username -p password
+ilorest --cache-dir=server8 login ilo-server8 -u username -p password
 
-ilorest --cache-dir server9 login ilo-server9 -u username -p password
+ilorest --cache-dir=server9 login ilo-server9 -u username -p password
 
-ilorest --cache-dir server10 login ilo-server10 -u username -p password
+ilorest --cache-dir=server10 login ilo-server10 -u username -p password
 ```
 
 > Now that an iLOrest session is created on each iLO, you can **select**, **set**, or **get** information from them.
 
-> The **-R exec** part of the example finds and locally executes the iLOrest executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, … 10`.
+> The **-R exec** part of the example finds and locally executes the iLOrest executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, â€¦ 10`.
 
 ```
-pdsh -R exec --cache-dir server[1-10] ilorest <select, list, get or set> <Type or property>.
+pdsh -R exec --cache-dir=server[1-10] ilorest <select, list, get or set> <Type or property>.
 ```
 
 iLOrest uses a caching method to locally save servers' data. To send iLOrest commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses `PDSH`, but any method of parallel scripting will work as long as you are specifying different cache directories.
