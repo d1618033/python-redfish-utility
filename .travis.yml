@@ -4,7 +4,8 @@ python:
 before_install:
   - python --version
   - pip install -U pip
-  - python setup.py install
+  - easy_install distribute
+  - pip install --upgrade distribute
   - pip install -U pytest
   - pip install codecov
 # command to run tests
