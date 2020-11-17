@@ -818,7 +818,8 @@ class ServerlogsCommand(RdmcCommandBase):
             self.dontunmount = False
 
         LOGGER.info("Blackbox folder path:%s", ','.join(next(os.walk(abspath))[2]))
-        self.abspath = os.path.join(abspath, 'data')
+        if not 'data' in abspath:
+            self.abspath = os.path.join(abspath, 'data')
         LOGGER.info("Blackbox data files path:%s", self.abspath)
 
         self.updateiloversion()
@@ -1012,6 +1013,9 @@ class ServerlogsCommand(RdmcCommandBase):
 
                 count = count-1
                 revcount = revcount+1
+        else:
+            cfilelist = [f for f in os.listdir(self.abspath) if f.endswith('.zbb')]
+
         LOGGER.info("CLIST files %s", str(cfilelist))
 
         return cfilelist
@@ -1030,8 +1034,14 @@ class ServerlogsCommand(RdmcCommandBase):
                         label = win32api.GetVolumeInformation(i+':')[0]
 
                         if label == 'BLACKBOX':
-                            abspathbb = i+':\\'
-                            return (False, abspathbb)
+                            abspathbb = i+':\\data\\'
+                            self.abspath = abspathbb
+                            cfilelist = self.getclistfilelisting()
+                            if not cfilelist:
+                                self.unmountbb()
+                                self.manualmountbb()
+                            else:
+                                return (False, abspathbb)
                     except:
                         pass
             else:
@@ -1044,7 +1054,13 @@ class ServerlogsCommand(RdmcCommandBase):
 
                         if r"/BLACKBOX" in lin:
                             abspathbb = lin.split()[1]
-                            return (False, abspathbb)
+                            self.abspath = abspathbb
+                            cfilelist = self.getclistfilelisting()
+                            if not cfilelist:
+                                self.unmountbb()
+                                self.manualmountbb()
+                            else:
+                                return (False, abspathbb)
 
                 if count > 3:
                     found, path = self.manualmountbb()
@@ -1052,7 +1068,7 @@ class ServerlogsCommand(RdmcCommandBase):
                         return (True, path)
 
             count = count+1
-            time.sleep(1)
+            time.sleep(3)
 
         raise PartitionMoutingError("iLO not responding to request " \
                                                 "for mounting AHS partition")
@@ -1185,6 +1201,8 @@ class ServerlogsCommand(RdmcCommandBase):
         ahsdefaultfilename = 'HPE_'+snum+'_'+todaysdate+'.ahs'
 
         if options.directorypath:
+            if not os.path.exists(options.directorypath):
+                os.makedirs(options.directorypath)
             ahsdefaultfilename = os.path.join(options.directorypath, ahsdefaultfilename)
 
         return ahsdefaultfilename

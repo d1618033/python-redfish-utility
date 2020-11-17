@@ -94,12 +94,12 @@ class SetPasswordCommand(RdmcCommandBase):
         count = 0
         for arg in args:
             if arg:
-                if '"' in arg[0] and '"' in arg[-1] and len(arg) > 2:
-                    args[count] = arg[1:-1]
-                elif len(arg) == 2 and arg[0] == '"' and arg[1] == '"' or \
-                                arg[0] == '"' and arg[1] == '"':
-                    args[count] = ''
-
+                if len(arg) > 2:
+                    if ('"' in arg[0] and '"' in arg[-1]) or ('\'' in arg[0] and '\'' in arg[-1]):
+                        args[count] = arg[1:-1]
+                elif len(arg) == 2:
+                    if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
+                        args[count] = ''
             count += 1
 
         if options.encode:

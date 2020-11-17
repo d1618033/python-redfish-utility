@@ -116,7 +116,7 @@ class IloAccountsCommand(RdmcCommandBase):
                                                                 service=True, silent=True).dict
             try:
                 if hasattr(options, 'identifier'):
-                    if acct['Id'] in options.identifier or acct['UserName'] in options.identifier:
+                    if acct['Id'] == options.identifier or acct['UserName'] == options.identifier:
                         if redfish:
                             path = acct['@odata.id']
                         else:
@@ -411,7 +411,6 @@ class IloAccountsCommand(RdmcCommandBase):
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
-
         :param customparser: command line input
         :type customparser: parser.
         """
@@ -419,16 +418,6 @@ class IloAccountsCommand(RdmcCommandBase):
             return
 
         add_login_arguments_group(customparser)
-        customparser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
-            action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
-            default=False
-        )
         subcommand_parser = customparser.add_subparsers(dest='command')
         privilege_help='\n\n\tPRIVILEGES:\n\t1: Login\n\t2: Remote Console\n\t3: User Config\n\t4:'\
             ' iLO Config\n\t5: Virtual Media\n\t6: Virtual Power and Reset\n\n\tiLO 5 added '\
@@ -439,6 +428,16 @@ class IloAccountsCommand(RdmcCommandBase):
             'default',
             help='Running without any sub-command will return all account information on the '\
             'currently logged in server.'
+        )
+        default_parser.add_argument(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )
         add_login_arguments_group(default_parser)
         #add sub-parser
@@ -613,3 +612,4 @@ class IloAccountsCommand(RdmcCommandBase):
             help='The username or ID of the iLO account to delete the certificate from.',
             metavar='USERNAMEorID#'
         )
+

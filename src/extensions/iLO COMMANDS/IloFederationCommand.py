@@ -18,6 +18,7 @@
 """ Add Federation Command for rdmc """
 
 import sys
+import json
 import getpass
 
 from argparse import ArgumentParser, Action, RawDescriptionHelpFormatter
@@ -85,7 +86,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def run(self, line):
         """ Main addfederation function
-
         :param line: string of arguments passed in
         :type line: str.
         """
@@ -103,7 +103,7 @@ class IloFederationCommand(RdmcCommandBase):
 
         redfish = self._rdmc.app.monolith.is_redfish
         path = self.typepath.defs.federationpath
-        results = self._rdmc.app.get_handler(path, service=True, silent=False).dict
+        results = self._rdmc.app.get_handler(path, service=True, silent=True).dict
 
         newresults = []
 
@@ -172,6 +172,17 @@ class IloFederationCommand(RdmcCommandBase):
             if not mod_fed:
                 raise InvalidCommandLineError("Unable to find the specified federation.")
 
+            name = options.fedname
+
+            for fed in results:
+                if fed['Name'] == name:
+                    if redfish:
+                        path = fed['@odata.id']
+                        break
+                    else:
+                        path = fed['links']['self']['href']
+                        break
+
             if options.optprivs:
                 body.update({'Privileges': {}})
                 if any(priv for priv in options.optprivs if 'SystemRecoveryConfigPriv' in priv) \
@@ -205,16 +216,20 @@ class IloFederationCommand(RdmcCommandBase):
             else:
                 raise NoContentsFoundForOperationError('Unable to find the specified federation.')
         else:
-            sys.stdout.write("iLO Federation Id list with Privileges:\n")
-
-            for fed in sorted(results, key=lambda k: k['Name']):
-                privstr = ""
-                privs = fed['Privileges']
-
-                for priv in privs:
-                    privstr += priv + '=' + str(privs[priv]) + '\n'
-
-                sys.stdout.write("\nName=%s:\n%s" % (fed['Name'], privstr))
+            if options.json:
+                outdict = dict()
+                for fed in sorted(results, key=lambda k: k['Name']):
+                    outdict[fed['Name']] = fed['Privileges']
+                sys.stdout.write(str(json.dumps(outdict, indent=2, sort_keys=True)))
+                sys.stdout.write('\n')
+            else:
+                sys.stdout.write("iLO Federation Id list with Privileges:\n")
+                for fed in sorted(results, key=lambda k: k['Name']):
+                    privstr = ""
+                    privs = fed['Privileges']
+                    for priv in privs:
+                        privstr += priv + '=' + str(privs[priv]) + '\n'
+                    sys.stdout.write("\nName=%s:\n%s" % (fed['Name'], privstr))
 
         logout_routine(self, options)
         #Return code
@@ -222,7 +237,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def getprivs(self, options):
         """ find and return the privileges to set
-
         :param options: command line options
         :type options: list.
         """
@@ -256,7 +270,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def getsesprivs(self, availableprivsopts=False):
         """Finds and returns the current session's privileges
-
         :param availableprivsopts: return available privileges
         :type availableprivsopts: boolean.
         """
@@ -287,7 +300,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def addvalidation(self, username, key, feds):
         """ add validation function
-
         :param username: username to be added
         :type username: str.
         :param key: key to be added
@@ -306,7 +318,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def addfederationvalidation(self, options):
         """ addfederation validation function
-
         :param options: command line options
         :type options: list.
         """
@@ -315,7 +326,6 @@ class IloFederationCommand(RdmcCommandBase):
     @staticmethod
     def options_addprivs_argument_group(parser):
         """ Define optional arguments group
-
         :param parser: The parser to add the addprivs option group to
         :type parser: ArgumentParser/OptionParser
         """
@@ -338,7 +348,6 @@ class IloFederationCommand(RdmcCommandBase):
     @staticmethod
     def options_removeprivs_argument_group(parser):
         """ Additional argument
-
         :param parser: The parser to add the removeprivs option group to
         :type parser: ArgumentParser/OptionParser
         """
@@ -361,7 +370,6 @@ class IloFederationCommand(RdmcCommandBase):
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
-
         :param customparser: command line input
         :type customparser: parser.
         """
@@ -379,6 +387,16 @@ class IloFederationCommand(RdmcCommandBase):
             'default',
             help='Running without any sub-command will return all federation group information '\
             ' on the currently logged in server.'
+        )
+        default_parser.add_argument(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"\
+            " displayed output to JSON format. Preserving the JSON data"\
+            " structure makes the information easier to parse.",
+            default=False
         )
         add_login_arguments_group(default_parser)
         #add sub-parser

@@ -279,7 +279,7 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             else:
                 itemadded = False
             for item in locationtypelist:
-                if options.maxsize.lower() == item.lower():
+                if options.locale.lower() == item.lower():
                     newdrive["DataDrives"]["DataDriveLocation"] = item
                     itemadded = True
                     break
@@ -361,32 +361,8 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             default=None
         )
 
-    @staticmethod
-    def options_subargs_group(parser):
-        """ Define additional grouped arguments
-
-        :param parser: The parser to add the argument group to
-        :type parser: ArgumentParser/OptionParser
-        """
-
-        group = parser.add_argument_group()
-
-        group.add_argument(
-            'raid',
-            help='Create a logical drive specifying a minimal number of additional ' \
-                'parameters with default settings.',
-            metavar='Raid_level'
-        )
-        group.add_argument(
-            'disks',
-            help='Specify a comma separated array of physical disk indexes to create the logical ' \
-                'drive',
-            metavar='Drive_Indicies'
-        )
-
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
-
         :param customparser: command line input
         :type customparser: parser.
         """
@@ -408,7 +384,16 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 '<drive-location> --controller=1',
             formatter_class=RawDescriptionHelpFormatter
         )
-        self.options_subargs_group(qd_parser)
+        qd_parser.add_argument(
+            'raid',
+            help='Specify the RAID level for the logical drive to be created.',
+            metavar='Raid_Level'
+        )
+        qd_parser.add_argument(
+            'disks',
+            help='For quick drive creation, specify number of disks.',
+            metavar='Drives'
+        )
         qd_parser.add_argument(
             'drivetype',
             help='Specify the drive media type of the physical disk(s) (i.e. HDD or SSD)',
@@ -425,10 +410,13 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             metavar='Drive_Location'
         )
         qd_parser.add_argument(
-            'maxsize',
-            help='Specify the maximum size of the logical drive (in Gigabytes)',
-            metavar='MaxSize'
+            '--minimumsize',
+            dest='minimumsize',
+            help="""Optionally include to set the minimum size of the drive """ \
+                """in GiB. (usable in quick creation only, use -1 for max size)""",
+            default=None,
         )
+
         add_login_arguments_group(qd_parser)
         self.options_argument_group(qd_parser)
         cd_help='Create a customized logical drive using all available properties (as optional '\
@@ -451,7 +439,16 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
                 '-1 (for Max Size)\n\n\t', \
             formatter_class=RawDescriptionHelpFormatter
         )
-        self.options_subargs_group(cd_parser)
+        cd_parser.add_argument(
+            'raid',
+            help='Specify the RAID level for the logical drive to be created.',
+            metavar='Raid_Level'
+        )
+        cd_parser.add_argument(
+            'disks',
+            help='For custom drive, specify a comma separated physical disk indexes.',
+            metavar='Drive_Indices'
+        )
         cd_parser.add_argument(
             '-n',
             '--name',
@@ -465,13 +462,6 @@ class CreateLogicalDriveCommand(RdmcCommandBase):
             dest='sparedrives',
             help="""Optionally include to set the spare drives by the """ \
                 """physical drive's index. (usable in custom creation only)""",
-            default=None,
-        )
-        cd_parser.add_argument(
-            '--minimumSize',
-            dest='minimumsize',
-            help="""Optionally include to set the minimum size of the drive """ \
-                """in GiB. (usable in quick creation only, use -1 for max size)""",
             default=None,
         )
         cd_parser.add_argument(

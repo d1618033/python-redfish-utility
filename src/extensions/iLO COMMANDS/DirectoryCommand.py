@@ -1,5 +1,5 @@
 ###
-# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2017-2020 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,7 +119,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def run(self, line):
         """Main directory Function
-
         :param line: string of arguments passed in
         :type line: str.
         """
@@ -133,10 +132,12 @@ class DirectoryCommand(RdmcCommandBase):
                     try:
                         if line[i+1] not in self.parser._option_string_actions.keys():
                             (options, args) = self._parse_arglist(line)
+                            break
                         else:
                             raise IndexError
                     except (KeyError, IndexError):
                         (options, args) = self._parse_arglist(line, default=True)
+                        break
                     else:
                         continue
             if not found:
@@ -198,7 +199,7 @@ class DirectoryCommand(RdmcCommandBase):
                                               {'LdapAuthenticationMode': options.authmode}}}})
 
             if not payload and not keytab:
-                if options.json:
+                if hasattr(options, 'json') and options.json:
                     UI().print_out_json({name: results, 'LocalAccountAuth': local_auth, \
                                          "Oem": {"Hpe": oem}})
                 else:
@@ -226,7 +227,7 @@ class DirectoryCommand(RdmcCommandBase):
                             privs = mapping['LocalRole'].split(';')
                             if len(privs) > 1:
                                 privs = [int(priv) for priv in privs if priv]
-    
+
                                 if 10 in privs:
                                     user_privs = self.iloaccounts.getsesprivs()
                                     if 'SystemRecoveryConfigPriv' not in user_privs.keys():
@@ -234,7 +235,7 @@ class DirectoryCommand(RdmcCommandBase):
                                         "must have the System Recovery Config privilege to "\
                                         "add the System Recovery Config privilege to a local "\
                                         "role group.")
-    
+
                                 priv_patches[mapping['RemoteGroup']] = privs
                                 mapping['LocalRole'] = "ReadOnly"
                 except Exception:
@@ -245,7 +246,8 @@ class DirectoryCommand(RdmcCommandBase):
                 except IloResponseError:
                     if not results['ServiceEnabled']:
                         sys.stderr.write("You must enable this directory service before or during"\
-                        " assignment of username and password. Try adding the flag --enable.\n")
+                        " assignment of LDAP username and password. Try adding the flag "\
+                        "--enable.\n")
                         raise IloResponseError("")
                     else:
                         raise
@@ -264,7 +266,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def update_mapping_privs(self, roles_to_update):
         """ Helper function to update created role mappings to match user privileges.
-
         :param roles_to_update: Dictionary of privileges to update.
         :type roles_to_update: dict
         """
@@ -297,14 +298,12 @@ class DirectoryCommand(RdmcCommandBase):
 
     def directory_helper(self, settings, options):
         """ Helper function to set the payload based on options and arguments
-
         :param settings: dictionary to change
         :type settings: dict.
         :param options: list of options
         :type options: list.
         """
-        username= options.username if hasattr(options, 'username') else None
-        password= options.password if hasattr(options, 'password') else None
+
         payload = {}
         serviceaddress = None
 
@@ -332,8 +331,10 @@ class DirectoryCommand(RdmcCommandBase):
             if not options.enable is None:
                 payload['ServiceEnabled'] = options.enable
 
-        if username and password:
-            payload.update({"Authentication":{"Username": username, "Password": password}})
+        if hasattr(options, 'ldap_username') and hasattr(options, 'ldap_password'):
+            if options.ldap_username and options.ldap_password:
+                payload.update({"Authentication":{"Username": options.ldap_username,\
+                                                                "Password": options.ldap_password}})
 
         if hasattr(options, 'roles'):
             if options.roles:
@@ -348,7 +349,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def test_directory(self, options, json=False):
         """ Function to perform directory testing
-
         :param options: namespace of custom parser attributes which contain the original command
                         arguments for 'start/stop/viewresults'
         :type options: namespace
@@ -390,7 +390,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def print_settings(self, settings, oem_settings, local_auth_setting, name):
         """ Pretty print settings of LDAP or Kerberos
-
         :param settings: settings to print
         :type settings: dict.
         :param oem_settings: oem_settings to print
@@ -439,7 +438,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def role_helper(self, new_roles, curr_roles):
         """ Helper to prepare adding and removing roles for patching
-
         :param new_roles: dictionary of new roles to add or remove
         :type new_roles: dict.
         :param curr_roles: list of current roles on the system
@@ -469,7 +467,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def duplicate_group(self, group_dn, curr_roles):
         """ Checks if new role is a duplicate
-
         :param group_dn: group domain name from user
         :type group_dn: str.
         :param curr_roles: list of current roles
@@ -484,7 +481,6 @@ class DirectoryCommand(RdmcCommandBase):
 
     def search_helper(self, new_searches, curr_searches):
         """ Helper to prepare search strings for patching
-
         :param new_serches: dictionary of new searches to add
         :type new_searches: dict.
         :param curr_searches: list of current searches
@@ -520,24 +516,22 @@ class DirectoryCommand(RdmcCommandBase):
 
     def directoryvalidation(self, options):
         """ directory validation function
-
         :param options: command line options
         :type options: list.
         """
         login_select_validation(self, options)
 
-    def definearguments(self, customparser):
-        """ Wrapper function for new command main function
-
-        :param customparser: command line input
-        :type customparser: parser.
+    @staticmethod
+    def options_argument_group(parser):
+        """ Additional argument
+        :param parser: The parser to add the removeprivs option group to
+        :type parser: ArgumentParser/OptionParser
         """
-        if not customparser:
-            return
 
-        add_login_arguments_group(customparser)
-        
-        customparser.add_argument(
+        group = parser.add_argument_group('GLOBAL OPTION:', 'Option(s) are available'\
+                                          'for all arguments within the scope of this command.')
+
+        parser.add_argument(
             '-j',
             '--json',
             dest='json',
@@ -547,12 +541,22 @@ class DirectoryCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
+
+    def definearguments(self, customparser):
+        """ Wrapper function for new command main function
+        :param customparser: command line input
+        :type customparser: parser.
+        """
+        if not customparser:
+            return
+
+        add_login_arguments_group(customparser)
         subcommand_parser = customparser.add_subparsers(dest='command')
         default_parser = subcommand_parser.add_parser('default')
+
         default_parser.add_argument('ldap_kerberos')
         add_login_arguments_group(default_parser)
-        #two_subcommand_parser = default_parser.add_subparsers(dest='command')
-        
+
         privilege_help='\n\nPRIVILEGES:\n\t1: Login\n\t2: Remote Console\n\t'\
             '3: User Config\n\t4: iLO (Manager) Config\n\t5: Virtual Media\n\t'\
             '6: Virtual Power and Reset\n\t7: Host NIC Config\n\t8: Host Bios Config\n\t9: '\
@@ -575,8 +579,8 @@ class DirectoryCommand(RdmcCommandBase):
             formatter_class=RawDescriptionHelpFormatter
         )
         ldap_parser.add_argument(
-            'username',
-            help='The username used in verifying AD (optional outside of \'--enable\' and'\
+            'ldap_username',
+            help='The LDAP username used in verifying AD (optional outside of \'--enable\' and'\
                                                                                  '\'--disable\')',
             metavar='USERNAME',
             nargs='?',
@@ -584,8 +588,8 @@ class DirectoryCommand(RdmcCommandBase):
             default=None,
         )
         ldap_parser.add_argument(
-            'password',
-            help='The password used in verifying AD (optional outside of \'--enable\' and' \
+            'ldap_password',
+            help='The LDAP password used in verifying AD (optional outside of \'--enable\' and' \
                                                                                  '\'--disable\')',
             metavar='PASSWORD',
             nargs='?',
@@ -616,14 +620,13 @@ class DirectoryCommand(RdmcCommandBase):
         ldap_parser.add_argument(
             '--serviceaddress',
             dest='serviceaddress',
-            help='Optionally include this flag to set the service address of the LDAP or Kerberos '\
-                                                                                        'Services.',
+            help='Optionally include this flag to set the service address of the LDAP Services.',
             default=None,
         )
         ldap_parser.add_argument(
             '--port',
             dest='port',
-            help="Optionally include this flag to set the port of the LDAP or Kerberos services.",
+            help="Optionally include this flag to set the port of the LDAP services.",
             default=None,
         )
         ldap_parser.add_argument(
@@ -663,6 +666,8 @@ class DirectoryCommand(RdmcCommandBase):
             default=None
         )
         add_login_arguments_group(ldap_parser)
+        self.options_argument_group(ldap_parser)
+
         kerberos_help='Show, add or modify properties pertaining to AD Kerberos Configuration.'
         kerberos_parser = subcommand_parser.add_parser(
             'kerberos',
@@ -672,6 +677,18 @@ class DirectoryCommand(RdmcCommandBase):
             '\n\tdirectory kerberos\n\nAlter kerberos service address, AD relm and Port.\n\t'\
             'directory kerberos --serviceaddress x.x.y.z --port 8888 --realm adrealm1',
             formatter_class=RawDescriptionHelpFormatter
+        )
+        kerberos_parser.add_argument(
+            '--serviceaddress',
+            dest='serviceaddress',
+            help="Optionally include this flag to set the Kerberos serviceaddress.",
+            default=None,
+        )
+        kerberos_parser.add_argument(
+            '--port',
+            dest='port',
+            help="Optionally include this flag to set the Kerberos port.",
+            default=None,
         )
         kerberos_parser.add_argument(
             '--realm',
@@ -696,6 +713,8 @@ class DirectoryCommand(RdmcCommandBase):
             default=None,
         )
         add_login_arguments_group(kerberos_parser)
+        self.options_argument_group(kerberos_parser)
+
         directory_test_help='Start, stop or view results of an AD/LDAP test which include: ICMP, '\
             'Domain Resolution, Connectivity, Authentication, Bindings, LOM Object and User '\
             'Context tests.'
@@ -714,3 +733,4 @@ class DirectoryCommand(RdmcCommandBase):
             default='viewresults'
         )
         add_login_arguments_group(directory_test_parser)
+        self.options_argument_group(directory_test_parser)

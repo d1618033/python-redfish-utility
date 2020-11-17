@@ -103,8 +103,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
                 if post_path and body_dict:
                     self._rdmc.app.post_handler(post_path, body_dict)
                     self._rdmc.app.post_handler(results['Actions']['#ComputerSystem.Reset']\
-                                                ['target'], {"Action": "ComputerSystem.Reset", \
-                                                                    "ResetType": "ForceRestart"})
+                                                ['target'], {"ResetType": "ForceRestart"})
                     if not options.nomonitor:
                         self.monitor_erase(results['@odata.id'])
                     return ReturnCodes.SUCCESS

@@ -38,7 +38,7 @@ class ServerInfoCommand(RdmcCommandBase):
                 'Show enabled fan, processor, and thermal information.\n\texample: ' \
                 'serverinfo --fans --processors --thermals\n\n\tShow all memory '\
                 'and fan information, including absent locations in json format.\n\t'\
-                'example: serverinfo --memory --fans --showabsent -j',\
+                'example: serverinfo --firmware --software --memory --fans --showabsent -j',\
             summary='Shows aggregate health status and details of the currently logged in server.',\
             aliases=['health', 'serverstatus', 'systeminfo'],\
             argparser=ArgumentParser())
@@ -165,6 +165,30 @@ class ServerInfoCommand(RdmcCommandBase):
             else:
                 info['power'] = None
             info['power'] = data.dict
+        if options.firmware:
+            getloc = self._rdmc.app.getidbytype('SoftwareInventoryCollection.')
+            if getloc:
+                if 'Firmware' in getloc[0]:
+                    data = self._rdmc.app.getcollectionmembers(getloc[0])
+                elif 'Firmware' in getloc[1]:
+                    data = self._rdmc.app.getcollectionmembers(getloc[1])
+                else:
+                    data = self._rdmc.app.getcollectionmembers(getloc[1])
+            else:
+                info['firmware'] = None
+            info['firmware'] = data
+        if options.software:
+            getloc = self._rdmc.app.getidbytype('SoftwareInventoryCollection.')
+            if getloc:
+                if 'Software' in getloc[0]:
+                    data = self._rdmc.app.getcollectionmembers(getloc[0])
+                elif 'Software' in getloc[1]:
+                    data = self._rdmc.app.getcollectionmembers(getloc[1])
+                else:
+                    data = self._rdmc.app.getcollectionmembers(getloc[2])
+            else:
+                info['software'] = None
+            info['software'] = data
         if not options.showabsent:
             jsonpath_expr = jsonpath_rw.parse('$..State')
             matches = jsonpath_expr.find(info)
@@ -210,6 +234,26 @@ class ServerInfoCommand(RdmcCommandBase):
                         output += "%s MAC: %s\n" % (name, data['ethernet'][name])
                 elif not key == "NICCount":
                     output += "%s: %s\n" % (key, val)
+            sys.stdout.write(output)
+
+        if 'firmware' in headers:
+            output = ""
+            data = info['firmware']
+            output = '------------------------------------------------\n'
+            output += 'Firmware Information\n'
+            output += '------------------------------------------------\n'
+            for fw in data:
+                output += "%s : %s\n" % (fw['Name'], fw['Version'])
+            sys.stdout.write(output)
+
+        if 'software' in headers:
+            output = ""
+            data = info['software']
+            output = '------------------------------------------------\n'
+            output += 'Software Information\n'
+            output += '------------------------------------------------\n'
+            for sw in data:
+                output += "%s : %s\n" % (sw['Name'], sw['Version'])
             sys.stdout.write(output)
 
         if 'processor' in headers:
@@ -295,25 +339,25 @@ class ServerInfoCommand(RdmcCommandBase):
                                                         ['MaxConsumedWatts']
                 output += '\tMinimum Consumed Power: %s W\n' % control['PowerMetrics']\
                                                         ['MinConsumedWatts']
-            for supply in data['PowerSupplies']:
-                output += '------------------------------------------------\n'
-                output += "Power Supply %s:\n" % supply['Oem']\
-                                [self._rdmc.app.typepath.defs.oemhp]['BayNumber']
-                output += '------------------------------------------------\n'
-                try:
+            try:
+                for supply in data['PowerSupplies']:
+                    output += '------------------------------------------------\n'
+                    output += "Power Supply %s:\n" % supply['Oem']\
+                                    [self._rdmc.app.typepath.defs.oemhp]['BayNumber']
+                    output += '------------------------------------------------\n'
+
                     output += 'Power Capacity: %s W\n' % supply['PowerCapacityWatts']
                     output += 'Last Power Output: %s W\n' % supply['LastPowerOutputWatts']
                     output += 'Input Voltage: %s V\n' % supply['LineInputVoltage']
                     output += 'Input Voltage Type: %s\n' % supply['LineInputVoltageType']
                     output += "Hotplug Capable: %s\n" % supply['Oem']\
-                                    [self._rdmc.app.typepath.defs.oemhp]['HotplugCapable']
+                                        [self._rdmc.app.typepath.defs.oemhp]['HotplugCapable']
                     output += "iPDU Capable: %s\n" % supply['Oem']\
-                                    [self._rdmc.app.typepath.defs.oemhp]['iPDUCapable']
-                except KeyError:
-                    pass
-                output += "Health: %s\n" % supply['Status']['Health']
-                output += "State: %s\n" % supply['Status']['State']
-            try:
+                                        [self._rdmc.app.typepath.defs.oemhp]['iPDUCapable']
+
+                    output += "Health: %s\n" % supply['Status']['Health']
+                    output += "State: %s\n" % supply['Status']['State']
+
                 for redundancy in data['Redundancy']:
                     output += '------------------------------------------------\n'
                     output += '%s\n' % redundancy['Name']
@@ -384,7 +428,7 @@ class ServerInfoCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list
         """
-        optlist = [options.memory, options.thermals, options.fans, \
+        optlist = [options.firmware, options.software, options.memory, options.thermals, options.fans, \
            options.power, options.processors, options.system, options.showabsent]
         if not any(optlist):
             self.setalloptionstrue(options)
@@ -397,6 +441,8 @@ class ServerInfoCommand(RdmcCommandBase):
         """
         options.memory = True
         options.thermals = True
+        options.firmware = True
+        options.software = True
         options.fans = True
         options.processors = True
         options.power = True
@@ -420,6 +466,20 @@ class ServerInfoCommand(RdmcCommandBase):
             action="store_true",
             help="Add information for all types.",
             default=False
+        )
+        customparser.add_argument(
+            '--firmware',
+            dest='firmware',
+            action="store_true",
+            help="Add firmware information to the output.",
+            default=False,
+        )
+        customparser.add_argument(
+            '--software',
+            dest='software',
+            action="store_true",
+            help="Add software information to the output.",
+            default=False,
         )
         customparser.add_argument(
             '--memory',

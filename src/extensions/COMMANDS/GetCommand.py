@@ -131,7 +131,10 @@ class GetCommand(RdmcCommandBase):
                     if splitarg[0] in argsdict:
                         argsdict[splitarg[0]].append(splitarg[1])
                     else:
-                        argsdict[splitarg[0]] = [splitarg[1]]
+                        if splitarg[1]:
+                            argsdict[splitarg[0]] = [splitarg[1]]
+                        else:
+                            argsdict[splitarg[0]] = [splitarg[0]]
                 for key in argsdict.keys():
                     contents = self._rdmc.app.getprops(props=key, \
                        remread=readonly, nocontent=nocontent, insts=instances)
@@ -222,7 +225,7 @@ class GetCommand(RdmcCommandBase):
         :param values: list of values
         :type values: list.
         """
-        clearcontent = contents[0][key][00]
+        clearcontent = contents[0][key]
         keyslist = clearcontent.keys()
         clearedlist = keyslist
         for arg in values:
