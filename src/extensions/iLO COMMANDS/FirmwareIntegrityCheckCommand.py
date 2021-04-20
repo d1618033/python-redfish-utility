@@ -17,32 +17,32 @@
 # -*- coding: utf-8 -*-
 """ Firmware Update Command for rdmc """
 
-import sys
 import time
+import datetime
 
-from datetime import datetime
-
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, IloLicenseError, Encryption, \
                     InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, TimeOutError
 
-class FirmwareIntegrityCheckCommand(RdmcCommandBase):
+class FirmwareIntegrityCheckCommand():
     """ Reboot server that is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='fwintegritycheck',\
-            usage='fwintegritycheck [OPTIONS]\n\n\tPerform a firmware ' \
+    def __init__(self):
+        self.ident = {
+            'name':'fwintegritycheck',\
+            'usage':'fwintegritycheck [OPTIONS]\n\n\tPerform a firmware ' \
                     'integrity check on the current logged in server.\n\t' \
                     'example: fwintegritycheck\n\n\tPerform a firmware integrity check and '\
                     'return results of the check.\n\texmaple: fwintegritycheck --results',\
-            summary='Perform a firmware integrity check on the currently logged in server.',\
-            aliases=['fwintegritycheck'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Perform a firmware integrity check on the currently logged in server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main firmware update worker function
@@ -51,7 +51,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -62,11 +62,11 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
             raise InvalidCommandLineError('fwintegritycheck command takes no arguments')
 
         self.firmwareintegritycheckvalidation(options)
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('fwintegritycheck command is ' \
                                                     'only available on iLO 5.')
 
-        licenseres = self._rdmc.app.select(selector='HpeiLOLicense.')
+        licenseres = self.rdmc.app.select(selector='HpeiLOLicense.')
         try:
             licenseres = licenseres[0]
         except:
@@ -74,8 +74,8 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         if not licenseres.dict['LicenseFeatures']['FWScan']:
             raise IloLicenseError("This command is not available with this iLO license.")
 
-        select = self.typepath.defs.hpilofirmwareupdatetype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hpilofirmwareupdatetype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -87,37 +87,37 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         path = bodydict['Oem']['Hpe']['Actions']\
             ['#HpeiLOUpdateServiceExt.StartFirmwareIntegrityCheck']['target']
 
-        self._rdmc.app.post_handler(path, {})
+        self.rdmc.app.post_handler(path, {})
 
         if options.results:
             results_string = "Awaiting results of firmware integrity check..."
-            sys.stdout.write(results_string)
+            self.rdmc.ui.printer(results_string)
             polling = 50
             found = False
             while polling > 0:
                 if not polling % 5:
-                    sys.stdout.write('.')
-                get_results = self._rdmc.app.get_handler(bodydict['@odata.id'],\
+                    self.rdmc.ui.printer('.')
+                get_results = self.rdmc.app.get_handler(bodydict['@odata.id'],\
                     service=True, silent=True)
                 if get_results:
-                    curr_time = datetime.strptime(bodydict['Oem']['Hpe']\
+                    curr_time = strptime(bodydict['Oem']['Hpe']\
                                         ['CurrentTime'], "%Y-%m-%dT%H:%M:%SZ")
-                    scan_time = datetime.strptime(get_results.dict['Oem']['Hpe']\
+                    scan_time = strptime(get_results.dict['Oem']['Hpe']\
                         ['FirmwareIntegrity']['LastScanTime'], "%Y-%m-%dT%H:%M:%SZ")
 
                     if scan_time > curr_time:
-                        sys.stdout.write('\nScan Result: %s\n' % get_results.dict\
-                            ['Oem']['Hpe']['FirmwareIntegrity']['LastScanResult'])
+                        self.rdmc.ui.printer('\nScan Result: %s\n' % get_results.dict\
+                                            ['Oem']['Hpe']['FirmwareIntegrity']['LastScanResult'])
                         found = True
                         break
 
                     polling -= 1
                     time.sleep(1)
             if not found:
-                sys.stdout.write('\nPolling timed out before scan completed.\n')
+                self.rdmc.ui.error('\nPolling timed out before scan completed.\n')
                 TimeOutError("")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -127,7 +127,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -138,7 +138,7 @@ class FirmwareIntegrityCheckCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--results',

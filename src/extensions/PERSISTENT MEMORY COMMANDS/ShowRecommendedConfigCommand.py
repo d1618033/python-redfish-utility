@@ -18,11 +18,8 @@
 """Command to show recommended configurations"""
 from __future__ import absolute_import, division
 
-from argparse import ArgumentParser
-
 from collections import OrderedDict
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     NoContentsFoundForOperationError, LOGGER
 
@@ -33,23 +30,45 @@ from .lib.PmemHelpers import PmemHelpers
 from .lib.RestHelpers import RestHelpers
 
 
-class ShowRecommendedConfigCommand(RdmcCommandBase):
+class ShowRecommendedConfigCommand():
     """ Show recommended configurations"""
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="showrecommendedpmmconfig",
-                                 usage="showrecommendedpmmconfig [-h|--help]\n\n" \
-                                       "\tShow recommended configurations\n" \
-                                       "\texample: showrecommendedpmmconfig",
-                                 summary="Show Recommended Configuration",
-                                 aliases=["showrecommendedpmmconfig"],
-                                 argparser=ArgumentParser())
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
+    def __init__(self):
+        self.ident = {
+            'name':"showrecommendedpmmconfig",\
+            'usage':"showrecommendedpmmconfig [-h|--help]\n\n" \
+                    "\tShow recommended configurations\n" \
+                    "\texample: showrecommendedpmmconfig",\
+            'summary':"Show Recommended Configuration",\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
         self._display_helpers = DisplayHelpers()
         self._mapper = Mapper()
         self._pmem_helpers = PmemHelpers()
+
+    def definearguments(self, customparser):
+        """
+        Wrapper function for new command main function
+        :param customparser: command line input
+        :type customparser: parser.
+        """
+        if not customparser:
+            return
+
+        self.cmdbase.add_login_arguments_group(customparser)
+
+        customparser.add_argument(
+            "-j",
+            "--json",
+            action="store_true",
+            dest="json",
+            help="Optionally include this flag to change the output to JSON format.",
+            default=False
+        )
 
     def run(self, line):
         """
@@ -57,9 +76,9 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("Show Recommended Configuration: %s", self.name)
+        LOGGER.info("Show Recommended Configuration: %s", self.ident['name'])
         try:
-            (_, args) = self._parse_arglist(line)
+            (_, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -68,7 +87,7 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("Chosen command doesn't expect additional arguments")
         # Raise exception if server is in POST
-        if self._rest_helpers.in_post():
+        if RestHelpers(rdmcObject=self.rdmc).in_post():
             raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
                                                    "server might be in POST or powered off")
         self.show_recommended_config()
@@ -79,27 +98,27 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
         """
         Show recommended pmm configuration
         """
-        members = self._rest_helpers.retrieve_memory_resources().get("Members")
+        members = RestHelpers(rdmcObject=self.rdmc).retrieve_memory_resources().get("Members")
 
         if not members:
             raise NoContentsFoundForOperationError("Failed to retrieve memory resources")
 
-        #retreving aep dimms
-        aep_members = self._pmem_helpers.get_pmem_members(members)[0]
+        # Retreving dimms
+        pmem_members = self._pmem_helpers.get_pmem_members(members)[0]
 
-        if not aep_members:
+        if not pmem_members:
             raise NoContentsFoundForOperationError("No Persistent Memory Modules found")
 
-        #retreving dram dimms
+        # Retreving dram dimms
         dram_members = self._pmem_helpers.get_non_aep_members(members)[0]
 
         if not dram_members:
             raise NoContentsFoundForOperationError("No DRAM DIMMs found")
 
         # retrieving Total Capacity of PMEM dimms
-        aep_size = self._mapper.get_single_attribute(aep_members, "TotalCapacity",
-                                                     MappingTable.summary.value, True)
-        aep_size = aep_size.get("TotalCapacity", {}).get("Value", 0)
+        attr = self._mapper.get_single_attribute(pmem_members, "TotalCapacity",
+                                                 MappingTable.summary.value, True)
+        pmem_size = attr.get("TotalCapacity", {}).get("Value", 0)
 
         # retrieving Total Capacity of DRAM dimms
         dram_size = self._mapper.get_single_attribute(dram_members, "TotalCapacity",
@@ -109,33 +128,41 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
         display_output = list()
         recommended_config = list()
 
+        # Add AppDirect Mode
         temp_dict = OrderedDict()
-
-        #Adding deafult option 100% App Direct and 0% Volatile
         temp_dict["MemoryModeTotalSize"] = 0
-        temp_dict["PmemTotalSize"] = aep_size
+        temp_dict["PmemTotalSize"] = pmem_size
         temp_dict["CacheRatio"] = None
         recommended_config.append(temp_dict)
 
-        stepsize = 32
-        aep_direct_size = 0
-        step = 0
-        while aep_direct_size < aep_size:
-            aep_direct_size = step * stepsize * len(aep_members)
-            memorymode_total_size = aep_size - aep_direct_size
-            cache_ratio = memorymode_total_size / dram_size
-            temp_dict = OrderedDict()
-            if 2 <= cache_ratio <= 16:
-                temp_dict["MemoryModeTotalSize"] = memorymode_total_size
-                temp_dict["PmemTotalSize"] = aep_direct_size
-                temp_dict["CacheRatio"] = cache_ratio
-                recommended_config.append(temp_dict)
-            step += 1
+        # Add Memory Mode
+        temp_dict = OrderedDict()
+        temp_dict["MemoryModeTotalSize"] = pmem_size
+        temp_dict["PmemTotalSize"] = 0
+        temp_dict["CacheRatio"] = pmem_size / dram_size
+        recommended_config.append(temp_dict)
 
-        #sorting based on MemoryModeTotalSize
+        # Add Mixed Mode (BPS doesn't support it)
+        if 'Gen10 Plus' not in RestHelpers(rdmcObject=self.rdmc).retrieve_model(self.rdmc)['Model']:
+            stepsize = 32
+            appdirect_size = 0
+            step = 1
+            while appdirect_size < pmem_size:
+                appdirect_size = step * stepsize * len(pmem_members)
+                memorymode_size = pmem_size - appdirect_size
+                cache_ratio = memorymode_size / dram_size
+                if 2 <= cache_ratio <= 16:
+                    temp_dict = OrderedDict()
+                    temp_dict["MemoryModeTotalSize"] = memorymode_size
+                    temp_dict["PmemTotalSize"] = appdirect_size
+                    temp_dict["CacheRatio"] = cache_ratio
+                    recommended_config.append(temp_dict)
+                step += 1
+
+        # Sorting based on MemoryModeTotalSize
         recommended_config = sorted(recommended_config, key=lambda x: x["MemoryModeTotalSize"])
 
-        #Adding units and formating cache ratio
+        # Adding units and formating cache ratio
         for output in recommended_config:
             output["MemoryModeTotalSize"] = "%d GB" % output["MemoryModeTotalSize"]
             output["PmemTotalSize"] = "%d GB" % output["PmemTotalSize"]
@@ -145,5 +172,5 @@ class ShowRecommendedConfigCommand(RdmcCommandBase):
                 output["CacheRatio"] = "1:%.1f" % output["CacheRatio"]
             display_output.append(self._pmem_helpers.json_to_text(output)[0])
 
-        #display output in table format
+        # Display output in table format
         self._display_helpers.display_data(display_output, OutputFormats.table)

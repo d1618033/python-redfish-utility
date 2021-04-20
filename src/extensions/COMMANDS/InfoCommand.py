@@ -17,32 +17,33 @@
 # -*- coding: utf-8 -*-
 """ Info Command for RDMC """
 
-import sys
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InfoMissingEntriesError
 
-from argparse import ArgumentParser
+from rdmc_base_classes import HARDCODEDLIST
+from argparse import ArgumentParser, SUPPRESS
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, InfoMissingEntriesError
-
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
-                                login_select_validation, logout_routine
-
-class InfoCommand(RdmcCommandBase):
+class InfoCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='info',\
-            usage='info [PROPERTY] [OPTIONS]\n\n\tDisplays detailed ' \
+    def __init__(self):
+        self.ident = {
+            'name':'info',\
+            'usage':'info [PROPERTY] [OPTIONS]\n\n\tDisplays detailed ' \
                     'information about a property within a selected type' \
                     '\n\texample: info property\n\n\tDisplays detailed ' \
                     'information for several properties\n\twithin a selected ' \
                     'type\n\texample: info property property/sub-property property\n\n\t' \
                     'Run without arguments to display properties \n\tthat ' \
                     'are available for info command\n\texample: info',\
-            summary='Displays detailed information about a property within a selected type.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'summary':'Displays detailed information about a property within a selected type.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line, autotest=False):
         """ Main info worker function
@@ -53,7 +54,7 @@ class InfoCommand(RdmcCommandBase):
         :type autotest: bool.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -64,35 +65,35 @@ class InfoCommand(RdmcCommandBase):
 
         if args:
             for item in args:
-                if self._rdmc.app.selector.lower().startswith('bios.') \
+                if self.rdmc.app.selector.lower().startswith('bios.') \
                                         and not 'attributes' in item.lower():
                     if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
                         item = "Attributes/" + item
 
-                outdata = self._rdmc.app.info(props=item, dumpjson=options.json, \
+                outdata = self.rdmc.app.info(props=item, dumpjson=options.json, \
                                                 latestschema=options.latestschema)
 
                 if autotest:
                     return outdata
                 if outdata and options.json:
-                    UI().print_out_json(outdata)
+                    self.rdmc.ui.print_out_json(outdata)
                 elif outdata:
-                    sys.stdout.write(outdata)
+                    self.rdmc.ui.printer(outdata)
 
                 if not outdata:
                     raise InfoMissingEntriesError("There are no valid "\
                             "entries for info in the current instance.")
                 else:
                     if len(args) > 1 and not item == args[-1]:
-                        sys.stdout.write("\n************************************"\
-                                     "**************\n")
+                        self.rdmc.ui.printer("\n************************************"\
+                                                                    "**************\n")
         else:
             results = set()
-            instances = self._rdmc.app.select()
+            instances = self.rdmc.app.select()
             for instance in instances:
                 currdict = instance.resp.dict
                 currdict = currdict['Attributes'] if instance.maj_type.\
-                    startswith(self._rdmc.app.typepath.defs.biostype) and currdict.get('Attributes'\
+                    startswith(self.rdmc.app.typepath.defs.biostype) and currdict.get('Attributes'\
                                                      , None) else currdict
                 results.update([key for key in currdict if key not in \
                                 HARDCODEDLIST and not '@odata' in key.lower()])
@@ -100,15 +101,14 @@ class InfoCommand(RdmcCommandBase):
             if results and autotest:
                 return results
             elif results:
-                sys.stdout.write("Info options:\n")
+                self.rdmc.ui.printer("Info options:\n")
                 for item in results:
-                    sys.stdout.write("%s\n" % item)
+                    self.rdmc.ui.printer("%s\n" % item)
             else:
-                raise InfoMissingEntriesError('No info items '\
-                        'available for this selected type. Try running with the '\
-                        '--latestschema flag.')
+                raise InfoMissingEntriesError('No info items available for this selected type.'\
+                    ' Try running with the --latestschema flag.')
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -119,10 +119,10 @@ class InfoCommand(RdmcCommandBase):
         :type options: list.
         """
 
-        if self._rdmc.opts.latestschema:
+        if self.rdmc.opts.latestschema:
             options.latestschema = True
 
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -133,7 +133,7 @@ class InfoCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -145,6 +145,7 @@ class InfoCommand(RdmcCommandBase):
               " you currently have selected.",
             default=None,
         )
+
         customparser.add_argument(
             '-j',
             '--json',

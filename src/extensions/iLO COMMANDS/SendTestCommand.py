@@ -17,28 +17,30 @@
 # -*- coding: utf-8 -*-
 """ SendTest Command for rdmc """
 
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
-class SendTestCommand(RdmcCommandBase):
+class SendTestCommand():
     """Send syslog test to the logged in server """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='sendtest',\
-            usage='sendtest [COMMAND][OPTIONS]\n\n\tSend syslog test to the' \
+    def __init__(self):
+        self.ident = {
+            'name':'sendtest',\
+            'usage':'sendtest [COMMAND][OPTIONS]\n\n\tSend syslog test to the' \
                 ' current logged in server.\n\texample: sendtest syslog\n\n' \
                 '\tSend alert mail test to the current logged in server.\n\t' \
                 'example: sendtest alertmail\n\n\tSend SNMP test alert ' \
                 'to the current logged in server.\n\texample: sendtest snmpalert',\
-            summary="Command for sending various tests to iLO.",\
-            aliases=None,\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':"Command for sending various tests to iLO.",\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main SentTestCommand function
@@ -47,7 +49,7 @@ class SendTestCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -64,19 +66,19 @@ class SendTestCommand(RdmcCommandBase):
         self.sendtestvalidation(options)
 
         if args[0].lower() == 'snmpalert':
-            select = self.typepath.defs.snmpservice
+            select = self.rdmc.app.typepath.defs.snmpservice
             actionitem = "SendSNMPTestAlert"
         elif args[0].lower() == 'alertmail':
-            select = self.typepath.defs.managernetworkservicetype
+            select = self.rdmc.app.typepath.defs.managernetworkservicetype
             actionitem = "SendTestAlertMail"
         elif args[0].lower() == 'syslog':
-            select = self.typepath.defs.managernetworkservicetype
+            select = self.rdmc.app.typepath.defs.managernetworkservicetype
             actionitem = "SendTestSyslog"
         else:
             raise InvalidCommandLineError("sendtest command does not have " \
                                                     "parameter %s." % args[0])
 
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -95,18 +97,18 @@ class SendTestCommand(RdmcCommandBase):
             if 'Actions' in bodydict:
                 for item in bodydict['Actions']:
                     if actionitem in item:
-                        if self.typepath.defs.isgen10:
+                        if self.rdmc.app.typepath.defs.isgen10:
                             actionitem = item.split('#')[-1]
 
                         path = bodydict['Actions'][item]['target']
                         break
             else:
-                for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
+                for item in bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions']:
                     if actionitem in item:
-                        if self.typepath.defs.isgen10:
+                        if self.rdmc.app.typepath.defs.isgen10:
                             actionitem = item.split('#')[-1]
 
-                        path = bodydict['Oem'][self.typepath.defs.oemhp][\
+                        path = bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp][\
                                                 'Actions'][item]['target']
                         break
 
@@ -114,9 +116,9 @@ class SendTestCommand(RdmcCommandBase):
         except:
             body = {"Action": actionitem, "Target": "/Oem/Hp"}
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -126,7 +128,7 @@ class SendTestCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -137,4 +139,4 @@ class SendTestCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)

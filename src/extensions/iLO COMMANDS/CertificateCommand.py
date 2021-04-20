@@ -17,36 +17,37 @@
 # -*- coding: utf-8 -*-
 """ Certificates Command for rdmc """
 
-import sys
-
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
             InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, \
             InvalidFileInputError, IncompatibleiLOVersionError, Encryption
 
 __filename__ = 'certificate.txt'
 
-class CertificateCommand(RdmcCommandBase):
+class CertificateCommand():
     """ Commands Certificates actions to the server """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='certificate',\
-            usage=None, \
-            description='Generate a certificate signing request (CSR) or import an X509 formatted' \
+    def __init__(self):
+        self.ident = {
+            'name':'certificate',\
+            'usage':'certificate [OPTIONS]\n\n\tRun to get the smbios for the system.', \
+            'description':'Generate a certificate signing request (CSR) or import an X509 formatted' \
                     ' TLS or CA certificate.\nTo view help on specific sub-commands run: ' \
                     'singlesignon <sub-command> -h\n\nExample: singlesignon importcert -h\n\n' \
                     'NOTE: Use the singlesignon command to import single sign on certificates.\n\n'\
                     'NOTE: Use quotes to include parameters which contain whitespace when '\
                     'generating a CSR.\nexample: certificate csr \"Hewlett Packard Enterprise\"'\
                     '\"iLORest Group\" \"CName\"\n\"United States\" \"Texas\" \"Houston\"',
-            summary="Command for importing both iLO and login authorization "\
+            'summary':"Command for importing both iLO and login authorization "\
                     "certificates as well as generating iLO certificate signing requests (CSR)",\
-            aliases=["certificate"])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
 
     def run(self, line):
         """ Main Certificates Command function
@@ -56,7 +57,7 @@ class CertificateCommand(RdmcCommandBase):
         """
 
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -76,7 +77,7 @@ class CertificateCommand(RdmcCommandBase):
         elif options.command == 'tls':
             self.importtlshelper(options)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -87,8 +88,8 @@ class CertificateCommand(RdmcCommandBase):
         :type options: list.
         """
 
-        select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hphttpscerttype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -105,7 +106,7 @@ class CertificateCommand(RdmcCommandBase):
         try:
             for item in bodydict['Actions']:
                 if 'GenerateCSR' in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         action = item.split('#')[-1]
                     else:
                         action = "GenerateCSR"
@@ -120,10 +121,10 @@ class CertificateCommand(RdmcCommandBase):
                 "Country": options.csr_country.strip('\"'), "State": \
                 options.csr_state.strip('\"'), "City": options.csr_city.strip('\"')}
 
-        sys.stdout.write("iLO is creating a new certificate signing request"\
-                         " This process can take up to 10 minutes.\n")
+        self.rdmc.ui.printer("iLO is creating a new certificate signing request. "\
+                             "This process can take up to 10 minutes.\n")
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
     def getcerthelper(self, options):
         """ Helper function for importing CRL certificate
@@ -132,8 +133,8 @@ class CertificateCommand(RdmcCommandBase):
         :type options: list.
         """
 
-        select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hphttpscerttype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -160,7 +161,7 @@ class CertificateCommand(RdmcCommandBase):
             outfile.write(csr)
             outfile.close()
 
-            sys.stdout.write("Certificate saved to: %s\n" % filename)
+            self.rdmc.ui.printer("Certificate saved to: %s\n" % filename)
         else:
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
@@ -179,8 +180,8 @@ class CertificateCommand(RdmcCommandBase):
         except:
             raise InvalidFileInputError("Error loading the specified file.")
 
-        select = self.typepath.defs.hphttpscerttype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hphttpscerttype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -196,7 +197,7 @@ class CertificateCommand(RdmcCommandBase):
         try:
             for item in bodydict['Actions']:
                 if 'ImportCertificate' in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         action = item.split('#')[-1]
                     else:
                         action = "ImportCertificate"
@@ -207,7 +208,7 @@ class CertificateCommand(RdmcCommandBase):
 
         body = {"Action": action, "Certificate": certdata}
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
     def importcrlhelper(self, options):
         """ Helper function for importing CRL certificate
@@ -215,11 +216,11 @@ class CertificateCommand(RdmcCommandBase):
         :param options: list of options
         :type options: list.
         """
-        if not self.typepath.flagiften:
+        if not self.rdmc.app.typepath.flagiften:
             raise IncompatibleiLOVersionError("This certificate is not available on this system.")
 
         select = 'HpeCertAuth.'
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -239,7 +240,7 @@ class CertificateCommand(RdmcCommandBase):
 
         body = {"Action": action, "ImportUri": args[1]}
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
     def importcahelper(self, options):
         """ Helper function for importing CA certificate
@@ -247,7 +248,7 @@ class CertificateCommand(RdmcCommandBase):
         :param options: list of options
         :type options: list.
         """
-        if not self.typepath.flagiften:
+        if not self.rdmc.app.typepath.flagiften:
             raise IncompatibleiLOVersionError("This certificate is not available on this system.")
 
         tlsfile = options.certfile
@@ -260,7 +261,7 @@ class CertificateCommand(RdmcCommandBase):
             raise InvalidFileInputError("Error loading the specified file.")
 
         select = 'HpeCertAuth.'
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -280,7 +281,7 @@ class CertificateCommand(RdmcCommandBase):
 
         body = {"Action": action, "Certificate": certdata}
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
     def certificatesvalidation(self, options):
         """ certificates validation function
@@ -288,7 +289,7 @@ class CertificateCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for certificates command main function
@@ -299,7 +300,7 @@ class CertificateCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         subcommand_parser = customparser.add_subparsers(dest='command')
 
@@ -345,6 +346,8 @@ class CertificateCommand(RdmcCommandBase):
             help='Organization city. i.e. Houston.',
             metavar='ORGCITY'
         )
+        self.cmdbase.add_login_arguments_group(gen_csr_parser)
+
         #get csr
         get_csr_help='Retrieve the generated certificate signing request (CSR) printed to the '\
                      'console or to a json file.'
@@ -365,6 +368,8 @@ class CertificateCommand(RdmcCommandBase):
             action="append",
             default=None,
         )
+        self.cmdbase.add_login_arguments_group(get_csr_parser)
+
         #ca certificate
         ca_help='Upload a X.509 formatted CA certificate to iLO.'
         ca_parser = subcommand_parser.add_parser(
@@ -379,6 +384,8 @@ class CertificateCommand(RdmcCommandBase):
             help='X.509 formatted CA certificate',
             metavar='CACERTFILE'
         )
+        self.cmdbase.add_login_arguments_group(ca_parser)
+
         #crl certificate
         crl_help='Provide iLO with a URL to retrieve the X.509 formatted CA certificate.'
         crl_parser = subcommand_parser.add_parser(
@@ -393,6 +400,8 @@ class CertificateCommand(RdmcCommandBase):
             help='URL pointing to the location of the X.509 CA certificate',
             metavar='CERTFILEURL'
         )
+        self.cmdbase.add_login_arguments_group(crl_parser)
+
         #tls certificate
         tls_help='Upload a X.509 TLS certificate to iLO.'
         tls_parser = subcommand_parser.add_parser(
@@ -407,3 +416,4 @@ class CertificateCommand(RdmcCommandBase):
             help='X.509 formatted TLS certificate',
             metavar='TLSCERTFILE'
         )
+        self.cmdbase.add_login_arguments_group(tls_parser)

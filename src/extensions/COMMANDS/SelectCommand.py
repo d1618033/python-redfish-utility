@@ -17,31 +17,28 @@
 # -*- coding: utf-8 -*-
 """ Select Command for RDMC """
 
-import sys
+from redfish.ris import NothingSelectedError
 
-from argparse import ArgumentParser
-
-import redfish.ris
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
 
-class SelectCommand(RdmcCommandBase):
+class SelectCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='select',\
-            usage='select [TYPE] [OPTIONS]\n\n\tRun without a type to display' \
-            ' currently selected type\n\texample: select\n\n\tIn order to ' \
-            'remove the need of including the version\n\twhile selecting you' \
-            ' can simply enter the type name\n\tuntil the first period\n\t' \
-            'example: select HpBios.',\
-            summary='Selects the object type to be used.',\
-            aliases=['sel'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+    def __init__(self):
+        self.ident = {
+            'name': 'select',\
+            'usage': 'select [TYPE] [OPTIONS]',\
+            'description': 'Select the Redfish/HpRest type to be used. Run without a type to '\
+                        'display the currently selected type\n\texample: select\n\n\tIn order to ' \
+                        'remove the need of including the version\n\twhile selecting you' \
+                        ' can simply enter the type name\n\tuntil the first period\n\t' \
+                        'example: select HpBios.',\
+            'summary': 'Selects the object type to be used.',\
+            'aliases': ['sel'],\
+            'auxcommands': ['LoginCommand']
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def selectfunction(self, line):
         """ Main select worker function
@@ -50,7 +47,7 @@ class SelectCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,39 +56,34 @@ class SelectCommand(RdmcCommandBase):
 
         self.selectvalidation(options)
 
-        try:
-            if args:
-                if options.ref:
-                    LOGGER.warn("Patches from current selection will be cleared.")
-                selector = args[0]
-                selections = self._rdmc.app.select(selector=selector, path_refresh=options.ref)
+        if args:
+            if options.ref:
+                LOGGER.warn("Patches from current selection will be cleared.")
+            selector = args[0]
+            selections = self.rdmc.app.select(selector=selector, path_refresh=options.ref)
 
-                if self._rdmc.opts.verbose and selections:
-                    templist = list()
-                    sys.stdout.write("Selected option(s): ")
+            if self.rdmc.opts.verbose and selections:
+                templist = list()
+                self.rdmc.ui.printer("Selected option(s): ")
 
-                    for item in selections:
-                        if item.type not in templist:
-                            templist.append(item.type)
+                for item in selections:
+                    if item.type not in templist:
+                        templist.append(item.type)
 
-                    sys.stdout.write('%s' % ', '.join(map(str, templist)))
-                    sys.stdout.write('\n')
+                self.rdmc.ui.printer('%s\n' % ', '.join(map(str, templist)))
+
+        else:
+            selector = self.rdmc.app.selector
+
+            if selector:
+                sellist = [sel for sel in self.rdmc.app.\
+                   monolith.typesadded if selector.lower() in sel.lower()]
+                self.rdmc.ui.printer("Current selection: ")
+                self.rdmc.ui.printer('%s' % ', '.join(map(str, sellist)))
             else:
-                selector = self._rdmc.app.selector
+                raise NothingSelectedError
 
-                if selector:
-                    sellist = [sel for sel in self._rdmc.app.\
-                       monolith.typesadded if selector.lower() in sel.lower()]
-                    sys.stdout.write("Current selection: ")
-                    sys.stdout.write('%s' % ', '.join(map(str, sellist)))
-                    sys.stdout.write('\n')
-                else:
-                    raise redfish.ris.NothingSelectedError
-
-        except redfish.ris.InstanceNotFoundError as infe:
-            raise redfish.ris.InstanceNotFoundError(infe)
-
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
 
     def selectvalidation(self, options):
         """ Select data validation function
@@ -99,52 +91,8 @@ class SelectCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        client = None
-        runlogin = False
-        inputline = list()
 
-        try:
-            client = self._rdmc.app.current_client
-        except:
-            if options.user or options.password or options.url:
-                if options.url:
-                    inputline.extend([options.url])
-                if options.user:
-                    if options.encode:
-                        options.user = Encryption.decode_credentials(options.user)
-                    inputline.extend(["-u", options.user])
-                if options.password:
-                    if options.encode:
-                        options.password = Encryption.decode_credentials(options.password)
-                    inputline.extend(["-p", options.password])
-                if options.https_cert:
-                    inputline.extend(["--https", options.https_cert])
-            else:
-                if self._rdmc.config.url:
-                    inputline.extend([self._rdmc.config.url])
-                if self._rdmc.config.username:
-                    inputline.extend(["-u", self._rdmc.config.username])
-                if self._rdmc.config.password:
-                    inputline.extend(["-p", self._rdmc.config.password])
-                if self._rdmc.config.ssl_cert:
-                    inputline.extend(["--https", self._rdmc.config.ssl_cert])
-
-        if not inputline and not client:
-            try:
-                if self._rdmc.opts.verbose > 1:
-                    sys.stdout.write("Local login initiated...\n")
-                else:
-                    raise Exception
-            except Exception:
-                LOGGER.info("Local login initiated...\n")
-        if inputline:
-            runlogin = True
-        if options.includelogs:
-            inputline.extend(["--includelogs"])
-        if options.path:
-            inputline.extend(["--path", options.path])
-        if not client or runlogin:
-            self.lobobj.loginfunction(inputline)
+        self.cmdbase.login_select_validation(self, options)
 
     def run(self, line):
         """ Wrapper function for main select function
@@ -166,21 +114,13 @@ class SelectCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--refresh',
-            dest='ref',
-            action="store_true",
+            '--refresh', \
+            dest='ref', \
+            action="store_true", \
             help="Optionally reload the data of selected type and clear "\
-                                            "patches from current selection.",
+                                            "patches from current selection.", \
             default=False,
-        )
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
         )

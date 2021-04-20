@@ -17,30 +17,30 @@
 # -*- coding: utf-8 -*-
 """ Factory Reset Controller Command for rdmc """
 
-import sys
-
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
 
-class FactoryResetControllerCommand(RdmcCommandBase):
+class FactoryResetControllerCommand():
     """ Factory reset controller command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='factoryresetcontroller',\
-            usage='factoryresetcontroller [OPTIONS]\n\n\tRun without ' \
+    def __init__(self):
+        self.ident = {
+            'name':'factoryresetcontroller',\
+            'usage':'factoryresetcontroller [OPTIONS]\n\n\tRun without ' \
                 'arguments for the current controller options.\n\texample: ' \
                 'factoryresetcontroller\n\n\tTo factory reset a controller ' \
                 'by index.\n\texample: factoryresetcontroller --controller=2' \
                 '\n\texample: factoryresetcontroller --controller="Slot1" ',\
-            summary='Factory resets a controller by index or location.',\
-            aliases=['factoryresetcontroller'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+            'summary':'Factory resets a controller by index or location.',\
+            'aliases': [],\
+            'auxcommands': ["SelectCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main disk inventory worker function
@@ -49,7 +49,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -58,21 +58,20 @@ class FactoryResetControllerCommand(RdmcCommandBase):
 
         self.frcontrollervalidation(options)
 
-        self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.getprops()
+        self.auxcommands['select'].selectfunction("SmartStorageConfig.")
+        content = self.rdmc.app.getprops()
 
         if options.controller:
             controllist = []
 
         try:
             if options.controller.isdigit():
-                if int(options.controller) > 0:
-                    controllist.append(content[int(options.controller) - 1])
-            else:
-                slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
-                for control in content:
-                    if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
-                        controllist.append(control)
+                slotlocation = self.get_location_from_id(options.controller)
+                if slotlocation:
+                    slotcontrol = slotlocation.lower().strip('\"').split('slot')[-1].lstrip()
+                    for control in content:
+                        if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                            controllist.append(control)
             if not controllist:
                 raise InvalidCommandLineError("")
         except InvalidCommandLineError:
@@ -81,14 +80,23 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         for controller in controllist:
             contentsholder = {"Actions": [{"Action": "FactoryReset"}], \
                                                 "DataGuard": "Disabled"}
-            self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
+            self.rdmc.ui.printer("FactoryReset path and payload: %s, %s\n" % (controller["@odata.id"], contentsholder))
+            self.rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
         for idx, val in enumerate(content):
-            sys.stdout.write("[%d]: %s\n" % (idx + 1, val["Location"]))
+            self.rdmc.ui.printer("[%d]: %s\n" % (idx + 1, val["Location"]))
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
+
+    def get_location_from_id(self, controller_id):
+        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
+            if 'Collection' not in sel.maj_type:
+                controller = sel.dict
+                if controller['Id'] == str(controller_id):
+                    return controller["Location"]
+        return None
 
     def frcontrollervalidation(self, options):
         """ Factory reset controller validation function
@@ -96,7 +104,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -107,7 +115,7 @@ class FactoryResetControllerCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--controller',

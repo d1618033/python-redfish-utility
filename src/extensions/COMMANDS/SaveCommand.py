@@ -17,41 +17,36 @@
 # -*- coding: utf-8 -*-
 """ Save Command for RDMC """
 
-import sys
 import json
 
-from argparse import ArgumentParser
 from collections import OrderedDict
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                            logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                             InvalidCommandLineError, InvalidFileFormattingError, Encryption
 
 #default file name
 __filename__ = 'ilorest.json'
 
-class SaveCommand(RdmcCommandBase):
+class SaveCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='save',\
-            usage='save [OPTIONS]\n\n\tRun to save a selected type to a file' \
-            '\n\texample: save --selector HpBios.\n\n\tChange the default ' \
-            'output filename\n\texample: save --selector HpBios. -f ' \
-            'output.json\n\n\tTo save multiple types in one file\n\texample: '\
-            'save --multisave Bios.,ComputerSystem.',\
-            summary="Saves the selected type's settings to a file.",\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self.filename = None
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+    def __init__(self):
+        self.ident = {
+            'name':'save',
+            'usage':'save [OPTIONS]\n\n\tRun to save a selected type to a file'
+                    '\n\texample: save --selector HpBios.\n\n\tChange the default '
+                    'output filename\n\texample: save --selector HpBios. -f '
+                    'output.json\n\n\tTo save multiple types in one file\n\texample: '
+                    'save --multisave Bios.,ComputerSystem.',
+            'summary':"Saves the selected type's settings to a file.",
+            'aliases': [],
+            'auxcommands': ["SelectCommand"]
+        }
+        self.filename = __filename__
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main save worker function
@@ -60,7 +55,7 @@ class SaveCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -72,7 +67,7 @@ class SaveCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError('Save command takes no arguments.')
 
-        sys.stdout.write("Saving configuration...\n")
+        self.rdmc.ui.printer("Saving configuration...\n")
         if options.filter:
             try:
                 if (str(options.filter)[0] == str(options.filter)[-1])\
@@ -86,7 +81,7 @@ class SaveCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Invalid filter" \
                   " parameter format [filter_attribute]=[filter_value]")
 
-            instances = self._rdmc.app.select(selector=self._rdmc.app.selector, \
+            instances = self.rdmc.app.select(selector=self.rdmc.app.selector, \
                                                 fltrvals=(sel, val), path_refresh=options.ref)
             contents = self.saveworkerfunction(instances=instances)
         else:
@@ -94,7 +89,7 @@ class SaveCommand(RdmcCommandBase):
 
         if options.multisave:
             for select in options.multisave:
-                self.selobj.run(select)
+                self.auxcommands['select'].run(select)
                 contents += self.saveworkerfunction()
 
         if not contents:
@@ -111,9 +106,9 @@ class SaveCommand(RdmcCommandBase):
             with open(self.filename, 'w') as outfile:
                 outfile.write(json.dumps(contents, indent=2, cls=redfish.ris.JSONEncoder, \
                                                                             sort_keys=True))
-        sys.stdout.write("Configuration saved to: %s\n" % self.filename)
+        self.rdmc.ui.printer("Configuration saved to: %s\n" % self.filename)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -125,13 +120,13 @@ class SaveCommand(RdmcCommandBase):
         :type instances: list.
         """
 
-        content = self._rdmc.app.getprops(insts=instances)
+        content = self.rdmc.app.getprops(insts=instances)
         try:
-            contents = [{val[self.typepath.defs.hrefstring]:val} for val in content]
+            contents = [{val[self.rdmc.app.typepath.defs.hrefstring]:val} for val in content]
         except KeyError:
-            contents = [{val['links']['self'][self.typepath.defs.hrefstring]:val} for val in \
-                                                                                content]
-        type_string = self.typepath.defs.typestring
+            contents = [{val['links']['self'][self.rdmc.app.typepath.defs.hrefstring]:val} \
+                                                                            for val in content]
+        type_string = self.rdmc.app.typepath.defs.typestring
 
         templist = list()
 
@@ -186,16 +181,10 @@ class SaveCommand(RdmcCommandBase):
             options.multisave = options.multisave.replace(' ', '').split(',')
             if not len(options.multisave) >= 1:
                 raise InvalidCommandLineError("Invalid number of types in multisave option.")
-#             if inputline:
-#                 inputline.extend(['--selector', options.multisave[0]])
-#                 self.lobobj.loginfunction(inputline)
-#             else:
-#                 inputline.extend([options.multisave[0]])
-#                 self.selobj.selectfunction(inputline)
             options.selector = options.multisave[0]
             options.multisave = options.multisave[1:]
 
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
         #filename validations and checks
         self.filename = None
@@ -204,9 +193,9 @@ class SaveCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Save command doesn't support multiple filenames.")
         elif options.filename:
             self.filename = options.filename[0]
-        elif self._rdmc.config:
-            if self._rdmc.config.defaultsavefilename:
-                self.filename = self._rdmc.config.defaultsavefilename
+        elif self.rdmc.config:
+            if self.rdmc.config.defaultsavefilename:
+                self.filename = self.rdmc.config.defaultsavefilename
 
         if not self.filename:
             self.filename = __filename__
@@ -219,7 +208,7 @@ class SaveCommand(RdmcCommandBase):
         """
         templist = list()
 
-        headers = self._rdmc.app.create_save_header()
+        headers = self.rdmc.app.create_save_header()
         templist.append(headers)
 
         for content in contents:
@@ -236,7 +225,7 @@ class SaveCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
         customparser.add_argument(
             '-f',
             '--filename',
@@ -246,6 +235,7 @@ class SaveCommand(RdmcCommandBase):
             action="append",
             default=None,
         )
+
         customparser.add_argument(
             '--selector',
             dest='selector',
@@ -271,13 +261,6 @@ class SaveCommand(RdmcCommandBase):
             "are all of that type. If you want to modify the properties of only one of those "\
             "objects, use the filter flag to narrow down results based on properties."\
             "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
-        )
-        customparser.add_argument(
-            '--refresh',
-            dest='ref',
-            help="Optionally reload the data of selected type and save.\n*Note*: Will clear "\
-            "any non-committed data.",
             default=None,
         )
         customparser.add_argument(

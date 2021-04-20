@@ -20,19 +20,18 @@
 import sys
 import time
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from six.moves import input
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
-class RebootCommand(RdmcCommandBase):
+class RebootCommand():
     """ Reboot server that is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='reboot',\
-            usage='reboot [OPTIONS]\n\n\tRemotely control system power state commands such as, ' \
+    def __init__(self):
+        self.ident = {
+            'name':'reboot',\
+            'usage':'reboot [OPTIONS]\n\n\tRemotely control system power state commands such as, ' \
                 '\n\t1. Turning the system on.\n\t2. Turning the system off.\n\t3. Power ' \
                 'cycling/rebooting.\n\t4. Issuing a Non-Maskable Interrupt (NMI).\n\t5. Any ' \
                 'number of pre-defined operations through virtual power-button presses.' \
@@ -54,12 +53,17 @@ class RebootCommand(RdmcCommandBase):
                 ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately' \
                 ' Removes power from the server,\n\t\t\tfollowed by a restart' \
                 ' of the system)', \
-            summary='Reboot operations for the current logged in server.',\
-            aliases=['reboot'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Reboot operations for the current logged in server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main reboot worker function
@@ -68,7 +72,7 @@ class RebootCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -82,16 +86,16 @@ class RebootCommand(RdmcCommandBase):
                                       " Reboot takes a maximum of 1 parameter.")
 
         if not args:
-            sys.stdout.write('\nAfter the server is rebooted the session' \
-             ' will be terminated.\nPlease wait for the server' \
-             ' to boot completely to login again.\n')
-            sys.stdout.write('Rebooting server in 3 seconds...\n')
+            self.rdmc.ui.warn('\nAfter the server is rebooted the session will be terminated.'
+                              '\nPlease wait for the server to boot completely before logging in '
+                              'again.\nRebooting server in 3 seconds...\n')
             time.sleep(3)
         else:
             self.printreboothelp(args[0])
+            time.sleep(3)
 
         select = "ComputerSystem."
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
         oemlist = ['press', 'pressandhold', 'coldboot']
 
         try:
@@ -105,7 +109,7 @@ class RebootCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
         if args and args[0].lower() in oemlist:
-            bodydict = results.resp.dict['Oem'][self.typepath.defs.oemhp]
+            bodydict = results.resp.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
 
             if args[0].lower() == 'coldboot':
                 resettype = 'SystemReset'
@@ -118,7 +122,7 @@ class RebootCommand(RdmcCommandBase):
         try:
             for item in bodydict['Actions']:
                 if resettype in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         action = item.split('#')[-1]
                     else:
                         action = resettype
@@ -152,14 +156,14 @@ class RebootCommand(RdmcCommandBase):
                 count = count+1
                 confirmation = input("Rebooting system, type yes to confirm or no to abort:")
                 if confirmation.lower() in ('no', 'n') or count > 3:
-                    sys.stdout.write('Aborting reboot.\n')
+                    self.rdmc.ui.printer('Aborting reboot.\n')
                     return ReturnCodes.SUCCESS
                 elif confirmation.lower() in ('yes', 'y'):
                     break
 
-        self._rdmc.app.post_handler(put_path, body)
+        self.rdmc.app.post_handler(put_path, body)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -170,52 +174,36 @@ class RebootCommand(RdmcCommandBase):
         :type flag: str
         """
         if flag.upper() == "ON":
-            sys.stdout.write('\nSession will now be terminated.\nPlease wait' \
-                        ' for the server to boot completely to login again.\n')
-            sys.stdout.write('Turning on the server in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nThe server is powering on. Note, the current session will be '\
+                'terminated.\nPlease wait for the server to boot completely before logging in '\
+                'again.\nTurning on the server in 3 seconds...\n')
         elif flag.upper() == "FORCEOFF":
-            sys.stdout.write('\nServer is powering off the session will be' \
-             ' terminated.\nPlease wait for the server to boot completely to login again.\n')
-            sys.stdout.write('Powering off the server in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nThe server is powering off. Note, the current session will be '\
+                'terminated.\nPlease wait for the server to power off completely before logging '\
+                'in again.\nPowering off the server in 3 seconds...\n')
         elif flag.upper() == "FORCERESTART":
-            sys.stdout.write('\nAfter the server is rebooted the session' \
-                         ' will be terminated.\nPlease wait for the server' \
-                         ' to boot completely to login again.\n')
-            sys.stdout.write('Rebooting server in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nForcing a server restart. Note, the current session will be '\
+                'terminated.\nPlease wait for the server to boot completely before logging in '\
+                'again.\nRebooting the server in 3 seconds...\n')
         elif flag.upper() == "NMI":
-            sys.stdout.write('\nThe session will be now be terminated.\n' \
-                             'Please wait for the server to boot completely to login again.\n')
-            sys.stdout.write('Generating interrupt in 3 seconds...\n')
-            time.sleep(3)
-        elif flag.upper() == "PUSHPOWERBUTTON":
-            sys.stdout.write('\nThe server is powering on/off and the ' \
-                             'session will be terminated.\nPlease wait for ' \
-                             'the server to boot completely to login again.\n')
-            sys.stdout.write('Powering off the server in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nA non-maskable interrupt will be issued to this server. Note, the '\
+                'current session will be terminated.\nIssuing interrupt in 3 seconds...\n')
+        elif flag.upper() == "PUSHPOWERBUTTON" or flag.upper() == "PRESS":
+            self.rdmc.ui.warn('\nThe server power button will be virtually pushed; the reaction '\
+                'will be dependent on the current system power and boot state. Note the current '\
+                'session will be terminated.\nVirtual push in 3 seconds...\n')
         elif flag.upper() == "COLDBOOT":
-            sys.stdout.write('\nAfter the server is rebooted the session' \
-                         ' will be terminated.\nPlease wait for the server' \
-                         ' to boot completely to login again.\n')
-            sys.stdout.write('Cold Booting server in 3 seconds...\n')
-        elif flag.upper() == "PRESS":
-            sys.stdout.write('\nThe server is powering on/off and the ' \
-                             'session will be terminated.\nPlease wait for ' \
-                             'the server to boot completely to login again.\n')
-            sys.stdout.write('Pressing the power button in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nThe server will be cold boot, power cycled. Note, the current '\
+                'session will be terminated.\nPlease wait for the server to boot completely '\
+                'before logging in again.\nCold Booting server in 3 seconds...\n')
         elif flag.upper() == "PRESSANDHOLD":
-            sys.stdout.write('\nServer is powering off the session will be' \
-             ' terminated.\nPlease wait for the server to boot completely' \
-             ' to login again.\n')
-            sys.stdout.write('Pressing and holding the power button in 3 seconds...\n')
-            time.sleep(3)
+            self.rdmc.ui.warn('\nThe server will be forcefully powered off. Note, the current '\
+                'session will be terminated.\nPlease wait for the server to power off '\
+                'completely before logging in again.\nPressing and holding the power button in '\
+                '3 seconds...\n')
         else:
             raise InvalidCommandLineError("Invalid parameter: '%s'. Please run"\
-                                  " 'help reboot' for parameters." % flag)
+                                                        " 'help reboot' for parameters." % flag)
 
     def rebootvalidation(self, options):
         """ reboot method validation function
@@ -223,7 +211,7 @@ class RebootCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -234,7 +222,7 @@ class RebootCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--confirm',

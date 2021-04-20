@@ -17,32 +17,31 @@
 # -*- coding: utf-8 -*-
 """ Status Command for RDMC """
 
-import sys
-import json
-
-from argparse import ArgumentParser, SUPPRESS
-
 from redfish.ris.utils import merge_dict
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, \
                                                     NoCurrentSessionEstablished
 
-class StatusCommand(RdmcCommandBase):
+class StatusCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='status',\
-            usage='status\n\n\tRun to display all pending changes within'\
+    def __init__(self):
+        self.ident = {
+            'name':'status',\
+            'usage':'status\n\n\tRun to display all pending changes within'\
                     ' the currently\n\tselected type that need to be' \
                     ' committed\n\texample: status',\
-            summary='Displays all pending changes within a selected type'\
+            'summary':'Displays all pending changes within a selected type'\
                     ' that need to be committed.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+            'aliases': [],\
+            'auxcommands': ['SelectCommand']
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj) # not in use?
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main status worker function
@@ -51,7 +50,7 @@ class StatusCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,15 +58,15 @@ class StatusCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         self.statusvalidation(options)
-        contents = self._rdmc.app.status()
-        selector = self._rdmc.app.selector
+        contents = self.rdmc.app.status()
+        selector = self.rdmc.app.selector
 
         if contents and options.json:
             self.jsonout(contents)
         elif contents:
             self.outputpatches(contents, selector)
         else:
-            sys.stdout.write("No changes found\n")
+            self.rdmc.ui.warn("No changes found\n")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -78,7 +77,7 @@ class StatusCommand(RdmcCommandBase):
         :param contents: contents for the selection
         :type contents: string.
         """
-        sys.stdout.write("Current changes found:\n")
+        self.rdmc.ui.printer("Current changes found:\n")
         createdict = lambda y, x: {x:y}
         totdict = {}
         for item in contents:
@@ -92,8 +91,7 @@ class StatusCommand(RdmcCommandBase):
                     cont = reduce(createdict, reversed([path]+content['path'].strip('/').\
                                   split('/')+val))
                     merge_dict(totdict, cont)
-        sys.stdout.write(json.dumps(totdict, indent=2, sort_keys=True))#, cls=JSONEncoder)
-        sys.stdout.write('\n')
+        self.rdmc.ui.print_out_json(totdict)
 
     def outputpatches(self, contents, selector):
         """ Helper function for status for use in patches
@@ -103,14 +101,14 @@ class StatusCommand(RdmcCommandBase):
         :param selector: type selected
         :type selector: string.
         """
-        sys.stdout.write("Current changes found:\n")
+        self.rdmc.ui.printer("Current changes found:\n")
         for item in contents:
             moveoperation = ""
             for key, value in item.items():
                 if selector and key.lower().startswith(selector.lower()):
-                    sys.stdout.write("%s (Currently selected)\n" % key)
+                    self.rdmc.ui.printer("%s (Currently selected)\n" % key)
                 else:
-                    sys.stdout.write("%s\n" % key)
+                    self.rdmc.ui.printer("%s\n" % key)
 
                 for content in value:
                     try:
@@ -123,16 +121,16 @@ class StatusCommand(RdmcCommandBase):
                             continue
                     try:
                         if isinstance(content[0]["value"], int):
-                            sys.stdout.write('\t%s=%s' % \
+                            self.rdmc.ui.printer('\t%s=%s' % \
                                  (content[0]["path"][1:], content[0]["value"]))
                         elif not isinstance(content[0]["value"], bool) and \
                                             not len(content[0]["value"]) == 0:
                             if content[0]["value"][0] == '"' and \
                                                 content[0]["value"][-1] == '"':
-                                sys.stdout.write('\t%s=%s' % (content[0]["path"][1:], \
+                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], \
                                                     content[0]["value"][1:-1]))
                             else:
-                                sys.stdout.write('\t%s=%s' % (content[0]["path"][1:], \
+                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], \
                                                      content[0]["value"]))
                         else:
                             output = content[0]["value"]
@@ -141,21 +139,20 @@ class StatusCommand(RdmcCommandBase):
                                 if len(output) == 0:
                                     output = '""'
 
-                            sys.stdout.write('\t%s=%s' % \
-                                             (content[0]["path"][1:], output))
+                            self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], output))
                     except:
                         if isinstance(content["value"], int):
-                            sys.stdout.write('\t%s=%s' % \
-                                 (content["path"][1:], content["value"]))
+                            self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
+                                                                                content["value"]))
                         elif not isinstance(content["value"], bool) and \
                                                 not len(content["value"]) == 0:
                             if content["value"][0] == '"' and \
                                                     content["value"][-1] == '"':
-                                sys.stdout.write('\t%s=%s' % (content["path"][1:], \
-                                                        content["value"]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
+                                                                                content["value"]))
                             else:
-                                sys.stdout.write('\t%s=%s' % (content["path"][1:], \
-                                                        content["value"]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
+                                                                                content["value"]))
                         else:
                             output = content["value"]
 
@@ -163,23 +160,15 @@ class StatusCommand(RdmcCommandBase):
                                 if len(output) == 0:
                                     output = '""'
 
-                            sys.stdout.write('\t%s=%s' % (content["path"][1:], output))
-                    sys.stdout.write('\n')
+                            self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], output))
+                    self.rdmc.ui.printer('\n')
             if moveoperation:
-                sys.stdout.write("\t%s=List Manipulation\n" % moveoperation)
+                self.rdmc.ui.printer("\t%s=List Manipulation\n" % moveoperation)
 
     def statusvalidation(self, options):
         """ Status method validation function """
 
-        if options.encode and options.user and options.password:
-            options.user = Encryption.decode_credentials(options.user)
-            options.password = Encryption.decode_credentials(options.password)
-
-        try:
-            _ = self._rdmc.app.current_client
-        except:
-            raise NoCurrentSessionEstablished("Please login and make setting" \
-                                      " changes before using status command.")
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -189,22 +178,9 @@ class StatusCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_argument(
-            '-u',
-            '--user',
-            dest='user',
-            help="Pass this flag along with the password flag if you are"\
-            "running in local higher security modes.""",
-            default=None
-        )
-        customparser.add_argument(
-            '-p',
-            '--password',
-            dest='password',
-            help="Pass this flag along with the username flag if you are"\
-            "running in local higher security modes.""",
-            default=None
-        )
+
+        self.cmdbase.add_login_arguments_group(customparser)
+
         customparser.add_argument(
             '-j',
             '--json',
@@ -213,13 +189,5 @@ class StatusCommand(RdmcCommandBase):
             help="Optionally include this flag if you wish to change the"\
             " displayed output to JSON format. Preserving the JSON data"\
             " structure makes the information easier to parse.",
-            default=False
-        )
-        customparser.add_argument(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS,
             default=False
         )

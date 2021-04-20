@@ -17,33 +17,32 @@
 # -*- coding: utf-8 -*-
 """ Update Task Queue Command for rdmc """
 
-import sys
-import json
-
 from random import randint
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import RawDescriptionHelpFormatter
 
 from redfish.ris.rmc_helper import IdTokenError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption, \
                         TaskQueueError
 
-class UpdateTaskQueueCommand(RdmcCommandBase):
+__subparsers__ = ['create']
+
+class UpdateTaskQueueCommand():
     """ Main download command class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self, \
-            name='taskqueue', \
-            usage=None, \
-            description='Run to add or remove tasks from the task queue. Added tasks are '\
-                        'appended to the end of the queue.\nNote: iLO 5 required.',\
-            summary='Manages the update task queue for iLO.',\
-            aliases=['Taskqueue'])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+    def __init__(self):
+        self.ident = {
+            'name':'taskqueue', \
+            'usage':None, \
+            'description':'Run to add or remove tasks from the task queue. Added tasks are '\
+                          'appended to the end of the queue.\nNote: iLO 5 required.',\
+            'summary':'Manages the update task queue for iLO.',\
+            'aliases': [],
+            'auxcommands': []
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main update task queue worker function
@@ -52,7 +51,14 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, _) = self._parse_arglist(line, default=True)
+            ident_subparser = False
+            for cmnd in __subparsers__:
+                if cmnd in line:
+                    (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+                    ident_subparser = True
+                    break
+            if not ident_subparser:
+                (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -61,12 +67,12 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
         self.updatetaskqueuevalidation(options)
 
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError(\
                       'iLO Repository commands are only available on iLO 5.')
 
         if options.command.lower() == 'create':
-            self.createtask(options.keywords.split(), options)
+            self.createtask(options.keywords, options)
         else:
             if options.resetqueue:
                 self.resetqueue()
@@ -74,34 +80,34 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                 self.cleanqueue()
             self.printqueue(options)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
     def resetqueue(self):
         """ Deletes everything in the update task queue"""
-        tasks = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/UpdateTaskQueue/')
+        tasks = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/UpdateTaskQueue/')
         if not tasks:
-            sys.stdout.write('No tasks found.\n')
+            self.rdmc.ui.warn('No tasks found.\n')
 
-        sys.stdout.write('Deleting all update tasks...\n')
+        self.rdmc.ui.printer('Deleting all update tasks...\n')
 
         for task in tasks:
-            sys.stdout.write('Deleting: %s\n'% task['Name'].encode("ascii", "ignore"))
-            self._rdmc.app.delete_handler(task['@odata.id'])
+            self.rdmc.ui.printer('Deleting: %s\n'% task['Name'])
+            self.rdmc.app.delete_handler(task['@odata.id'])
 
     def cleanqueue(self):
         """ Deletes all finished or errored tasks in the update task queue"""
-        tasks = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/UpdateTaskQueue/')
+        tasks = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/UpdateTaskQueue/')
         if not tasks:
-            sys.stdout.write('No tasks found.\n')
+            self.rdmc.ui.warn('No tasks found.\n')
 
-        sys.stdout.write('Cleaning update task queue...\n')
+        self.rdmc.ui.printer('Cleaning update task queue...\n')
 
         for task in tasks:
             if task['State'] == 'Complete' or task['State'] == 'Exception':
-                sys.stdout.write('Deleting %s...\n'% task['Name'].encode("ascii", "ignore"))
-                self._rdmc.app.delete_handler(task['@odata.id'])
+                self.rdmc.ui.printer('Deleting %s...\n'% task['Name'])
+                self.rdmc.app.delete_handler(task['@odata.id'])
 
     def createtask(self, tasks, options):
         """ Creates a task in the update task queue
@@ -115,9 +121,9 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         tpmflag = None
 
         path = '/redfish/v1/UpdateService/UpdateTaskQueue/'
-        comps = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/'\
+        comps = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/'\
                                                     'ComponentRepository/')
-        curr_tasks = self._rdmc.app.getcollectionmembers(\
+        curr_tasks = self.rdmc.app.getcollectionmembers(\
                                                     '/redfish/v1/UpdateService/UpdateTaskQueue/')
         for task in tasks:
             usedcomp = None
@@ -143,9 +149,9 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                     else:
                         tpmflag = False
                     #TODO: Update to monolith check
-                    results = self._rdmc.app.get_handler(self.typepath.defs.biospath, silent=True)
+                    results = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath, silent=True)
                     if results.status == 200:
-                        contents = results.dict if self.typepath.defs.isgen9 else \
+                        contents = results.dict if self.rdmc.app.typepath.defs.isgen9 else \
                                                                         results.dict["Attributes"]
                         tpmstate = contents["TpmState"]
                         if "Enabled" in tpmstate and not tpmflag:
@@ -153,7 +159,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
 
                 for curr_task in curr_tasks:
                     if 'Filename' in curr_task and curr_task['Filename'] == task \
-                            and curr_task['State'].lower() is not 'exception':
+                            and curr_task['State'].lower() != 'exception':
                         raise TaskQueueError("This file already has a task queue for flashing "\
                                                  "associated with it. Reset the taskqueue and "\
                                                  "retry if you need to add this task again.")
@@ -171,9 +177,9 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                       'Filename': usedcomp['Filename'], 'UpdatableBy': usedcomp\
                       ['UpdatableBy'], 'TPMOverride': tpmflag}
 
-            sys.stdout.write('Creating task: "%s"\n' % newtask['Name'].encode("ascii", "ignore"))
+            self.rdmc.ui.printer('Creating task: "%s"\n' % newtask['Name'])
 
-            self._rdmc.app.post_handler(path, newtask)
+            self.rdmc.app.post_handler(path, newtask)
 
     def printqueue(self, options):
         """ Prints the update task queue
@@ -181,34 +187,35 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        tasks = self._rdmc.app.getcollectionmembers(\
+        tasks = self.rdmc.app.getcollectionmembers(\
                                 '/redfish/v1/UpdateService/UpdateTaskQueue/')
         if not tasks:
-            sys.stdout.write('No tasks found.\n')
+            self.rdmc.ui.warn('No tasks found.\n')
             return
 
         if not options.json:
-            sys.stdout.write('\nCurrent Update Task Queue:\n\n')
+            self.rdmc.ui.printer('\nCurrent Update Task Queue:\n\n')
 
         if not options.json:
             for task in tasks:
-                sys.stdout.write('Task %s:\n'%task['Name'].encode("ascii", "ignore"))
+                self.rdmc.ui.printer('Task %s:\n'%task['Name'])
 
                 if 'Filename' in list(task.keys()):
-                    sys.stdout.write('\tCommand: %s\n\tFilename: %s\n\t'\
+                    self.rdmc.ui.printer('\tCommand: %s\n\tFilename: %s\n\t'\
                         'State:%s\n'% (task['Command'], task['Filename'], task['State']))
                 elif 'WaitTimeSeconds' in list(task.keys()):
-                    sys.stdout.write('\tCommand: %s %s seconds\n\tState:%s\n'%(\
+                    self.rdmc.ui.printer('\tCommand: %s %s seconds\n\tState:%s\n'%(\
                                 task['Command'], str(task['WaitTimeSeconds']), task['State']))
                 else:
-                    sys.stdout.write('\tCommand:%s\n\tState: %s\n'%(task['Command'], task['State']))
+                    self.rdmc.ui.printer('\tCommand:%s\n\tState: %s\n'%(task['Command'], \
+                                                                                task['State']))
 
-                sys.stdout.write('\n')
+                self.rdmc.ui.printer('\n')
         elif options.json:
             outjson = dict()
             for task in tasks:
                 outjson[task['Name']] = task
-            sys.stdout.write(str(json.dumps(outjson, indent=2, sort_keys=True))+'\n')
+            self.rdmc.ui.print_out_json(outjson)
 
     def updatetaskqueuevalidation(self, options):
         """ taskqueue validation function
@@ -216,7 +223,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     @staticmethod
     def options_argument_group(parser):
@@ -246,7 +253,7 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         subcommand_parser = customparser.add_subparsers(dest='command')
 
@@ -282,8 +289,9 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        add_login_arguments_group(default_parser)
+        self.cmdbase.add_login_arguments_group(default_parser)
         self.options_argument_group(default_parser)
+
         #create
         create_help='\tCreate a new task queue task.'
         create_parser = subcommand_parser.add_parser(
@@ -302,8 +310,8 @@ class UpdateTaskQueueCommand(RdmcCommandBase):
                  'using quotations wrapping all tasks, delimited by whitespace.',
             metavar='KEYWORD',
             type=str,
-            nargs='?',
+            nargs='+',
             default=''
         )
-        add_login_arguments_group(create_parser)
+        self.cmdbase.add_login_arguments_group(create_parser)
         self.options_argument_group(create_parser)

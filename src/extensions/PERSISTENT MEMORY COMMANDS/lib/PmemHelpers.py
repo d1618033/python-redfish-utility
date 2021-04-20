@@ -17,7 +17,6 @@
 # -*- coding: utf-8 -*-
 """This module contains common helper functions used by several pmem commands"""
 
-
 class PmemHelpers(object):
     """
     Class containing common helper functions used by several pmem commands

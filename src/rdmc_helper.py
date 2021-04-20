@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import redfish.ris
 import redfish.hpilo.risblobstore2 as risblobstore2
 
 import versioning
-from rdmc_base_classes import HARDCODEDLIST
+#from rdmc_base_classes import HARDCODEDLIST
 
 if os.name == 'nt':
     from six.moves import winreg
@@ -164,11 +164,10 @@ class ReturnCodes(object):
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
 
-
 class RdmcError(Exception):
     """ Baseclass for all rdmc exceptions """
     errcode = 1
-    def __init__(self, message):
+    def __init__(self, message=None):
         Exception.__init__(self, message)
 
 class ConfigurationFileError(RdmcError):
@@ -230,6 +229,15 @@ class InvalidOrNothingChangedSettingsError(RdmcError):
 
 class NoDifferencesFoundError(RdmcError):
     """ Raised when no differences are found in the current configuration """
+    pass
+
+class NothingSelectedError(RdmcError):
+    """ Raised when type selection is reference but none have been provided """
+    pass
+
+class InvalidPropertyError(RdmcError):
+    """ Raised when one or more properties or attributes are in conflict with current or
+        specified configuration"""
     pass
 
 class MultipleServerConfigError(RdmcError):
@@ -321,147 +329,167 @@ class TaskQueueError(RdmcError):
     """ Raised when there is an issue with the current order of taskqueue """
     pass
 
+class InvalidSmartArrayConfigurationError(RdmcError):
+    """ Raised for an invalid configuration of a smart array controller and/or disk configuration"""
+    pass
+
+class FallbackChifUse(RdmcError):
+    """ Fallback Chif Use """
+    pass
+
 class UI(object):
     """ UI class handles all of our printing etc so we have
     consistency across the project """
 
-    def command_not_found(self, excp):
-        """ Called when command was not found """
-        sys.stderr.write("\nCommand '%s' not found. Use the help command to " \
-                                "see a list of available commands\n" % excp)
+    def __init__(self, verbosity=1):
+        self.verbosity = verbosity
 
-    def command_not_enabled(self, excp):
+    def printer(self, data, flush=True, excp=None, verbose_override=False):
+        """ Print wrapper for stdout vs fileout """
+        if self.verbosity >= 0 or verbose_override:
+            if excp:
+                sys.stderr.write(str(data))
+            else:
+                try:
+                    sys.stdout.write(str(data))
+                    if flush:
+                        sys.stdout.flush()
+                except IOError as excp:
+                    pass
+
+    def command_not_found(self, cmd):
+        """ Called when command was not found """
+        self.printer(("\nCommand '%s' not found. Use the help command to " \
+                        "see a list of available commands\n" % cmd), excp=True)
+        return ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
+
+    def command_not_enabled(self, cmd, excp):
         """ Called when command has not been enabled """
-        sys.stderr.write("\nCommand has not been enabled: %s\n" % excp)
+        self.printer(("\nCommand \'%s\' has not been enabled: %s\n" % (cmd, excp)), excp=excp)
 
     def invalid_commmand_line(self, excp):
         """ Called when user entered invalid command line entries """
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("\nError: %s\n" % excp), excp=excp)
 
     def standard_blob_error(self, excp):
         """ Called when user error encountered with blob """
-        sys.stderr.write("Error: Blob operation failed with error code %s\n" \
-                                                                        % excp)
+        self.printer(("\nError: Blob operation failed with error code %s\n" % excp), excp=excp)
 
     def invalid_file_formatting(self, excp):
         """ Called when file formatting is unrecognizable """
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("\nError: %s\n" % excp), excp=excp)
 
     def user_not_admin(self):
         """ Called when file formatting in unrecognizable """
-        sys.stderr.write("Both remote and local mode is accessible when %s " \
+        self.printer(("\nBoth remote and local mode is accessible when %s " \
              "is run as administrator. Only remote mode is available for non-" \
-             "admin user groups.\n" % versioning.__longname__)
+             "admin user groups.\n" % versioning.__longname__), excp=True)
 
     def no_contents_found_for_operation(self, excp):
         """ Called when no contents were found for the current operation"""
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("\nError: %s\n" % excp), excp=True)
 
     def nothing_selected(self):
         """ Called when nothing has been select yet """
-        sys.stderr.write("No type currently selected. Please use the" \
+        self.printer("\nNo type currently selected. Please use the" \
                          " 'types' command to\nget a list of types, or input" \
-                         " your type by using the '--selector' flag.\n")
+                         " your type by using the '--selector' flag.\n", excp=True)
 
     def nothing_selected_filter(self):
         """ Called when nothing has been select after a filter set """
-        sys.stderr.write("Nothing was found to match your provided filter.\n")
+        self.printer("\nNothing was found to match your provided filter.\n", excp=True)
 
     def nothing_selected_set(self):
         """ Called when nothing has been select yet """
-        sys.stderr.write("Nothing is selected or selection is read-only.\n")
+        self.printer("\nNothing is selected or selection is read-only.\n", excp=True)
 
     def no_differences_found(self, excp):
         """ Called when no difference is found in the current configuration """
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("Error: %s\n" % excp), excp=True)
 
     def multiple_server_config_fail(self, excp):
         """Called when one or more servers failed to load given configuration"""
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("Error: %s\n" % excp), excp=True)
 
     def multiple_server_config_input_file(self, excp):
         """Called when servers input file has incorrect information"""
-        sys.stderr.write("Error: %s\n" % excp)
+        self.printer(("Error: %s\n" % excp), excp=True)
 
     def invalid_credentials(self, timeout):
         """ Called user has entered invalid credentials
-
         :param timeout: timeout given for failed login attempt
         :type timeout: int.
         """
-        sys.stderr.write("Validating...")
+        self.printer("Validating...", excp=True)
 
         for _ in range(0, (int(str(timeout))+10)):
             time.sleep(1)
-            sys.stderr.write(".")
+            self.printer(".", excp=True)
 
-        sys.stderr.write("\nError: Could not authenticate. Invalid " \
-                         "credentials, or bad username/password.\n")
+        self.printer("\nError: Could not authenticate. Invalid " \
+                         "credentials, or bad username/password.\n", excp=True)
 
     def bios_unregistered_error(self):
         """ Called when ilo/bios unregistered error occurs """
-        sys.stderr.write("\nERROR 100: Bios provider is unregistered. Please" \
-                     " refer to the documentation for details on this issue.\n")
+        self.printer("\nERROR 100: Bios provider is unregistered. Please" \
+                     " refer to the documentation for details on this issue.\n", excp=True)
 
     def error(self, msg, inner_except=None):
         """ Used for general error handling
-
         :param inner_except: raised exception to be logged
         :type inner_except: exception.
         """
         LOGGER.error(msg)
         if inner_except is not None:
             LOGGER.error(inner_except)
+            self.printer("\nError: %s, %s\n" % (msg, inner_except))
+        self.printer("\nError: %s\n" % msg)
 
     def warn(self, msg, inner_except=None):
         """ Used for general warning handling
-
         :param inner_except: raised exception to be logged
         :type inner_except: exception.
         """
         LOGGER.warn(msg)
         if inner_except is not None:
             LOGGER.warn(inner_except)
-
-    def printmsg(self, excp):
-        """ Used for general print out handling """
-        sys.stderr.write("%s\n" % excp)
+            self.printer("\nWarning: %s, %s\n" % (msg, inner_except))
+        self.printer("\nWarning: %s\n" % msg)
 
     def retries_exhausted_attemps(self):
         """ Called when url retries have been exhausted """
-        sys.stderr.write("\nError: Could not reach URL. Retries have been exhausted.\n")
+        self.printer(("\nError: Could not reach URL. Retries have been exhausted.\n"), excp=True)
 
     def print_out_json(self, content):
         """ Print out json content to std.out with sorted keys
-
         :param content: content to be printed out
         :type content: str.
         """
-        sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True))
-        sys.stdout.write('\n')
+        #stringify
+        content = json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True)
+        self.printer(content, verbose_override=True)
+        self.printer('\n')
 
     def print_out_json_ordered(self, content):
         """ Print out sorted json content to std.out
-
         :param content: content to be printed out
         :type content: str.
         """
         content = OrderedDict(sorted(list(content.items()), key=lambda x: x[0]))
-        sys.stdout.write(json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder))
-        sys.stdout.write('\n')
+        content = json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder)
+        self.printer(content, verbose_override=True)
+        self.printer('\n')
 
     def print_out_human_readable(self, content):
         """ Print out human readable content to std.out
-
         :param content: content to be printed out
         :type content: str.
         """
         self.pretty_human_readable(content, enterloop=True)
-        sys.stdout.write('\n')
+        self.printer('\n')
 
     def pretty_human_readable(self, content, indent=0, start=0, enterloop=False):
         """ Convert content to human readable and print out to std.out
-
         :param content: content to be printed out
         :type content: str.
         :param indent: indent string to be used as seperator
@@ -478,39 +506,29 @@ class UI(object):
                 self.pretty_human_readable(item, indent, start)
 
                 if content.index(item) != (len(content) - 1):
-                    sys.stdout.write(space)
+                    self.printer(space)
         elif isinstance(content, dict):
             for key, value in content.items():
                 if space and not enterloop:
-                    sys.stdout.write(space)
+                    self.printer(space)
 
                 enterloop = False
-                sys.stdout.write(str(key) + '=')
+                self.printer((str(key) + '='))
                 self.pretty_human_readable(value, indent, (start + len(key) + 2))
         else:
             content = content if isinstance(content, six.string_types) else str(content)
 
             content = '""' if not content else content
             #Changed to support py3, verify if there is a unicode prit issue.
-            sys.stdout.write(content)#.encode('utf-8'))
-
-
-
-        #finally:
-        #    # restore stdout to its previous value
-        #    #NOTE: dup2 makes stdout_fd inheritable unconditionally
-        #    stdout.flush()
-        #    os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
+            self.printer(content)
 
 class Encryption(object):
     """ Encryption/Decryption object """
     @staticmethod
     def check_fips_mode_os():
         """ Function to check for the OS fips mode
-
         :param key: string to encrypt with
         :type key: str.
-
         :returns: returns True if FIPS mode is active, False otherwise
         """
         fips = False
@@ -536,36 +554,63 @@ class Encryption(object):
                 fips = False
         return fips
 
+    @staticmethod
+    def check_fips_mode_ssl():
+        """Function to check for the SSL fips mode
+        Uses custom cpython ssl module API, if available. Otheriwse
+        probes using ctypes.cdll APIs.
+        :returns: returns True if FIPS mode is active, False otherwise
+        """
+        import ssl
+        if hasattr(ssl, 'FIPS_mode'):
+            return ssl.FIPS_mode()
+
+        from ctypes import cdll
+        libcrypto = cdll.LoadLibrary(ssl._ssl.__file__)
+        return libcrypto.FIPS_mode()
+
     def encrypt_file(self, filetxt, key):
         """ encrypt a file given a key
-
         :param filetxt: content to be encrypted
         :type content: str.
         :param key: string to encrypt with
         :type key: str.
         """
+        try:
+            filetxt = filetxt.encode()
+        except (UnicodeDecodeError, AttributeError):
+            pass #must be encoded already
+        try:
+            key = key.encode()
+        except (UnicodeDecodeError, AttributeError):
+            pass #must be encoded already
         if Encryption.check_fips_mode_os():
             raise CommandNotEnabledError("Encrypting of files is not available"\
                                          " in FIPS mode.")
-        filetxt = str(filetxt)
-        if len(key.encode("utf8")) not in [16, 24, 32]:
+        if len(key) not in [16, 24, 32]:
             raise InvalidKeyError("")
         else:
-            encryptedfile = pyaes.AESModeOfOperationCTR(key).encrypt(filetxt.encode("utf8"))
+            encryptedfile = pyaes.AESModeOfOperationCTR(key).encrypt(filetxt)
 
         return encryptedfile
 
     def decrypt_file(self, filetxt, key):
         """ decrypt a file given a key
-
         :param filetxt: content to be decrypted
         :type content: str.
         :param key: string to decrypt with
         :type key: str.
-
         :returns: returns the decrypted file
         """
-        if len(key.encode("utf8")) not in [16, 24, 32]:
+        try:
+            filetxt = filetxt.encode()
+        except (UnicodeDecodeError, AttributeError):
+            pass #must be encoded already
+        try:
+            key = key.encode()
+        except (UnicodeDecodeError, AttributeError):
+            pass #must be encoded already
+        if len(key) not in [16, 24, 32]:
             raise InvalidKeyError("")
         else:
             decryptedfile = pyaes.AESModeOfOperationCTR(key).decrypt(filetxt)
@@ -580,10 +625,8 @@ class Encryption(object):
     @staticmethod
     def decode_credentials(credential):
         """ decode an encoded credential
-
         :param credential: credential to be decoded
         :type credential: str.
-
         :returns: returns the decoded credential
         """
 
@@ -597,7 +640,7 @@ class Encryption(object):
 
         risblobstore2.BlobStore2.unloadchifhandle(lib)
         try:
-            retbuff.value.encode('utf-8')
+            retbuff.value.decode('utf-8')
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except:
@@ -608,15 +651,16 @@ class Encryption(object):
     @staticmethod
     def encode_credentials(credential):
         """ encode a credential
-
         :param credential: credential to be encoded
         :type credential: str.
-
         :returns: returns the encoded credential
         """
 
         lib = risblobstore2.BlobStore2.gethprestchifhandle()
+        if isinstance(credential, bytes):
+            credential = credential.decode('utf-8')
         credbuff = create_string_buffer(credential.encode('utf-8'))
+
         retbuff = create_string_buffer(128)
 
         lib.encode_credentials.argtypes = [c_char_p]
@@ -625,13 +669,16 @@ class Encryption(object):
 
         risblobstore2.BlobStore2.unloadchifhandle(lib)
         try:
-            retbuff.value.encode('utf-8')
+            if six.PY2:
+                enc_val = retbuff.value.encode('utf-8')
+            elif six.PY3:
+                enc_val = retbuff.value.decode('utf-8')#.encode('utf-8')
             if not retbuff.value:
                 raise UnableToDecodeError("")
-        except:
+        except Exception as exp:
             raise UnableToDecodeError("Unable to decode credential %s." % credential)
 
-        return retbuff.value
+        return enc_val
 
 class TabAndHistoryCompletionClass(Completer):
     """ Tab and History Class used by interactive mode """
@@ -713,7 +760,7 @@ class TabAndHistoryCompletionClass(Completer):
                             for value in nested_info['enum']:
                                 enum_tab.append(value)
                                 help_text += six.u(str(value)) + ' '
-                    if isinstance(help_text, unicode):
+                    if isinstance(help_text, str):
                         help_text = help_text.replace('. ', '.\n')
                     self.toolbar_text = help_text
                 else:
@@ -736,7 +783,6 @@ class TabAndHistoryCompletionClass(Completer):
 
     def updates_tab_completion_lists(self, options):
         """ Function to update tab completion lists
-
         :param options: options list
         :type options: list.
         """

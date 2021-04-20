@@ -18,33 +18,35 @@
 """ Install Set Command for rdmc """
 
 import re
-import sys
 import json
-import datetime
+from datetime import datetime
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+from argparse import RawDescriptionHelpFormatter
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError,\
                         NoContentsFoundForOperationError, InvalidFileInputError
 
-class InstallSetCommand(RdmcCommandBase):
+class InstallSetCommand():
     """ Main download command class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self, \
-            name='installset', \
-            usage=None,\
-            description='\tRun to perform operations on install sets.\nTo view help on specific '\
+    def __init__(self):
+        self.ident = {
+            'name':'installset', \
+            'usage': None,\
+            'description':'\tRun to perform operations on install sets.\nTo view help on specific '\
                         'sub-commands run: installset <sub-command> -h\n\n\tExample: installset '\
                         'add -h\n\n\tNote: Support starting on iLO 5 systems.', \
-            summary='Manages install sets for iLO.',\
-            aliases=['Installset'])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Manages install sets for iLO.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main listcomp worker function
@@ -60,15 +62,15 @@ class InstallSetCommand(RdmcCommandBase):
                     found = True
                     try:
                         if line[i+1] not in self.parser._option_string_actions.keys():
-                            (options, args) = self._parse_arglist(line)
+                            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
                         else:
                             raise IndexError
                     except (KeyError, IndexError):
-                        (options, args) = self._parse_arglist(line, default=True)
+                        (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
                     else:
                         continue
             if not found:
-                (options, args) = self._parse_arglist(line, default=True)
+                (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -77,7 +79,7 @@ class InstallSetCommand(RdmcCommandBase):
 
         self.installsetvalidation(options)
 
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('iLO Repository commands are ' \
                                                     'only available on iLO 5.')
 
@@ -100,7 +102,7 @@ class InstallSetCommand(RdmcCommandBase):
         else:
             self.printinstallsets(options)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -112,13 +114,13 @@ class InstallSetCommand(RdmcCommandBase):
         :type name: str.
         """
         path = '/redfish/v1/UpdateService/InstallSets/'
-        comps = self._rdmc.app.getcollectionmembers(\
+        comps = self.rdmc.app.getcollectionmembers(\
                             '/redfish/v1/UpdateService/ComponentRepository/')
 
-        sets = self._rdmc.app.getcollectionmembers(path)
+        sets = self.rdmc.app.getcollectionmembers(path)
 
         if not name:
-            name = str(datetime.datetime.now())
+            name = str(datetime.now())
             name = name.replace(':', '')
             name = name.replace(' ', 'T')
         try:
@@ -154,7 +156,7 @@ class InstallSetCommand(RdmcCommandBase):
             if setvar['Name'] == body['Name']:
                 raise InvalidCommandLineError('Install set name is already in use.')
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
     def invokeinstallset(self, options):
         """Deletes the named set
@@ -163,7 +165,7 @@ class InstallSetCommand(RdmcCommandBase):
         """
         path = None
         name = options.name
-        sets = self._rdmc.app.getcollectionmembers(\
+        sets = self.rdmc.app.getcollectionmembers(\
                                        '/redfish/v1/UpdateService/InstallSets/')
 
         for setvar in sets:
@@ -174,10 +176,10 @@ class InstallSetCommand(RdmcCommandBase):
             raise NoContentsFoundForOperationError('No install set with the' \
                                             ' provided name could be found.')
 
-        sys.stdout.write('Invoking install set:%s\n' % name)
+        self.rdmc.ui.printer('Invoking install set:%s\n' % name)
 
         payload = self.checkpayloadoptions(options)
-        self._rdmc.app.post_handler(path, payload)
+        self.rdmc.app.post_handler(path, payload)
 
     def deleteinstallset(self, name):
         """Deletes the named set
@@ -186,70 +188,68 @@ class InstallSetCommand(RdmcCommandBase):
         :type name: str.
         """
         path = None
-        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
+        sets = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
 
         for setvar in sets:
             if setvar['Name'] == name:
                 path = setvar['@odata.id']
 
         if path:
-            sys.stdout.write('Deleting install set: %s...\n'% name)
-            self._rdmc.app.delete_handler(path)
+            self.rdmc.ui.printer('Deleting install set: %s...\n'% name)
+            self.rdmc.app.delete_handler(path)
         else:
             raise NoContentsFoundForOperationError('Unable to find the specified install set.')
 
     def removeinstallsets(self):
         """Removes all install sets """
-        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
+        sets = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
 
         if not sets:
-            sys.stdout.write('No install sets found.\n')
+            self.rdmc.ui.printer('No install sets found.\n')
 
-        sys.stdout.write('Deleting all install sets...\n')
+        self.rdmc.ui.printer('Deleting all install sets...\n')
 
         for setvar in sets:
             if setvar['IsRecovery']:
-                sys.stdout.write('Skipping delete of recovery set: %s\n' %setvar['Name'])
+                self.rdmc.ui.warn('Skipping delete of recovery set: %s\n' %setvar['Name'])
             else:
-                sys.stdout.write('Deleting install set: %s\n' % setvar['Name'])
-                self._rdmc.app.delete_handler(setvar['@odata.id'])
+                self.rdmc.ui.printer('Deleting install set: %s\n' % setvar['Name'])
+                self.rdmc.app.delete_handler(setvar['@odata.id'])
 
     def printinstallsets(self, options):
         """Prints install sets """
-        sets = self._rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
+        sets = self.rdmc.app.getcollectionmembers('/redfish/v1/UpdateService/InstallSets/')
         if not options.json:
-            sys.stdout.write('Install Sets:\n')
+            self.rdmc.ui.printer('Install Sets:\n')
 
         if not sets:
-            sys.stdout.write('No install sets found.\n')
+            self.rdmc.ui.warn('No install sets found.\n')
         elif not options.json:
             for setvar in sets:
                 if setvar['IsRecovery']:
                     recovery = "[Recovery Set]"
                 else:
                     recovery = ""
-                sys.stdout.write('\n%s: %s\n' % (setvar['Name'], recovery))
+                self.rdmc.ui.printer('\n%s: %s\n' % (setvar['Name'], recovery))
 
                 if 'Sequence' not in list(setvar.keys()):
-                    sys.stdout.write('\tNo Sequences in set.\n')
+                    self.rdmc.ui.warn('\tNo Sequences in set.\n')
                     continue
 
                 for item in setvar['Sequence']:
                     if 'Filename' in list(item.keys()):
-                        sys.stdout.write('\t%s: %s %s\n' % (item['Name'].encode("ascii", "ignore"),\
-                                            item['Command'], item['Filename']))
+                        self.rdmc.ui.printer('\t%s: %s %s\n' % (item['Name'], \
+                                                        item['Command'], item['Filename']))
                     elif 'WaitTimeSeconds' in list(item.keys()):
-                        sys.stdout.write('\t%s: %s %s seconds\n' % \
-                                             (item['Name'], item['Command'], \
-                                              str(item['WaitTimeSeconds'])))
+                        self.rdmc.ui.printer('\t%s: %s %s seconds\n' % (item['Name'], \
+                                              item['Command'], str(item['WaitTimeSeconds'])))
                     else:
-                        sys.stdout.write('\t%s: %s\n' % (item['Name'], \
-                                                            item['Command']))
+                        self.rdmc.ui.printer('\t%s: %s\n' % (item['Name'], item['Command']))
         elif options.json:
             outjson = dict()
             for setvar in sets:
                 outjson[setvar['Name']] = setvar
-            sys.stdout.write(str(json.dumps(outjson, indent=2, sort_keys=True))+'\n')
+            self.rdmc.ui.print_out_json(outjson)
 
     def validatefile(self, installsetfile):
         """ validates json file
@@ -311,7 +311,7 @@ class InstallSetCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -322,7 +322,7 @@ class InstallSetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
         subcommand_parser = customparser.add_subparsers(dest='command')
         #default sub-parser
         default_parser = subcommand_parser.add_parser(
@@ -348,9 +348,10 @@ class InstallSetCommand(RdmcCommandBase):
             action="store_true",
             default=False
         )
-        add_login_arguments_group(default_parser)
+        self.cmdbase.add_login_arguments_group(default_parser)
+
         #add sub-parser
-        add_help='Adds an install set on the currently logged in server.'
+        add_help='\tAdds an install set on the currently logged in server.'
         add_parser = subcommand_parser.add_parser(
             'add',
             help=add_help,
@@ -361,8 +362,8 @@ class InstallSetCommand(RdmcCommandBase):
         )
         add_parser.add_argument(
             'json',
-            help='Json file containing the install set tasks and sequencing\n\n\texample install '\
-                 'set JSON file:\n\t[\n\t\t{\n\t\t\t"Name": ' \
+            help='Json file containing the install set tasks and sequencing' \
+                 '\n\n\texample install set JSON file:\n\t[\n\t\t{\n\t\t\t"Name": ' \
                  '"Wait",\n\t\t\t"UpdatableBy": ["RuntimeAgent"],\n\t\t\t'\
                  '"Command": "Wait",\n\t\t\t"WaitTimeSeconds": 60\n\t\t},\n\t\t{' \
                  '\n\t\t\t"Name": "uniqueName",\n\t\t\t"UpdatableBy": ' \
@@ -379,7 +380,8 @@ class InstallSetCommand(RdmcCommandBase):
             help="Install set name.",
             default=None
         )
-        add_login_arguments_group(add_parser)
+        self.cmdbase.add_login_arguments_group(add_parser)
+
         #invoke sub-parser
         invoke_help='Invoke execution of an install script on the currently logged in server.'
         invoke_parser = subcommand_parser.add_parser(
@@ -439,7 +441,8 @@ class InstallSetCommand(RdmcCommandBase):
                  " to replace matching contents in the Recovery Set.",
             default=False
         )
-        add_login_arguments_group(invoke_parser)
+        self.cmdbase.add_login_arguments_group(invoke_parser)
+
         #delete sub-parser
         delete_help='Delete one or more install sets from the currently logged in server.'
         delete_parser = subcommand_parser.add_parser(
@@ -466,5 +469,5 @@ class InstallSetCommand(RdmcCommandBase):
             action="store_true",
             default=False
         )
-        add_login_arguments_group(delete_parser)
+        self.cmdbase.add_login_arguments_group(delete_parser)
 

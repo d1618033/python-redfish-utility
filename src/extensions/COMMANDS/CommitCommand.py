@@ -17,35 +17,37 @@
 # -*- coding: utf-8 -*-
 """ Commit Command for RDMC """
 
-import sys
-
-from argparse import ArgumentParser, SUPPRESS
+from argparse import SUPPRESS
 
 from redfish.ris.rmc_helper import NothingSelectedError
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError,\
                         NoChangesFoundOrMadeError, NoCurrentSessionEstablished
 
-class CommitCommand(RdmcCommandBase):
+class CommitCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='commit',\
-            usage='commit [OPTIONS]\n\n\tRun to apply all changes made during' \
+    def __init__(self):
+        self.ident = {
+            'name':'commit',\
+            'usage':'commit [OPTIONS]\n\n\tRun to apply all changes made during' \
                     ' the current session\n\texample: commit',\
-            summary='Applies all the changes made during the current session.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+            'summary':'Applies all the changes made during the current session.',\
+            'aliases': [],\
+            'auxcommands': ["LogoutCommand", "RebootCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
         #remove reboot option if there is no reboot command
-        try:
-            self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        except KeyError:
-            self.parser.remove_option('--reboot')
+        #try:
+        #    self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+        #except KeyError:
+        #    self.parser.remove_option('--reboot')
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def commitfunction(self, options=None):
         """ Main commit worker function
@@ -55,18 +57,18 @@ class CommitCommand(RdmcCommandBase):
         """
         self.commitvalidation()
 
-        sys.stdout.write("Committing changes...\n")
+        self.rdmc.ui.printer("Committing changes...\n")
 
         if options:
             if options.biospassword:
-                self._rdmc.app.current_client.bios_password = options.biospassword
+                self.rdmc.app.current_client.bios_password = options.biospassword
         try:
             failure = False
-            commit_opp = self._rdmc.app.commit()
+            commit_opp = self.rdmc.app.commit()
             for path in commit_opp:
-                if self._rdmc.opts.verbose:
-                    sys.stdout.write('Changes are being made to path: %s\n' % path)
-                if commit_opp.next():
+                if self.rdmc.opts.verbose:
+                    self.rdmc.ui.printer('Changes are being made to path: %s\n' % path)
+                if next(commit_opp):
                     failure = True
         except NothingSelectedError:
             raise NoChangesFoundOrMadeError("No changes found or made during commit operation.")
@@ -78,8 +80,8 @@ class CommitCommand(RdmcCommandBase):
                                                'type using select with the --refresh flag.')
 
         if options.reboot:
-            self.rebootobj.run(options.reboot)
-            self.logoutobj.run("")
+            self.auxcommands['reboot'].run(options.reboot)
+            self.auxcommands['logout'].run("")
 
     def run(self, line):
         """ Wrapper function for commit main function
@@ -88,7 +90,7 @@ class CommitCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -104,7 +106,7 @@ class CommitCommand(RdmcCommandBase):
         """ Commit method validation function """
 
         try:
-            _ = self._rdmc.app.current_client
+            _ = self.rdmc.app.current_client
         except:
             raise NoCurrentSessionEstablished("Please login and make setting" \
                                       " changes before using commit command.")
@@ -117,22 +119,8 @@ class CommitCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-        customparser.add_argument(
-            '-u',
-            '--user',
-            dest='user',
-            help="Pass this flag along with the password flag if you are"\
-            "running in local higher security modes.""",
-            default=None
-        )
-        customparser.add_argument(
-            '-p',
-            '--password',
-            dest='password',
-            help="Pass this flag along with the username flag if you are"\
-            "running in local higher security modes.""",
-            default=None
-        )
+
+        self.cmdbase.add_login_arguments_group(customparser)
         customparser.add_argument(
             '--reboot',
             dest='reboot',
@@ -140,20 +128,4 @@ class CommitCommand(RdmcCommandBase):
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
             default=None
-        )
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None
-        )
-        customparser.add_argument(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS,
-            default=False
         )

@@ -16,13 +16,11 @@
 
 # -*- coding: utf-8 -*-
 """Command to apply specified configuration to PMM"""
-from __future__ import absolute_import
+from __future__ import absolute_import #verify if python3 libs can handle
 
-import sys
 from copy import deepcopy
-from argparse import ArgumentParser, Action, REMAINDER
+from argparse import Action, REMAINDER
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
 
@@ -45,32 +43,27 @@ class _ParseOptionsList(Action):
         except:
             raise InvalidCommandLineError("Values in a list must be separated by a comma.")
 
-class AdvancedPmmConfigCommand(RdmcCommandBase):
+class AdvancedPmmConfigCommand():
     """
     Command to apply specified configuration to PMM
     """
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="provisionpmm",
-                                 usage="provisionpmm [-h | --help]"
-                                       "[-m | --memory-mode=(0|%%)] [-i | --pmem-interleave=(On|Off)]"
-                                       "[-p | --proc=(processorID)] [-f | --force]\n\n"
-                                       "\tApplies specified configuration to PMM\n"
-                                       "\texample: provisionpmm -m 50 -i On -p 1,2",
-                                 summary="Applies specified configuration to PMM.",
-                                 aliases=["provisionpmm"],
-                                 argparser=ArgumentParser())
-        self.define_arguments(self.parser)
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
-        self._show_pmem_config = ShowPmemPendingConfigCommand(self._rdmc)
-        self._display_helpers = DisplayHelpers()
-        self._mapper = Mapper()
-        self.usage = "provisionpmm [-h | --help] [-m | --memory-mode=(0|%%)] " \
-                     "[-i | --pmem-interleave=(On|Off)] [-p | --proc=(processorID)] "\
-                     "[-f | --force]\n\n\t Applies specified configuration to PMM\n"\
-                     "\texample: provisionpmm -m 50 -i On -p 1,2 -f\n"
+    def __init__(self):
+        self.ident = {
+            'name':"provisionpmm",
+            'usage':"provisionpmm [-h | --help]"
+                    "[-m | --memory-mode=(0|%%)] [-i | --pmem-interleave=(On|Off)]"
+                    "[-pid | --proc=(processorID)] [-f | --force]\n\n"
+                    "\tApplies specified configuration to PMM\n"
+                    "\texample: provisionpmm -m 50 -i On -pid 1,2",
+            'summary':"Applies specified configuration to PMM.",
+            'aliases': ["provisionpmm"],
+            'auxcommands': ["ShowPmemPendingConfigCommand", "ClearPendingConfigCommand"]
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+        self._rest_helpers = RestHelpers(rdmcObject=self.rdmc)
 
     def run(self, line):
         """
@@ -78,10 +71,10 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("PMM: %s", self.name)
+        LOGGER.info("PMM: %s", self.ident['name'])
 
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -131,16 +124,24 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         """
         some_flag = options.memorymode or options.interleave or options.proc or options.force
         if not some_flag:
-            raise InvalidCommandLineError("No flag specified.\n\nUsage: " + self.usage)
+            raise InvalidCommandLineError("No flag specified.\n\nUsage: " + self.ident['usage'])
 
         # If the memory mode option value is not valid.
-        if options.memorymode < 0 or options.memorymode > 100:
-            raise InvalidCommandLineError("Specify the correct value (1-100)"
-                                          " to configure PMM")
+        resp = self._rest_helpers.retrieve_model(self.rdmc)
+        model = resp['Model']
+
+        if "Gen10 Plus" in model:
+            if  not (options.memorymode == 0 or options.memorymode == 100):
+                raise InvalidCommandLineError("Specify the correct value (0 or 100)"
+                                              " to configure PMM")
+        else:
+            if options.memorymode < 0 or options.memorymode > 100:
+                raise InvalidCommandLineError("Specify the correct value (1-100)"
+                                                " to configure PMM")
         if options.interleave:
             if (options.interleave).lower() not in ['on', 'off']:
                 raise InvalidCommandLineError("Specify the correct value to set interleave"\
-                    " state of persistent memory regions\n\n" + self.usage)
+                    " state of persistent memory regions\n\n" + self.ident['usage'])
             options.interleave = options.interleave.lower()
 
         if options.proc and not options.memorymode and not options.interleave:
@@ -159,7 +160,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
                 if not proc_id.isdigit():
                     raise InvalidCommandLineError("Specify the correct processor id")
 
-    def define_arguments(self, customparser):
+    def definearguments(self, customparser):
         """
         Wrapper function for new command main function
         :param customparser: command line input
@@ -167,6 +168,8 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             "-m",
@@ -191,7 +194,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         )
 
         customparser.add_argument(
-            "-p",
+            "-pid",
             "--proc",
             nargs=1,
             action=_ParseOptionsList,
@@ -213,7 +216,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         )
 
     @staticmethod
-    def warn_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks):
+    def warn_existing_chunks_and_tasks(self, memory_chunk_tasks, memory_chunks):
         """
         Checks for existing Memory Chunks and Pending Configuration Task resources on
         a server where a user is trying to selected configuration
@@ -225,21 +228,20 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         """
         # If Memory Chunks exist, display Existing configuration warning
         if memory_chunks:
-            sys.stdout.write(
-                "\nWarning: Existing configuration found. Proceeding with applying a new "
+            self.rdmc.ui.warn(
+                "Existing configuration found. Proceeding with applying a new "
                 "configuration will result in overwriting the current configuration and "
                 "cause data loss.\n")
         # If Pending Configuration Tasks exist, display warning
         if memory_chunk_tasks:
-            sys.stdout.write(
-                "\nWarning: Pending configuration tasks found. Proceeding with applying "
+            self.rdmc.ui.warn(
+                "Pending configuration tasks found. Proceeding with applying "
                 "a new configuration will result in overwriting the pending "
                 "configuration tasks.\n")
         # Raise a NoChangesFoundOrMade exception when either of the above conditions exist
         if memory_chunks or memory_chunk_tasks:
             # Line feed for proper formatting
-            sys.stdout.write("\n")
-            raise NoChangesFoundOrMadeError("Found one or more of Existing Configuration or "
+            raise NoChangesFoundOrMadeError("\nFound one or more of Existing Configuration or "
                                             "Pending Configuration Tasks. Please use the "
                                             "'--force | -f' flag with the same command to "
                                             "approve these changes.")
@@ -256,8 +258,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         """
         # Delete any pending configuration tasks
         if memory_chunk_tasks:
-            _clear_pending = ClearPendingConfigCommand(self._rdmc)
-            _clear_pending.delete_tasks(memory_chunk_tasks)
+            self.auxcommands["clearpmmpendingconfig"].delete_tasks(memory_chunk_tasks)
         # Delete any existing configuration
         if memory_chunks:
             for chunk in memory_chunks:
@@ -282,7 +283,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         invalid_proc_list = []
         # Create list with valid processors based on 'Id' attribute.
         for member in domain_members:
-            proc_list.append(member["Id"].encode('ascii', 'ignore'))
+            proc_list.append(member["Id"])
 
         for index, proc_id in enumerate(input_proc_list):
             temp_proc_id = "PROC"+str(proc_id)+"MemoryDomain"
@@ -315,7 +316,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         """
         all_chunks = list()
         for member in domain_members:
-            proc_id = member["Id"].encode('ascii', 'ignore')
+            proc_id = member["Id"]
             if not proc_list or (proc_id in proc_list):
                 data_id = member.get("MemoryChunks").get("@odata.id")
                 all_chunks += [chunk for chunk in memory_chunks
@@ -383,7 +384,7 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         memory_chunk_tasks = self._rest_helpers.filter_task_members(task_members)
 
         if not domain_members:
-            raise NoContentsFoundForOperationError("Failed to retrieve Memory Domain Resources")
+            raise NoContentsFoundForOperationError("Failed to retrieve Memory Domain Resources, please check if persistent memory is present/configured")
 
         # Dict with input config data
         config_data = {"size": options.memorymode,
@@ -405,13 +406,13 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
         if options.force:
             self.delete_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks)
         else:
-            self.warn_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks)
+            self.warn_existing_chunks_and_tasks(self, memory_chunk_tasks, memory_chunks)
 
         for member in domain_members:
-            proc_id = member['Id'].encode('ascii', 'ignore')
+            proc_id = member['Id']
             # If given proc list is not empty, applies configuration to selected processors
             if not config_data["proc"] or (proc_id in config_data["proc"]):
-                path = member['MemoryChunks'].get('@odata.id').encode('ascii', 'ignore')
+                path = member['MemoryChunks'].get('@odata.id')
                 data = self.get_post_data(config_data, member['InterleavableMemorySets'])
                 for body in data:
                     resp = self._rest_helpers.post_resource(path, body)
@@ -419,8 +420,9 @@ class AdvancedPmmConfigCommand(RdmcCommandBase):
                     raise NoChangesFoundOrMadeError("Error occurred while applying configuration")
 
         # Display warning
-        sys.stdout.write("\n***WARNING: Configuration changes require reboot to take effect***\n")
+        self.rdmc.ui.warn("\nConfiguration changes require reboot to take effect.\n")
 
         # Display pending configuration
-        self._show_pmem_config.show_pending_config(type("MyOptions", (object, ), dict(json=False)))
+        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ), \
+                                                                                dict(json=False)))
         return None

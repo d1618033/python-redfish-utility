@@ -21,33 +21,37 @@ import os
 import re
 import sys
 import json
-
 from collections import OrderedDict
+
+from argparse import ArgumentParser, SUPPRESS
 
 from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidFileFormattingError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, Encryption
 
-class RawPatchCommand(RdmcCommandBase):
+class RawPatchCommand():
     """ Raw form of the patch command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='rawpatch',\
-            usage='rawpatch [FILENAME]\n\n\tRun to send a patch from the data' \
+    def __init__(self):
+        self.ident = {
+            'name':'rawpatch',\
+            'usage':'rawpatch [FILENAME]\n\n\tRun to send a patch from the data' \
                     ' in the input file.\n\tMultiple PATCHes can be performed in sequence by '\
                     '\n\tadding more path/body key/value pairs.\n'
                     '\n\texample: rawpatch rawpatch.txt' \
                     '\n\n\tExample input file:\n\t{\n\t    "/redfish/' \
                     'v1/systems/(system ID)":\n\t    {\n\t        ' \
                     '"AssetTag": "NewAssetTag"\n\t    }\n\t}',\
-            summary='Raw form of the PATCH command.',\
-            aliases=['rawpatch'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'summary':'Raw form of the PATCH command.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main raw patch worker function
@@ -56,17 +60,21 @@ class RawPatchCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        url = None
         headers = {}
         results = []
 
-        self.patchvalidation(options)
+        if hasattr(options, 'sessionid') and options.sessionid:
+            url = self.sessionvalidation(options)
+        else:
+            self.patchvalidation(options)
 
         contentsholder = None
         try:
@@ -91,16 +99,15 @@ class RawPatchCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self._rdmc.app.patch_handler(contentsholder["path"], \
+            results.append(self.rdmc.app.patch_handler(contentsholder["path"], \
                   contentsholder["body"], headers=headers, silent=options.silent, \
                   optionalpassword=options.biospassword, service=options.service))
 
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self._rdmc.app.patch_handler(path, \
-                                body, headers=headers, silent=options.silent, \
-                                optionalpassword=options.biospassword, service=options.service))
-
+                results.append(self.rdmc.app.patch_handler(path, \
+                        body, headers=headers, silent=options.silent, \
+                        optionalpassword=options.biospassword, service=options.service))
         else:
             raise InvalidFileFormattingError("Input file '%s' was not format properly." % \
                                                                                     options.path)
@@ -113,13 +120,13 @@ class RawPatchCommand(RdmcCommandBase):
         if results and returnresponse:
             for result in results:
                 if options.getheaders:
-                    sys.stdout.write(json.dumps(dict(result.getheaders())) + "\n")
+                    self.rdmc.ui.print_out_json(dict(result.getheaders()))
 
                 if options.response:
-                    sys.stdout.write(result.read)
-                    sys.stdout.write("\n")
+                    self.rdmc.ui.printer(result.read)
+                    self.rdmc.ui.printer("\n")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -129,7 +136,26 @@ class RawPatchCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options, skipbuild=True)
+        self.rdmc.login_select_validation(self, options, skipbuild=True)
+
+    def sessionvalidation(self, options):
+        """ Raw patch session validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+
+        url = None
+        if options.user or options.password or options.url:
+            if options.url:
+                url = options.url
+        else:
+            if self.rdmc.app.redfishinst.base_url:
+                url = self.rdmc.app.redfishinst.base_url
+        if url and not "https://" in url:
+            url = "https://" + url
+
+        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -140,7 +166,7 @@ class RawPatchCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             'path',
@@ -180,12 +206,4 @@ class RawPatchCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
-        )
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
         )

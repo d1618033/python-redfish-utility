@@ -3,22 +3,24 @@
 
 import sys
 
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
-class NewCommand(RdmcCommandBase):
+class NewCommand():
     """ Main new command template class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='newcommand',\
-            usage='newcommand [OPTIONS]\n\n\tRun to show the new command is ' \
-                'working\n\texample: newcommand',\
-            summary='New command tutorial.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+    def __init__(self):
+        self.ident = {
+            'name':'newcommand',\
+            'usage': "newcommand [OPTIONS]\n\n\tRun to show the new command is " \
+                     "working\n\texample: newcommand",\
+            'summary':'New command tutorial.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+
+        #self.definearguments(self.parser)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def newcommandfunction(self, options=None):
         """ Main new command worker function
@@ -26,7 +28,6 @@ class NewCommand(RdmcCommandBase):
         :param options: command options
         :type options: options.
         """
-        self.newcommandvalidation()
 
         # TODO: This is where you would add your main worker code
         #       Refer to other commands for an example of this function
@@ -39,15 +40,19 @@ class NewCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        #validation checks
+        self.newcommandvalidation()
         self.newcommandfunction(options)
 
+        #logout routine
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 

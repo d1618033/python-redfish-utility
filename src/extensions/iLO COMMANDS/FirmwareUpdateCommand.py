@@ -17,34 +17,33 @@
 # -*- coding: utf-8 -*-
 """ Firmware Update Command for rdmc """
 
-import sys
 import time
-
-from argparse import ArgumentParser
 
 from redfish.ris.resp_handler import ResponseHandler
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, FirmwareUpdateError, \
-                    NoContentsFoundForOperationError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
+                        FirmwareUpdateError, NoContentsFoundForOperationError, Encryption
 
-class FirmwareUpdateCommand(RdmcCommandBase):
+class FirmwareUpdateCommand():
     """ Reboot server that is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='firmwareupdate',\
-            usage='firmwareupdate [URI] [OPTIONS]\n\n\tApply a firmware ' \
+    def __init__(self):
+        self.ident = {
+            'name':'firmwareupdate',\
+            'usage':'firmwareupdate [URI] [OPTIONS]\n\n\tApply a firmware ' \
                     'update to the current logged in server.\n\texample: ' \
                     'firmwareupdate <url/hostname>/images/image.bin',\
-            summary='Perform a firmware update on the currently logged in server.',\
-            aliases=['firmwareupdate'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+            'summary':'Perform a firmware update on the currently logged in server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main firmware update worker function
@@ -53,7 +52,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -72,8 +71,8 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         action = None
         uri = "FirmwareURI"
 
-        select = self.typepath.defs.hpilofirmwareupdatetype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hpilofirmwareupdatetype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -89,7 +88,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
 
         try:
             for item in bodydict['Actions']:
-                if self.typepath.defs.isgen10:
+                if self.rdmc.app.typepath.defs.isgen10:
                     if 'SimpleUpdate' in item:
                         action = item.split('#')[-1]
 
@@ -110,14 +109,14 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         else:
             body = {"Action": action, uri: args[0]}
 
-        self._rdmc.app.post_handler(put_path, body, silent=True, service=True)
+        self.rdmc.app.post_handler(put_path, body, silent=True, service=True)
 
-        sys.stdout.write("\nStarting upgrading process...\n\n")
+        self.rdmc.ui.printer("\nStarting upgrade process...\n\n")
 
         self.showupdateprogress(update_path)
-        self.logoutobj.run("")
+        #logoutobj.run("")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -139,7 +138,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
             else:
                 counter += 1
 
-            results = self._rdmc.app.get_handler(path, silent=True)
+            results = self.rdmc.app.get_handler(path, silent=True)
             results = results.dict
             try:
                 results = results['Oem']['Hpe']
@@ -160,7 +159,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
                 else:
                     if not written:
                         written = True
-                        sys.stdout.write("iLO is uploading the necessary files. Please wait...")
+                        self.rdmc.ui.printer("iLO is uploading the necessary files. Please wait...")
 
                 time.sleep(0.5)
             elif results["State"].lower().startswith(("progressing", \
@@ -169,24 +168,24 @@ class FirmwareUpdateCommand(RdmcCommandBase):
 
                 for _ in range(2):
                     if position < 4:
-                        sys.stdout.write("Updating: "+ spinner[position]+"\r")
+                        self.rdmc.ui.printer("Updating: "+ spinner[position]+"\r")
                         position += 1
                         time.sleep(0.1)
                     else:
                         position = 0
-                        sys.stdout.write("Updating: "+ spinner[position]+"\r")
+                        self.rdmc.ui.printer("Updating: "+ spinner[position]+"\r")
                         position += 1
                         time.sleep(0.1)
             elif results["State"].lower().startswith("complete"):
-                sys.stdout.write('\n\nFirmware update has completed and iLO' \
-                                 ' may reset. \nIf iLO resets the' \
-                                 ' session will be terminated.\nPlease wait' \
-                                 ' for iLO to initialize completely before' \
-                                 ' logging in again.\nA reboot may be required'\
-                                 ' for firmware changes to take effect.\n')
+                self.rdmc.ui.printer('\n\nFirmware update has completed and iLO' \
+                                     ' may reset. \nIf iLO resets the' \
+                                     ' session will be terminated.\nPlease wait' \
+                                     ' for iLO to initialize completely before' \
+                                     ' logging in again.\nA reboot may be required'\
+                                     ' for firmware changes to take effect.\n')
                 break
             elif results["State"].lower().startswith("error"):
-                error = self._rdmc.app.get_handler(path, silent=True)
+                error = self.rdmc.app.get_handler(path, silent=True)
                 self.printerrmsg(error)
 
     def printerrmsg(self, error):
@@ -196,8 +195,8 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         try:
             error = error.dict['Oem']['Hpe']['Result']['MessageId'].split('.')
             #TODO: Update to new ResponseHandler Method 'return_reg'
-            errmessages = ResponseHandler(self._rdmc.app.validation_manager,\
-                                      self.typepath.defs.messageregistrytype).get_error_messages()
+            errmessages = ResponseHandler(self.rdmc.app.validation_manager,\
+                                      self.rdmc.app.typepath.defs.messageregistrytype).get_error_messages()
             for messagetype in list(errmessages.keys()):
                 if error[0] == messagetype:
                     if errmessages[messagetype][error[-1]]["NumberOfArgs"] == 0:
@@ -218,7 +217,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -229,7 +228,7 @@ class FirmwareUpdateCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--tpmenabled',

@@ -16,26 +16,24 @@
 
 # -*- coding: utf-8 -*-
 """ Get Command for RDMC """
+import six
 
 from collections import (OrderedDict)
 
-from argparse import ArgumentParser
-
-import six
+from argparse import ArgumentParser, SUPPRESS
 import redfish.ris
 from redfish.ris.utils import iterateandclear
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
-                                login_select_validation, logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, \
                     NoContentsFoundForOperationError, InvalidCommandLineError
+from rdmc_base_classes import HARDCODEDLIST
 
-class GetCommand(RdmcCommandBase):
+class GetCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='get',\
-            usage='get [PROPERTY] [OPTIONS]\n\n\tTo retrieve all' \
+    def __init__(self):
+        self.ident = {
+            'name':'get',\
+            'usage':'get [PROPERTY] [OPTIONS]\n\n\tTo retrieve all' \
                     ' the properties run without arguments. \n\t*Note*: '\
                     'a type will need to be selected or this will return an '\
                     'error.\n\texample: get\n\n\tTo retrieve multiple ' \
@@ -43,12 +41,15 @@ class GetCommand(RdmcCommandBase):
                     'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.' \
                     '\n\n\tTo change output style format provide'\
                     ' the json flag\n\texample: get --json',\
-            summary='Displays the current value(s) of a' \
+            'summary':'Displays the current value(s) of a' \
                     ' property(ies) within a selected type.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'aliases':[],\
+            'auxcommands':["LogoutCommand"]
+        }
+        #self.definearguments(self.parser)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main get worker function
@@ -57,7 +58,7 @@ class GetCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -84,7 +85,7 @@ class GetCommand(RdmcCommandBase):
         self.getworkerfunction(args, options, results=None, uselist=True, filtervals=filtr,\
                                readonly=options.noreadonly)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -116,11 +117,13 @@ class GetCommand(RdmcCommandBase):
 
         #For rest redfish compatibility of bios.
         args = [args] if args and isinstance(args, six.string_types) else args
-        args = ["Attributes/"+arg if self._rdmc.app.selector.lower().\
-                startswith('bios.') and 'attributes' not in arg.lower() else arg \
-                                                for arg in args] if args else args
+        if not self.rdmc.app.selector:
+            raise InvalidCommandLineError('No type is selected yet. Please use select command or specify --select option')
+        args = ["Attributes/"+arg if self.rdmc.app.selector.lower().startswith('bios.') \
+                                     and 'attributes' not in arg.lower() else arg for arg in args] if args else args
+
         if filtervals[0]:
-            instances = self._rdmc.app.select(selector=self._rdmc.app.selector, \
+            instances = self.rdmc.app.select(selector=self.rdmc.app.selector, \
                                                                     fltrvals=filtervals)
 
         try:
@@ -131,12 +134,12 @@ class GetCommand(RdmcCommandBase):
                     if splitarg[0] in argsdict:
                         argsdict[splitarg[0]].append(splitarg[1])
                     else:
-                        if splitarg[1]:
+                        try:
                             argsdict[splitarg[0]] = [splitarg[1]]
-                        else:
+                        except IndexError:
                             argsdict[splitarg[0]] = [splitarg[0]]
                 for key in argsdict.keys():
-                    contents = self._rdmc.app.getprops(props=key, \
+                    contents = self.rdmc.app.getprops(props=key, \
                        remread=readonly, nocontent=nocontent, insts=instances)
                     values = argsdict[key]
                     self.collectandclear(contents, key, values)
@@ -144,13 +147,13 @@ class GetCommand(RdmcCommandBase):
                 multicontents = True
                 uselist = False if readonly else uselist
             else:
-                contents = self._rdmc.app.getprops(props=args, remread=readonly,\
+                contents = self.rdmc.app.getprops(props=args, remread=readonly,\
                                    nocontent=nocontent, insts=instances)
                 uselist = False if readonly else uselist
         except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
-            contents = self._rdmc.app.getprops(props=args, nocontent=nocontent)
+            contents = self.rdmc.app.getprops(props=args, nocontent=nocontent)
         for ind, content in enumerate(contents):
-            if 'bios.' in self._rdmc.app.selector.lower() and \
+            if 'bios.' in self.rdmc.app.selector.lower() and \
                     'Attributes' in list(content.keys()):
                 content.update(content['Attributes'])
                 del content['Attributes']
@@ -164,7 +167,7 @@ class GetCommand(RdmcCommandBase):
         if not multicontents:
             self.checktoprint(options, contents, nocontent, arg)
         if options.logout:
-            self.logoutobj.run("")
+            self.auxcommands['logout'].run("")
 
     def removereserved(self, entry):
         """ function to remove reserved properties
@@ -199,9 +202,9 @@ class GetCommand(RdmcCommandBase):
         :type arg: string
         """
         if options and options.json and contents:
-            UI().print_out_json(contents)
+            self.rdmc.ui.print_out_json(contents)
         elif contents:
-            UI().print_out_human_readable(contents)
+            self.rdmc.ui.print_out_human_readable(contents)
         else:
             try:
                 if nocontent or not any(next(iter(contents))):
@@ -226,7 +229,10 @@ class GetCommand(RdmcCommandBase):
         :type values: list.
         """
         clearcontent = contents[0][key]
-        keyslist = clearcontent.keys()
+        if isinstance(clearcontent, dict):
+            keyslist = list(clearcontent.keys())
+        else:
+            keyslist = [clearcontent]
         clearedlist = keyslist
         for arg in values:
             for keys in keyslist:
@@ -241,7 +247,7 @@ class GetCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -252,7 +258,7 @@ class GetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -264,9 +270,10 @@ class GetCommand(RdmcCommandBase):
               " you currently have selected.",
             default=None,
         )
+
         customparser.add_argument(
-            '--filter',
-            dest='filter',
+            '--filter',\
+            dest='filter',\
             help="Optionally set a filter value for a filter attribute."\
             " This uses the provided filter for the currently selected"\
             " type. Note: Use this flag to narrow down your results. For"\
@@ -274,33 +281,33 @@ class GetCommand(RdmcCommandBase):
             " objects that are all of that type. If you want to modify"\
             " the properties of only one of those objects, use the filter"\
             " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
+            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",\
+            default=None
         )
         customparser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
-            action="store_true",
+            '-j',\
+            '--json',\
+            dest='json',\
+            action="store_true",\
             help="Optionally include this flag if you wish to change the"\
             " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            " structure makes the information easier to parse.",\
             default=False
         )
         customparser.add_argument(
-            '--noreadonly',
-            dest='noreadonly',
-            action="store_true",
+            '--noreadonly',\
+            dest='noreadonly',\
+            action="store_true",\
             help="Optionally include this flag if you wish to only show"\
             " properties that are not read-only. This is useful to see what "\
-            "is configurable with the selected type(s).",
+            "is configurable with the selected type(s).",\
             default=False
         )
         customparser.add_argument(
-            '--refresh',
-            dest='ref',
-            action="store_true",
+            '--refresh',\
+            dest='ref',\
+            action="store_true",\
             help="Optionally reload the data of selected type and clear "\
-                                            "patches from current selection.",
-            default=False,
+                                            "patches from current selection.",\
+            default=False
         )

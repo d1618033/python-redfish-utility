@@ -24,18 +24,17 @@ import json
 from collections import OrderedDict
 
 from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                     InvalidFileFormattingError, Encryption
 
-class RawPostCommand(RdmcCommandBase):
+class RawPostCommand():
     """ Raw form of the post command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='rawpost',\
-            usage='rawpost [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
+    def __init__(self):
+        self.ident = {
+            'name':'rawpost',\
+            'usage':'rawpost [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
                     'the data in the input file.\n\tMultiple POSTs can be performed in sequence by'\
                     ' \n\tadding more path/body key/value pairs.\n'
                     '\n\texample: rawpost rawpost.' \
@@ -43,11 +42,16 @@ class RawPostCommand(RdmcCommandBase):
                     'redfish/v1/systems/(system ID)/Actions/ComputerSystem.'
                     'Reset":\n\t    {\n\t        "ResetType": '\
                     '"ForceRestart"\n\t    }\n\t}',\
-            summary='Raw form of the POST command.',\
-            aliases=['rawpost'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'summary':'Raw form of the POST command.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main raw patch worker function
@@ -56,17 +60,21 @@ class RawPostCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        url = None
         headers = {}
         results = []
 
-        self.postvalidation(options)
+        if hasattr(options, 'sessionid') and options.sessionid:
+            url = self.sessionvalidation(options)
+        else:
+            self.postvalidation(options)
 
         contentsholder = None
 
@@ -100,12 +108,12 @@ class RawPostCommand(RdmcCommandBase):
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self._rdmc.app.post_handler(contentsholder["path"], \
+            results.append(self.rdmc.app.post_handler(contentsholder["path"], \
                   contentsholder["body"], headers=headers, \
                   silent=options.silent, service=options.service))
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self._rdmc.app.post_handler(path, \
+                results.append(self.rdmc.app.post_handler(path, \
                                             body, headers=headers, \
                                             silent=options.silent, service=options.service))
         else:
@@ -119,12 +127,15 @@ class RawPostCommand(RdmcCommandBase):
         if results and returnresponse:
             for result in results:
                 if options.getheaders:
-                    sys.stdout.write(json.dumps(dict(result.getheaders())) + "\n")
+                    self.rdmc.ui.print_out_json(dict(result.getheaders()))
 
                 if options.response:
-                    sys.stdout.write(result.ori + "\n")
+                    if isinstance(result.ori, bytes):
+                        self.rdmc.ui.printer(result.ori.decode('utf-8') + "\n")
+                    else:
+                        self.rdmc.ui.printer(result.ori + "\n")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -134,7 +145,26 @@ class RawPostCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options, skipbuild=True)
+        self.cmdbase.login_select_validation(self, options, skipbuild=True)
+
+    def sessionvalidation(self, options):
+        """ Raw post session validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+
+        url = None
+        if options.user or options.password or options.url:
+            if options.url:
+                url = options.url
+        else:
+            if self.rdmc.app.redfishinst.base_url:
+                url = self.rdmc.app.redfishinst.base_url
+        if url and not "https://" in url:
+            url = "https://" + url
+
+        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -145,7 +175,7 @@ class RawPostCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             'path',

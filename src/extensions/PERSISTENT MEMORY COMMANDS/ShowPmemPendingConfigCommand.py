@@ -18,11 +18,7 @@
 """Command to show the pending configuration for PMM"""
 
 from __future__ import absolute_import
-import sys
 
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     LOGGER, NoContentsFoundForOperationError
 
@@ -33,29 +29,29 @@ from .lib.PmemHelpers import PmemHelpers
 from .lib.RestHelpers import RestHelpers
 
 
-class ShowPmemPendingConfigCommand(RdmcCommandBase):
+class ShowPmemPendingConfigCommand():
     """
     Command to show the pending configuration for PMM
     """
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="showpmmpendingconfig",
-                                 usage="showpmm [-h | --help] [-j | --json]\n\n" \
-                                       "\tShows the pending tasks for configuring PMM\n" \
-                                       "\texample: showpmmpendingconfig --json",
-                                 summary="Shows the pending configuration for PMM.",
-                                 aliases=["showpmmpendingconfig"],
-                                 argparser=ArgumentParser())
-        self.define_arguments(self.parser)
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
-        self._display_helpers = DisplayHelpers()
+    def __init__(self):
+        self.ident = {
+            'name':"showpmmpendingconfig",\
+            'usage':"showpmmpendingconfig [-h | --help] [-j | --json]\n\n" \
+                    "\tShows the pending tasks for configuring PMM\n" \
+                    "\texample: showpmmpendingconfig --json",\
+            'summary':"Shows the pending configuration for PMM.",\
+            'aliases': [],\
+            'auxcommands': []
+        }
         self._mapper = Mapper()
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+        self._display_helpers = DisplayHelpers()
         self._pmem_helpers = PmemHelpers()
 
-    @staticmethod
-    def define_arguments(customparser):
+    def definearguments(self, customparser):
         """
         Wrapper function for new command main function
         :param customparser: command line input
@@ -63,6 +59,8 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
         """
         if not customparser:
             return
+
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             "-j",
@@ -79,9 +77,9 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("PMM Pending Configuration: %s", self.name)
+        LOGGER.info("PMM Pending Configuration: %s", self.ident['name'])
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -91,7 +89,7 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
             raise InvalidCommandLineError(
                 "Chosen command or flag doesn't expect additional arguments")
         # Raise exception if server is in POST
-        if self._rest_helpers.in_post():
+        if RestHelpers(rdmcObject=self.rdmc).in_post():
             raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
                                                    "server might be in POST or powered off")
         self.show_pending_config(options)
@@ -105,16 +103,16 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
         :type options: options.
         """
         # retrieving task members
-        task_members = self._rest_helpers.retrieve_task_members()
+        task_members = RestHelpers(rdmcObject=self.rdmc).retrieve_task_members()
 
         # filtering task members
-        filtered_task_members = self._rest_helpers.filter_task_members(task_members)
+        filtered_task_members = RestHelpers(rdmcObject=self.rdmc).filter_task_members(task_members)
         if not filtered_task_members:
-            sys.stdout.write("\nNo pending configuration tasks found.\n\n")
+            self.rdmc.ui.warn("No pending configuration tasks found.\n\n")
             return None
 
         # retrieving memory members
-        memory = self._rest_helpers.retrieve_memory_resources()
+        memory = RestHelpers(rdmcObject=self.rdmc).retrieve_memory_resources()
         if memory:
             memory_members = memory.get("Members")
         else:
@@ -129,14 +127,14 @@ class ShowPmemPendingConfigCommand(RdmcCommandBase):
             # displaying existing configuration for DELETE operation
             if operation.get("Operation", "") == "DELETE":
                 target_uri = task.get("Payload").get("TargetUri")
-                data = self._rest_helpers.get_resource(target_uri)
+                data = RestHelpers(rdmcObject=self.rdmc).get_resource(target_uri)
                 table = MappingTable.delete_task.value
             else:
                 task_type = self._mapper.get_single_attribute(task, "Type",
                                                               MappingTable.tasks.value, True)
                 task_type = task_type.get("Type", "")
                 if task_type != "PMEM":
-                    sys.stdout.write("Unsupported interleave set type found: " + task_type)
+                    self.rdmc.ui.warn("Unsupported interleave set type found: " + task_type)
                     continue
                 data = task
                 table = MappingTable.tasks.value

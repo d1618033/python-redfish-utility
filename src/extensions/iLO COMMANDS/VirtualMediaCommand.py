@@ -17,36 +17,37 @@
 # -*- coding: utf-8 -*-
 """ Virtual Media Command for rdmc """
 
-import sys
-
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                InvalidCommandLineErrorOPTS, IloLicenseError
+                                InvalidCommandLineErrorOPTS, UI, IloLicenseError
 
-class VirtualMediaCommand(RdmcCommandBase):
+class VirtualMediaCommand():
     """ Changes the iscsi configuration for the server that is currently """ \
                                                             """ logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='virtualmedia',\
-            usage='virtualmedia [ID] [URI] [OPTIONS]\n\n\tRun without' \
+    def __init__(self):
+        self.ident = {
+            'name':'virtualmedia',\
+            'usage':'virtualmedia [ID] [URI] [OPTIONS]\n\n\tRun without' \
                     ' arguments to view the available virtual media sources.' \
                     '\n\texample: virtualmedia\n\n\tInsert virtual media and ' \
                     'set to boot on next restart.\n\texample: virtualmedia 2 ' \
                     'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove ' \
                     'current inserted media.\n\texample: virtualmedia 2 --remove',\
-            summary='Command for inserting and removing virtual media.',\
-            aliases=['virtualmedia'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
-        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+            'summary':'Command for inserting and removing virtual media.',\
+            'aliases': [],\
+            'auxcommands': ["GetCommand", "SetCommand", "SelectCommand", \
+                            "RebootCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+        #self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        #self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main iscsi configuration worker function
@@ -55,7 +56,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -68,27 +69,27 @@ class VirtualMediaCommand(RdmcCommandBase):
         else:
             self.virtualmediavalidation(options)
 
-        resp = self._rdmc.app.get_handler('/rest/v1/Managers/1/VirtualMedia/1', silent=True)
+        resp = self.rdmc.app.get_handler('/rest/v1/Managers/1/VirtualMedia/1', silent=True)
 
         if not resp.status == 200:
             raise IloLicenseError('')
 
-        self.selobj.run("VirtualMedia.")
-        ilover = self._rdmc.app.getiloversion()
+        self.auxcommands['select'].run("VirtualMedia.")
+        ilover = self.rdmc.app.getiloversion()
 
-        if self._rdmc.app.monolith.is_redfish:
+        if self.rdmc.app.monolith.is_redfish:
             isredfish = True
-            paths = self.getobj.getworkerfunction("@odata.id", options, results=True, uselist=False)
-            ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+            paths = self.auxcommands['get'].getworkerfunction("@odata.id", options, results=True, uselist=False)
+            ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
             paths = {ind:path for ind, path in enumerate(paths)}
             ids = {ind:id for ind, id in enumerate(ids)}
             for path in paths:
                 paths[path] = paths[path]['@odata.id']
         else:
             isredfish = False
-            paths = self.getobj.getworkerfunction("links/self/href", options, \
+            paths = self.auxcommands['get'].getworkerfunction("links/self/href", options, \
                     results=True, uselist=False)
-            ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+            ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
             paths = {ind:path for ind, path in enumerate(paths)}
             ids = {ind:id for ind, id in enumerate(ids)}
             for path in paths:
@@ -111,7 +112,7 @@ class VirtualMediaCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Invalid parameter(s). Please run"\
                                       " 'help virtualmedia' for parameters.")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -147,12 +148,12 @@ class VirtualMediaCommand(RdmcCommandBase):
                                       "arguments for possible values.")
 
         if ilover <= 4.230:
-            self._rdmc.app.patch_handler(path, body)
+            self.rdmc.app.patch_handler(path, body)
         else:
-            self._rdmc.app.post_handler(path, body)
+            self.rdmc.app.post_handler(path, body)
 
         if options.reboot:
-            self.rebootobj.run(options.reboot)
+            self.auxcommands['reboot'].run(options.reboot)
 
     def vminserthelper(self, args, options, paths, isredfish, ilover):
         """Worker function to insert virtual media
@@ -188,15 +189,15 @@ class VirtualMediaCommand(RdmcCommandBase):
                                           "no arguments for possible values.")
 
         if ilover <= 4.230:
-            self._rdmc.app.patch_handler(path, body)
+            self.rdmc.app.patch_handler(path, body)
         else:
-            self._rdmc.app.post_handler(path, body)
+            self.rdmc.app.post_handler(path, body)
 
         if options.bootnextreset:
             self.vmbootnextreset(args, paths)
 
         if options.reboot:
-            self.rebootobj.run(options.reboot)
+            self.auxcommands['reboot'].run(options.reboot)
 
     def vmdefaulthelper(self, options, paths):
         """Worker function to reset virtual media config to default
@@ -208,9 +209,9 @@ class VirtualMediaCommand(RdmcCommandBase):
         """
         images = {}
         count = 0
-        mediatypes = self.getobj.getworkerfunction(\
+        mediatypes = self.auxcommands['get'].getworkerfunction(\
             "MediaTypes", options, results=True, uselist=False)
-        ids = self.getobj.getworkerfunction("Id", options, results=True, uselist=False)
+        ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
         ids = {ind:id for ind, id in enumerate(ids)}
         mediatypes = {ind:med for ind, med in enumerate(mediatypes)}
         # To keep indexes consistent between versions
@@ -222,11 +223,16 @@ class VirtualMediaCommand(RdmcCommandBase):
 
         for path in paths:
             count += 1
-            image = self._rdmc.app.get_handler(paths[path], service=True, silent=True)
+            image = self.rdmc.app.get_handler(paths[path], service=True, silent=True)
             image = image.dict['Image']
             images.update({path: image})
 
-        sys.stdout.write("Available Virtual Media Options:\n")
+        self.rdmc.ui.printer("Available Virtual Media Options:\n")
+        if getattr(options, "json", False):
+            json_str = dict()
+            json_str['MediaTypes'] = dict()
+        else:
+            self.rdmc.ui.printer("Available Virtual Media Options:\n")
 
         for image in images:
             media = ""
@@ -239,8 +245,13 @@ class VirtualMediaCommand(RdmcCommandBase):
             for medtypes in mediatypes[image]['MediaTypes']:
                 media += medtypes + " "
 
-            sys.stdout.write("[%s] Media Types Available: %s Image Inserted:" \
+            if getattr(options, "json", False):
+                json_str['MediaTypes'][str(media)] = imagestr
+            else:
+                self.rdmc.ui.printer("[%s] Media Types Available: %s Image Inserted:" \
                                         " %s\n" %(str(image), str(media), imagestr))
+        if getattr(options, "json", False):
+            UI().print_out_json(json_str)
 
     def vmbootnextreset(self, args, paths):
         """Worker function to boot virtual media on next serverreset
@@ -257,8 +268,8 @@ class VirtualMediaCommand(RdmcCommandBase):
                                         " please run the command with no " \
                                         "arguments for possible values.")
 
-        self._rdmc.app.patch_handler(path, \
-                    {"Oem":{self.typepath.defs.oemhp:{"BootOnNextServerReset":\
+        self.rdmc.app.patch_handler(path, \
+                    {"Oem":{self.rdmc.app.typepath.defs.oemhp:{"BootOnNextServerReset":\
                                             True}}}, service=True, silent=True)
 
     def vmredfishhelper(self, action, number, image=None):
@@ -270,7 +281,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         :type number: int
         """
 
-        results = self._rdmc.app.select(selector="VirtualMedia.")
+        results = self.rdmc.app.select(selector="VirtualMedia.")
         bodydict = None
 
         try:
@@ -291,25 +302,25 @@ class VirtualMediaCommand(RdmcCommandBase):
                                             "arguments for possible values.")
 
         if action == 'insert' and image:
-            for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
+            for item in bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions']:
                 if 'InsertVirtualMedia' in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         action = item.split('#')[-1]
                     else:
                         action = "InsertVirtualMedia"
 
-                    path = bodydict['Oem'][self.typepath.defs.oemhp]['Actions'][item]['target']
+                    path = bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions'][item]['target']
                     body = {"Action": action, "Image": image}
                     break
         elif action == 'remove':
-            for item in bodydict['Oem'][self.typepath.defs.oemhp]['Actions']:
+            for item in bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions']:
                 if 'EjectVirtualMedia' in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         action = item.split('#')[-1]
                     else:
                         action = "EjectVirtualMedia"
 
-                    path = bodydict['Oem'][self.typepath.defs.oemhp]['Actions'][item]['target']
+                    path = bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions'][item]['target']
                     body = {"Action": action}
                     break
         else:
@@ -323,7 +334,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -334,7 +345,7 @@ class VirtualMediaCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--reboot',

@@ -30,18 +30,13 @@ import platform
 import itertools
 import subprocess
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 from six.moves import queue
 
 import redfish.hpilo.risblobstore2 as risblobstore2
-
 from redfish.ris.utils import filter_output
-
 from redfish.rest.connections import SecurityStateError
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, \
                 InvalidMSCfileInputError, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                 LOGGER, InvalidCListFileError, NoContentsFoundForOperationError, \
@@ -53,12 +48,12 @@ if os.name == 'nt':
 elif sys.platform != 'darwin' and not 'VMkernel' in platform.uname():
     import pyudev
 
-class ServerlogsCommand(RdmcCommandBase):
+class ServerlogsCommand():
     """ Download logs from the server that is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='serverlogs',\
-            usage='serverlogs [LOG_SELECTION] [OPTIONS]\n\n\tDownload the AHS' \
+    def __init__(self):
+        self.ident = {
+            'name':'serverlogs',\
+            'usage':'serverlogs [LOG_SELECTION] [OPTIONS]\n\n\tDownload the AHS' \
                 ' logs from the logged in server.\n\texample: serverlogs ' \
                 '--selectlog=AHS \n\n\tClear the AHS logs ' \
                 'from the logged in server.\n\texample: serverlogs ' \
@@ -91,13 +86,18 @@ class ServerlogsCommand(RdmcCommandBase):
                 ' \n\texample: serverlogs --selectlog=AHS '\
                 '--directorypath=C:\\Python27\\DataFiles\n\n\tRepair IML log.'\
                 '\n\texample: serverlogs --selectlog=IML --repair IMLlogID',\
-            summary='Download and perform log operations.',\
-            aliases=['logservices'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = self._rdmc.app.typepath
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+            'summary':'Download and perform log operations.',\
+            'aliases': ['logservices'],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = self.rdmc.app.typepath\
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+
         self.dontunmount = None
         self.queue = queue.Queue()
         self.abspath = None
@@ -110,7 +110,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -120,12 +120,12 @@ class ServerlogsCommand(RdmcCommandBase):
         self.serverlogsvalidation(options)
 
         if options.mpfilename:
-            sys.stdout.write("Downloading logs for multiple servers...\n")
+            self.rdmc.ui.printer("Downloading logs for multiple servers...\n")
             return self.gotompfunc(options)
 
         self.serverlogsworkerfunction(options)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -146,7 +146,7 @@ class ServerlogsCommand(RdmcCommandBase):
             path = self.returnslpath(options=options)
         elif options.service.lower() == 'ahs' and options.filter:
             raise InvalidCommandLineError("Cannot filter AHS logs.")
-        elif options.service.lower() == 'ahs' and self.typepath.url.\
+        elif options.service.lower() == 'ahs' and self.rdmc.app.typepath.url.\
                 startswith("blobstore") and not options.clearlog:
             self.downloadahslocally(options=options)
             return
@@ -221,8 +221,8 @@ class ServerlogsCommand(RdmcCommandBase):
         os.mkdir(createdir)
 
         oofile = open(os.path.join(createdir, 'CompleteOutputfile.txt'), 'w+')
-        sys.stdout.write('Creating multiple processes to load configuration '\
-                                            'concurrently to all servers...\n')
+        self.rdmc.ui.printer('Creating multiple processes to load configuration '\
+                                                                'concurrently to all servers...\n')
 
         while True:
             if not self.queue.empty():
@@ -241,7 +241,7 @@ class ServerlogsCommand(RdmcCommandBase):
             else:
                 listargforsubprocess = [sys.executable] + line
 
-            if os.name is not 'nt':
+            if os.name != 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
 
             logfile = open(os.path.join(createdir, urlfilename+".txt"), "w+")
@@ -262,17 +262,16 @@ class ServerlogsCommand(RdmcCommandBase):
             logfile.close()
 
             if returncode == 0:
-                sys.stdout.write('Loading Configuration for {} : SUCCESS\n'.format(urlvar))
+                self.rdmc.ui.printer('Loading Configuration for {} : SUCCESS\n'.format(urlvar))
             else:
-                sys.stdout.write('Loading Configuration for {} : FAILED\n'.format(urlvar))
-                sys.stderr.write('ILOREST return code : {}.\nFor more '\
-                         'details please check {}.txt under {} directory.\n'\
-                                        .format(returncode, urlvar, createdir))
+                self.rdmc.ui.error('Loading Configuration for {} : FAILED\n'.format(urlvar))
+                self.rdmc.ui.error('ILOREST return code : {}.\nFor more details please check {}'\
+                    '.txt under {} directory.\n'.format(returncode, urlvar, createdir))
 
         oofile.close()
 
         if finalreturncode:
-            sys.stdout.write('All servers have been successfully configured.\n')
+            self.rdmc.ui.printer('All servers have been successfully configured.\n')
 
         return finalreturncode
 
@@ -284,7 +283,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param lfile: custom file name
         :type lfile: string.
         """
-        sys.stdout.write('Checking given server information...\n')
+        self.rdmc.ui.printer('Checking given server information...\n')
 
         if not mpfile:
             return False
@@ -316,7 +315,7 @@ class ServerlogsCommand(RdmcCommandBase):
                         args = shlex.split(line, posix=False)
 
                         if len(args) < 5:
-                            sys.stderr.write('Incomplete data in input file: {}\n'.format(line))
+                            self.rdmc.ui.error('Incomplete data in input file: {}\n'.format(line))
                             raise InvalidMSCfileInputError('Please verify the '\
                                                 'contents of the %s file' %mpfile)
                         else:
@@ -379,7 +378,7 @@ class ServerlogsCommand(RdmcCommandBase):
 
             LOGGER.info("Writing maintenance post to %s with %s", str(path), str(bodydict["body"]))
 
-            self._rdmc.app.post_handler(path, bodydict["body"])
+            self.rdmc.app.post_handler(path, bodydict["body"])
 
     def repairlogentry(self, options, path=None):
         """Worker function to repair maintenance log
@@ -409,7 +408,7 @@ class ServerlogsCommand(RdmcCommandBase):
             LOGGER.info("Repairing maintenance log at %s with %s", str(imlidpath), \
                                                                             str(bodydict["body"]))
 
-            self._rdmc.app.patch_handler(imlidpath, bodydict["body"])
+            self.rdmc.app.patch_handler(imlidpath, bodydict["body"])
 
     def clearlog(self, path):
         """Worker function to clear logs.
@@ -418,7 +417,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :type path: str
         """
         LOGGER.info("Clearing logs.")
-        if path and self.typepath.defs.isgen9:
+        if path and self.rdmc.app.typepath.defs.isgen9:
             if path.endswith("/Entries"):
                 path = path[:-len("/Entries")]
             elif path.endswith("Entries/"):
@@ -427,13 +426,13 @@ class ServerlogsCommand(RdmcCommandBase):
             bodydict = dict()
             bodydict["path"] = path
             bodydict["body"] = {"Action":"ClearLog"}
-            self._rdmc.app.post_handler(path, bodydict["body"])
+            self.rdmc.app.post_handler(path, bodydict["body"])
         elif path:
             action = path.split('/')[-2]
             bodydict = dict()
             bodydict["path"] = path
             bodydict["body"] = {"Action":action}
-            self._rdmc.app.post_handler(path, bodydict["body"])
+            self.rdmc.app.post_handler(path, bodydict["body"])
 
     def downloaddata(self, path=None, options=None):
         """Worker function to download the log files
@@ -446,13 +445,13 @@ class ServerlogsCommand(RdmcCommandBase):
         if path:
             LOGGER.info("Getting data from %s", str(path))
             if options.service == 'AHS':
-                data = self._rdmc.app.get_handler(path, silent=True, uncache=True)
+                data = self.rdmc.app.get_handler(path, silent=True, uncache=True)
                 if data:
                     return data.ori
                 else:
                     raise NoContentsFoundForOperationError("Unable to retrieve AHS logs.")
             else:
-                data = self._rdmc.app.get_handler(path, silent=True)
+                data = self.rdmc.app.get_handler(path, silent=True)
 
             datadict = data.dict
 
@@ -460,10 +459,10 @@ class ServerlogsCommand(RdmcCommandBase):
                 completedatadictlist = datadict['Items'] if 'Items' in\
                                             datadict else datadict['Members']
             except:
-                sys.stdout.write('No data available within log.\n')
+                self.rdmc.ui.error('No data available within log.\n')
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
-            if self.typepath.defs.flagforrest:
+            if self.rdmc.app.typepath.defs.flagforrest:
                 morepages = True
 
                 while morepages:
@@ -472,13 +471,13 @@ class ServerlogsCommand(RdmcCommandBase):
                                     str(datadict['links']['NextPage']['page'])
 
                         href = '%s' % next_link_uri
-                        data = self._rdmc.app.get_handler(href, silent=True)
+                        data = self.rdmc.app.get_handler(href, silent=True)
                         datadict = data.dict
 
                         try:
                             completedatadictlist = completedatadictlist + datadict['Items']
                         except:
-                            sys.stdout.write('No data available within log.\n')
+                            self.rdmc.ui.error('No data available within log.\n')
                             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
                     else:
                         morepages = False
@@ -487,8 +486,8 @@ class ServerlogsCommand(RdmcCommandBase):
 
                 for members in completedatadictlist:
                     if len(members.keys()) == 1:
-                        memberpath = members[self.typepath.defs.hrefstring]
-                        data = self._rdmc.app.get_handler(memberpath, silent=True)
+                        memberpath = members[self.rdmc.app.typepath.defs.hrefstring]
+                        data = self.rdmc.app.get_handler(memberpath, silent=True)
                         datadict = datadict+[data.dict]
                     else:
                         datadict = datadict + [members]
@@ -498,13 +497,13 @@ class ServerlogsCommand(RdmcCommandBase):
                 try:
                     return completedatadictlist
                 except Exception:
-                    sys.stdout.write("Could not get the data from server.\n")
+                    self.rdmc.ui.error("Could not get the data from server.\n")
                     raise NoContentsFoundForOperationError("Unable to retrieve logs.")
             else:
-                sys.stdout.write("No log data present.\n")
+                self.rdmc.ui.error("No log data present.\n")
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
         else:
-            sys.stdout.write("Path not found for input log.\n")
+            self.rdmc.ui.error("Path not found for input log.\n")
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
     def returnimlpath(self, options=None):
@@ -515,8 +514,8 @@ class ServerlogsCommand(RdmcCommandBase):
         """
         LOGGER.info("Obtaining IML path for download.")
         path = ""
-        val = self.typepath.defs.logservicetype
-        filtereddatainstance = self._rdmc.app.select(selector=val)
+        val = self.rdmc.app.typepath.defs.logservicetype
+        filtereddatainstance = self.rdmc.app.select(selector=val)
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
@@ -525,12 +524,12 @@ class ServerlogsCommand(RdmcCommandBase):
             for filtereddict in filtereddictslists:
                 if filtereddict['Name'] == 'Integrated Management Log':
                     if options.clearlog:
-                        if self.typepath.defs.flagforrest:
+                        if self.rdmc.app.typepath.defs.flagforrest:
                             linkpath = filtereddict['links']
                             selfpath = linkpath['self']
                             path = selfpath['href']
-                        elif self.typepath.defs.isgen9:
-                            path = filtereddict[self.typepath.defs.hrefstring]
+                        elif self.rdmc.app.typepath.defs.isgen9:
+                            path = filtereddict[self.rdmc.app.typepath.defs.hrefstring]
                         else:
                             actiondict = filtereddict["Actions"]
                             clearkey = [x for x in actiondict if x.endswith("ClearLog")]
@@ -540,17 +539,17 @@ class ServerlogsCommand(RdmcCommandBase):
                                                 filtereddict else filtereddict
                         dictpath = linkpath['Entries']
                         dictpath = dictpath[0] if isinstance(dictpath, list) else dictpath
-                        path = dictpath[self.typepath.defs.hrefstring]
+                        path = dictpath[self.rdmc.app.typepath.defs.hrefstring]
             if not path:
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
         except NoContentsFoundForOperationError as excp:
             raise excp
         except Exception as excp:
-            sys.stdout.write('No path found for the entry.\n')
+            self.rdmc.ui.error('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
-        if self._rdmc.opts.verbose:
-            sys.stdout.write(str(path)+'\n')
+        if self.rdmc.opts.verbose:
+            self.rdmc.ui.printer(str(path)+'\n')
 
         return path
 
@@ -562,8 +561,8 @@ class ServerlogsCommand(RdmcCommandBase):
         """
         LOGGER.info("Obtaining IEL path for download.")
         path = ""
-        val = self.typepath.defs.logservicetype
-        filtereddatainstance = self._rdmc.app.select(selector=val)
+        val = self.rdmc.app.typepath.defs.logservicetype
+        filtereddatainstance = self.rdmc.app.select(selector=val)
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
@@ -572,12 +571,12 @@ class ServerlogsCommand(RdmcCommandBase):
             for filtereddict in filtereddictslists:
                 if filtereddict['Name'] == 'iLO Event Log':
                     if options.clearlog:
-                        if self.typepath.defs.flagforrest:
+                        if self.rdmc.app.typepath.defs.flagforrest:
                             linkpath = filtereddict['links']
                             selfpath = linkpath['self']
                             path = selfpath['href']
-                        elif self.typepath.defs.isgen9:
-                            path = filtereddict[self.typepath.defs.hrefstring]
+                        elif self.rdmc.app.typepath.defs.isgen9:
+                            path = filtereddict[self.rdmc.app.typepath.defs.hrefstring]
                         else:
                             actiondict = filtereddict["Actions"]
                             clearkey = [x for x in actiondict if x.endswith("ClearLog")]
@@ -587,18 +586,18 @@ class ServerlogsCommand(RdmcCommandBase):
                                                 filtereddict else filtereddict
                         dictpath = linkpath['Entries']
                         dictpath = dictpath[0] if isinstance(dictpath, list) else dictpath
-                        path = dictpath[self.typepath.defs.hrefstring]
+                        path = dictpath[self.rdmc.app.typepath.defs.hrefstring]
 
             if not path:
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
         except NoContentsFoundForOperationError as excp:
             raise excp
         except Exception as excp:
-            sys.stdout.write('No path found for the entry.\n')
+            self.rdmc.ui.error('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
-        if self._rdmc.opts.verbose:
-            sys.stdout.write(str(path)+'\n')
+        if self.rdmc.opts.verbose:
+            self.rdmc.ui.printer(str(path)+'\n')
 
         return path
 
@@ -609,13 +608,13 @@ class ServerlogsCommand(RdmcCommandBase):
         :type options: list.
         """
 
-        if not self.typepath.defs.isgen10 or not self._rdmc.app.getiloversion() >= 5.210:
+        if not self.rdmc.app.typepath.defs.isgen10 or not self.rdmc.app.getiloversion() >= 5.210:
             raise IncompatibleiLOVersionError("Security logs are only available on iLO 5 2.10 or"\
                                               " greater.")
         LOGGER.info("Obtaining SL path for download.")
         path = ""
-        val = self.typepath.defs.logservicetype
-        filtereddatainstance = self._rdmc.app.select(selector=val)
+        val = self.rdmc.app.typepath.defs.logservicetype
+        filtereddatainstance = self.rdmc.app.select(selector=val)
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
@@ -630,18 +629,18 @@ class ServerlogsCommand(RdmcCommandBase):
                     else:
                         dictpath = filtereddict['Entries']
                         dictpath = dictpath[0] if isinstance(dictpath, list) else dictpath
-                        path = dictpath[self.typepath.defs.hrefstring]
+                        path = dictpath[self.rdmc.app.typepath.defs.hrefstring]
 
             if not path:
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
         except NoContentsFoundForOperationError as excp:
             raise excp
         except Exception as excp:
-            sys.stdout.write('No path found for the entry.\n')
+            self.rdmc.ui.error('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
-        if self._rdmc.opts.verbose:
-            sys.stdout.write(str(path)+'\n')
+        if self.rdmc.opts.verbose:
+            self.rdmc.ui.printer(str(path)+'\n')
 
         return path
 
@@ -658,8 +657,8 @@ class ServerlogsCommand(RdmcCommandBase):
             raise InvalidCommandLineError("AHS logs must be downloaded with " \
                             "default name. Please re-run command without filename option.")
 
-        val = self.typepath.defs.hpiloactivehealthsystemtype
-        filtereddatainstance = self._rdmc.app.select(selector=val)
+        val = self.rdmc.app.typepath.defs.hpiloactivehealthsystemtype
+        filtereddatainstance = self.rdmc.app.select(selector=val)
 
         try:
             filtereddictslists = [x.resp.dict for x in filtereddatainstance]
@@ -669,12 +668,12 @@ class ServerlogsCommand(RdmcCommandBase):
 
             for filtereddict in filtereddictslists:
                 if options.clearlog:
-                    if self.typepath.defs.flagforrest:
+                    if self.rdmc.app.typepath.defs.flagforrest:
                         linkpath = filtereddict['links']
                         selfpath = linkpath['self']
                         path = selfpath['href']
-                    elif self.typepath.defs.isgen9:
-                        path = filtereddict[self.typepath.defs.hrefstring]
+                    elif self.rdmc.app.typepath.defs.isgen9:
+                        path = filtereddict[self.rdmc.app.typepath.defs.hrefstring]
                     else:
                         actiondict = filtereddict["Actions"]
                         clearkey = [x for x in actiondict if x.endswith("ClearLog")]
@@ -732,11 +731,11 @@ class ServerlogsCommand(RdmcCommandBase):
         except NoContentsFoundForOperationError as excp:
             raise excp
         except Exception as excp:
-            sys.stdout.write('No path found for the entry.\n')
+            self.rdmc.ui.error('No path found for the entry.\n')
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
-        if self._rdmc.opts.verbose:
-            sys.stdout.write(str(path)+'\n')
+        if self.rdmc.opts.verbose:
+            self.rdmc.ui.printer(str(path)+'\n')
 
         return path
 
@@ -790,7 +789,7 @@ class ServerlogsCommand(RdmcCommandBase):
         LOGGER.info("Entering AHS local download functions...")
         self.dontunmount = True
 
-        if self.typepath.ilogen < 4:
+        if self.rdmc.app.typepath.ilogen < 4:
             raise IncompatibleiLOVersionError("Need at least iLO 4 for this program to run!\n")
 
         if sys.platform == 'darwin':
@@ -802,13 +801,23 @@ class ServerlogsCommand(RdmcCommandBase):
             raise InvalidCommandLineError("AHS logs must be downloaded with " \
                             "default name! Re-run command without filename!")
 
-        if int(risblobstore2.BlobStore2().get_security_state()) > 3:
+        secstate = risblobstore2.BlobStore2().get_security_state()
+        #self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
+
+        if isinstance(secstate, bytes):
+            secstate = secstate.decode('utf-8')
+        if isinstance(secstate, str):
+            secstate = secstate.replace('\x00', '').strip()
+        if secstate == '':
+            secstate = 0
+        self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
+        if int(secstate) > 3:
             raise SecurityStateError("AHS logs cannot be downloaded" \
                                         " locally in high security state.\n")
 
         self.lib = risblobstore2.BlobStore2.gethprestchifhandle()
 
-        sys.stdout.write("Mounting AHS partition...\n")
+        self.rdmc.ui.printer("Mounting AHS partition...\n")
 
         try:
             (manual_ovr, abspath) = self.getbbabspath()
@@ -842,7 +851,7 @@ class ServerlogsCommand(RdmcCommandBase):
         """Update iloversion to create appropriate headers."""
         LOGGER.info("Updating iloversion to format data appropriately")
         self.lib.updateiloversion.argtypes = [ctypes.c_float]
-        self.lib.updateiloversion(float('2.'+str(self.typepath.ilogen)))
+        self.lib.updateiloversion(float('2.'+str(self.rdmc.app.typepath.ilogen)))
 
     def createahsfile(self, ahsfile=None):
         """Create the AHS file
@@ -853,9 +862,9 @@ class ServerlogsCommand(RdmcCommandBase):
         LOGGER.info("Creating AHS file from the formatted data.")
         self.clearahsfile(ahsfile=ahsfile)
         self.lib.setAHSFilepath.argtypes = [ctypes.c_char_p]
-        self.lib.setAHSFilepath(os.path.abspath(ahsfile))
+        self.lib.setAHSFilepath(os.path.abspath(ahsfile).encode('ascii', 'ignore'))
         self.lib.setBBdatapath.argtypes = [ctypes.c_char_p]
-        self.lib.setBBdatapath(self.abspath)
+        self.lib.setBBdatapath(self.abspath.encode('ascii', 'ignore'))
         self.lib.createAHSLogFile_G9()
 
     def clearahsfile(self, ahsfile=None):
@@ -895,7 +904,7 @@ class ServerlogsCommand(RdmcCommandBase):
             self.lib.gendatlisting.argtypes = [ctypes.c_char_p, ctypes.c_bool, ctypes.c_uint]
 
             filesize = os.stat(os.path.join(self.abspath, files)).st_size
-            self.lib.gendatlisting(files, bisrequiredfile, filesize)
+            self.lib.gendatlisting(files.encode('ascii', 'ignore'), bisrequiredfile, filesize)
 
     def getfilenames(self, options=None, cfilelist=None):
         """Get all file names from the blackbox directory."""
@@ -953,6 +962,17 @@ class ServerlogsCommand(RdmcCommandBase):
                 pass
 
         _ = [cfilelist.remove(fil) for fil in list(cfilelist) if fil not in filenames]
+
+        if options.customiseAHS:
+            for files in reversed(cfilelist):
+                try:
+                    filenoext = files.rsplit(".", 1)[0]
+                    filesplit = filenoext.split("-")
+                    newdate = datetime.date(int(filesplit[1]), int(filesplit[2]), int(filesplit[3]))
+                    if not ( (strdate <= newdate) and (newdate <= enddate)):
+                        cfilelist.remove(files)
+                except:
+                    pass
 
         if options.downloadallahs:
             strdate = min(datelist) if datelist else strdate
@@ -1017,7 +1037,6 @@ class ServerlogsCommand(RdmcCommandBase):
             cfilelist = [f for f in os.listdir(self.abspath) if f.endswith('.zbb')]
 
         LOGGER.info("CLIST files %s", str(cfilelist))
-
         return cfilelist
 
     def getbbabspath(self):
@@ -1161,6 +1180,9 @@ class ServerlogsCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("Invalid filter" \
                   " parameter format [filter_attribute]=[filter_value]")
 
+            # Severity inside Oem/Hpe should be filtered
+            if sel == 'Severity':
+                sel = 'Oem/Hpe/'+sel
             data = filter_output(data, sel, val)
             if not data:
                 raise NoContentsFoundForOperationError("Filter returned no matches.")
@@ -1176,7 +1198,7 @@ class ServerlogsCommand(RdmcCommandBase):
         LOGGER.info("Obtaining Serialnumber from iLO for AHS filename.")
 
         val = "ComputerSystem."
-        filtereddatainstance = self._rdmc.app.select(selector=val)
+        filtereddatainstance = self.rdmc.app.select(selector=val)
         snum = None
 
         try:
@@ -1186,7 +1208,7 @@ class ServerlogsCommand(RdmcCommandBase):
                 raise NoContentsFoundForOperationError("")
         except Exception:
             try:
-                resp = self._rdmc.app.get_handler(self.typepath.defs.systempath,\
+                resp = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath,\
                     silent=True, service=True, uncache=True)
                 snum = resp.dict["SerialNumber"] if resp else snum
             except:
@@ -1213,7 +1235,7 @@ class ServerlogsCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -1224,7 +1246,7 @@ class ServerlogsCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '-f',

@@ -17,34 +17,33 @@
 # -*- coding: utf-8 -*-
 """ Factory Defaults Command for rdmc """
 import os
-import sys
 
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                     NoContentsFoundForOperationError, InvalidFileInputError, Encryption, UploadError
 
-class IloBackupRestoreCommand(RdmcCommandBase):
+class IloBackupRestoreCommand():
     """ Backup and restore server using iLO's .bak file """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='backuprestore',\
-            usage='backuprestore [OPTIONS]\n\n\t'\
+    def __init__(self):
+        self.ident = {
+            'name':'backuprestore',\
+            'usage':'backuprestore [OPTIONS]\n\n\t'\
                 'Create a .bak file. \n\texample: backuprestore backup\n\n\t' \
                 'Restore a server using a .bak file. \n\texample: backuprestore '\
                 'restore\n\n\tNOTE: This command is designed to only restore\n\tthe '\
                 'machine from which the backup file was created against.\n\tIf you would like to '\
                 'take one configuration and apply it\n\tto multiple systems see the '\
                 'serverclone command.\n\tThis command is only available in remote mode.',\
-            summary='Backup and restore iLO to a server using a .bak file.',\
-            aliases=['br'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+            'summary':'Backup and restore iLO to a server using a .bak file.',\
+            'aliases': ['br'],\
+            'auxcommands': ["LogoutCommand"]
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+        #self.definearguments(self.parser)
+        #self._rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
     def run(self, line):
         """ Main factorydefaults function
@@ -53,7 +52,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -65,11 +64,11 @@ class IloBackupRestoreCommand(RdmcCommandBase):
 
         self.ilobackuprestorevalidation(options)
 
-        if 'blobstore' in self._rdmc.app.current_client.base_url:
+        if 'blobstore' in self.rdmc.app.current_client.base_url:
             raise InvalidCommandLineError("This command is only available remotely.")
 
-        sessionkey = self._rdmc.app.current_client.session_key
-        sessionkey = (sessionkey).encode('ascii', 'ignore')
+        sessionkey = self.rdmc.app.current_client.session_key
+        #sessionkey = (sessionkey).encode('ascii', 'ignore')
 
         if args[0].lower() == 'backup':
             self.backupserver(options, sessionkey)
@@ -79,7 +78,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             raise InvalidCommandLineError("%s is not a valid option for this "\
                                           "command."% str(args[0]))
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -93,7 +92,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         """
         select = "HpeiLOBackupRestoreService."
         backupfile = None
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -114,12 +113,12 @@ class IloBackupRestoreCommand(RdmcCommandBase):
 
         if options.fpass:
             postdata.append(('password', options.fpass))
-        sys.stdout.write("Downloading backup file %s..." % backupname)
-        backupfile = self._rdmc.app.post_handler(backuplocation, postdata,\
+        self.rdmc.ui.printer("Downloading backup file %s..." % backupname)
+        backupfile = self.rdmc.app.post_handler(backuplocation, postdata,\
           service=True, silent=True)
 
         if backupfile:
-            sys.stdout.write("Download complete.\n")
+            self.rdmc.ui.printer("Download complete.\n")
             outfile = open(backupname, 'wb')
             outfile.write(backupfile.ori)
             outfile.close()
@@ -152,7 +151,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             else:
                 filename = files[0]
 
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -174,8 +173,8 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             postdata.append(('password', options.fpass))
         postdata.append(('file', (filename, bakfile, 'application/octet-stream')))
 
-        resp = self._rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True, \
-                                    headers={'Cookie': 'sessionKey=' + skey})
+        resp = self.rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True, \
+                                    headers={'Cookie': 'sessionKey=' + skey.decode('utf-8')})
 
         if not resp.status == 200:
             if resp.ori == 'invalid_restore_password':
@@ -184,9 +183,9 @@ class IloBackupRestoreCommand(RdmcCommandBase):
             else:
                 raise UploadError("Error while uploading the backup file.")
         else:
-            sys.stdout.write("Restore in progress. iLO while be unresponsive while the "\
+            self.rdmc.ui.warn("Restore in progress. iLO while be unresponsive while the "\
                                         "restore completes.\nYour session will be terminated.\n")
-            self.logoutobj.run("")
+            self.auxcommands['logout'].run("")
 
     def ilobackuprestorevalidation(self, options):
         """ factory defaults validation function
@@ -194,7 +193,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -205,7 +204,7 @@ class IloBackupRestoreCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '-f',

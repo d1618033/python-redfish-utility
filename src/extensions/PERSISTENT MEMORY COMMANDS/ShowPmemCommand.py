@@ -19,11 +19,9 @@
 from __future__ import absolute_import, division
 
 import re
-import sys
-from argparse import ArgumentParser, REMAINDER, Action
+from argparse import REMAINDER, Action
 
 from enum import Enum
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
     NoContentsFoundForOperationError, LOGGER
 
@@ -34,9 +32,9 @@ from .lib.PmemHelpers import PmemHelpers
 from .lib.RestHelpers import RestHelpers
 
 
-class _ParseOptionsList(Action):
+class _Parse_Options_List(Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
-        super(_ParseOptionsList, self).__init__(option_strings, dest, nargs, **kwargs)
+        super(_Parse_Options_List, self).__init__(option_strings, dest, nargs, **kwargs)
     def __call__(self, parser, namespace, values, option_strings):
         """
         Callback to parse a comma-separated list into an array.
@@ -76,22 +74,24 @@ def get_default_attributes(flag):
     return []
 
 
-class ShowPmemCommand(RdmcCommandBase):
+class ShowPmemCommand():
     """ Command to display information about Persistent Memory modules """
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="showpmm",
-                                 usage="showpmm [-h|--help] "
-                                       "[-I|--dimm=(DimmIDs)] [-D|--device] [-C|--config] "
-                                       "[-M|--summary] [-j|--json]\n\n\tDisplay information about "
-                                       "Persistent Memory modules \n\texample: showpmm --device",
-                                 summary="Display information about Persistent Memory modules.",
-                                 aliases=["showpmm"],
-                                 argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
+    def __init__(self):
+        self.ident = {
+            'name':'showpmm',\
+            'usage':"showpmm [-h|--help] "\
+                    "[-I|--dimm=(DimmIDs)] [-D|--device] [-C|--pmmconfig] "
+                    "[-M|--summary] [-j|--json]\n\n\tDisplay information about "
+                    "Persistent Memory modules \n\texample: showpmm --device",\
+            'summary':"Display information about Persistent Memory modules.",\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+
         self._display_helpers = DisplayHelpers()
         self._mapper = Mapper()
         self._pmem_helpers = PmemHelpers()
@@ -104,12 +104,12 @@ class ShowPmemCommand(RdmcCommandBase):
         """
         # Retrieving memory collection resources
         if options.logical or options.config:
-            memory, domain_members, all_chunks = self._rest_helpers.retrieve_mem_and_mem_domains()
+            memory, domain_members, all_chunks = RestHelpers(rdmcObject=self.rdmc).retrieve_mem_and_mem_domains()
             if not domain_members:
                 raise NoContentsFoundForOperationError("Failed to retrieve Memory "
                                                        "Domain resources")
         else:
-            memory = self._rest_helpers.retrieve_memory_resources()
+            memory = RestHelpers(rdmcObject=self.rdmc).retrieve_memory_resources()
 
         if memory:
             memory_members = memory.get("Members")
@@ -161,7 +161,7 @@ class ShowPmemCommand(RdmcCommandBase):
 
         elif options.logical:
             if not all_chunks:
-                sys.stdout.write("\nNo Persistent Memory regions found\n\n")
+                self.rdmc.ui.warn("No Persistent Memory regions found\n\n")
                 return
             self.show_persistent_interleave_sets(selected_pmem_members, all_chunks, options)
 
@@ -209,7 +209,7 @@ class ShowPmemCommand(RdmcCommandBase):
     def show_pmem_module_configuration(self, selected_pmem_members, all_chunks, options=None):
         """
         Command to display information about DIMMs when the
-        '--config' | '-C' flag is specified
+        '--pmmconfig' | '-C' flag is specified
         :param selected_pmem_members: pmem members to be displayed
         :type selected_pmem_members: list
         :param all_chunks: list of memory chunks
@@ -246,7 +246,7 @@ class ShowPmemCommand(RdmcCommandBase):
         if options.json:
             self._display_helpers.display_data(display_output, OutputFormats.json)
         else:
-            sys.stdout.write("\nInterleave Persistent Memory regions\n")
+            self.rdmc.ui.printer("\nInterleave Persistent Memory regions\n")
             self._display_helpers.display_data(display_output, OutputFormats.table)
 
     def show_pmem_module_summary(self, selected_pmem_members, options=None):
@@ -276,20 +276,21 @@ class ShowPmemCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("PMM: %s", self.name)
+        LOGGER.info("PMM: %s", self.ident['name'])
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
 
+        self.rdmc.login_select_validation(self, options)
         if args:
             self.validate_args(options)
         self.validate_show_pmem_options(options)
         # Raise exception if server is in POST
-        if self._rest_helpers.in_post():
+        if RestHelpers(rdmcObject=self.rdmc).in_post():
             raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
                                                    "server might be in POST or powered off")
         self.show_pmem_modules(options)
@@ -318,11 +319,11 @@ class ShowPmemCommand(RdmcCommandBase):
         :type options: instance of OptionParser class
         """
         # Usage/Error strings
-        usage_multiple_flags = "Only one of '--device | -D', '--config | -C', " \
+        usage_multiple_flags = "Only one of '--device | -D', '--pmmconfig | -C', " \
                                "'--logical | -L' or '--summary | -M' may be specified"
         # usage_all_display = "Only one of '--all | -a' or '--display | -d' may be specified\n"
         usage_dimm_flag = "'--dimm | -I' can only be specified  with either the " \
-                          "'--device | -D' or '--config | -C' flag\n" \
+                          "'--device | -D' or '--pmmconfig | -C' flag\n" \
                           " or without any flag"
         error_dimm_format = "DIMM IDs should be of the form 'ProcessorNumber@SlotNumber'"
         error_dimm_range = "One or more of the specified DIMM ID(s) are invalid"
@@ -353,6 +354,8 @@ class ShowPmemCommand(RdmcCommandBase):
         if not customparser:
             return
 
+        self.cmdbase.add_login_arguments_group(customparser)
+
         customparser.add_argument(
             "-j",
             "--json",
@@ -376,7 +379,7 @@ class ShowPmemCommand(RdmcCommandBase):
 
         customparser.add_argument(
             "-C",
-            "--config",
+            "--pmmconfig",
             action="store_true",
             default=False,
             dest="config",
@@ -408,7 +411,7 @@ class ShowPmemCommand(RdmcCommandBase):
             "-I",
             "--dimm",
             type=str,
-            action=_ParseOptionsList,
+            action=_Parse_Options_List,
             metavar="IDLIST",
             nargs=1,
             dest="dimm",

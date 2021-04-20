@@ -18,34 +18,34 @@
 """ Update Task Queue Command for rdmc """
 
 import re
-import sys
 import json
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import RawDescriptionHelpFormatter
 from random import randint
 
 from redfish.ris.rmc_helper import ValidationError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
-
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
                         InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption
 
-class MaintenanceWindowCommand(RdmcCommandBase):
+__subparsers__ = ['add', 'delete']
+
+class MaintenanceWindowCommand():
     """ Main maintenancewindow command class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self, \
-            name='maintenancewindow', \
-            usage=None, \
-            description='Add or delete maintenance windows from the iLO repository.\nTo '\
+    def __init__(self):
+        self.ident = {
+            'name':'maintenancewindow', \
+            'usage': None,\
+            'description':'Add or delete maintenance windows from the iLO repository.\nTo '\
                   ' view help on specific sub-commands run: serverclone <sub-command> -h\n\n' \
                   'NOTE: iLO 5 required.',
-            summary='Manages the maintenance windows for iLO.',\
-            aliases=['Maintenancewindow'])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Manages the maintenance windows for iLO.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
 
     def run(self, line):
         """ Main update maintenance window worker function
@@ -54,7 +54,14 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, _) = self._parse_arglist(line, default=True)
+            ident_subparser = False
+            for cmnd in __subparsers__:
+                if cmnd in line:
+                    (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+                    ident_subparser = True
+                    break
+            if not ident_subparser:
+                (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -63,11 +70,11 @@ class MaintenanceWindowCommand(RdmcCommandBase):
 
         self.maintenancewindowvalidation(options)
 
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError(\
                       'iLO Repository commands are only available on iLO 5.')
 
-        windows = self._rdmc.app.getcollectionmembers(\
+        windows = self.rdmc.app.getcollectionmembers(\
                                 '/redfish/v1/UpdateService/MaintenanceWindows/')
 
         if options.command.lower() == 'add':
@@ -77,7 +84,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         else:
             self.listmainenancewindows(options, windows)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -91,8 +98,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         :param startafter: redfish date-time string to start the maintenance window
         :type startafter: str.
         """
-        adddata = {}
-        adddata['StartAfter'] = startafter
+        adddata = {'StartAfter': startafter}
 
         if options.name:
             adddata['Name'] = options.name
@@ -111,11 +117,11 @@ class MaintenanceWindowCommand(RdmcCommandBase):
 
         if not errors:
             path = '/redfish/v1/UpdateService/MaintenanceWindows/'
-            self._rdmc.app.post_handler(path, adddata)
+            self.rdmc.app.post_handler(path, adddata)
         else:
-            sys.stderr.write("Invalid Maintenance Window:\n")
+            self.rdmc.ui.error("Invalid Maintenance Window:\n")
             for error in errors:
-                sys.stderr.write('\t'+error+'\n')
+                self.rdmc.ui.error('\t'+error+'\n')
             raise ValidationError('')
 
     def deletemaintenancewindow(self, windows, nameid):
@@ -131,8 +137,8 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         for window in windows:
             if window['Name'] == nameid or window['Id'] == nameid:
                 path = window['@odata.id']
-                sys.stdout.write("Deleting %s\n" % nameid)
-                self._rdmc.app.delete_handler(path)
+                self.rdmc.ui.printer("Deleting %s\n" % nameid)
+                self.rdmc.app.delete_handler(path)
                 deleted = True
                 break
 
@@ -169,11 +175,11 @@ class MaintenanceWindowCommand(RdmcCommandBase):
                         outstring += '\n\tExpires at: %s' % 'No expire time set.'
                     outstring += '\n'
             if jsonwindows:
-                sys.stdout.write(str(json.dumps(jsonwindows, indent=2, sort_keys=True))+'\n')
+                self.rdmc.ui.print_out_json(jsonwindows)
             else:
-                sys.stdout.write(outstring)
+                self.rdmc.ui.printer(outstring)
         else:
-            sys.stdout.write("No maintenance windows found on system.\n")
+            self.rdmc.ui.warn("No maintenance windows found on system.\n")
 
     def validatewindow(self, cmw, windows):
         """ Validate the maintenance window before adding
@@ -213,7 +219,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -224,7 +230,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
         subcommand_parser = customparser.add_subparsers(dest='command')
 
         #default sub-parser
@@ -243,7 +249,8 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        add_login_arguments_group(default_parser)
+        self.cmdbase.add_login_arguments_group(default_parser)
+
         #add sub-parser
         add_help='Adds a maintenance window to iLO'
         add_parser = subcommand_parser.add_parser(
@@ -283,7 +290,8 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             "time the maintenance window expires.",
             default=None
         )
-        add_login_arguments_group(add_parser)
+        self.cmdbase.add_login_arguments_group(add_parser)
+
         #delete sub-parser
         delete_help='Deletes the specified maintenance window on the currently logged in server.'
         delete_parser = subcommand_parser.add_parser(
@@ -291,7 +299,7 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             help=delete_help,
             description=delete_help+'\nexample: maintenancewindow delete mymaintenancewindowname\n'\
                         'Note: The maintenance window identifier can be referenced by Name or ID#.'
-            'iloaccounts delete username',
+            'maintenancewindow delete name',
             formatter_class=RawDescriptionHelpFormatter
         )
         delete_parser.add_argument(
@@ -299,4 +307,4 @@ class MaintenanceWindowCommand(RdmcCommandBase):
             help='The unique identifier provided by iLO or the identifier provided by \'--name\' ' \
                  'when the maintenance window was created.'
         )
-        add_login_arguments_group(delete_parser)
+        self.cmdbase.add_login_arguments_group(delete_parser)

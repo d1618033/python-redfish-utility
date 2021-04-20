@@ -17,30 +17,28 @@
 # -*- coding: utf-8 -*-
 """ BootOrder Command for rdmc """
 
-import sys
 import ast
 import copy
 import fnmatch
 
 from functools import reduce
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 import six
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
+from rdmc import RdmcCommand
+
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, UI, \
                     InvalidCommandLineErrorOPTS, BootOrderMissingEntriesError,\
                     InvalidOrNothingChangedSettingsError
 
-class BootOrderCommand(RdmcCommandBase):
+class BootOrderCommand():
     """ Changes the boot order for the server that is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='bootorder',\
-            usage='bootorder [BOOT ORDER] [OPTIONS]\n\n\tRun without arguments ' \
-                'for current boot order and one time boot options.\n\texample: ' \
-                'bootorder\n\n\tTo set the persistent boot order pick items ' \
+    def __init__(self):
+        self.ident = {
+            'name':'bootorder',\
+            'usage':'Run without arguments for current boot order and one time boot options.'\
+                '\n\texample: bootorder\n\n\tTo set the persistent boot order pick items ' \
                 'from\n\tthe "Current Persistent Boot Order" section.\n\t' \
                 'example: bootorder [5,4,3,2,1] --commit\n\n\tSetting partial' \
                 ' boot order is also supported.\n\tMissing entries are ' \
@@ -68,21 +66,27 @@ class BootOrderCommand(RdmcCommandBase):
                 '\n\toptions" section. Example: choosing Pxe will try to Pxe' \
                 ' boot\n\tcapable devices in the order found in the "' \
                 'Continuous and one\n\ttime boot options".\n\n\t',\
-            summary='Displays and sets the current boot order.',\
-            aliases=['bootorder'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+            'summary':'Displays and sets the current boot order.',\
+            'aliases': [],\
+            'auxcommands': ["GetCommand", "SelectCommand", "SetCommand", "RebootCommand"]
+        }
+        #self.definearguments(self.parser)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
+
+        #self._rdmc. rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+
+        #self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
+        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+        #self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
+        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
 
     def run(self, line):
         """ Main boot order worker function """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -95,60 +99,66 @@ class BootOrderCommand(RdmcCommandBase):
             self.secureboothelper(options.secureboot)
 
             if options.reboot:
-                self.rebootobj.run(options.reboot)
+                self.auxcommands['reboot'].run(options.reboot)
 
             return ReturnCodes.SUCCESS
 
-        self._rdmc.app.select(selector="HpeServerBootSettings.", path_refresh=True)
+        self.rdmc.app.select(selector="HpeServerBootSettings.", path_refresh=True)
 
-        props = self._rdmc.app.getprops(skipnonsetting=False)
+        props = self.rdmc.app.getprops(skipnonsetting=False)
 
         for prop in props:
             bootname = prop.get('Name')
 
-            if 'current' in bootname.lower():
-                try:
-                    bootpath = prop.get('@odata.id')
-                except:
-                    bootpath = prop.get('links')
-            else:
-                bootpath = '/rest/v1/systems/1/bios/Boot'
+            self.rdmc.ui.printer('bootname is : {0}\n\n'.format(bootname))
 
-        bootsources = self._rdmc.app.get_handler(bootpath,\
+            if self.rdmc.app.typepath.defs.isgen10:
+                if 'current' in bootname.lower() or 'pending' in bootname.lower():
+                    try:
+                        bootpath = prop.get('@odata.id')
+                    except:
+                        bootpath = prop.get('links')
+            else:
+                bootpath = '/rest/v1/systems/1/bios/boot'
+
+        self.rdmc.ui.printer('bootpath is : {0}\n\n'.format(bootpath))
+
+        bootsources = self.rdmc.app.get_handler(bootpath,\
                         service=True, silent=True).dict['BootSources']
 
         bootoverride = None
-        self.selobj.selectfunction("HpBios.")
-        bootmode = self.getobj.getworkerfunction("BootMode", options, results=True, uselist=True)
+        self.auxcommands['select'].selectfunction("HpBios.")
+        bootmode = self.auxcommands['get'].getworkerfunction("BootMode", options, \
+                                                                        results=True, uselist=True)
 
-        self.selobj.selectfunction("ComputerSystem.")
-        onetimebootsettings = next(iter(self.getobj.getworkerfunction(\
-                ['Boot/'+self.typepath.defs.bootoverridetargettype], options, \
+        self.auxcommands['select'].selectfunction("ComputerSystem.")
+        onetimebootsettings = next(iter(self.auxcommands['get'].getworkerfunction(\
+                ['Boot/' + self.rdmc.app.typepath.defs.bootoverridetargettype], options, \
                 results=True, uselist=True)), None)
 
-        bootstatus = next(iter(self.getobj.getworkerfunction(\
+        bootstatus = next(iter(self.auxcommands['get'].getworkerfunction(\
                                ['Boot/BootSourceOverrideEnabled'], options, \
                                results=True, uselist=True)), None)
 
-        targetstatus = next(iter(self.getobj.getworkerfunction(\
+        targetstatus = next(iter(self.auxcommands['get'].getworkerfunction(\
                                 ['Boot/BootSourceOverrideTarget'], options, \
                                 results=True, uselist=True)), None)
 
-        uefitargetstatus = next(iter(self.getobj.getworkerfunction(\
+        uefitargetstatus = next(iter(self.auxcommands['get'].getworkerfunction(\
                             ['Boot/UefiTargetBootSourceOverride'], options, \
                             results=True, uselist=True)), None)
 
-        currentsettings = self._rdmc.app.get_handler(self.typepath.defs.systempath, \
+        currentsettings = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath, \
                                             service=True, silent=True)
 
         if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
             #Gen 9
-            uefionetimebootsettings = next(iter(self.getobj.getworkerfunction(\
+            uefionetimebootsettings = next(iter(self.auxcommands['get'].getworkerfunction(\
                   ['Boot/UefiTargetBootSourceOverrideSupported'], options, \
                   results=True, uselist=True)), None)
             if not uefionetimebootsettings:
                 #Gen 10
-                uefionetimebootsettings = next(iter(self.getobj.getworkerfunction(\
+                uefionetimebootsettings = next(iter(self.auxcommands['get'].getworkerfunction(\
                   ['Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues'], options, \
                   results=True, uselist=True)), None)['Boot']\
                                             ['UefiTargetBootSourceOverride@Redfish.AllowableValues']
@@ -167,13 +177,16 @@ class BootOrderCommand(RdmcCommandBase):
 
         if options.onetimeboot is None and options.continuousboot is None and \
                                                                     not options.disablebootflag:
-            self.selobj.selectfunction("HpServerBootSettings.")
-            bootsettings = next(iter(self.getobj.getworkerfunction(\
+            self.auxcommands['select'].selectfunction("HpServerBootSettings.")
+            bootsettings = next(iter(self.auxcommands['get'].getworkerfunction(\
                           "PersistentBootConfigOrder", options, results=True, uselist=True)), None)
 
             if not args:
-                self.print_out_boot_order(bootsettings, onetimebootsettings, \
-                  uefionetimebootsettings, bootmode, bootsources, bootstatus, targetstatus)
+                if not options.json:
+                    self.print_out_boot_order(bootsettings, onetimebootsettings, \
+                        uefionetimebootsettings, bootmode, bootsources, bootstatus, targetstatus)
+                elif options.json:
+                    UI().print_out_json(bootsettings)
             elif len(args) == 1 and args[0][0] == '[':
                 bootlist = args[0][1:-1].split(",")
                 currentlist = bootsettings["PersistentBootConfigOrder"]
@@ -223,7 +236,7 @@ class BootOrderCommand(RdmcCommandBase):
                     elif options.commit:
                         newlist += " --commit"
 
-                    self.setobj.run("PersistentBootConfigOrder=" + newlist)
+                    self.auxcommands['set'].run("PersistentBootConfigOrder=" + newlist)
             else:
                 currlist = bootsettings["PersistentBootConfigOrder"]
                 if not isinstance(currlist, list):
@@ -254,7 +267,7 @@ class BootOrderCommand(RdmcCommandBase):
                     strlist += ' --commit --reboot ' + options.reboot
                 elif options.commit:
                     strlist += " --commit"
-                self.setobj.run("PersistentBootConfigOrder=" + strlist)
+                self.auxcommands['set'].run("PersistentBootConfigOrder=" + strlist)
         else:
             if not options.onetimeboot is None:
                 entry = options.onetimeboot
@@ -278,13 +291,13 @@ class BootOrderCommand(RdmcCommandBase):
             newlist = ""
 
             if entry.lower() in (item.lower() for item in onetimebootsettings\
-                        ["Boot"][self.typepath.defs.bootoverridetargettype]):
+                        ["Boot"][self.rdmc.app.typepath.defs.bootoverridetargettype]):
 
                 if entry and isinstance(entry, six.string_types):
                     entry = entry.upper()
 
                 entry = self.searchcasestring(entry, onetimebootsettings["Boot"]\
-                                    [self.typepath.defs.bootoverridetargettype])
+                                    [self.rdmc.app.typepath.defs.bootoverridetargettype])
 
                 if not entry == targetstatus['Boot']['BootSourceOverrideTarget']:
                     newlist += " Boot/BootSourceOverrideTarget=" + entry
@@ -301,7 +314,7 @@ class BootOrderCommand(RdmcCommandBase):
                     newlist += " --commit"
 
                 if newlist:
-                    self.setobj.run(newlist)
+                    self.auxcommands['set'].run(newlist)
                 else:
                     raise InvalidOrNothingChangedSettingsError("Entry is the current boot setting.")
             elif uefionetimebootsettings and uefionetimebootsettings["Boot"]\
@@ -315,7 +328,7 @@ class BootOrderCommand(RdmcCommandBase):
                             ["Boot"]["UefiTargetBootSourceOverrideSupported"])
                 try:
                     #gen10
-                    allowable_vals = next(iter(self.getobj.getworkerfunction(\
+                    allowable_vals = next(iter(self.auxcommands['get'].getworkerfunction(\
                       ['Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues'], options, \
                       results=True, uselist=True)), {})['Boot']\
                                         ['UefiTargetBootSourceOverride@Redfish.AllowableValues']
@@ -335,14 +348,14 @@ class BootOrderCommand(RdmcCommandBase):
                     newlist += " Boot/BootSourceOverrideTarget=UefiTarget"
 
                 if bootoverride:
-                    if self.typepath.defs.isgen9 and newlist:
+                    if self.rdmc.app.typepath.defs.isgen9 and newlist:
                         if not bootoverride.split('=')[-1] == bootstatus['Boot']\
                                                                     ['BootSourceOverrideEnabled']:
                             #Preemptively set UefiTargetBootSourceOverride so iLO 4 doesn't complain
-                            self._rdmc.app.patch_handler(self.typepath.defs.systempath, \
+                            self.rdmc.app.patch_handler(self.rdmc.app.typepath.defs.systempath, \
                                                 {"Boot": {"UefiTargetBootSourceOverride": entry}},\
                                                 silent=True, service=True)
-                            self._rdmc.app.select(selector=self._rdmc.app.selector, path_refresh=True)
+                            self.rdmc.app.select(selector=self.rdmc.app.selector, path_refresh=True)
                             newlist = ""
                             newlist += bootoverride
                     else:
@@ -355,9 +368,9 @@ class BootOrderCommand(RdmcCommandBase):
 
                 if newlist:
                     try:
-                        self.setobj.run(newlist)
+                        self.auxcommands['set'].run(newlist)
                     except InvalidOrNothingChangedSettingsError:
-                        if self.typepath.defs.isgen9:
+                        if self.rdmc.app.typepath.defs.isgen9:
                             pass
                         else:
                             raise
@@ -375,7 +388,7 @@ class BootOrderCommand(RdmcCommandBase):
                     newlist += " --commit"
 
                 if newlist:
-                    self.setobj.run(newlist)
+                    self.auxcommands['set'].run(newlist)
                 else:
                     raise InvalidOrNothingChangedSettingsError("Entry is the " \
                                                     "current boot setting.\n")
@@ -384,7 +397,7 @@ class BootOrderCommand(RdmcCommandBase):
                           " time boot. Please run boot \n       order without"\
                           " arguments to view available options.\n")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -420,7 +433,7 @@ class BootOrderCommand(RdmcCommandBase):
         elif securebootoption == actionlist[2]:
             action = 'DeletePK'
 
-        results = self._rdmc.app.select(selector=self.typepath.defs.hpsecureboot)
+        results = self.rdmc.app.select(selector=self.rdmc.app.typepath.defs.hpsecureboot)
 
         try:
             results = results[0]
@@ -438,16 +451,16 @@ class BootOrderCommand(RdmcCommandBase):
                     break
 
             body = {"ResetKeysType": action}
-            self._rdmc.app.post_handler(path, body)
+            self.rdmc.app.post_handler(path, body)
         except:
             if securebootoption == actionlist[0]:
-                self.selobj.selectfunction(self.typepath.defs.hpsecureboot)
-                self.setobj.run('ResetToDefaultKeys=True --commit')
+                self.auxcommands['select'].selectfunction(self.rdmc.app.typepath.defs.hpsecureboot)
+                self.auxcommands['set'].run('ResetToDefaultKeys=True --commit')
             elif securebootoption == actionlist[1]:
-                self.selobj.selectfunction(self.typepath.defs.hpsecureboot)
-                self.setobj.run('ResetAllKeys=True --commit')
+                self.auxcommands['select'].selectfunction(self.rdmc.app.typepath.defs.hpsecureboot)
+                self.auxcommands['set'].run('ResetAllKeys=True --commit')
             else:
-                sys.stderr.write("DeletePK option is not available on Gen9.\n")
+                self.rdmc.ui.warn("DeletePK option is not available on Gen9.\n")
 
     def print_out_boot_order(self, content, onetimecontent, uefionetimecontent,\
                               bootmode, bootsources, bootstatus, targetstatus):
@@ -474,9 +487,9 @@ class BootOrderCommand(RdmcCommandBase):
         bootstatusval = bootstatus['Boot']['BootSourceOverrideEnabled']
         boottoval = targetstatus['Boot']['BootSourceOverrideTarget']
         if bootstatusval == 'Continuous':
-            sys.stdout.write('Current continuous boot: {0}\n\n'.format(boottoval))
+            self.rdmc.ui.printer('Current continuous boot: {0}\n\n'.format(boottoval))
         elif bootstatusval == 'Once':
-            sys.stdout.write('Current one time boot: {0}\n\n'.format(boottoval))
+            self.rdmc.ui.printer('Current one time boot: {0}\n\n'.format(boottoval))
 
         if onetimecontent is None:
             raise BootOrderMissingEntriesError("No entries found for one time boot options.\n\n")
@@ -486,8 +499,8 @@ class BootOrderCommand(RdmcCommandBase):
 
         if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
             if uefionetimecontent is None:
-                sys.stdout.write("Continuous and one time boot uefi options:\n")
-                sys.stdout.write("No entries found for one-time UEFI options or boot source mode "\
+                self.rdmc.ui.printer("Continuous and one time boot uefi options:\n")
+                self.rdmc.ui.printer("No entries found for one-time UEFI options or boot source mode "\
                                  "is not set to UEFI.")
             else:
                 self.print_boot_helper(uefionetimecontent["Boot"], \
@@ -505,39 +518,39 @@ class BootOrderCommand(RdmcCommandBase):
         :param bootsources: current systems boot sources
         :type bootsources: list.
         """
-        for _, value in content.items():
-            sys.stdout.write('\t' * indent + outstring)
+        for _, value in list(content.items()):
+            self.rdmc.ui.printer('\t' * indent + outstring)
 
             if isinstance(value, list):
                 count = 1
 
                 for item in value:
-                    sys.stdout.write('\n')
+                    self.rdmc.ui.printer('\n')
 
                     if not item:
                         item = str('null')
 
-                    if isinstance(item, six.string_types):
-                        bootstring = False
-                        try:
-                            for source in bootsources:
-                                if item == source['StructuredBootString']:
-                                    sys.stdout.write('\t' * indent + \
+                    #if isinstance(item, six.string_types):
+                    bootstring = False
+                    try:
+                        for source in bootsources:
+                            if item == source['StructuredBootString']:
+                                self.rdmc.ui.printer('\t' * indent + \
                                          str(count) + ". " + str(item) + \
                                          ' (' + str(source['BootString']) + ')')
-                                    bootstring = True
-                                    break
+                                bootstring = True
+                                break
 
-                            if not bootstring:
-                                sys.stdout.write('\t' * indent + str(count) + ". " + str(item))
-                        except:
-                            sys.stdout.write('\t' * indent + str(count) + ". " + str(item))
+                        if not bootstring:
+                            self.rdmc.ui.printer('\t' * indent + str(count) + ". " + str(item))
+                    except:
+                        self.rdmc.ui.printer('\t' * indent + str(count) + ". " + str(item))
 
-                        count += 1
-                    else:
-                        self.print_boot_helper(item, indent+1)
+                    count += 1
+                    #else:
+                    #    self.print_boot_helper(item, indent+1)
 
-        sys.stdout.write('\n\n')
+        self.rdmc.ui.printer('\n\n')
 
     def bootordervalidation(self, options):
         """ Boot order method validation function
@@ -547,16 +560,39 @@ class BootOrderCommand(RdmcCommandBase):
         """
         inputline = list()
 
-        if self._rdmc.config.commit.lower() == 'true':
+        if self.rdmc.config.commit.lower() == 'true':
             options.commit = True
 
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
         if inputline:
             self.lobobj.loginfunction(inputline)
 
         if options.encode:
             options.biospassword = Encryption.decode_credentials(options.biospassword)
+            if isinstance(options.biospassword, bytes):
+                options.biospassword = options.biospassword.decode('utf-8')
+
+    @staticmethod
+    def options_argument_group(parser):
+        """ Additional argument
+
+        :param parser: The parser to add the removeprivs option group to
+        :type parser: ArgumentParser/OptionParser
+        """
+
+        group = parser.add_argument_group()
+
+        parser.add_argument(
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
+            default=False
+        )
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -567,16 +603,9 @@ class BootOrderCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
+        self.options_argument_group(customparser)
 
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
-        )
         customparser.add_argument(
             '--onetimeboot',
             dest='onetimeboot',

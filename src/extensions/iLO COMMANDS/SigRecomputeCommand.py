@@ -16,27 +16,30 @@
 
 # -*- coding: utf-8 -*-
 """ SigRecompute Command for rdmc """
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                     InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError
 
-class SigRecomputeCommand(RdmcCommandBase):
+class SigRecomputeCommand():
     """ Recalculate the signature of the servers configuration """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='sigrecompute',\
-            usage='sigrecompute [OPTIONS]\n\n\tRecalculate the signature on ' \
+    def __init__(self):
+        self.ident = {
+            'name':'sigrecompute',\
+            'usage':'sigrecompute [OPTIONS]\n\n\tRecalculate the signature on ' \
                     'the computers configuration.\n\texample: sigrecompute\n\n'\
                     '\tNote: sigrecompute command is not available on Redfish systems.',\
-            summary="Command to recalculate the signature of the computer's " \
+            'summary':"Command to recalculate the signature of the computer's " \
             "configuration.",\
-            aliases=None,\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main sigrecompute function
@@ -45,7 +48,7 @@ class SigRecomputeCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -56,15 +59,15 @@ class SigRecomputeCommand(RdmcCommandBase):
             raise InvalidCommandLineError("Sigrecompute command takes no arguments.")
 
         self.sigrecomputevalidation(options)
-        path = self.typepath.defs.systempath
+        path = self.rdmc.app.typepath.defs.systempath
 
-        if self.typepath.defs.flagforrest:
+        if self.rdmc.app.typepath.defs.flagforrest:
             body = {"Action": "ServerSigRecompute", "Target": "/Oem/Hp"}
-            self._rdmc.app.post_handler(path, body)
+            self.rdmc.app.post_handler(path, body)
         else:
             raise IncompatibleiLOVersionError("Sigrecompute action not available on redfish.")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -74,7 +77,7 @@ class SigRecomputeCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -85,4 +88,4 @@ class SigRecomputeCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)

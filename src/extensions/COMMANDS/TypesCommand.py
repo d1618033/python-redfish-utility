@@ -17,27 +17,25 @@
 # -*- coding: utf-8 -*-
 """ Types Command for RDMC """
 
-import sys
-
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
 
-class TypesCommand(RdmcCommandBase):
+class TypesCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='types',\
-            usage='types [TYPE] [OPTIONS]\n\n\tRun to display currently ' \
-            'available selectable types\n\texample: types',\
-            summary='Displays all selectable types within the currently logged in server.',\
-            aliases=['types'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+    def __init__(self):
+        self.ident = {
+            'name':'types',\
+            'usage':'types [TYPE] [OPTIONS]\n\n\tRun to display currently ' \
+                    'available selectable types\n\texample: types',\
+            'summary':'Displays all selectable types within the currently logged in server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def typesfunction(self, line, returntypes=False):
         """ Main types worker function
@@ -48,7 +46,7 @@ class TypesCommand(RdmcCommandBase):
         :type returntypes: boolean.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,21 +57,19 @@ class TypesCommand(RdmcCommandBase):
 
         if not args:
             typeslist = list()
-            typeslist = sorted(set(self._rdmc.app.types(options.fulltypes)))
+            typeslist = sorted(set(self.rdmc.app.types(options.fulltypes)))
 
             if not returntypes:
-                sys.stdout.write("Type options:")
-                sys.stdout.write('\n')
+                self.rdmc.ui.printer("Type options:\n")
 
                 for item in typeslist:
-                    sys.stdout.write(item)
-                    sys.stdout.write('\n')
+                    self.rdmc.ui.printer("%s\n" % item)
             else:
                 return typeslist
         else:
             raise InvalidCommandLineError("The 'types' command does not take any arguments.")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
 
     def run(self, line):
         """ Wrapper function for types main function
@@ -92,7 +88,7 @@ class TypesCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -103,7 +99,7 @@ class TypesCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--fulltypes',

@@ -19,20 +19,24 @@
 
 import sys
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
-class ExitCommand(RdmcCommandBase):
+class ExitCommand():
     """ Exit class to handle exiting from interactive mode """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='exit',\
-            usage='exit\n\n\tRun to exit from the interactive shell\n\texample: exit',\
-            summary='Exits from the interactive shell.',\
-            aliases=['quit'])
+    def __init__(self):
+        self.ident = {
+            'name':'exit',\
+            'usage':'exit\n\n\tRun to exit from the interactive shell\n\texample: exit',\
+            'summary':'Exits from the interactive shell.',\
+            'aliases': ['quit'],\
+            'auxcommands': ["LogoutCommand"]
+        }
+        #self.rdmc = rdmcObj
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
-        self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """If an argument is present, print help else exit
@@ -41,7 +45,7 @@ class ExitCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (_, args) = self._parse_arglist(line)
+            (_, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -49,11 +53,19 @@ class ExitCommand(RdmcCommandBase):
                 raise InvalidCommandLineErrorOPTS("")
 
         if not args or not line:
-            self.logoutobj.run("")
-            sys.stdout.write('Bye for now\n')
+            self.auxcommands['logout'].run("")
 
             #System exit
             sys.exit(ReturnCodes.SUCCESS)
         else:
-            sys.stderr.write("Exit command does not take any parameters.\n")
+            self.rdmc.ui.error("Exit command does not take any parameters.\n")
             raise InvalidCommandLineErrorOPTS("Invalid command line arguments.")
+
+    def definearguments(self, customparser):
+        """ Wrapper function for new command main function
+
+        :param customparser: command line input
+        :type customparser: parser.
+        """
+        if not customparser:
+            return

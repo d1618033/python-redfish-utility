@@ -17,20 +17,19 @@
 # -*- coding: utf-8 -*-
 """ Add Federation Command for rdmc """
 
-import sys
 import json
 import getpass
 
-from argparse import ArgumentParser, Action, RawDescriptionHelpFormatter
+from argparse import Action, RawDescriptionHelpFormatter
 
 from redfish.ris.ris import SessionExpired
 from redfish.ris.rmc_helper import IdTokenError
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, ResourceExists,\
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError,\
                 IncompatibleiLOVersionError, Encryption
+
+__subparsers__ = ['add', 'modify', 'changekey', 'delete']
 
 class _FederationParse(Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
@@ -66,23 +65,26 @@ class _FederationParse(Action):
                 except:
                     raise InvalidCommandLineErrorOPTS("")
 
-class IloFederationCommand(RdmcCommandBase):
+class IloFederationCommand():
     """ Add a new ilo federation to the server """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='ilofederation',\
-            usage=None,\
-            description='View, Add, Remove and Modify iLO Federation accoutns based on the '\
+    def __init__(self):
+        self.ident = {
+            'name':'ilofederation',\
+            'usage': None,\
+            'description':'View, Add, Remove and Modify iLO Federation accoutns based on the '\
             'sub-command used.\nTo view help on specific sub-commands run: ilofederation '\
             '<sub-command> -h\n\nExample: ilofederation add -h\n'\
             'NOTE 1: By default only the login privilege is added to the newly created\n\t\t'\
             'federation group with role "ReadOnly" in iLO 5 and no privileges in iLO 4.\n\t'\
             'NOTE 2: Federation credentials are case-sensitive.',
-            summary='Adds / deletes an iLO federation group on the currently logged in server.',\
-            aliases=['ilofederation'])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Adds / deletes an iLO federation group on the currently logged in server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main addfederation function
@@ -92,7 +94,14 @@ class IloFederationCommand(RdmcCommandBase):
         mod_fed = None
         body = dict()
         try:
-            (options, _) = self._parse_arglist(line, default=True)
+            ident_subparser = False
+            for cmnd in __subparsers__:
+                if cmnd in line:
+                    (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+                    ident_subparser = True
+                    break
+            if not ident_subparser:
+                (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -101,19 +110,22 @@ class IloFederationCommand(RdmcCommandBase):
 
         self.addfederationvalidation(options)
 
-        redfish = self._rdmc.app.monolith.is_redfish
-        path = self.typepath.defs.federationpath
-        results = self._rdmc.app.get_handler(path, service=True, silent=True).dict
+        redfish = self.rdmc.app.monolith.is_redfish
+        path = self.rdmc.app.typepath.defs.federationpath
+        results = self.rdmc.app.get_handler(path, service=True, silent=False).dict
 
         newresults = []
 
         if redfish:
             results = results['Members']
         else:
-            results = results['links']['Member']
+            if 'Member' in results['links']:
+                results = results['links']['Member']
+            else:
+                results = list()
 
         for fed in results:
-            fed = self._rdmc.app.get_handler(fed[self.typepath.defs.hrefstring], \
+            fed = self.rdmc.app.get_handler(fed[self.rdmc.app.typepath.defs.hrefstring], \
                                          service=True, silent=True).dict
             if hasattr(options, 'fedname') or hasattr(options, 'fedkey'):
                 mod_fed = fed
@@ -126,11 +138,11 @@ class IloFederationCommand(RdmcCommandBase):
 
         fed = mod_fed
         if not results:
-            raise NoContentsFoundForOperationError("")
+            raise NoContentsFoundForOperationError("No iLO Federation accounts were found.")
 
         if options.command.lower() == 'add':
             privs = self.getprivs(options)
-            path = self.typepath.defs.federationpath
+            path = self.rdmc.app.typepath.defs.federationpath
 
             body = {"Name": options.fedname, "Key": options.fedkey}
             if privs:
@@ -138,7 +150,7 @@ class IloFederationCommand(RdmcCommandBase):
             self.addvalidation(options.fedname, options.fedkey, results)
 
             if path and body:
-                resp = self._rdmc.app.post_handler(path, body)
+                resp = self.rdmc.app.post_handler(path, body)
 
             if resp and resp.dict:
                 if 'resourcealreadyexist' in str(resp.dict).lower():
@@ -164,7 +176,7 @@ class IloFederationCommand(RdmcCommandBase):
             body = {'Key': newkey}
 
             if path and body:
-                self._rdmc.app.patch_handler(path, body, service=True)
+                self.rdmc.app.patch_handler(path, body, service=True)
             else:
                 raise NoContentsFoundForOperationError('Unable to find '\
                                             'the specified federation.')
@@ -194,7 +206,7 @@ class IloFederationCommand(RdmcCommandBase):
                 privs = self.getprivs(options)
                 body['Privileges'] = privs
 
-            self._rdmc.app.patch_handler(path, body)
+            self.rdmc.app.patch_handler(path, body)
 
         elif options.command.lower() == 'delete':
             if not mod_fed:
@@ -211,27 +223,26 @@ class IloFederationCommand(RdmcCommandBase):
                         path = fed['links']['self']['href']
                         break
 
-            if not path == self.typepath.defs.federationpath:
-                self._rdmc.app.delete_handler(path)
+            if not path == self.rdmc.app.typepath.defs.federationpath:
+                self.rdmc.app.delete_handler(path)
             else:
                 raise NoContentsFoundForOperationError('Unable to find the specified federation.')
         else:
+            self.rdmc.ui.printer("iLO Federation Id list with Privileges:\n")
             if options.json:
                 outdict = dict()
                 for fed in sorted(results, key=lambda k: k['Name']):
                     outdict[fed['Name']] = fed['Privileges']
-                sys.stdout.write(str(json.dumps(outdict, indent=2, sort_keys=True)))
-                sys.stdout.write('\n')
+                self.rdmc.ui.print_out_json_ordered(str(json.dumps(outdict, indent=2)))
             else:
-                sys.stdout.write("iLO Federation Id list with Privileges:\n")
                 for fed in sorted(results, key=lambda k: k['Name']):
                     privstr = ""
                     privs = fed['Privileges']
                     for priv in privs:
                         privstr += priv + '=' + str(privs[priv]) + '\n'
-                    sys.stdout.write("\nName=%s:\n%s" % (fed['Name'], privstr))
+                    self.rdmc.ui.printer("\nName=%s:\n%s" % (fed['Name'], privstr))
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -255,7 +266,7 @@ class IloFederationCommand(RdmcCommandBase):
                     raise IncompatibleiLOVersionError("Privilege %s is not available on this "\
                                                       "iLO version." % priv)
 
-            if all(priv.values()[0] for priv in options.optprivs):
+            if all(priv.values() for priv in options.optprivs):
                 if any(priv for priv in options.optprivs if 'SystemRecoveryConfigPriv' in priv) and\
                                             'SystemRecoveryConfigPriv' not in sesprivs.keys():
                     raise IdTokenError("The currently logged in account must have The System "\
@@ -273,23 +284,32 @@ class IloFederationCommand(RdmcCommandBase):
         :param availableprivsopts: return available privileges
         :type availableprivsopts: boolean.
         """
-        if self._rdmc.app.current_client:
-            sespath = self._rdmc.app.current_client.session_location
-            sespath = self._rdmc.app.current_client.default_prefix + \
-                                sespath.split(self._rdmc.app.current_client.\
+        if self.rdmc.app.current_client:
+            sespath = self.rdmc.app.current_client.session_location
+            sespath = self.rdmc.app.current_client.default_prefix + \
+                                sespath.split(self.rdmc.app.current_client.\
                                               default_prefix)[-1]
 
-            ses = self._rdmc.app.get_handler(sespath, service=False, silent=True)
+            ses = self.rdmc.app.get_handler(sespath, service=False, silent=True)
 
-            if not ses:
+            if ses.status != 200:
                 raise SessionExpired("Invalid session. Please logout and "\
                                     "log back in or include credentials.")
 
-            sesprivs = ses.dict['Oem'][self.typepath.defs.oemhp]['Privileges']
-            availableprivs = ses.dict['Oem'][self.typepath.defs.oemhp]['Privileges'].keys()
+            sesoemhp = ses.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
+            if 'Privileges' in sesoemhp.keys():
+                sesprivs = sesoemhp['Privileges']
+            else:
+                sesprivs = {'HostBIOSConfigPriv': True, 'HostNICConfigPriv': True, 'HostStorageConfigPriv': True,
+                            'LoginPriv': True, 'RemoteConsolePriv': True, 'SystemRecoveryConfigPriv': True,
+                            'UserConfigPriv': True, 'VirtualMediaPriv': True, 'VirtualPowerAndResetPriv': True,
+                            'iLOConfigPriv': True}
+            availableprivs = sesprivs.keys()
+            keepprivs = dict()
             for priv, val in sesprivs.items():
-                if not val:
-                    del sesprivs[priv]
+                if val:
+                    keepprivs[priv] = sesprivs[priv]
+            sesprivs = keepprivs
         else:
             sesprivs = None
 
@@ -321,7 +341,7 @@ class IloFederationCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     @staticmethod
     def options_addprivs_argument_group(parser):
@@ -376,7 +396,7 @@ class IloFederationCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        #self.cmdbase.add_login_arguments_group(customparser)
         subcommand_parser = customparser.add_subparsers(dest='command')
         privilege_help='\n\nPRIVILEGES:\n\t1: Login\n\t2: Remote Console\n\t3: User Config\n\t4:'\
             ' iLO Config\n\t5: Virtual Media\n\t6: Virtual Power and Reset\n\n\tiLO 5 added '\
@@ -398,14 +418,13 @@ class IloFederationCommand(RdmcCommandBase):
             " structure makes the information easier to parse.",
             default=False
         )
-        add_login_arguments_group(default_parser)
-        #add sub-parser
+        self.cmdbase.add_login_arguments_group(default_parser)        #add sub-parser
         add_help='Adds an iLO federation group to the currently logged in server. Federation '\
                  'group privileges may be specified with\n\"--addprivs\". If a federation key '\
                  'is not '\
                  'provided, the user will be prompted to provide one prior to account creation.'
         add_parser = subcommand_parser.add_parser(
-            'add',
+            __subparsers__[0],
             help=add_help,
             description=add_help+'\n\tilofederation add [FEDERATIONNAME] [FEDERATIONKEY] ' +\
             privilege_help+ '\n\tilofederation add newilofedname thisfedkey --addprivs 1,3,4',
@@ -424,11 +443,11 @@ class IloFederationCommand(RdmcCommandBase):
             metavar='FEDERATION KEY',
         )
         self.options_addprivs_argument_group(add_parser)
-        add_login_arguments_group(add_parser)
+        self.cmdbase.add_login_arguments_group(add_parser)
 
         modify_help='Modify the privileges on an existing federation group.'
         modify_parser = subcommand_parser.add_parser(
-            'modify',
+            __subparsers__[1],
             help=modify_help,
             description=modify_help+"\n\nTo add privileges:\n\tilofederation modify "\
             "[FEDNAME] --addprivs <list of numbered privileges>\n\nTo remove privileges:\n\t"\
@@ -440,17 +459,17 @@ class IloFederationCommand(RdmcCommandBase):
             'fedname',
             help='The federation name of the iLO account to modify.',
             metavar='FEDERATION NAME',
-            type= str,
+            type= str
         )
         self.options_addprivs_argument_group(modify_parser)
         self.options_removeprivs_argument_group(modify_parser)
-        add_login_arguments_group(modify_parser)
+        self.cmdbase.add_login_arguments_group(modify_parser)
 
         #changepass sub-parser
         changekey_help='Change the key of an iLO federation group on the currently logged in '\
                        'server.'
         changekey_parser = subcommand_parser.add_parser(
-            'changekey',
+            __subparsers__[2],
             help=changekey_help,
             description=changekey_help+'\n\nexample:ilofederation changekey [FEDNAME] [NEWFEDKEY]',
             formatter_class=RawDescriptionHelpFormatter
@@ -459,7 +478,7 @@ class IloFederationCommand(RdmcCommandBase):
             'fedname',
             help='The iLO federation account to be updated with a new federation key (password).',
             metavar='FEDERATION NAME',
-            type= str,
+            type= str
         )
         changekey_parser.add_argument(
             'fedkey',
@@ -470,12 +489,12 @@ class IloFederationCommand(RdmcCommandBase):
             nargs='?',
             default=''
         )
-        add_login_arguments_group(changekey_parser)
+        self.cmdbase.add_login_arguments_group(changekey_parser)
 
         #delete sub-parser
         delete_help='Deletes the provided iLO user account on the currently logged in server.'
         delete_parser = subcommand_parser.add_parser(
-            'delete',
+            __subparsers__[3],
             help=delete_help,
             description=delete_help+'\n\nexample: ilofederation delete fedname',
             formatter_class=RawDescriptionHelpFormatter
@@ -484,6 +503,6 @@ class IloFederationCommand(RdmcCommandBase):
             'fedname',
             help='The iLO federation account to delete.',
             metavar='FEDERATION NAME',
-            type= str,
+            type= str
         )
-        add_login_arguments_group(delete_parser)
+        self.cmdbase.add_login_arguments_group(delete_parser)
