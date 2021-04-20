@@ -83,6 +83,8 @@ History
   * 09/13/2019: Release of version 2.5.1
   * 11/14/2019: Release of version 3.0.0
   * 10/05/2020: Release of version 3.1.0
+  * 11/17/2020: Release of version 3.1.1
+  * 04/20/2021: Release of version 3.2.1
 
 License
 ----------
