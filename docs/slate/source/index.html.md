@@ -1,12 +1,12 @@
 ---
-title: RESTful Interface Tool 2.3.0 User Guide
+title: RESTful Interface Tool 3.2.1 User Guide
 
 language_tabs:
   - shell: Shell
 
 toc_footers:
   - <a href='https://www.hpe.com/'>Hewlett Packard Enterprise Development LP</a>
-  - Copyright © 2020
+  - Copyright © 2021
 
 includes:
   - overview
