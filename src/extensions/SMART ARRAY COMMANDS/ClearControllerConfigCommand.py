@@ -17,28 +17,28 @@
 # -*- coding: utf-8 -*-
 """ Clear Controller Configuration Command for rdmc """
 
-import sys
-
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption
 
-class ClearControllerConfigCommand(RdmcCommandBase):
+class ClearControllerConfigCommand():
     """ Drive erase/sanitize command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='clearcontrollerconfig',\
-            usage='clearcontrollerconfig [OPTIONS]\n\n\tTo clear a controller'\
+    def __init__(self):
+        self.ident = {
+            'name':'clearcontrollerconfig',\
+            'usage':'clearcontrollerconfig [OPTIONS]\n\n\tTo clear a controller'\
             ' config.\n\texample: clearcontrollerconfig --controller=1'
             '\n\texample: clearcontrollerconfig --controller=\"Slot0"',\
-            summary='Clears smart array controller configuration.',\
-            aliases=['clearcontrollerconfig'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+            'summary':'Clears smart array controller configuration.',\
+            'aliases': [],\
+            'auxcommands': ["SelectCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main disk inventory worker function
@@ -47,7 +47,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -56,38 +56,46 @@ class ClearControllerConfigCommand(RdmcCommandBase):
 
         self.clearcontrollerconfigvalidation(options)
 
-        self.selobj.selectfunction("SmartStorageConfig.")
-        content = self._rdmc.app.getprops()
+        self.auxcommands['select'].selectfunction("SmartStorageConfig.")
+        content = self.rdmc.app.getprops()
 
         if not options.controller:
             raise InvalidCommandLineError('You must include a controller to select.')
 
         if options.controller:
             controllist = []
-            contentsholder = {"Actions": [{"Action": "ClearConfigurationMetadata"}], \
+            contentsholder = {"LogicalDrives": [], "Actions": [{"Action": "ClearConfigurationMetadata"}], \
                                                         "DataGuard": "Disabled"}
 
             try:
                 if options.controller.isdigit():
-                    if int(options.controller) > 0:
-                        controllist.append(content[int(options.controller) - 1])
-                else:
-                    slotcontrol = options.controller.lower().strip('\"').split('slot')[-1].lstrip()
-                    for control in content:
-                        if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].\
-                                                                                        lstrip():
-                            controllist.append(control)
+                    slotlocation = self.get_location_from_id(options.controller)
+                    if slotlocation:
+                        slotcontrol = slotlocation.lower().strip('\"').split('slot')[-1].lstrip()
+                        for control in content:
+                            if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                                controllist.append(control)
                 if not controllist:
                     raise InvalidCommandLineError("")
             except InvalidCommandLineError:
                 raise InvalidCommandLineError("Selected controller not found in the current "\
                                               "inventory list.")
             for controller in controllist:
-                self._rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
+                self.rdmc.ui.printer(
+                    "ClearController path and payload: %s, %s\n" % (controller["@odata.id"], contentsholder))
+                self.rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
+
+    def get_location_from_id(self, controller_id):
+        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
+            if 'Collection' not in sel.maj_type:
+                controller = sel.dict
+                if controller['Id'] == str(controller_id):
+                    return controller["Location"]
+        return None
 
     def clearcontrollerconfigvalidation(self, options):
         """ clear controller config validation function
@@ -95,7 +103,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -106,7 +114,7 @@ class ClearControllerConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--controller',

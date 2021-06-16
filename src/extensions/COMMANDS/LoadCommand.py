@@ -24,7 +24,7 @@ import shlex
 import subprocess
 
 from datetime import datetime
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 from six.moves import queue
 
@@ -37,18 +37,17 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
                     NoDifferencesFoundError, MultipleServerConfigError, \
                     InvalidMSCfileInputError, Encryption
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
-                                login_select_validation
+from rdmc_base_classes import HARDCODEDLIST
 
 #default file name
 __filename__ = 'ilorest.json'
 
-class LoadCommand(RdmcCommandBase):
+class LoadCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='load',\
-            usage='load [OPTIONS]\n\n\tRun to load the default configuration' \
+    def __init__(self):
+        self.ident = {
+            'name':'load',\
+            'usage':'load [OPTIONS]\n\n\tRun to load the default configuration' \
             ' file\n\texample: load\n\n\tLoad configuration file from a ' \
             'different file\n\tif any property values have changed, the ' \
             'changes are committed and the user is logged out of the server'\
@@ -58,17 +57,21 @@ class LoadCommand(RdmcCommandBase):
             'line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url' \
             ' <iLO url/hostname> -u admin -p password\n\t--url <iLO url/' \
             'hostname> -u admin -p password',\
-            summary='Loads the server configuration settings from a file.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
+            'summary':'Loads the server configuration settings from a file.',\
+            'aliases': [],\
+            'auxcommands': ["CommitCommand", "SelectCommand"]
+        }
+        #self.definearguments(self.parser)
         self.filenames = None
         self.mpfilename = None
         self.queue = queue.Queue()
-        self._rdmc = rdmcObj
-        self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.rdmc = rdmcObj
+        #self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
+        #self.auxcommands['select'] = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main load worker function
@@ -77,7 +80,7 @@ class LoadCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -90,9 +93,9 @@ class LoadCommand(RdmcCommandBase):
         loadcontent = dict()
 
         if options.mpfilename:
-            sys.stdout.write("Loading configuration for multiple servers...\n")
+            self.rdmc.ui.printer("Loading configuration for multiple servers...\n")
         else:
-            sys.stdout.write("Loading configuration...\n")
+            self.rdmc.ui.printer("Loading configuration...\n")
 
         for files in self.filenames:
             if not os.path.isfile(files):
@@ -109,6 +112,18 @@ class LoadCommand(RdmcCommandBase):
 
             try:
                 loadcontents = json.loads(data)
+                if len(loadcontents) == 3 :
+                    if "SerialNumber" in loadcontents[0]["Comments"]:
+                        del(loadcontents[0]["Comments"]["SerialNumber"])
+                    for _ , v in loadcontents[2].items():
+                        for _ , v in v.items():
+                            if "Attributes" in v:
+                                del(v["Attributes"]["SerialNumber"])  
+                                del(v["Attributes"]["ProductId"])
+                            else:
+                                del(v["SerialNumber"])
+                                del(v["ProductId"])
+                            print("Deleting SerialNumber and ProductID")
             except:
                 raise InvalidFileFormattingError("Invalid file formatting " \
                                                     "found in file %s" % files)
@@ -141,14 +156,14 @@ class LoadCommand(RdmcCommandBase):
                     if options.biospassword:
                         inputlist.extend(["--biospassword", options.biospassword])
 
-                    self.selobj.selectfunction(inputlist)
-                    if self._rdmc.app.selector.lower() not in content.lower():
+                    self.auxcommands['select'].selectfunction(inputlist)
+                    if self.rdmc.app.selector.lower() not in content.lower():
                         raise InvalidCommandLineError("Selector not found.\n")
 
                     try:
                         for _, items in loaddict.items():
                             try:
-                                if self._rdmc.app.loadset(seldict=items, \
+                                if self.rdmc.app.loadset(seldict=items, \
                                       latestschema=options.latestschema, \
                                       uniqueoverride=options.uniqueoverride):
                                     results = True
@@ -159,13 +174,13 @@ class LoadCommand(RdmcCommandBase):
                                 raise
                     except redfish.ris.ValidationError as excp:
                         errs = excp.get_errors()
-                        validation_errs.append({self._rdmc.app.selector: errs})
+                        validation_errs.append({self.rdmc.app.selector: errs})
                     except:
                         raise
 
             try:
                 if results:
-                    self.comobj.commitfunction(options=options)
+                    self.auxcommands['commit'].commitfunction(options=options)
             except NoChangesFoundOrMadeError as excp:
                 if returnvalue:
                     pass
@@ -175,16 +190,13 @@ class LoadCommand(RdmcCommandBase):
             if validation_errs:
                 for validation_err in validation_errs:
                     for err_type in validation_err:
-                        sys.stderr.write("Validation error(s) in type %s:\n" % err_type)
+                        self.rdmc.ui.error("Validation error(s) in type %s:\n" % err_type)
                         for err in validation_err[err_type]:
                             if isinstance(err, redfish.ris.RegistryValidationError):
-                                sys.stderr.write(err.message)
-                                sys.stderr.write('\n')
-
+                                self.rdmc.ui.error(err.message)
                                 try:
                                     if err.reg:
-                                        err.reg.print_help(str(err.sel))
-                                        sys.stderr.write('\n')
+                                        self.rdmc.ui.error(str(err.sel))
                                 except:
                                     pass
                 raise redfish.ris.ValidationError(excp)
@@ -205,11 +217,11 @@ class LoadCommand(RdmcCommandBase):
         :type options: list.
         """
 
-        if self._rdmc.opts.latestschema:
+        if self.rdmc.opts.latestschema:
             options.latestschema = True
 
         try:
-            login_select_validation(self, options)
+            self.cmdbase.login_select_validation(self, options)
         except Exception:
             if options.mpfilename:
                 pass
@@ -219,9 +231,9 @@ class LoadCommand(RdmcCommandBase):
         #filename validations and checks
         if options.filename:
             self.filenames = options.filename
-        elif self._rdmc.config:
-            if self._rdmc.config.defaultloadfilename:
-                self.filenames = [self._rdmc.config.defaultloadfilename]
+        elif self.rdmc.config:
+            if self.rdmc.config.defaultloadfilename:
+                self.filenames = [self.rdmc.config.defaultloadfilename]
 
         if not self.filenames:
             self.filenames = [__filename__]
@@ -246,7 +258,7 @@ class LoadCommand(RdmcCommandBase):
         :param path: current path
         :type path: string.
         """
-        contents = self._rdmc.app.monolith.path[path]
+        contents = self.rdmc.app.monolith.path[path]
 
         if not contents:
             contents = list()
@@ -283,7 +295,7 @@ class LoadCommand(RdmcCommandBase):
                 outputdir = outputdir[1:-1]
 
             if not os.path.isdir(outputdir):
-                sys.stdout.write("The give output folder path does not exist.\n")
+                self.rdmc.ui.error("The give output folder path does not exist.\n")
                 raise InvalidCommandLineErrorOPTS("")
 
             dirpath = outputdir
@@ -295,7 +307,7 @@ class LoadCommand(RdmcCommandBase):
         os.mkdir(createdir)
 
         oofile = open(os.path.join(createdir, 'CompleteOutputfile.txt'), 'w+')
-        sys.stdout.write('Create multiple processes to load configuration '\
+        self.rdmc.ui.printer('Create multiple processes to load configuration '\
                                             'concurrently to all servers...\n')
 
         while True:
@@ -313,7 +325,7 @@ class LoadCommand(RdmcCommandBase):
             else:
                 listargforsubprocess = [sys.executable] + line
 
-            if os.name is not 'nt':
+            if os.name != 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
 
             urlfilename = urlvar.split('//')[-1]
@@ -335,17 +347,16 @@ class LoadCommand(RdmcCommandBase):
             logfile.close()
 
             if returncode == 0:
-                sys.stdout.write('Loading Configuration for {} : SUCCESS\n'.format(urlfilename))
+                self.rdmc.ui.printer('Loading Configuration for {} : SUCCESS\n'.format(urlfilename))
             else:
-                sys.stdout.write('Loading Configuration for {} : FAILED\n'.format(urlfilename))
-                sys.stderr.write('ILOREST return code : {}.\nFor more '\
-                         'details please check {}.txt under {} directory.\n'\
-                                        .format(returncode, urlfilename, createdir))
+                self.rdmc.ui.error('Loading Configuration for {} : FAILED\n'.format(urlfilename))
+                self.rdmc.ui.error('ILOREST return code : {}.\nFor more details please check '\
+                    '{}.txt under {} directory.\n'.format(returncode, urlfilename, createdir))
 
         oofile.close()
 
         if finalreturncode:
-            sys.stdout.write('All servers have been successfully configured.\n')
+            self.rdmc.ui.printer('All servers have been successfully configured.\n')
 
         return finalreturncode
 
@@ -357,7 +368,7 @@ class LoadCommand(RdmcCommandBase):
         :param lfile: custom file name
         :type lfile: string.
         """
-        sys.stdout.write('Checking given server information...\n')
+        self.rdmc.ui.printer('Checking given server information...\n')
 
         if not mpfile:
             return False
@@ -385,9 +396,9 @@ class LoadCommand(RdmcCommandBase):
                     args = shlex.split(line, posix=False)
 
                     if len(args) < 5:
-                        sys.stderr.write('Incomplete data in input file: {}\n'.format(line))
+                        self.rdmc.ui.error('Incomplete data in input file: {}\n'.format(line))
                         raise InvalidMSCfileInputError('Please verify the '\
-                                            'contents of the %s file' %mpfile)
+                                                        'contents of the %s file' %mpfile)
                     else:
                         linelist = globalargs + cmdtorun + args + cmdargs
                         line = str(line).replace("\n", "")
@@ -410,18 +421,8 @@ class LoadCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
-        '''
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
-            default=None,
-        )
-        '''
+        self.cmdbase.add_login_arguments_group(customparser)
+
         customparser.add_argument(
             '-f',
             '--filename',
@@ -444,14 +445,6 @@ class LoadCommand(RdmcCommandBase):
             '--outputdirectory',
             dest='outdirectory',
             help="""use the provided directory to output data for multiple server configuration""",
-            default=None,
-        )
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
             default=None,
         )
         customparser.add_argument(
@@ -484,5 +477,5 @@ class LoadCommand(RdmcCommandBase):
             help="Use this flag to perform a reboot command function after"\
             " completion of operations.  For help with parameters and"\
             " descriptions regarding the reboot flag, run help reboot.",
-            default=None,
+            default=None
         )

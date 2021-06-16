@@ -21,24 +21,28 @@ import sys
 import json
 
 from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                                                     InvalidCommandLineErrorOPTS
 
-class RawDeleteCommand(RdmcCommandBase):
+class RawDeleteCommand():
     """ Raw form of the delete command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='rawdelete',\
-            usage='rawdelete [PATH] [OPTIONS]\n\n\tRun to to delete data from' \
+    def __init__(self):
+        self.ident = {
+            'name':'rawdelete',\
+            'usage':'rawdelete [PATH] [OPTIONS]\n\n\tRun to to delete data from' \
                     ' the passed in path.\n\texample: rawdelete "/redfish/v1/' \
                     'Sessions/(session ID)"', \
-            summary='Raw form of the DELETE command.',\
-            aliases=['rawdelete'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'summary':'Raw form of the DELETE command.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main raw delete worker function
@@ -47,16 +51,20 @@ class RawDeleteCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        url = None
         headers = {}
 
-        self.deletevalidation(options)
+        if hasattr(options, 'sessionid') and options.sessionid:
+            url = self.sessionvalidation(options)
+        else:
+            self.deletevalidation(options)
 
         if options.path.startswith('"') and options.path.endswith('"'):
             options.path = options.path[1:-1]
@@ -65,7 +73,7 @@ class RawDeleteCommand(RdmcCommandBase):
             options.path = options.path + '?$expand=.'
 
         try:
-            currentsess = self._rdmc.app.current_client.session_location
+            currentsess = self.rdmc.app.current_client.session_location
         except:
             currentsess = None
 
@@ -81,8 +89,8 @@ class RawDeleteCommand(RdmcCommandBase):
                     InvalidCommandLineError("Invalid format for --headers option.")
 
         if currentsess and (options.path in currentsess):
-            self._rdmc.app.logout()
-            sys.stdout.write("Your session has been deleted.\nPlease log "\
+            self.rdmc.app.logout()
+            self.rdmc.ui.printer("Your session has been terminated (deleted).\nPlease log "\
                                         "back in if you wish to continue.\n")
         else:
             returnresponse = False
@@ -90,12 +98,12 @@ class RawDeleteCommand(RdmcCommandBase):
             if options.response or options.getheaders:
                 returnresponse = True
 
-            results = self._rdmc.app.delete_handler(options.path, \
+            results = self.rdmc.app.delete_handler(options.path, \
                 headers=headers, silent=options.silent, service=options.service)
 
             if returnresponse and results:
                 if options.getheaders:
-                    sys.stdout.write(json.dumps(dict(results.getheaders())) + "\n")
+                    self.rdmc.ui.print_out_json(dict(results.getheaders()))
 
                 if options.response:
                     sys.stdout.write(results.read)
@@ -104,7 +112,7 @@ class RawDeleteCommand(RdmcCommandBase):
             elif results.status != 200:
                 return ReturnCodes.UI_CLI_USAGE_EXCEPTION
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -114,7 +122,26 @@ class RawDeleteCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options, skipbuild=True)
+        self.rdmc.login_select_validation(self, options, skipbuild=True)
+
+    def sessionvalidation(self, options):
+        """ Raw delete session validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+
+        url = None
+        if options.user or options.password or options.url:
+            if options.url:
+                url = options.url
+        else:
+            if self.rdmc.app.config.get_url():
+                url = self.rdmc.app.config.get_url()
+        if url and not "https://" in url:
+            url = "https://" + url
+
+        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -125,7 +152,7 @@ class RawDeleteCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             'path',

@@ -1,5 +1,5 @@
 ###
-# Copyright 2017-2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import re
 import sys
 import getpass
 import subprocess
+
+from rdmc_helper import UI
 
 if os.name == 'nt':
     import ctypes
@@ -140,6 +142,9 @@ def get_terminal_size():
             (stdout_s, _) = procs.communicate()
 
             _ = procs.wait()
+            # python3 change
+            if isinstance(stdout_s, bytes):
+                stdout_s = stdout_s.decode('utf-8')
             if stdout_s and re.search(r'^\d+ \d+$', stdout_s):
                 rows, cols = stdout_s.split()
                 _tuple = (cols, rows)
@@ -148,11 +153,15 @@ def get_terminal_size():
 
 class CLI(object):
     """Class for building command line interfaces."""
-    def __init__(self, out=sys.stdout):
+    def __init__(self, verbosity=1, out=sys.stdout):
+        self._verbosity = verbosity
         self._out = out
         cols, rows = get_terminal_size()
         self._cols = int(cols)
         self._rows = int(rows)
+
+    def verbosity(self, verbosity):
+        self._verbosity = verbosity
 
     def get_hrstr(self, character='-'):
         """returns a string suitable for use as a horizontal rule.
@@ -162,23 +171,27 @@ class CLI(object):
         """
         return '%s\n' % (character * self._cols)
 
-    def horizontalrule(self, fileh=None, character='-'):
+    def printer(self, data, flush=True):
+        """printing wrapper
+
+        :param data: data to be printed to the output stream
+        :type data: str.
+        :param flush: flush buffer - True, not flush output buffer - False
+        :type flush: boolean
+        """
+
+        UI(self._verbosity).printer(data, flush)
+
+    def horizontalrule(self, character='-'):
         """writes a horizontal rule to the file handle.
 
-        :param fileh: file handle to write to. defaults to sys.stdout.
-        :type fileh: file like object.
         :param character: the character to use as the rule. (default -)
         :type character: str.
         """
-        outfh = fileh
 
-        if not outfh:
-            outfh = sys.stdout
+        self.printer(self.get_hrstr(character=character))
 
-        outfh.write(self.get_hrstr(character=character))
-        outfh.flush()
-
-    def version(self, progname, version, extracontent, fileh=sys.stdout):
+    def version(self, progname, version, extracontent):
         """Prints a version string to fileh.
 
         :param progname: the name of the program.
@@ -189,14 +202,9 @@ class CLI(object):
         :type fileh: file object
         :returns: None
         """
-        fileh.write("%(progname)s version %(version)s\n%(extracontent)s" \
-                                % {'progname': progname, 'version': version, \
-                                                'extracontent': extracontent})
-
-        fileh.flush()
-        self.horizontalrule(fileh)
-
-        return None
+        tmp = "%s version %s\n%s" % (progname, version, extracontent)
+        self.printer(tmp)
+        self.horizontalrule()
 
     def prompt_password(self, msg, default=None):
         """Convenient password prompting function

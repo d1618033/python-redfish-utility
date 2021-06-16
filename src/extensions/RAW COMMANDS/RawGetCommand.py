@@ -20,27 +20,31 @@
 import sys
 import json
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 import redfish
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI, Encryption
+                    InvalidCommandLineErrorOPTS, Encryption
 
-class RawGetCommand(RdmcCommandBase):
+class RawGetCommand():
     """ Raw form of the get command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='rawget',\
-            usage='rawget [PATH] [OPTIONS]\n\n\tRun to to retrieve data from ' \
-                    'the passed in path.\n\texample: rawget "/redfish/v1/systems/(system ID)"',\
-            summary='Raw form of the GET command.',\
-            aliases=['rawget'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+    def __init__(self):
+        self.ident = {
+            'name':'rawget',\
+            'usage':'rawget [PATH] [OPTIONS]\n\n\tRun to to retrieve data from ' \
+                    'the passed in path.\n\texample: rawget "/redfish/v1/' \
+                    'systems/(system ID)"',\
+            'summary':'Raw form of the GET command.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main raw get worker function
@@ -49,15 +53,16 @@ class RawGetCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        url = None
         headers = {}
-
+        
         self.getvalidation(options)
 
         if options.path.startswith('"') and options.path.endswith('"'):
@@ -74,13 +79,14 @@ class RawGetCommand(RdmcCommandBase):
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    InvalidCommandLineError("Invalid format for --headers option.")
+                    InvalidCommandLineError("Invalid format for --headers " \
+                                                                    "option.")
 
         returnresponse = False
         if options.response or options.getheaders:
             returnresponse = True
 
-        results = self._rdmc.app.get_handler(options.path, headers=headers,\
+        results = self.rdmc.app.get_handler(options.path, headers=headers,\
                 silent=options.silent, service=options.service)
 
         if results and results.status == 200 and options.binfile:
@@ -92,11 +98,10 @@ class RawGetCommand(RdmcCommandBase):
 
         elif results and returnresponse:
             if options.getheaders:
-                sys.stdout.write(json.dumps(dict(\
-                                 results.getheaders())) + "\n")
+                self.rdmc.ui.printer(json.dumps(dict(results.getheaders())) + "\n")
 
             if options.response:
-                sys.stdout.write(results.read)
+                self.rdmc.ui.printer(results.read)
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:
@@ -107,16 +112,16 @@ class RawGetCommand(RdmcCommandBase):
                     filehndl.write(output)
                     filehndl.close()
 
-                    sys.stdout.write("Results written out to '%s'.\n" % options.filename[0])
+                    self.rdmc.ui.printer("Results written out to '%s'.\n" % options.filename[0])
                 else:
                     if options.service:
-                        sys.stdout.write("%s\n" % results.dict)
+                        self.rdmc.ui.printer("%s\n" % results.dict)
                     else:
-                        UI().print_out_json(results.dict)
+                        self.rdmc.ui.print_out_json(results.dict)
         else:
             return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -126,7 +131,7 @@ class RawGetCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options, skipbuild=True)
+        self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -137,7 +142,7 @@ class RawGetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             'path',

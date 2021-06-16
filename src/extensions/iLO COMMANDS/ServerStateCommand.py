@@ -17,27 +17,27 @@
 # -*- coding: utf-8 -*-
 """ Server State Command for rdmc """
 
-import sys
-
-from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
                 InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
-class ServerStateCommand(RdmcCommandBase):
+class ServerStateCommand():
     """ Returns the current state of the server that  is currently logged in """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='serverstate',\
-            usage='serverstate [OPTIONS]\n\n\treturns the current state of the'\
+    def __init__(self):
+        self.ident = {
+            'name':'serverstate',\
+            'usage':'serverstate [OPTIONS]\n\n\treturns the current state of the'\
             ' server\n\n\tShow the current server state.\n\texample: serverstate',\
-            summary='Returns the current state of the server.',\
-            aliases=['serverstate'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Returns the current state of the server.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """Main serverstate function
@@ -46,7 +46,7 @@ class ServerStateCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -59,16 +59,16 @@ class ServerStateCommand(RdmcCommandBase):
 
         self.serverstatevalidation(options)
 
-        path = self.typepath.defs.systempath
-        results = self._rdmc.app.get_handler(path, silent=True, uncache=True).dict
+        path = self.rdmc.app.typepath.defs.systempath
+        results = self.rdmc.app.get_handler(path, silent=True, uncache=True).dict
 
         if results:
-            results = results['Oem'][self.typepath.defs.oemhp]['PostState']
-            sys.stdout.write("The server is currently in state: " + results + '\n')
+            results = results['Oem'][self.rdmc.app.typepath.defs.oemhp]['PostState']
+            self.rdmc.ui.printer("The server is currently in state: " + results + '\n')
         else:
             raise NoContentsFoundForOperationError("Unable to retrieve server state")
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -78,7 +78,7 @@ class ServerStateCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -89,4 +89,4 @@ class ServerStateCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)

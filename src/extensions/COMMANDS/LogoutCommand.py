@@ -20,22 +20,23 @@
 import sys
 
 from argparse import ArgumentParser, SUPPRESS
-from rdmc_base_classes import RdmcCommandBase
-
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
-class LogoutCommand(RdmcCommandBase):
+class LogoutCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='logout',\
-            usage='logout\n\n\tRun to end the current session and disconnect' \
+    def __init__(self):
+        self.ident = {
+            'name': 'logout',\
+            'usage': 'logout\n\n\tRun to end the current session and disconnect' \
                     ' from the server\n\texample: logout',\
-            summary='Ends the current session and disconnects from the server.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'summary': 'Ends the current session and disconnects from the server.',\
+            'aliases': [],\
+            'auxcommands': []
+            #argparser=ArgumentParser()
+        }
+        #self.definearguments(self.parser)
+        self.cmdbase = None
+        self.rdmc = None
 
     def logoutfunction(self, line):
         """ Main logout worker function
@@ -44,14 +45,14 @@ class LogoutCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (_, _) = self._parse_arglist(line)
+            (_, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        self._rdmc.app.logout("")
+        self.rdmc.app.logout("")
 
     def run(self, line):
         """ Wrapper function for main logout function
@@ -59,7 +60,7 @@ class LogoutCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        sys.stdout.write("Logging session out.\n")
+        self.rdmc.ui.printer("Logging session out.\n")
         self.logoutfunction(line)
 
         #Return code
@@ -73,28 +74,3 @@ class LogoutCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-
-        customparser.add_argument(
-            '-u',
-            '--user',
-            dest='user',
-            help="Pass this flag along with the password flag if you are "\
-            "running in local higher security modes.""",
-            default=None
-        )
-        customparser.add_argument(
-            '-p',
-            '--password',
-            dest='password',
-            help="Pass this flag along with the user flag if you are "\
-            "running in local higher security modes.""",
-            default=None
-        )
-        customparser.add_argument(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS,
-            default=False
-        )

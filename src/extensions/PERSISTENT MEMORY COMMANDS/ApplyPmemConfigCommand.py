@@ -17,13 +17,10 @@
 # -*- coding: utf-8 -*-
 """Command to apply a pre-defined configuration to PMM"""
 from __future__ import absolute_import
-import sys
 from copy import deepcopy
-from argparse import ArgumentParser
 
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-    LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
+            LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
 
 from .lib.DisplayHelpers import DisplayHelpers
 from .lib.RestHelpers import RestHelpers
@@ -31,7 +28,7 @@ from .ShowPmemPendingConfigCommand import ShowPmemPendingConfigCommand
 from .ClearPendingConfigCommand import ClearPendingConfigCommand
 
 
-class ApplyPmemConfigCommand(RdmcCommandBase):
+class ApplyPmemConfigCommand():
     """
     Command to apply a pre-defined configuration to PMM
     """
@@ -60,27 +57,23 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         }
     ]
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="applypmmconfig",
-                                 usage="applypmmconfig [-h | --help] [-C | --config=(configID)] "
-                                       "[-L | --list] [-f | --force]\n\n"
-                                       "\tApplies a pre-defined configuration to PMM\n"
-                                       "\texample: applypmmconfig --config MemoryMode",
-                                 summary="Applies a pre-defined configuration to PMM.",
-                                 aliases=["applypmmconfig"],
-                                 argparser=ArgumentParser())
-        self.define_arguments(self.parser)
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
-        self._show_pmem_config = ShowPmemPendingConfigCommand(self._rdmc)
-        self._display_helpers = DisplayHelpers()
-        self.usage = "applypmmconfig [-h | --help] [-C | --config=(configID)] " "[-L | --list] "\
-                     "[-f | --force]\n\n\tApplies a pre-defined configuration to PMM\n"\
-                     "\texample: applypmmconfig --config MemoryMode\n"
+    def __init__(self):
+        self.ident = {
+            'name':'applypmmconfig',
+            'usage':"applypmmconfig [-h | --help] [-C | --pmmconfig=(configID)] " "[-L | --list] "
+                    "[-f | --force]\n\n\tApplies a pre-defined configuration to PMM\n"
+                    "\texample: applypmmconfig --pmmconfig MemoryMode\n",
+            'summary':"Applies a pre-defined configuration to PMM.",
+            'aliases': [],
+            'auxcommands': ["ShowPmemPendingConfigCommand", "ClearPendingConfigCommand"]
+        }
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
-    @staticmethod
-    def define_arguments(customparser):
+        self._display_helpers = DisplayHelpers()
+
+    def definearguments(self, customparser):
         """
         Wrapper function for new command main function
         :param customparser: command line input
@@ -89,9 +82,11 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         if not customparser:
             return
 
+        self.cmdbase.add_login_arguments_group(customparser)
+
         customparser.add_argument(
             "-C",
-            "--config",
+            "--pmmconfig",
             action="store",
             type=str,
             dest="config",
@@ -126,9 +121,9 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("PMM Apply Pre-Defined Configuration: %s", self.name)
+        LOGGER.info("PMM Apply Pre-Defined Configuration: %s", self.ident['name'])
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -139,6 +134,8 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         self.validate_options(options)
         self.apply_pmm_config(options)
 
+        self.cmdbase.logout_routine(self, options)
+        #Return code
         return ReturnCodes.SUCCESS
 
     @staticmethod
@@ -163,12 +160,12 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
 
         if not options.config and not options.list and not options.force:
             raise InvalidCommandLineError(
-                "No flag specified.\n\nUsage: " + self.usage)
+                "No flag specified.\n\nUsage: " + self.ident['usage'])
         if not options.config and options.force:
             raise InvalidCommandLineError("'--force | -f' flag mandatorily requires the "
-                                          "'--config | -C' flag.")
+                                          "'--pmmconfig | -C' flag.")
         if options.config and options.list:
-            raise InvalidCommandLineError("Only one of '--config | -C' or '--list | -L' "
+            raise InvalidCommandLineError("Only one of '--pmmconfig | -C' or '--list | -L' "
                                           "may be specified")
         # Check whether the user entered configID is valid
         if options.config and not options.config.lower() in valid_config_ids:
@@ -185,25 +182,24 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
             self.show_predefined_config_options()
         elif options.config:
             # Raise exception if server is in POST
-            if self._rest_helpers.in_post():
+            if RestHelpers(rdmcObject=self.rdmc).in_post():
                 raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
                                                        "server might be in POST or powered off")
             self.apply_predefined_config(options)
 
-    @staticmethod
-    def show_predefined_config_options():
+
+    def show_predefined_config_options(self):
         """
         Display the available pre-defined configIDs that the user can choose from to
         apply to their Persistent memory Modules.
         """
-        sys.stdout.write("\nAvailable Configurations:\n\n")
+        self.rdmc.ui.printer("\nAvailable Configurations:\n\n")
         for config_id in ApplyPmemConfigCommand.config_ids:
-            sys.stdout.write(config_id.get("name")+"\n")
-            sys.stdout.write("\t" + config_id.get("description")+"\n")
-        sys.stdout.write("\n")
+            self.rdmc.ui.printer(config_id.get("name")+"\n")
+            self.rdmc.ui.printer("\t" + config_id.get("description")+"\n")
+        self.rdmc.ui.printer("\n")
 
-    @staticmethod
-    def warn_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks):
+    def warn_existing_chunks_and_tasks(self, memory_chunk_tasks, memory_chunks):
         """
         Checks for existing Memory Chunks and Pending Configuration Task resources on
         a server where a user is trying to apply a pre-defined configuration
@@ -215,19 +211,18 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         """
         # If Memory Chunks exist, display Existing configuration warning
         if memory_chunks:
-            sys.stdout.write("\nWarning: Existing configuration found. Proceeding with applying a new "
+            self.rdmc.ui.warn("Existing configuration found. Proceeding with applying a new "
                   "configuration will result in overwriting the current configuration and "
                   "cause data loss.\n")
         # If Pending Configuration Tasks exist, display warning
         if memory_chunk_tasks:
-            sys.stdout.write("\nWarning: Pending configuration tasks found. Proceeding with applying "
+            self.rdmc.ui.warn("Pending configuration tasks found. Proceeding with applying "
                   "a new configuration will result in overwriting the pending "
                   "configuration tasks.\n")
         # Raise a NoChangesFoundOrMade exception when either of the above conditions exist
         if memory_chunks or memory_chunk_tasks:
             # Line feed for proper formatting
-            sys.stdout.write("\n")
-            raise NoChangesFoundOrMadeError("Found one or more of Existing Configuration or "
+            raise NoChangesFoundOrMadeError("\nFound one or more of Existing Configuration or "
                                             "Pending Configuration Tasks. Please use the "
                                             "'--force | -f' flag with the same command to "
                                             "approve these changes.")
@@ -244,13 +239,12 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         """
         # Delete any pending configuration tasks
         if memory_chunk_tasks:
-            clear_pending = ClearPendingConfigCommand(self._rdmc)
-            clear_pending.delete_tasks(memory_chunk_tasks)
+            self.auxcommands["clearpmmpendingconfig"].delete_tasks(memory_chunk_tasks)
         # Delete any existing configuration
         if memory_chunks:
             for chunk in memory_chunks:
                 data_id = chunk.get("@odata.id")
-                resp = self._rest_helpers.delete_resource(data_id)
+                resp = RestHelpers(rdmcObject=self.rdmc).delete_resource(data_id)
                 if not resp:
                     raise NoChangesFoundOrMadeError("Error occured while deleting "
                                                     "existing configuration")
@@ -307,11 +301,11 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
         :returns: None
         """
         # Retrieve Memory Chunks and Task Resources from server
-        (task_members, domain_members, memory_chunks) = self._rest_helpers \
+        (task_members, domain_members, memory_chunks) = RestHelpers(rdmcObject=self.rdmc) \
                                     .retrieve_task_members_and_mem_domains()
 
         # Filter Task Resources to include only Pending Configuration Tasks
-        memory_chunk_tasks = self._rest_helpers.filter_task_members(task_members)
+        memory_chunk_tasks = RestHelpers(rdmcObject=self.rdmc).filter_task_members(task_members)
 
         if options.force:
             self.delete_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks)
@@ -326,15 +320,16 @@ class ApplyPmemConfigCommand(RdmcCommandBase):
                            if config_id.get("name").lower() == options.config.lower()), None)
 
         for proc in domain_members:
-            path = proc['MemoryChunks'].get('@odata.id').encode('ascii', 'ignore')
+            path = proc['MemoryChunks'].get('@odata.id')
             data = self.get_post_data(config_data, proc['InterleavableMemorySets'])
             for body in data:
-                resp = self._rest_helpers.post_resource(path, body)
+                resp = RestHelpers(rdmcObject=self.rdmc).post_resource(path, body)
                 if resp is None:
                     raise NoChangesFoundOrMadeError("Error occured while applying configuration")
 
         # display warning
-        sys.stdout.write("\n***WARNING: Configuration changes require reboot to take effect***\n")
+        self.rdmc.ui.warn("Configuration changes require reboot to take effect.\n")
 
         # display pending configuration
-        self._show_pmem_config.show_pending_config(type("MyOptions", (object, ), dict(json=False)))
+        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ), \
+                                                                          dict(json=False)))

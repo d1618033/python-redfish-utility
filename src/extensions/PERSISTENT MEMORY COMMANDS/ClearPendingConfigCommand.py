@@ -17,31 +17,30 @@
 # -*- coding: utf-8 -*-
 """Command to clear pending tasks"""
 from __future__ import absolute_import
-import sys
 
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
                         NoContentsFoundForOperationError, \
                         NoChangesFoundOrMadeError, LOGGER
 from .lib.RestHelpers import RestHelpers
 
 
-class ClearPendingConfigCommand(RdmcCommandBase):
+class ClearPendingConfigCommand():
     """ Command to clear pending config tasks"""
 
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,
-                                 name="clearpmmpendingconfig",
-                                 usage="clearpmmpendingconfig [-h|--help]\n\n" \
-                                       "\tClear pmm pending config tasks\n" \
-                                       "\texample: clearpmmpendingconfig",
-                                 summary="Clear pending config tasks",
-                                 aliases=["clearpmmpendingconfig"],
-                                 argparser=ArgumentParser())
-        self._rdmc = rdmcObj
-        self._rest_helpers = RestHelpers(rdmcObject=self._rdmc)
+    def __init__(self):
+        self.ident = {
+            'name':'clearpmmpendingconfig',
+            'usage':"clearpmmpendingconfig [-h|--help]\n\n"
+                    "\tClear pmm pending config tasks\n"
+                    "\texample: clearpmmpendingconfig",
+            'summary':"Clear pending config tasks",
+            'aliases': [],
+            'auxcommands': []
+        }
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def get_memory_chunk_tasks(self):
         """
@@ -49,13 +48,13 @@ class ClearPendingConfigCommand(RdmcCommandBase):
         :returns: Retrieved Memory Chunk Tasks
         """
         # Retrieving tasks members
-        tasks = self._rest_helpers.retrieve_task_members()
+        tasks = RestHelpers(rdmcObject=self.rdmc).retrieve_task_members()
         if tasks:
             # Filtering out Memory Chunk Tasks
-            memory_chunk_tasks = self._rest_helpers.filter_task_members(tasks)
+            memory_chunk_tasks = RestHelpers(rdmcObject=self.rdmc).filter_task_members(tasks)
             if memory_chunk_tasks:
                 return memory_chunk_tasks
-        sys.stdout.write("\nNo pending configuration tasks found.\n\n")
+        self.rdmc.ui.warn("No pending configuration tasks found.\n\n")
         return []
 
     def delete_tasks(self, memory_chunk_tasks, verbose=False):
@@ -71,10 +70,10 @@ class ClearPendingConfigCommand(RdmcCommandBase):
         for task in memory_chunk_tasks:
             data_id = task.get("@odata.id")
             task_id = task.get("Id")
-            resp = self._rest_helpers.delete_resource(data_id)
+            resp = RestHelpers(rdmcObject=self.rdmc).delete_resource(data_id)
             if resp:
                 if verbose:
-                    sys.stdout.write("Deleted Task #{}".format(task_id)+"\n")
+                    self.rdmc.ui.printer("Deleted Task #{}".format(task_id)+"\n")
             else:
                 raise NoChangesFoundOrMadeError("Error occured while deleting "
                                                 "task #{}".format(task_id))
@@ -86,10 +85,10 @@ class ClearPendingConfigCommand(RdmcCommandBase):
         :param line: command line input
         :type line: string.
         """
-        LOGGER.info("Clear Pending Configuration: %s", self.name)
+        LOGGER.info("Clear Pending Configuration: %s", self.ident['name'])
         # pylint: disable=unused-variable
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -98,10 +97,21 @@ class ClearPendingConfigCommand(RdmcCommandBase):
         if args:
             raise InvalidCommandLineError("Chosen flag doesn't expect additional arguments")
         # Raise exception if server is in POST
-        if self._rest_helpers.in_post():
+        if RestHelpers(rdmcObject=self.rdmc).in_post():
             raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
                                                    "server might be in POST or powered off")
         memory_chunk_tasks = self.get_memory_chunk_tasks()
         self.delete_tasks(memory_chunk_tasks, verbose=True)
 
         return ReturnCodes.SUCCESS
+
+    def definearguments(self, customparser):
+        """
+        Wrapper function for new command main function
+        :param customparser: command line input
+        :type customparser: parser.
+        """
+        if not customparser:
+            return
+
+        self.cmdbase.add_login_arguments_group(customparser)

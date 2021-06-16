@@ -16,26 +16,28 @@
 
 # -*- coding: utf-8 -*-
 """ Single Sign On Command for rdmc """
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
+from argparse import RawDescriptionHelpFormatter
+
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
             InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
 
-class SingleSignOnCommand(RdmcCommandBase):
+class SingleSignOnCommand():
     """ Commands Single Sign On actions to the server """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='singlesignon',\
-            usage=None, \
-            description='Add or remove single sign on (SSO) records.\nTo view help on specific '\
+    def __init__(self):
+        self.ident = {
+            'name':'singlesignon',\
+            'usage': None,\
+            'description':'Add or remove single sign on (SSO) records.\nTo view help on specific '\
                     'sub-commands run: singlesignon <sub-command> -h\n\nExample: singlesignon '\
                     'importcert -h\n\n', \
-            summary="Command for all single sign on available actions. ",
-            aliases=['sso'])
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':"Command for all single sign on available actions. ",
+            'aliases': ['sso'],\
+            'auxcommands': []
+        }
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main SingleSignOnCommand function
@@ -44,18 +46,19 @@ class SingleSignOnCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+
         self.singlesignonvalidation(options)
 
         actionitem = None
-        select = self.typepath.defs.hpilossotype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hpilossotype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -71,7 +74,7 @@ class SingleSignOnCommand(RdmcCommandBase):
 
         if options.command.lower() == 'importdns':
             actionitem = "ImportDNSName"
-            body = {"Action": actionitem, "DNSName": options.importdns}
+            body = {"Action": actionitem, "DNSName": options.dnsname}
         elif options.command.lower() == 'importcert':
             cert = None
             certtype = None
@@ -110,7 +113,7 @@ class SingleSignOnCommand(RdmcCommandBase):
         try:
             for item in bodydict['Actions']:
                 if actionitem in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         actionitem = item.split('#')[-1]
                         body["Action"] = actionitem
 
@@ -119,9 +122,9 @@ class SingleSignOnCommand(RdmcCommandBase):
         except:
             pass
 
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -131,7 +134,7 @@ class SingleSignOnCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -142,7 +145,7 @@ class SingleSignOnCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         subcommand_parser = customparser.add_subparsers(dest='command')
         save_import_dns_help = "Import a DNS name."

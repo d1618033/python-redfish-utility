@@ -19,39 +19,42 @@
 import sys
 import time
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from collections import OrderedDict
 
 import colorama
 from six.moves import input
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
                     NoContentsFoundForOperationError, IncompatibleiLOVersionError, Encryption
 
 CURSOR_UP_ONE = '\x1b[1A'
 ERASE_LINE = '\x1b[2K'
 
-class OneButtonEraseCommand(RdmcCommandBase):
+class OneButtonEraseCommand():
     """ Backup and restore server using iLO's .bak file """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='onebuttonerase',\
-            usage='onebuttonerase [OPTIONS]\n\n\t'\
+    def __init__(self):
+        self.ident = {
+            'name':'onebuttonerase',\
+            'usage':'onebuttonerase [OPTIONS]\n\n\t'\
                 'Erase all iLO settings, Bios settings, User Data, and iLO Repository data.'\
                 '\n\texample: onebuttonerase\n\n\tSkip the confirmation before'\
                 ' erasing system data.\n\texample: onebuttonerase --confirm\n\nWARNING: This '\
                 'command will erase user data! Use with extreme caution! Complete erase can take'\
                 ' up to 24 hours to complete.',\
-            summary='Performs One Button Erase on a system.',\
-            aliases=None,\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+            'summary':'Performs One Button Erase on a system.',\
+            'aliases': [],\
+            'auxcommands': ["RebootCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main onebuttonerase function
@@ -60,7 +63,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -73,9 +76,9 @@ class OneButtonEraseCommand(RdmcCommandBase):
         self.onebuttonerasevalidation(options)
 
         select = "ComputerSystem."
-        results = self._rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select)
 
-        if self._rdmc.app.getiloversion() < 5.140:
+        if self.rdmc.app.getiloversion() < 5.140:
             raise IncompatibleiLOVersionError('One Button Erase is only available on iLO 5 1.40 '\
                                                                                     'and greater.')
         try:
@@ -101,24 +104,23 @@ class OneButtonEraseCommand(RdmcCommandBase):
 
             if userresp == 'erase':
                 if post_path and body_dict:
-                    self._rdmc.app.post_handler(post_path, body_dict)
-                    self._rdmc.app.post_handler(results['Actions']['#ComputerSystem.Reset']\
-                                                ['target'], {"Action": "ComputerSystem.Reset", \
-                                                                    "ResetType": "ForceRestart"})
+                    self.rdmc.app.post_handler(post_path, body_dict)
+                    self.rdmc.app.post_handler(results['Actions']['#ComputerSystem.Reset']\
+                                                ['target'], {"ResetType": "ForceRestart"})
                     if not options.nomonitor:
                         self.monitor_erase(results['@odata.id'])
                     return ReturnCodes.SUCCESS
                 else:
                     NoContentsFoundForOperationError("Unable to start One Button Erase.")
             else:
-                sys.stdout.write("Canceling One Button Erase.\n")
+                self.rdmc.ui.printer("Canceling One Button Erase.\n")
                 return ReturnCodes.SUCCESS
         else:
-            sys.stdout.write("System is already undergoing a One Button Erase process...\n")
+            self.rdmc.ui.warn("System is already undergoing a One Button Erase process...\n")
         if not options.nomonitor:
             self.monitor_erase(results['@odata.id'])
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -137,14 +139,14 @@ class OneButtonEraseCommand(RdmcCommandBase):
          'Bios and iLO Erase:', 'UserDataEraseStatus': 'User Data Erase:'}
         colorama.init()
 
-        sys.stdout.write('\tOne Button Erase Status\n')
-        sys.stdout.write('==========================================================\n')
-        results = self._rdmc.app.get_handler(path, service=True, silent=True)
+        self.rdmc.ui.printer('\tOne Button Erase Status\n')
+        self.rdmc.ui.printer('==========================================================\n')
+        results = self.rdmc.app.get_handler(path, service=True, silent=True)
         counter = 0
         eraselines = 0
         while True:
             if not (counter + 1) % 8:
-                results = self._rdmc.app.get_handler(path, service=True, silent=True)
+                results = self.rdmc.app.get_handler(path, service=True, silent=True)
             print_data = self.gather_data(results.dict['Oem']['Hpe'])
 
             self.reset_output(eraselines)
@@ -162,7 +164,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
             eraselines = len(print_data.keys())
             time.sleep(.5)
         colorama.deinit()
-        self.logoutobj.run("")
+        self.cmdbase.logout_routine(self, options)
 
     def gather_data(self, resdict):
         """ Gather information on current progress from response
@@ -206,8 +208,8 @@ class OneButtonEraseCommand(RdmcCommandBase):
     def reset_output(self, numlines=0):
         """ reset the output for the next print"""
         for _ in range(numlines):
-            sys.stdout.write(CURSOR_UP_ONE)
-            sys.stdout.write(ERASE_LINE)
+            self.rdmc.ui.printer(CURSOR_UP_ONE)
+            self.rdmc.ui.printer(ERASE_LINE)
 
     def print_line(self, pstring, value, ctr):
         """print the line from system monitoring"""
@@ -218,7 +220,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
             pline += '\t%s' %spinner[ctr%4]
         pline += '\n'
 
-        sys.stdout.write(pline)
+        self.rdmc.ui.printer(pline)
 
     def onebuttonerasevalidation(self, options):
         """ one button erase validation function
@@ -226,7 +228,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -237,7 +239,7 @@ class OneButtonEraseCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--nomonitor',

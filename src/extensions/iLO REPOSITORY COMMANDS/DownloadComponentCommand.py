@@ -18,17 +18,13 @@
 """ Download Component Command for rdmc """
 
 import os
-import sys
 import time
 import ctypes
 
 from ctypes import c_char_p, c_int
-from argparse import ArgumentParser
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
                         InvalidCommandLineError, DownloadError, \
                         InvalidFileInputError, IncompatibleiLOVersionError, Encryption
@@ -45,25 +41,25 @@ def human_readable_time(seconds):
     minutes = seconds / 60
     seconds = seconds % 60
 
-    return str(hours) + " hour(s) " + str(minutes) + " minute(s) " + str(seconds) + " second(s) "
+    return "{:02.0f} hour(s) {:02.0f} minute(s) {:02.0f} second(s) ".format(hours, minutes, seconds)
 
-class DownloadComponentCommand(RdmcCommandBase):
+class DownloadComponentCommand():
     """ Main download component command class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self, \
-            name='downloadcomp', \
-            usage='downloadcomp [COMPONENT URI] [OPTIONS]\n\n\tRun to ' \
+    def __init__(self):
+        self.ident = {
+            'name':'downloadcomp', \
+            'usage':'downloadcomp [COMPONENT URI] [OPTIONS]\n\n\tRun to ' \
                 'download the file from path\n\texample: downloadcomp ' \
                 '/fwrepo/filename.exe --outdir <output location>' \
                 'download the file by name\n\texample: downloadcomp ' \
                 'filename.exe --outdir <output location>', \
-            summary='Downloads components/binaries from the iLO Repository.', \
-            aliases=['Downloadcomp'], \
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+            'summary':'Downloads components/binaries from the iLO Repository.', \
+            'aliases': [], \
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
 
     def run(self, line):
         """ Wrapper function for download command main function
@@ -72,57 +68,42 @@ class DownloadComponentCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self,line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        repo = ['fwrepo']
-        urilist = args[0].split('/')
-        if repo[0] not in urilist:
-            repo = ['/fwrepo/']
-            repo[0] += args[0]
-            args[0] = repo[0]
-
         self.downloadcomponentvalidation(options)
 
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('iLO Repository commands are ' \
-                                                    'only available on iLO 5.')
-
-        if len(args) > 1:
-            raise InvalidCommandLineError("Download component only takes 1 " \
-                                                "component path argument.\n")
-        elif not args:
-            raise InvalidCommandLineError("Download component missing component path.\n")
+                                                            'only available on iLO 5.')
 
         start_time = time.time()
         ret = ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
 
-        sys.stdout.write("Downloading component, this may take a while...\n")
+        self.rdmc.ui.printer("Downloading component, this may take a while...\n")
 
-        if 'blobstore' in self._rdmc.app.current_client.base_url:
-            ret = self.downloadlocally(args[0], options)
+        if 'blobstore' in self.rdmc.app.current_client.base_url:
+            ret = self.downloadlocally(options)
         else:
-            ret = self.downloadfunction(args[0], options)
+            ret = self.downloadfunction(options)
 
-        sys.stdout.write("%s\n" % human_readable_time(time.time() - start_time))
+        self.rdmc.ui.printer("%s\n" % human_readable_time(time.time() - start_time))
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ret
 
-    def downloadfunction(self, filepath, options=None):
+    def downloadfunction(self, options):
         """ Main download command worker function
 
-        :param filepath: Path of the file to download.
-        :type filepath: string.
-        :param options: command options
+        :param options: command options (argparse)
         :type options: options.
         """
-        filename = filepath.rsplit('/', 1)[-1]
+        filename = options.component.rsplit('/', 1)[-1]
 
         if not options.outdir:
             destination = os.path.join(os.getcwd(), filename)
@@ -136,30 +117,30 @@ class DownloadComponentCommand(RdmcCommandBase):
         if os.access(destination, os.F_OK) and not os.access(destination, os.W_OK):
             raise InvalidFileInputError("Existing File cannot be overwritten.")
 
-        if filepath[0] != '/':
-            filepath = '/' + filepath
+        if options.component[0] != '/':
+            options.component = '/' + options.component
 
-        results = self._rdmc.app.get_handler(filepath, uncache=True)
+        results = self.rdmc.app.get_handler(options.component, uncache=True)
 
         with open(destination, "wb") as local_file:
             local_file.write(results.ori)
 
-        sys.stdout.write("Download complete\n")
+        self.rdmc.ui.printer("Download complete\n")
 
         return ReturnCodes.SUCCESS
 
-    def downloadlocally(self, filepath, options=None):
+    def downloadlocally(self, options=None):
         """ Used to download a component from the iLO Repo locally
 
-        :param filepath: Path to the file to download.
-        :type filepath: string.
+        :param options: command options (argparse)
+        :type options: options.
         """
         try:
-            dll = self._rdmc.app.current_client.connection._conn.channel.dll
+            dll = self.rdmc.app.current_client.connection._conn.channel.dll
             dll.downloadComponent.argtypes = [c_char_p, c_char_p]
             dll.downloadComponent.restype = c_int
 
-            filename = filepath.rsplit('/', 1)[-1]
+            filename = options.component.rsplit('/', 1)[-1]
             if not options.outdir:
                 destination = os.path.join(os.getcwd(), filename)
             else:
@@ -178,10 +159,10 @@ class DownloadComponentCommand(RdmcCommandBase):
                                                             destination.encode('utf-8')))
 
             if ret != 0:
-                sys.stdout.write("Component " + filename + " download failed\n")
+                self.rdmc.ui.error("Component " + filename + " download failed\n")
                 return ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
             else:
-                sys.stdout.write("Component " + filename + " downloaded successfully\n")
+                self.rdmc.ui.printer("Component " + filename + " downloaded successfully\n")
 
         except Exception as excep:
             raise DownloadError(str(excep))
@@ -194,7 +175,7 @@ class DownloadComponentCommand(RdmcCommandBase):
         :param options: command options
         :type options: options.
         """
-        login_select_validation(self, options)
+        self.rdmc.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for download command main function
@@ -205,18 +186,14 @@ class DownloadComponentCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
-        '''
+        self.cmdbase.add_login_arguments_group(customparser)
+        
         customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect.",
-            default=None,
+            'component',
+            help="""Component name (starting with path '/fwrepo/<comp name>') of the target"""\
+            """ component.""",
+            metavar="[COMPONENT URI]"
         )
-        '''
         customparser.add_argument(
             '--outdir',
             dest='outdir',

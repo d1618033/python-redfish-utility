@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 from jsonpointer import resolve_pointer
 
-
 class Mapper(object):
     """ Helper functions for getting data """
 
@@ -77,11 +76,15 @@ class Mapper(object):
                     if "renderJSON" in mapping:
                         # calling the rendering function to generate the JSON output
                         value = mapping["renderJSON"](value)
+                        if isinstance(value, bytes):
+                            value = value.decode('utf-8')
                     output = {attribute_name: value}
                 else:
                     if "renderText" in mapping:
                         # calling the rendering function to generate the TEXT output
                         value = mapping["renderText"](value)
+                        if isinstance(value, bytes):
+                            value = value.decode('utf-8')
                     output = "{}: {}".format(attribute_name, value)
 
         # attribute does not exist in mapping table or value is None

@@ -16,35 +16,37 @@
 # -*- coding: utf-8 -*-
 """ Server Info Command for rdmc """
 import re
-import sys
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from collections import OrderedDict
 
 import jsonpath_rw
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, UI
 
-class ServerInfoCommand(RdmcCommandBase):
+class ServerInfoCommand():
     """ Show details of a server """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='serverinfo',\
-            usage='serverinfo [OPTIONS]\n\n\t'\
+    def __init__(self):
+        self.ident = {
+            'name':'serverinfo',\
+            'usage':'serverinfo [OPTIONS]\n\n\t'\
                 'Show all information.\n\texample: serverinfo\n\t\t'\
                 ' serverinfo --all\n\n\t'\
                 'Show enabled fan, processor, and thermal information.\n\texample: ' \
                 'serverinfo --fans --processors --thermals\n\n\tShow all memory '\
                 'and fan information, including absent locations in json format.\n\t'\
-                'example: serverinfo --memory --fans --showabsent -j',\
-            summary='Shows aggregate health status and details of the currently logged in server.',\
-            aliases=['health', 'serverstatus', 'systeminfo'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+                'example: serverinfo --firmware --software --memory --fans --showabsent -j',\
+            'summary':'Shows aggregate health status and details of the currently logged in server.',\
+            'aliases': ['health', 'serverstatus', 'systeminfo'],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main serverinfo function.
@@ -53,7 +55,7 @@ class ServerInfoCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -79,7 +81,7 @@ class ServerInfoCommand(RdmcCommandBase):
         else:
             self.prettyprintinfo(info, options.showabsent)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -92,7 +94,7 @@ class ServerInfoCommand(RdmcCommandBase):
         info = {}
         if options.system:
             info['system'] = OrderedDict()
-            csysresults = self._rdmc.app.select(selector="ComputerSystem.")
+            csysresults = self.rdmc.app.select(selector="ComputerSystem.")
 
             try:
                 csysresults = csysresults[0].dict
@@ -103,7 +105,7 @@ class ServerInfoCommand(RdmcCommandBase):
                                                             csysresults['Model'])
                 info['system']['Bios Version'] = csysresults['BiosVersion']
 
-            biosresults = self._rdmc.app.select(selector=self.typepath.defs.biostype)
+            biosresults = self.rdmc.app.select(selector=self.rdmc.app.typepath.defs.biostype)
 
             try:
                 biosresults = biosresults[0].dict
@@ -116,11 +118,11 @@ class ServerInfoCommand(RdmcCommandBase):
                 except:
                     info['system']['Serial Number'] = biosresults['SerialNumber']
 
-            getloc = self._rdmc.app.getidbytype("EthernetInterfaceCollection.")
+            getloc = self.rdmc.app.getidbytype("EthernetInterfaceCollection.")
             if getloc:
                 for loc in getloc:
                     if "/systems/1/" in loc.lower():
-                        ethresults = self._rdmc.app.getcollectionmembers(loc)
+                        ethresults = self.rdmc.app.getcollectionmembers(loc)
                         break
                 if ethresults:
                     niccount = 0
@@ -130,9 +132,9 @@ class ServerInfoCommand(RdmcCommandBase):
                         info['system']['ethernet'][eth['Name']] = eth['MACAddress']
                     info['system']['NICCount'] = niccount
         if options.thermals or options.fans:
-            getloc = self._rdmc.app.getidbytype('Thermal.')
+            getloc = self.rdmc.app.getidbytype('Thermal.')
             if getloc:
-                data = self._rdmc.app.get_handler(getloc[0], silent=True, service=True)
+                data = self.rdmc.app.get_handler(getloc[0], silent=True, service=True)
             if options.thermals:
                 if not getloc:
                     info['thermals'] = None
@@ -145,26 +147,40 @@ class ServerInfoCommand(RdmcCommandBase):
                 else:
                     info['fans'] = data.dict['Fans']
         if options.memory:
-            getloc = self._rdmc.app.getidbytype('MemoryCollection.')
+            getloc = self.rdmc.app.getidbytype('MemoryCollection.')
             if getloc:
-                data = self._rdmc.app.getcollectionmembers(getloc[0], fullresp=True)[0]
+                data = self.rdmc.app.getcollectionmembers(getloc[0], fullresp=True)[0]
             else:
                 info['memory'] = None
             info['memory'] = data
         if options.processors:
-            getloc = self._rdmc.app.getidbytype('ProcessorCollection.')
+            getloc = self.rdmc.app.getidbytype('ProcessorCollection.')
             if getloc:
-                data = self._rdmc.app.getcollectionmembers(getloc[0])
+                data = self.rdmc.app.getcollectionmembers(getloc[0])
             else:
                 info['processor'] = None
             info['processor'] = data
         if options.power:
-            getloc = self._rdmc.app.getidbytype('Power.')
+            getloc = self.rdmc.app.getidbytype('Power.')
             if getloc:
-                data = self._rdmc.app.get_handler(getloc[0], silent=True, service=True)
+                data = self.rdmc.app.get_handler(getloc[0], silent=True, service=True)
             else:
                 info['power'] = None
             info['power'] = data.dict
+        if options.firmware:
+            data = None
+            getloc = self.rdmc.app.getidbytype('SoftwareInventoryCollection.')
+            for gloc in getloc:
+                if 'FirmwareInventory' in gloc:
+                    data = self.rdmc.app.getcollectionmembers(gloc)
+            info['firmware'] = data
+        if options.software:
+            data = None
+            getloc = self.rdmc.app.getidbytype('SoftwareInventoryCollection.')
+            for gloc in getloc:
+                if 'SoftwareInventory' in gloc:
+                    data = self.rdmc.app.getcollectionmembers(gloc)
+            info['software'] = data
         if not options.showabsent:
             jsonpath_expr = jsonpath_rw.parse('$..State')
             matches = jsonpath_expr.find(info)
@@ -210,7 +226,27 @@ class ServerInfoCommand(RdmcCommandBase):
                         output += "%s MAC: %s\n" % (name, data['ethernet'][name])
                 elif not key == "NICCount":
                     output += "%s: %s\n" % (key, val)
-            sys.stdout.write(output)
+            self.rdmc.ui.printer(output, verbose_override=True)
+
+        if 'firmware' in headers:
+            output = ""
+            data = info['firmware']
+            output = '------------------------------------------------\n'
+            output += 'Firmware Information\n'
+            output += '------------------------------------------------\n'
+            for fw in data:
+                output += "%s : %s\n" % (fw['Name'], fw['Version'])
+            self.rdmc.ui.printer(output, verbose_override=True)
+
+        if 'software' in headers:
+            output = ""
+            data = info['software']
+            output = '------------------------------------------------\n'
+            output += 'Software Information\n'
+            output += '------------------------------------------------\n'
+            for sw in data:
+                output += "%s : %s\n" % (sw['Name'], sw['Version'])
+            self.rdmc.ui.printer(output, verbose_override=True)
 
         if 'processor' in headers:
             output = ""
@@ -225,13 +261,13 @@ class ServerInfoCommand(RdmcCommandBase):
                 output += "Max Speed: %s MHz\n" % processor['MaxSpeedMHz']
                 try:
                     output += "Speed: %s MHz\n" % processor['Oem']\
-                                [self._rdmc.app.typepath.defs.oemhp]['RatedSpeedMHz']
+                                [self.rdmc.app.typepath.defs.oemhp]['RatedSpeedMHz']
                 except KeyError:
                     pass
                 output += "Cores: %s\n" % processor['TotalCores']
                 output += "Threads: %s\n" % processor['TotalThreads']
                 try:
-                    for cache in processor['Oem'][self._rdmc.app.typepath.defs.oemhp]['Cache']:
+                    for cache in processor['Oem'][self.rdmc.app.typepath.defs.oemhp]['Cache']:
                         output += "%s: %s KB\n" % (cache['Name'], cache['InstalledSizeKB'])
                 except KeyError:
                     pass
@@ -241,11 +277,11 @@ class ServerInfoCommand(RdmcCommandBase):
                         output += "State: %s\n" % processor['Status']['State']
                     except KeyError:
                         pass
-                sys.stdout.write(output)
+                self.rdmc.ui.printer(output, verbose_override=True)
 
         if 'memory' in headers:
             data = info['memory']
-            collectiondata = data['Oem'][self._rdmc.app.typepath.defs.oemhp]
+            collectiondata = data['Oem'][self.rdmc.app.typepath.defs.oemhp]
             output = '------------------------------------------------\n'
             output += "Memory/DIMM Board Information:\n"
             output += '------------------------------------------------\n'
@@ -258,7 +294,7 @@ class ServerInfoCommand(RdmcCommandBase):
             output += '------------------------------------------------\n'
             output += "Memory/DIMM Configuration:\n"
             output += '------------------------------------------------\n'
-            for dimm in data[self._rdmc.app.typepath.defs.collectionstring]:
+            for dimm in data[self.rdmc.app.typepath.defs.collectionstring]:
                 output += "Location: %s\n" % dimm['DeviceLocator']
                 try:
                     output += "Memory Type: %s %s\n" % (dimm['MemoryType'], \
@@ -270,13 +306,13 @@ class ServerInfoCommand(RdmcCommandBase):
                     output += "Speed: %s MHz\n" % dimm['OperatingSpeedMhz']
                 except KeyError:
                     pass
-                output += "Status: %s\n" % dimm['Oem'][self._rdmc.app.typepath.defs.oemhp]\
+                output += "Status: %s\n" % dimm['Oem'][self.rdmc.app.typepath.defs.oemhp]\
                                                                                     ['DIMMStatus']
                 output += "Health: %s\n" % dimm['Status']['Health']
                 if absent:
                     output += "State: %s\n" % dimm['Status']['State']
                 output += '\n'
-            sys.stdout.write(output)
+            self.rdmc.ui.printer(output, verbose_override=True)
 
         if 'power' in headers:
             data = info['power']
@@ -295,25 +331,25 @@ class ServerInfoCommand(RdmcCommandBase):
                                                         ['MaxConsumedWatts']
                 output += '\tMinimum Consumed Power: %s W\n' % control['PowerMetrics']\
                                                         ['MinConsumedWatts']
-            for supply in data['PowerSupplies']:
-                output += '------------------------------------------------\n'
-                output += "Power Supply %s:\n" % supply['Oem']\
-                                [self._rdmc.app.typepath.defs.oemhp]['BayNumber']
-                output += '------------------------------------------------\n'
-                try:
+            try:
+                for supply in data['PowerSupplies']:
+                    output += '------------------------------------------------\n'
+                    output += "Power Supply %s:\n" % supply['Oem']\
+                                    [self.rdmc.app.typepath.defs.oemhp]['BayNumber']
+                    output += '------------------------------------------------\n'
+
                     output += 'Power Capacity: %s W\n' % supply['PowerCapacityWatts']
                     output += 'Last Power Output: %s W\n' % supply['LastPowerOutputWatts']
                     output += 'Input Voltage: %s V\n' % supply['LineInputVoltage']
                     output += 'Input Voltage Type: %s\n' % supply['LineInputVoltageType']
                     output += "Hotplug Capable: %s\n" % supply['Oem']\
-                                    [self._rdmc.app.typepath.defs.oemhp]['HotplugCapable']
+                                        [self.rdmc.app.typepath.defs.oemhp]['HotplugCapable']
                     output += "iPDU Capable: %s\n" % supply['Oem']\
-                                    [self._rdmc.app.typepath.defs.oemhp]['iPDUCapable']
-                except KeyError:
-                    pass
-                output += "Health: %s\n" % supply['Status']['Health']
-                output += "State: %s\n" % supply['Status']['State']
-            try:
+                                        [self.rdmc.app.typepath.defs.oemhp]['iPDUCapable']
+
+                    output += "Health: %s\n" % supply['Status']['Health']
+                    output += "State: %s\n" % supply['Status']['State']
+
                 for redundancy in data['Redundancy']:
                     output += '------------------------------------------------\n'
                     output += '%s\n' % redundancy['Name']
@@ -323,7 +359,7 @@ class ServerInfoCommand(RdmcCommandBase):
                     output += 'Redundancy State: %s\n' % redundancy['Status']['State']
             except KeyError:
                 pass
-            sys.stdout.write(output)
+            self.rdmc.ui.printer(output, verbose_override=True)
 
         if 'fans' in headers:
             output = '------------------------------------------------\n'
@@ -331,12 +367,12 @@ class ServerInfoCommand(RdmcCommandBase):
             output += '------------------------------------------------\n'
             for fan in info['fans']:
                 output += '%s:\n' % fan['Name']
-                output += '\tLocation: %s\n' % fan['Oem'][self._rdmc.app.typepath.defs.oemhp]\
+                output += '\tLocation: %s\n' % fan['Oem'][self.rdmc.app.typepath.defs.oemhp]\
                                                             ['Location']
                 output += '\tReading: %s%%\n' % fan['Reading']
-                output += '\tRedundant: %s\n' % fan['Oem'][self._rdmc.app.typepath.defs.oemhp]\
+                output += '\tRedundant: %s\n' % fan['Oem'][self.rdmc.app.typepath.defs.oemhp]\
                                                             ['Redundant']
-                output += '\tHot Pluggable: %s\n' % fan['Oem'][self._rdmc.app.typepath.defs.oemhp]\
+                output += '\tHot Pluggable: %s\n' % fan['Oem'][self.rdmc.app.typepath.defs.oemhp]\
                                                             ['HotPluggable']
                 try:
                     output += '\tHealth: %s\n' % fan['Status']['Health']
@@ -345,7 +381,7 @@ class ServerInfoCommand(RdmcCommandBase):
 
                 if absent:
                     output += "\tState: %s\n" % fan['Status']['State']
-            sys.stdout.write(output)
+            self.rdmc.ui.printer(output, verbose_override=True)
 
         if 'thermals' in headers:
             output = '------------------------------------------------\n'
@@ -369,7 +405,7 @@ class ServerInfoCommand(RdmcCommandBase):
                     pass
                 if absent:
                     output += "\tState: %s\n" % temp['Status']['State']
-            sys.stdout.write(output)
+            self.rdmc.ui.printer(output, verbose_override=True)
 
     def serverinfovalidation(self, options):
         """ serverinfo method validation function.
@@ -377,14 +413,14 @@ class ServerInfoCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def optionsvalidation(self, options):
         """ Checks/updates options.
         :param options: command line options
         :type options: list
         """
-        optlist = [options.memory, options.thermals, options.fans, \
+        optlist = [options.firmware, options.software, options.memory, options.thermals, options.fans, \
            options.power, options.processors, options.system, options.showabsent]
         if not any(optlist):
             self.setalloptionstrue(options)
@@ -397,6 +433,8 @@ class ServerInfoCommand(RdmcCommandBase):
         """
         options.memory = True
         options.thermals = True
+        options.firmware = True
+        options.software = True
         options.fans = True
         options.processors = True
         options.power = True
@@ -412,7 +450,7 @@ class ServerInfoCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--all',
@@ -420,6 +458,20 @@ class ServerInfoCommand(RdmcCommandBase):
             action="store_true",
             help="Add information for all types.",
             default=False
+        )
+        customparser.add_argument(
+            '--firmware',
+            dest='firmware',
+            action="store_true",
+            help="Add firmware information to the output.",
+            default=False,
+        )
+        customparser.add_argument(
+            '--software',
+            dest='software',
+            action="store_true",
+            help="Add software information to the output.",
+            default=False,
         )
         customparser.add_argument(
             '--memory',

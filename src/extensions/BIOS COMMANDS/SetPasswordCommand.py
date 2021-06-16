@@ -17,41 +17,34 @@
 # -*- coding: utf-8 -*-
 """ SetPassword Command for rdmc """
 
-import sys
 import getpass
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                            logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                         Encryption, UnableToDecodeError
 
-class SetPasswordCommand(RdmcCommandBase):
+class SetPasswordCommand():
     """ Set password class command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='setpassword',\
-            usage='setpassword [NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]\n\n\t'\
-                'Setting the admin password with no previous password set.' \
-                '\n\texample: setpassword newpassword ""\n\n\tSetting the admin '\
-                'password back to nothing.\n\texample: setpassword "" oldpassword'\
-                '\n\n\tSetting the power on password.\n\texample: setpassword'\
-                ' newpassword oldpassword --poweron\n\n\tNOTE: please make sure' \
-                ' the order of passwords is maintained.\n\tThe passwords are' \
-                ' extracted base on their position in the arguments list.', \
-            summary='Sets the admin password and power-on password',\
-            aliases=None,\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
-        self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        self.commitobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-        self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+    def __init__(self):
+        self.ident = {
+            'name':'setpassword',
+            'usage':'setpassword --newpassword <NEW_PASSWORD> --currentpassword <OLD_PASSWORD> [OPTIONS]\n\n\t'
+                    'Setting the admin password with no previous password set.'
+                    '\n\texample: setpassword --newpassword testnew --currentpassword None\n\n\tSetting the admin '
+                    'password back to nothing.\n\texample: setpassword --newpassword None --currentpassword testnew '
+                    '\n\n\tSetting the power on password.\n\texample: setpassword'
+                    ' --newpassword testnew --currentpassword None --poweron\n\tNote: '
+                    'if it is empty password, send None as above\n.',
+            'summary':'Sets the admin password and power-on password',
+            'aliases': [],
+            'auxcommands': ['LoginCommand', 'SetCommand', 'SelectCommand',
+                            'CommitCommand', 'RebootCommand', 'LogoutCommand']
+        }
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main set password worker function
@@ -60,7 +53,7 @@ class SetPasswordCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -69,49 +62,57 @@ class SetPasswordCommand(RdmcCommandBase):
 
         self.setpasswordvalidation(options)
 
-        if not args:
-            sys.stdout.write('Please input the current password.\n')
-            tempoldpass = getpass.getpass()
+        #if not args:
+        #    self.rdmc.ui.printer('Please input the current password.\n')
+        #    tempoldpass = getpass.getpass()
 
-            if tempoldpass and tempoldpass != '\r':
-                tempoldpass = tempoldpass
-            else:
-                tempoldpass = '""'
+        #   if tempoldpass and tempoldpass != '\r':
+        #        tempoldpass = tempoldpass
+        #    else:
+        #        tempoldpass = '""'
 
-            sys.stdout.write('Please input the new password.\n')
-            tempnewpass = getpass.getpass()
+        #    self.rdmc.ui.printer('Please input the new password.\n')
+        #    tempnewpass = getpass.getpass()
 
-            if tempnewpass and tempnewpass != '\r':
-                tempnewpass = tempnewpass
-            else:
-                tempnewpass = '""'
-            args.extend([tempnewpass, tempoldpass])
+        #    if tempnewpass and tempnewpass != '\r':
+        #        tempnewpass = tempnewpass
+        #    else:
+        #        tempnewpass = '""'
+        #    args.extend([tempnewpass, tempoldpass])
 
-        if len(args) < 2:
-            raise InvalidCommandLineError("Please pass both new password and old password.")
+        #if len(args) < 2:
+        #    raise InvalidCommandLineError("Please pass both new password and old password.")
 
 
+        args = list()
+        args.append(options.newpassword)
+        args.append(options.currentpassword)
         count = 0
         for arg in args:
             if arg:
-                if '"' in arg[0] and '"' in arg[-1] and len(arg) > 2:
-                    args[count] = arg[1:-1]
-                elif len(arg) == 2 and arg[0] == '"' and arg[1] == '"' or \
-                                arg[0] == '"' and arg[1] == '"':
-                    args[count] = ''
-
+                if arg.lower() == 'none':
+                    args[count] = None
+                elif len(arg) > 2:
+                    if ('"' in arg[0] and '"' in arg[-1]) or ('\'' in arg[0] and '\'' in arg[-1]):
+                        args[count] = arg[1:-1]
+                elif len(arg) == 2:
+                    if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
+                        args[count] = None
             count += 1
 
         if options.encode:
             _args = []
             for arg in args:
                 try:
-                    _args.append(Encryption.decode_credentials(arg))
+                    arg = Encryption.decode_credentials(arg)
+                    if isinstance(arg, bytes):
+                        arg = arg.decode('utf-8')
+                    _args.append(arg)
                 except UnableToDecodeError:
                     _args.append(arg)
             args = _args
-        if self.typepath.defs.isgen10:
-            bodydict = self._rdmc.app.get_handler(self.typepath.defs.biospath,\
+        if self.rdmc.app.typepath.defs.isgen10:
+            bodydict = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,\
                 service=True, silent=True).dict
 
             for item in bodydict['Actions']:
@@ -125,25 +126,25 @@ class SetPasswordCommand(RdmcCommandBase):
                 body = {"PasswordName": "Administrator", "OldPassword": args[1],\
                         "NewPassword": args[0]}
 
-            self._rdmc.app.post_handler(path, body)
+            self.rdmc.app.post_handler(path, body)
         else:
             if options.poweron:
-                self.selobj.run("HpBios.")
-                self.setobj.run("PowerOnPassword=%s OldPowerOnPassword=%s" % (args[0], args[1]))
-                self.commitobj.run("")
+                self.auxcommands['select'].run("HpBios.")
+                self.auxcommands['set'].run("PowerOnPassword=%s OldPowerOnPassword=%s" % (args[0], args[1]))
+                self.auxcommands['commit'].run("")
             else:
-                self.selobj.run("HpBios.")
-                self.setobj.run("AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1]))
-                self.commitobj.run("")
-                sys.stdout.write('\nThe session will now be terminated.\nPlease'\
-                    ' login again with the updated credentials to continue.\n')
-                self.logoutobj.run("")
+                self.auxcommands['select'].run("HpBios.")
+                self.auxcommands['set'].run("AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1]))
+                self.auxcommands['commit'].run("")
+                self.rdmc.ui.printer('\nThe session will now be terminated.\n'\
+                    ' login again with updated credentials in order to continue.\n')
+                self.auxcommands['logout'].run("")
 
         if options:
             if options.reboot:
-                self.rebootobj.run(options.reboot)
+                self.auxcommands['reboot'].run(options.reboot)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         return ReturnCodes.SUCCESS
 
     def setpasswordvalidation(self, options):
@@ -152,7 +153,7 @@ class SetPasswordCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -163,7 +164,21 @@ class SetPasswordCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
+
+        customparser.add_argument(
+            '--currentpassword',
+            dest='currentpassword',
+            help="Use this flag to provide current password.",
+            required=True,
+        )
+
+        customparser.add_argument(
+            '--newpassword',
+            dest='newpassword',
+            help="Use this flag to provide new password.",
+            required=True,
+        )
 
         customparser.add_argument(
             '--reboot',

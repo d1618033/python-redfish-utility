@@ -17,30 +17,29 @@
 # -*- coding: utf-8 -*-
 """ List Component Command for rdmc """
 
-import sys
 import json
-
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 
 from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, InvalidCommandLineErrorOPTS, \
                         Encryption
 
-class ListComponentCommand(RdmcCommandBase):
+class ListComponentCommand():
     """ Main download command class """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self, \
-            name='listcomp', \
-            usage='listcomp [OPTIONS] \n\n\tRun to list the components of' \
+    def __init__(self):
+        self.ident = {
+            'name':'listcomp', \
+            'usage':'listcomp [OPTIONS] \n\n\tRun to list the components of' \
               'the currently logged in system.\n\texample: listcomp',\
-            summary='Lists components/binaries from the iLO Repository.', \
-            aliases=['Listcomp'], \
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Lists components/binaries from the iLO Repository.', \
+            'aliases': [], \
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.rdmc.app.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main listcomp worker function
@@ -49,7 +48,7 @@ class ListComponentCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -58,19 +57,19 @@ class ListComponentCommand(RdmcCommandBase):
 
         self.listcomponentvalidation(options)
 
-        if self.typepath.defs.isgen9:
+        if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError('iLO Repository commands are ' \
                                                     'only available on iLO 5.')
 
-        comps = self._rdmc.app.getcollectionmembers(\
+        comps = self.rdmc.app.getcollectionmembers(\
                             '/redfish/v1/UpdateService/ComponentRepository/')
 
         if comps:
             self.printcomponents(comps, options)
         else:
-            sys.stdout.write('No components found.\n')
+            self.rdmc.ui.warn('No components found.\n')
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -84,14 +83,14 @@ class ListComponentCommand(RdmcCommandBase):
             jsonout = dict()
             for comp in comps:
                 jsonout[comp['Id']] = comp
-            sys.stdout.write(str(json.dumps(jsonout, indent=2, sort_keys=True))+'\n')
+            self.rdmc.ui.print_out_json(jsonout)
         else:
             for comp in comps:
-                sys.stdout.write('Id: %s\nName: %s\nVersion: %s\nLocked:%s\nComponent '\
-                                'Uri:%s\nFile Path: %s\nSizeBytes: %s\n\n' % \
-                             (comp['Id'], comp['Name'].encode("ascii", "ignore"), comp['Version'], \
-                              'Yes' if comp['Locked'] else 'No', comp['ComponentUri'], \
-                              comp['Filepath'], str(comp['SizeBytes'])))
+                self.rdmc.ui.printer('Id: %s\nName: %s\nVersion: %s\nLocked:%s\nComponent '\
+                            'Uri:%s\nFile Path: %s\nSizeBytes: %s\n\n' % \
+                            (comp['Id'], comp['Name'].encode("ascii", "ignore"), comp['Version'], \
+                            'Yes' if comp['Locked'] else 'No', comp['ComponentUri'], \
+                            comp['Filepath'], str(comp['SizeBytes'])))
 
     def listcomponentvalidation(self, options):
         """ listcomp validation function
@@ -99,7 +98,7 @@ class ListComponentCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.rdmc.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -110,15 +109,15 @@ class ListComponentCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
-            action="store_true",
+            '-j', \
+            '--json', \
+            dest='json', \
+            action="store_true", \
             help="Optionally include this flag if you wish to change the"\
             " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            " structure makes the information easier to parse.", \
             default=False
         )

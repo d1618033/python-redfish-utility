@@ -43,7 +43,7 @@ def getData():
 
 	return datalist
 
-compileall.compile_dir('.', force=True, quiet=True)
+compileall.compile_dir('.', force=True, quiet=True, legacy=True)
 
 a = Analysis(['.//src//rdmc.py'],
              pathex=[],

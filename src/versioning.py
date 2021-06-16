@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2017 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 # -*- coding: utf-8 -*-
 """ Version strings for the utility """
 
-__version__ = '3.1'
+__version__ = '3.2.1'
 __shortname__ = 'iLOrest'
 __longname__ = 'RESTful Interface Tool'
-__extracontent__ = 'Copyright (c) 2014-2020 Hewlett Packard Enterprise'\
+__extracontent__ = 'Copyright (c) 2014-2021 Hewlett Packard Enterprise'\
                     ' Development LP\n'

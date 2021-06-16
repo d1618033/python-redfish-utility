@@ -20,29 +20,33 @@
 import sys
 import json
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 import redfish
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, UI, Encryption
+                    InvalidCommandLineErrorOPTS, Encryption
 
-class RawHeadCommand(RdmcCommandBase):
+
+class RawHeadCommand():
     """ Raw form of the head command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='rawhead',\
-            usage='rawhead [PATH]\n\n\tRun to to retrieve data from the ' \
-                'passed in path\n\texample: rawhead "/redfish/v1/systems/'\
-                '(system ID)"',\
-            summary='Raw form of the HEAD command.',\
-            aliases=['rawhead'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
+
+    def __init__(self):
+        self.ident = {
+            'name': 'rawhead', \
+            'usage': 'rawhead [PATH]\n\n\tRun to to retrieve data from the ' \
+                     'passed in path\n\texample: rawhead "/redfish/v1/systems/' \
+                     '(system ID)"', \
+            'summary': 'Raw form of the HEAD command.', \
+            'aliases': [], \
+            'auxcommands': []
+        }
+        # self.definearguments(self.parser)
+        # self.rdmc = rdmcObj
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main raw head worker function
@@ -51,7 +55,7 @@ class RawHeadCommand(RdmcCommandBase):
         :type line: string.
         """
         try:
-            (options, _) = self._parse_arglist(line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -63,8 +67,8 @@ class RawHeadCommand(RdmcCommandBase):
         if options.path.startswith('"') and options.path.endswith('"'):
             options.path = options.path[1:-1]
 
-        results = self._rdmc.app.head_handler(options.path, silent=options.silent, \
-											  service=options.service)
+        results = self.rdmc.app.head_handler(options.path, silent=options.silent, \
+                                             service=options.service)
 
         content = None
         tempdict = dict()
@@ -83,17 +87,17 @@ class RawHeadCommand(RdmcCommandBase):
                 filehndl.write(output)
                 filehndl.close()
 
-                sys.stdout.write("Results written out to '%s'.\n" % options.filename[0])
+                self.rdmc.ui.printer("Results written out to '%s'.\n" % options.filename[0])
             else:
                 if options.service:
-                    sys.stdout.write("%s\n" % tempdict)
+                    self.rdmc.ui.printer("%s\n" % tempdict)
                 else:
-                    UI().print_out_json(tempdict)
+                    self.rdmc.ui.print_out_json(tempdict)
         else:
             return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
 
-        logout_routine(self, options)
-        #Return code
+        self.cmdbase.logout_routine(self, options)
+        # Return code
         return ReturnCodes.SUCCESS
 
     def headvalidation(self, options):
@@ -102,7 +106,7 @@ class RawHeadCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options, skipbuild=True)
+        self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -113,7 +117,7 @@ class RawHeadCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             'path',
@@ -125,13 +129,6 @@ class RawHeadCommand(RdmcCommandBase):
             action="store_true",
             help="""Use this flag to silence responses""",
             default=None,
-        )
-        customparser.add_argument(
-            '--sessionid',
-            dest='sessionid',
-            help="Optionally include this flag if you would prefer to "\
-            "connect using a session id instead of a normal login.",
-            default=None
         )
         customparser.add_argument(
             '-f',

@@ -18,38 +18,46 @@
 """ Login Command for RDMC """
 
 import sys
+import six
 import getpass
+import traceback
 
-from argparse import ArgumentParser, SUPPRESS
+from argparse import ArgumentParser, SUPPRESS, REMAINDER
 
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                            InvalidCommandLineErrorOPTS, PathUnavailableError, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, FallbackChifUse, \
+                        InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, PathUnavailableError, Encryption
 
-class LoginCommand(RdmcCommandBase):
+from redfish.ris.rmc_helper import IloResponseError
+from redfish.rest.v1 import ServerDownOrUnreachableError
+from redfish.rest.connections import InvalidCredentialsError
+
+class LoginCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='login',\
-            usage='login [URL] [OPTIONS] \n\n\tTo login' \
+    def __init__(self):
+        self.ident = {
+            'name': 'login',\
+            'usage': 'login [URL] [OPTIONS] \n\n\tTo login' \
                     ' remotely run using iLO url and iLO credentials' \
                     '\n\texample: login <iLO url/hostname> -u <iLO username> '\
-                    '-p <iLO password>\n\n\tTo login on a local server run' \
-                    ' without arguments\n\texample: login\n\n\tNOTE: You can specify an '\
-                    'IPv4, IPv6, or hostname address.',\
-            summary='Connects to a server, establishes a secure session,'\
+                    '-p <iLO password>\n\n\tTo login on a local server run without '\
+                    'arguments\n\texample: login\n\n\tNOTE: A [URL] can be specified with '\
+                    'an IPv4, IPv6, or hostname address.',\
+            'summary':'Connects to a server, establishes a secure session,'\
                     ' and discovers data from iLO.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
+            'aliases': [],\
+            'auxcommands': ['LogoutCommand']
+        }
+        self.cmdbase = None
+        self.rdmc = None
         self.url = None
         self.username = None
         self.password = None
         self.biospassword = None
-        self._rdmc = rdmcObj
-        self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.auxcommands = dict()
+
+        #self.logoutobj = "LogoutCommand"
 
     def run(self, line):
         """ wrapper function for main login function
@@ -63,10 +71,10 @@ class LoginCommand(RdmcCommandBase):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
 
-            if not self._rdmc.app.monolith._visited_urls:
-                self.logoutobj.run("")
+            if not self.rdmc.app.monolith._visited_urls:
+                self.auxcommands['logout'].run("")
                 raise PathUnavailableError("The path specified by the --path flag is unavailable.")
-        except Exception:
+        except Exception as excp:
             raise
 
         #Return code
@@ -81,41 +89,78 @@ class LoginCommand(RdmcCommandBase):
         :type skipbuild: boolean.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        # Check mininum iLO Version for certificate login
+        if hasattr(options, 'user_certificate') or hasattr(options, 'user_root_ca_key') or hasattr(options,'user_root_ca_password') or \
+                getattr(options,'ca_cert_bundle', False) and self.rdmc.app.typepath.iloversion < 5.23:
+            raise IncompatibleiLOVersionError
+
         self.loginvalidation(options, args)
 
-        proxy = self._rdmc.opts.proxy if self._rdmc.opts.proxy else self._rdmc.config.proxy
+        proxy = self.rdmc.opts.proxy if self.rdmc.opts.proxy else self.rdmc.config.proxy
 
-        self._rdmc.app.login(username=self.username, \
-                      password=self.password, base_url=self.url, \
-                      path=options.path, skipbuild=skipbuild,\
-                      includelogs=options.includelogs, biospassword=self.biospassword, \
-                      is_redfish=self._rdmc.opts.is_redfish, proxy=proxy, \
-                      ssl_cert=options.https_cert)
+        no_bundle = False
+
+        if getattr(options,'ca_cert_bundle', False):
+            user_ca_cert_data = {"ca_certs": options.ca_cert_bundle}
+        else:
+            user_ca_cert_data = {}
+        if hasattr(options,'user_certificate'):
+            no_bundle = True
+            user_ca_cert_data.update({"cert_file": options.user_certificate})
+        if hasattr(options,'user_root_ca_key'):
+            no_bundle = True
+            user_ca_cert_data.update({"key_file": options.user_root_ca_key})
+        if hasattr(options,'user_root_ca_password'):
+            no_bundle = True
+            user_ca_cert_data.update({"key_password": options.user_root_ca_password})
+
+        if not no_bundle:
+            if hasattr(user_ca_cert_data, 'ca_certs'):
+                user_ca_cert_data.pop("ca_certs")
+
+        try:
+            if hasattr(options, 'force_vnic'):
+                self.rdmc.ui.printer("\nAttempt to login with Vnic...\n")
+
+            self.rdmc.app.login(username=self.username, password=self.password, base_url=self.url, \
+                    path=options.path, skipbuild=skipbuild, includelogs=options.includelogs, \
+                    biospassword=self.biospassword, is_redfish=self.rdmc.opts.is_redfish, \
+                    proxy=proxy, user_ca_cert_data=user_ca_cert_data)
+            #else:
+            #    if not options.force_url:
+            #        self.rdmc.ui.printer("\nAttempt to login with Chif...\n")
+            #        self.rdmc.app.login(username=self.username, password=self.password, \
+            #            base_url='blobstore://.', path=options.path, skipbuild=skipbuild, \
+            #            includelogs=options.includelogs, biospassword=self.biospassword, \
+            #            is_redfish=self.rdmc.opts.is_redfish, proxy=proxy, \
+            #            user_ca_cert_data=user_ca_cert_data)
+        except ServerDownOrUnreachableError as excp:
+            self.rdmc.ui.printer("The following error occurred during login: '%s'\n" % \
+                                                                    str(excp.__class__.__name__))
 
         self.username = None
         self.password = None
 
         # Warning for cache enabled, since we save session in plain text
-        if not self._rdmc.encoding:
-            sys.stdout.write("WARNING: Cache is activated. Session keys are stored in plaintext.\n")
+        if not self.rdmc.encoding:
+            self.rdmc.ui.warn("Cache is activated. Session keys are stored in plaintext.")
 
-        if self._rdmc.opts.debug:
-            sys.stdout.write("WARNING: Logger is activated. Logging is stored in plaintext.\n")
+        if self.rdmc.opts.debug:
+            self.rdmc.ui.warn("Logger is activated. Logging is stored in plaintext.")
 
         if options.selector:
             try:
-                self._rdmc.app.select(selector=options.selector)
+                self.rdmc.app.select(selector=options.selector)
 
-                if self._rdmc.opts.verbose:
-                    sys.stdout.write("Selected option: '%s'" % options.selector)
-                    sys.stdout.write('\n')
+                if self.rdmc.opts.verbose:
+                    self.rdmc.ui.printer(("Selected option: '%s'" % options.selector))
             except Exception as excp:
                 raise redfish.ris.InstanceNotFoundError(excp)
 
@@ -129,14 +174,19 @@ class LoginCommand(RdmcCommandBase):
         """
         # Fill user name/password from config file
         if not options.user:
-            options.user = self._rdmc.config.username
+            options.user = self.rdmc.config.username
         if not options.password:
-            options.password = self._rdmc.config.password
-        if not options.https_cert:
-            options.https_cert = self._rdmc.config.ssl_cert
+            options.password = self.rdmc.config.password
+        #if not hasattr(options,'user_certificate'):
+        #    options.user_certificate = self.rdmc.config.user_cert
+        #if not hasattr(options,'user_root_ca_key'):
+        #    options.user_root_ca_key = self.rdmc.config.user_root_ca_key
+        #if not hasattr(options,'user_root_ca_password'):
+        #    options.user_root_ca_password = self.rdmc.config.user_root_ca_password
 
         # Password and user name validation
-        if options.user and not options.password:
+        if options.user and not options.password and (not hasattr(options,'user_certificate') or \
+                    not hasattr(options,'user_root_ca_key') or hasattr(options,'user_root_ca_password')):
             # Option for interactive entry of password
             tempinput = getpass.getpass().rstrip()
 
@@ -152,14 +202,17 @@ class LoginCommand(RdmcCommandBase):
             self.password = options.password
 
         if options.encode:
-            self.username = Encryption.decode_credentials(self.username)
-            self.password = Encryption.decode_credentials(self.password)
+            self.username = Encryption.decode_credentials(self.username).decode('utf-8')
+            self.password = Encryption.decode_credentials(self.password).decode('utf-8')
 
         if options.biospassword:
             self.biospassword = options.biospassword
 
         # Assignment of url in case no url is entered
-        self.url = 'blobstore://.'
+        if hasattr(options, 'force_vnic'):
+            self.url = '16.1.15.1'
+        else:
+            self.url = 'blobstore://.'
 
         if args:
             # Any argument should be treated as an URL
@@ -168,12 +221,13 @@ class LoginCommand(RdmcCommandBase):
             # Verify that URL is properly formatted for https://
             if "https://" not in self.url:
                 self.url = "https://" + self.url
-            if not self.username or not self.password:
+            if not self.username or (not self.password and (not hasattr(options,'user_certificate') or \
+                    not hasattr(options,'user_root_ca_key') or hasattr(options,'user_root_ca_password'))):
                 raise InvalidCommandLineError("Empty username or password was entered.")
         else:
             # Check to see if there is a URL in config file
-            if self._rdmc.config.url:
-                self.url = self._rdmc.config.url
+            if self.rdmc.config.url:
+                self.url = self.rdmc.config.url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -183,31 +237,7 @@ class LoginCommand(RdmcCommandBase):
         """
         if not customparser:
             return
-
-        customparser.add_argument(
-            '-u',
-            '--user',
-            dest='user',
-            help="If you are not logged in yet, including this flag along"\
-            " with the password and URL flags can be used to login to a"\
-            " server in the same command.""",
-            default=None
-        )
-        customparser.add_argument(
-            '-p',
-            '--password',
-            dest='password',
-            help="""Use the provided iLO password to log in.""",
-            nargs='?',
-            default=None
-        )
-        customparser.add_argument(
-            '--includelogs',
-            dest='includelogs',
-            action="store_true",
-            help="Optionally include logs in the data retrieval process.",
-            default=False
-        )
+        self.cmdbase.add_login_arguments_group(customparser)
         customparser.add_argument(
             '--selector',
             dest='selector',
@@ -217,37 +247,4 @@ class LoginCommand(RdmcCommandBase):
               " wish to work with a type that is different from the one"\
               " you currently have selected.",
             default=None
-        )
-        customparser.add_argument(
-            '--path',
-            dest='path',
-            help="Optionally set a starting point for data collection during"\
-            " login. If you do not specify a starting point, the default path"\
-            " will be /redfish/v1/. Note: The path flag can only be specified"\
-            " at the time of login. Warning: Only for advanced users, and"\
-            " generally not needed for normal operations.",
-            default=None
-        )
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None
-        )
-        customparser.add_argument(
-            '--https',
-            dest='https_cert',
-            help="Use the provided CA bundle or SSL certificate with your login to connect "\
-                "securely to the system in remote mode. This flag has no effect in local mode.",
-            default=None
-        )
-        customparser.add_argument(
-            '-e',
-            '--enc',
-            dest='encode',
-            action='store_true',
-            help=SUPPRESS,
-            default=False
         )

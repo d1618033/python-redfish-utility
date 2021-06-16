@@ -17,26 +17,27 @@
 # -*- coding: utf-8 -*-
 """ ESKM Command for rdmc """
 
-from argparse import ArgumentParser
-
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, login_select_validation, \
-                                logout_routine
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
                     NoContentsFoundForOperationError, Encryption
 
-class ESKMCommand(RdmcCommandBase):
+class ESKMCommand():
     """ Commands ESKM available actions """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='eskm',\
-            usage='eskm [OPTIONS]\n\n\tClear the ESKM logs.\n\texample: eskm' \
+    def __init__(self):
+        self.ident = {
+            'name':'eskm',\
+            'usage':'eskm [OPTIONS]\n\n\tClear the ESKM logs.\n\texample: eskm' \
                     ' clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections',\
-            summary="Command for all ESKM available actions.",\
-            aliases=None,\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':"Command for all ESKM available actions.",\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Main ESKMCommand function
@@ -45,7 +46,7 @@ class ESKMCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -57,8 +58,8 @@ class ESKMCommand(RdmcCommandBase):
 
         self.eskmvalidation(options)
 
-        select = self.typepath.defs.hpeskmtype
-        results = self._rdmc.app.select(selector=select)
+        select = self.rdmc.app.typepath.defs.hpeskmtype
+        results = self.rdmc.app.select(selector=select)
 
         try:
             results = results[0]
@@ -81,7 +82,7 @@ class ESKMCommand(RdmcCommandBase):
         try:
             for item in bodydict['Actions']:
                 if actionitem in item:
-                    if self.typepath.defs.isgen10:
+                    if self.rdmc.app.typepath.defs.isgen10:
                         actionitem = item.split('#')[-1]
 
                     path = bodydict['Actions'][item]['target']
@@ -90,9 +91,9 @@ class ESKMCommand(RdmcCommandBase):
             pass
 
         body = {"Action": actionitem}
-        self._rdmc.app.post_handler(path, body)
+        self.rdmc.app.post_handler(path, body)
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
@@ -102,7 +103,7 @@ class ESKMCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -113,4 +114,4 @@ class ESKMCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)

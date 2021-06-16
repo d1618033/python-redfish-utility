@@ -17,43 +17,40 @@
 # -*- coding: utf-8 -*-
 """ Set Command for RDMC """
 
-import sys
-
-from argparse import ArgumentParser
-
 import redfish.ris
 
-from rdmc_base_classes import RdmcCommandBase, add_login_arguments_group, \
-                                login_select_validation
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-        InvalidCommandLineErrorOPTS, UI, InvalidOrNothingChangedSettingsError
+        InvalidCommandLineErrorOPTS, InvalidOrNothingChangedSettingsError
 
-class SetCommand(RdmcCommandBase):
+class SetCommand():
     """ Constructor """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='set',\
-            usage='set [PROPERTY=VALUE] [OPTIONS]\n\n\tSetting a ' \
+    def __init__(self):
+        self.ident = {
+            'name':'set',\
+            'usage':'set [PROPERTY=VALUE] [OPTIONS]\n\n\tSetting a ' \
                 'single level property example:\n\tset property=value\n\n\t' \
                 'Setting multiple single level properties example:\n\tset ' \
                 'property=value property=value property=value\n\n\t' \
                 'Setting a multi level property example:\n\tset property/' \
                 'subproperty=value',\
-            summary='Changes the value of a property within the'\
+            'summary':'Changes the value of a property within the'\
                     ' currently selected type.',\
-            aliases=[],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
+            'aliases': [],\
+            'auxcommands': ["CommitCommand", "RebootCommand"]
+        }
+        #self.definearguments(self.parser)
+        #self.rdmc = rdmcObj
+        #self.auxcommands['commit'] = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
 
-        self.comobj = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
         #remove reboot option if there is no reboot command
-        try:
-            self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        except KeyError:
-            self.parser.remove_option('--reboot')
+        #try:
+        #    self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
+        #except KeyError:
+        #    self.parser.remove_option('--reboot')
 
     def setfunction(self, line, skipprint=False):
         """ Main set worker function
@@ -64,14 +61,14 @@ class SetCommand(RdmcCommandBase):
         :type skipprint: boolean.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not self._rdmc.interactive and not self._rdmc.app.cache:
+        if not self.rdmc.interactive and not self.rdmc.app.cache:
             raise InvalidCommandLineError("The 'set' command is not useful in "\
                                       "non-interactive and non-cache modes.")
 
@@ -93,14 +90,21 @@ class SetCommand(RdmcCommandBase):
                 raise InvalidCommandLineError("'OldAdminPassword' must also " \
                             "be set with the current password \nwhen " \
                             "changing 'AdminPassword' for security reasons.")
-
+            count = 0
             for arg in args:
-                if arg[0] == '"' and arg[-1] == '"':
-                    arg = arg[1:-1]
+                if arg:
+                    if len(arg) > 2:
+                        if ('"' in arg[0] and '"' in arg[-1]) or ('\'' in arg[0] and '\'' in arg[-1]):
+                            args[count] = arg[1:-1]
+                    elif len(arg) == 2:
+                        if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
+                            args[count] = None
+                count += 1
 
-                if self._rdmc.app.selector.lower().startswith('bios.'):
-                    if 'attributes' not in arg.lower():
-                        arg = "Attributes/" + arg
+                if self.rdmc.app.selector:
+                    if self.rdmc.app.selector.lower().startswith('bios.'):
+                        if 'attributes' not in arg.lower():
+                            arg = "Attributes/" + arg
 
                 try:
                     (sel, val) = arg.split('=')
@@ -131,7 +135,7 @@ class SetCommand(RdmcCommandBase):
                         payload = {key:payload}
 
                 try:
-                    contents = self._rdmc.app.loadset(seldict=payload,\
+                    contents = self.rdmc.app.loadset(seldict=payload,\
                         latestschema=options.latestschema, fltrvals=(fsel, fval), \
                                         uniqueoverride=options.uniqueoverride)
                     if not contents:
@@ -144,23 +148,19 @@ class SetCommand(RdmcCommandBase):
                                        "entries found in the current " \
                                        "selection for the setting '%s'." % sel)
                     elif contents == "reverting":
-                        sys.stdout.write("Removing previous patch and "\
-                                         "returning to the original value.\n")
+                        self.rdmc.ui.error("Removing previous patch and returning to the "\
+                                           "original value.\n")
                     else:
                         for content in contents:
-                            try:
-                                if self._rdmc.opts.verbose:
-                                    sys.stdout.write("Added the following patch:\n")
-                                    UI().print_out_json(content)
-                            except AttributeError:
-                                pass
+                                self.rdmc.ui.printer("Added the following patch:\n")
+                                self.rdmc.ui.print_out_json(content)
 
                 except redfish.ris.ValidationError as excp:
                     errs = excp.get_errors()
 
                     for err in errs:
                         if err.sel and err.sel.lower() == 'adminpassword':
-                            types = self._rdmc.app.monolith.types
+                            types = self.rdmc.app.monolith.types
 
                             for item in types:
                                 for instance in types[item]["Instances"]:
@@ -170,20 +170,15 @@ class SetCommand(RdmcCommandBase):
                                          patch.patch[0]['path'] == '/OldAdminPassword']
 
                         if isinstance(err, redfish.ris.RegistryValidationError):
-                            sys.stderr.write(err.message)
-                            sys.stderr.write('\n')
-
-                            if err.reg and not skipprint:
-                                err.reg.print_help(sel)
-                                sys.stderr.write('\n')
+                            self.rdmc.ui.printer(err.message)
 
                     raise redfish.ris.ValidationError(excp)
 
             if options.commit:
-                self.comobj.commitfunction(options)
+                self.auxcommands['commit'].commitfunction(options)
 
             if options.reboot and not options.commit:
-                self.rebootobj.run(options.reboot)
+                self.auxcommands['reboot'].run(options.reboot)
 
             #if options.logout:
             #    self.logoutobj.run("")
@@ -207,12 +202,12 @@ class SetCommand(RdmcCommandBase):
     def setvalidation(self, options):
         """ Set data validation function """
 
-        if self._rdmc.opts.latestschema:
+        if self.rdmc.opts.latestschema:
             options.latestschema = True
-        if self._rdmc.config.commit.lower() == 'true':
+        if self.rdmc.config.commit.lower() == 'true':
             options.commit = True
         try:
-            login_select_validation(self, options)
+            self.cmdbase.login_select_validation(self, options)
         except redfish.ris.NothingSelectedError:
             raise redfish.ris.NothingSelectedSetError("")
 
@@ -225,7 +220,7 @@ class SetCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
             '--selector',
@@ -237,9 +232,10 @@ class SetCommand(RdmcCommandBase):
               " you currently have selected.",
             default=None,
         )
+
         customparser.add_argument(
-            '--filter',
-            dest='filter',
+            '--filter',\
+            dest='filter',\
             help="Optionally set a filter value for a filter attribute."\
             " This uses the provided filter for the currently selected"\
             " type. Note: Use this flag to narrow down your results. For"\
@@ -247,60 +243,41 @@ class SetCommand(RdmcCommandBase):
             " objects that are all of that type. If you want to modify"\
             " the properties of only one of those objects, use the filter"\
             " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None,
-        )
-        customparser.add_argument(
-            '--commit',
-            dest='commit',
-            action="store_true",
-            help="Use this flag when you are ready to commit all pending"\
-            " changes. Note that some changes made in this way will be updated"\
-            " instantly, while others will be reflected the next time the"\
-            " server is started.",
-            default=None,
-        )
-        '''
-        customparser.add_argument(
-            '--logout',
-            dest='logout',
-            action="store_true",
-            help="Optionally include the logout flag to log out of the"\
-            " server after this command is completed. Using this flag when"\
-            " not logged in will have no effect",
-            default=None,
-        )
-        '''
-        customparser.add_argument(
-            '--biospassword',
-            dest='biospassword',
-            help="Select this flag to input a BIOS password. Include this"\
-            " flag if second-level BIOS authentication is needed for the"\
-            " command to execute. This option is only used on Gen 9 systems.",
-            default=None,
-        )
-        customparser.add_argument(
-            '--reboot',
-            dest='reboot',
-            help="Use this flag to perform a reboot command function after"\
-            " completion of operations.  For help with parameters and"\
-            " descriptions regarding the reboot flag, run help reboot.",
-            default=None,
-        )
-        customparser.add_argument(
-            '--latestschema',
-            dest='latestschema',
-            action='store_true',
-            help="Optionally use the latest schema instead of the one "\
-            "requested by the file. Note: May cause errors in some data "\
-            "retrieval due to difference in schema versions.",
+            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",\
             default=None
         )
         customparser.add_argument(
-            '--uniqueitemoverride',
-            dest='uniqueoverride',
-            action='store_true',
+            '--commit',\
+            dest='commit',\
+            action="store_true",\
+            help="Use this flag when you are ready to commit all pending"\
+            " changes. Note that some changes made in this way will be updated"\
+            " instantly, while others will be reflected the next time the"\
+            " server is started.",\
+            default=None
+        )
+        customparser.add_argument(
+            '--reboot',\
+            dest='reboot',\
+            help="Use this flag to perform a reboot command function after"\
+            " completion of operations.  For help with parameters and"\
+            " descriptions regarding the reboot flag, run help reboot.",\
+            default=None
+        )
+        customparser.add_argument(
+            '--latestschema',\
+            dest='latestschema',\
+            action='store_true',\
+            help="Optionally use the latest schema instead of the one "\
+            "requested by the file. Note: May cause errors in some data "\
+            "retrieval due to difference in schema versions.",\
+            default=None
+        )
+        customparser.add_argument(
+            '--uniqueitemoverride',\
+            dest='uniqueoverride',\
+            action='store_true',\
             help="Override the measures stopping the tool from writing "\
-            "over items that are system unique.",
+            "over items that are system unique.",\
             default=None
         )

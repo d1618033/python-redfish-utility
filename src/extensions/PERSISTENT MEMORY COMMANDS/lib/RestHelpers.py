@@ -16,18 +16,17 @@
 
 # -*- coding: utf-8 -*-
 """This is the helper class with functions that manipulate REST data"""
-from __future__ import absolute_import
+from __future__ import absolute_import #check if python3 supported
 
 import json
 import multiprocessing
 from multiprocessing.dummy import Pool as ThreadPool
 
-
 class RestHelpers(object):
     """This is the helper class with functions that manipulate REST data"""
 
     def __init__(self, rdmcObject):
-        self._rdmc = rdmcObject
+        self.rdmc = rdmcObject #relies on the updated reference to the RDMC class object
 
     def get_resource(self, url):
         """
@@ -38,7 +37,7 @@ class RestHelpers(object):
         :rtype: RestResponse object
         """
         accepted_status = [200, 202]
-        resp = self._rdmc.app.get_handler(url, service=True, silent=True)
+        resp = self.rdmc.app.get_handler(url, service=True, silent=True)
         if resp and resp.status in accepted_status and resp.dict:
             return resp.dict
         return None
@@ -65,6 +64,8 @@ class RestHelpers(object):
                 chunk_id_list.append(member.get("MemoryChunks").get("@odata.id") + "?$expand=.")
             if chunk_id_list:
                 chunks = self.concurrent_get(chunk_id_list)
+            else:
+                chunks = []
             # combining all chunks
             for chunk in chunks:
                 chunk_members = chunk.get("Members")
@@ -165,7 +166,7 @@ class RestHelpers(object):
         # the number of functions to call.
         # 'len(resource_list) - 1' ensures that the last function call happens
         # on the main thread and not on a worker thread.
-        pool = ThreadPool(min(len(resource_list) - 1, multiprocessing.cpu_count))
+        pool = ThreadPool(min(len(resource_list) - 1, multiprocessing.cpu_count()))
         # Asynchronously call funtions from 'resource_list' on worker threads and
         # append responses to 'response_list'. These responses will be 'AsyncResult'
         # objects and the actual return value will have to be retrieved by a 'get()'
@@ -211,7 +212,7 @@ class RestHelpers(object):
         :type: string
         :returns: status code
         """
-        resp = self._rdmc.app.delete_handler(url, service=True, silent=True)
+        resp = self.rdmc.app.delete_handler(url, service=True, silent=True)
         if resp and resp.status in [200, 202]:
             return resp.status
         return None
@@ -226,7 +227,7 @@ class RestHelpers(object):
         :returns: status code
         """
         accepted_status = [200, 201, 202, 204]
-        resp = self._rdmc.app.post_handler(path, body, service=True, silent=True)
+        resp = self.rdmc.app.post_handler(path, body, service=True, silent=True)
         if resp and resp.status in accepted_status:
             return resp.status
         return None
@@ -242,3 +243,22 @@ class RestHelpers(object):
              if resp_body.get("Oem").get("Hpe").get("PostState") == "FinishedPost":
                  return False
          return True
+
+    def retrieve_security_state(self, path):
+        """
+        Get the security state
+        """
+        return self.get_resource(path)
+
+    def retrieve_pmem_location(self):
+        """
+        Retrieve the Pmem location
+        """
+        return self.get_resource("/redfish/v1/Systems/1/Memory/?$expand=.#")
+
+    def retrieve_model(self, rdmcObj):
+        """
+        Retrieve the Model
+        """
+        self.rdmc = rdmcObj
+        return self.get_resource("/redfish/v1/Chassis/1")

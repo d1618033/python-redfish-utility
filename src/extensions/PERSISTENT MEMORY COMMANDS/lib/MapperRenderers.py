@@ -23,7 +23,6 @@ from enum import Enum
 from .Mapper import Mapper
 from .PmemHelpers import PmemHelpers
 
-
 class MapperRenderers(object):
     """ Methods used to render different attributes"""
 
@@ -334,12 +333,12 @@ DEVICE_MAPPING_TABLE = {
     "DIMMStatus":
         {
             "path": "/Oem/Hpe/DIMMStatus",
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "FWVersion":
         {
             "path": "/FirmwareRevision",
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "Life":
         {
@@ -350,12 +349,12 @@ DEVICE_MAPPING_TABLE = {
     "Location":
         {
             "path": "/DeviceLocator",
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "Status":
         {
             "path": "/Status/Health",
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "VolatileSize":
         {
@@ -425,7 +424,7 @@ LOGICAL_MAPPING_TABLE = {
         {
             "path": "",
             "compute": MapperRenderers.find_dimm_ids,
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         }
 }
 
@@ -434,7 +433,7 @@ TASK_MAPPING_TABLE = {
         {
             "path": "/Payload/JsonBody",
             "compute": MapperRenderers.find_dimm_ids,
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "MemoryChunkSize":
         {
@@ -478,7 +477,7 @@ DELETE_TASK_MAPPING_TABLE = {
         {
             "path": "",
             "compute": MapperRenderers.find_dimm_ids,
-            "renderJSON": lambda data: data.encode('ascii', 'ignore')
+            "renderJSON": lambda data: data
         },
     "Operation":
         {
