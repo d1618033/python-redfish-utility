@@ -18,7 +18,7 @@
 """Rdmc config"""
 
 import os
-from config import AutoConfigParser
+from .config import AutoConfigParser
 
 class RdmcConfig(AutoConfigParser):
     """Rdmc config class for loading and parsing the .conf file global configuration options.
