@@ -17,32 +17,35 @@
 # -*- coding: utf-8 -*-
 """ Results Command for rdmc """
 
-import sys
 import copy
 import json
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 import jsondiff
 
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST, add_login_arguments_group, \
-                                login_select_validation, logout_routine
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                            InvalidCommandLineErrorOPTS, UI
+from rdmc_base_classes import HARDCODEDLIST
 
-class PendingChangesCommand(RdmcCommandBase):
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
+
+class PendingChangesCommand():
     """ PendingChanges class command """
-    def __init__(self, rdmcObj):
-        RdmcCommandBase.__init__(self,\
-            name='pending',\
-            usage='pending [OPTIONS]\n\n\tRun to show pending committed changes '\
+    def __init__(self):
+        self.ident = {
+            'name':'pending',\
+            'usage':'pending [OPTIONS]\n\n\tRun to show pending committed changes '\
                     'that will be applied after a reboot.\n\texample: pending',\
-            summary='Show the pending changes that will be applied on reboot.',\
-            aliases=['pending'],\
-            argparser=ArgumentParser())
-        self.definearguments(self.parser)
-        self._rdmc = rdmcObj
-        self.typepath = rdmcObj.app.typepath
+            'summary':'Show the pending changes that will be applied on reboot.',\
+            'aliases': [],\
+            'auxcommands': []
+        }
+        #self.definearguments(self.parser)
+        #self._rdmc = rdmcObj
+        #self.typepath = rdmcObj.app.typepath
+
+        self.cmdbase = None
+        self.rdmc = None
+        self.auxcommands = dict()
 
     def run(self, line):
         """ Show pending changes of settings objects
@@ -51,7 +54,7 @@ class PendingChangesCommand(RdmcCommandBase):
         :type line: str.
         """
         try:
-            (options, args) = self._parse_arglist(line)
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -64,7 +67,7 @@ class PendingChangesCommand(RdmcCommandBase):
 
         self.pendingfunction()
 
-        logout_routine(self, options)
+        self.cmdbase.logout_routine(self, options)
         return ReturnCodes.SUCCESS
 
     def pendingfunction(self):
@@ -72,10 +75,10 @@ class PendingChangesCommand(RdmcCommandBase):
         """
         settingsuri = []
         ignorekeys = ['@odata.id', '@odata.etag', '@redfish.settings', 'oem']
-        ignoreuri = [unicode('hpsut*')]
+        ignoreuri = [str('hpsut*')]
         ignorekeys.extend(HARDCODEDLIST)
 
-        resourcedir = self._rdmc.app.get_handler(self._rdmc.app.monolith._resourcedir, \
+        resourcedir = self.rdmc.app.get_handler(self.rdmc.app.monolith._resourcedir, \
                                                  service=True, silent=True)
 
         for resource in resourcedir.dict['Instances']:
@@ -86,16 +89,16 @@ class PendingChangesCommand(RdmcCommandBase):
                                                         self.wildcard_str_match(element, splitstr):
                     settingsuri.append(resource['@odata.id'])
 
-        sys.stdout.write('Current Pending Changes:\n')
+        self.rdmc.ui.printer('Current Pending Changes:\n')
 
         for uri in settingsuri:
             diffprint = {}
             baseuri = uri.split('settings')[0]
 
-            base = self._rdmc.app.get_handler(baseuri, service=True, silent=True)
-            settings = self._rdmc.app.get_handler(uri, service=True, silent=True)
+            base = self.rdmc.app.get_handler(baseuri, service=True, silent=True)
+            settings = self.rdmc.app.get_handler(uri, service=True, silent=True)
 
-            typestring = self._rdmc.app.monolith.typepath.defs.typestring
+            typestring = self.rdmc.app.monolith.typepath.defs.typestring
             currenttype = '.'.join(base.dict[typestring].split('#')[-1].split('.')[:-1])
 
             differences = json.loads(jsondiff.diff(base.dict, settings.dict, \
@@ -103,12 +106,11 @@ class PendingChangesCommand(RdmcCommandBase):
 
             diffprint = self.recursdict(differences, ignorekeys)
 
-            sys.stdout.write('\n%s:' % currenttype)
+            self.rdmc.ui.printer('\n%s:' % currenttype)
             if not diffprint:
-                sys.stdout.write('\nNo pending changes found.\n')
+                self.rdmc.ui.printer('\nNo pending changes found.\n')
             else:
-                UI().pretty_human_readable(diffprint)
-                sys.stdout.write('\n')
+                self.rdmc.ui.pretty_human_readable(diffprint)
 
     def wildcard_str_match(self, first, second):
         """
@@ -175,7 +177,7 @@ class PendingChangesCommand(RdmcCommandBase):
         :param options: command line options
         :type options: list.
         """
-        login_select_validation(self, options)
+        self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function
@@ -186,4 +188,4 @@ class PendingChangesCommand(RdmcCommandBase):
         if not customparser:
             return
 
-        add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
