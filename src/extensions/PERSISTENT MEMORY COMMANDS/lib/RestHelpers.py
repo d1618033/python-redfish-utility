@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -262,3 +262,4 @@ class RestHelpers(object):
         """
         self.rdmc = rdmcObj
         return self.get_resource("/redfish/v1/Chassis/1")
+

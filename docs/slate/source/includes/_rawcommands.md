@@ -2,7 +2,7 @@
 
 This section lists the raw HTTP RESTful operations that can be used through the RESTful Interface Tool. The commands in this section are the equivalents of HTTP RESTful **PATCH, GET, POST, PUT, DELETE**, and **HEAD**.
 
-### RawDelete command
+### RawDelete Command
 
 > RawDelete example commands:
 
@@ -53,10 +53,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 
@@ -66,7 +89,7 @@ None
 
 None
 
-### RawGet command
+### RawGet Command
 
 > RawGet example commands:
 
@@ -236,10 +259,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 
@@ -251,7 +297,7 @@ File
 
 If you include the `filename` flag, this command will return an output file of the information retrieved when the `rawget` command was executed.
 
-### RawHead command
+### RawHead Command
 
 > RawHead example commands:
 
@@ -323,10 +369,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 
@@ -338,7 +407,7 @@ File
 
 If you specify the `filename` flag, the `rawhead` command will output a file containing the information retrieved when performing the `rawhead` command.
 
-### RawPatch command
+### RawPatch Command
 
 > RawPatch example commands:
 
@@ -434,10 +503,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 
@@ -450,7 +542,7 @@ Input the file containing the JSON information you wish to use for the HTTP REST
 None
 
 
-### RawPost command
+### RawPost Command
 
 > RawPost example commands:
 
@@ -547,10 +639,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 
@@ -562,7 +677,7 @@ Input the file containing the JSON information you wish to use for the HTTP REST
 
 None
 
-### RawPut command
+### RawPut Command
 
 > RawPut example commands:
 
@@ -661,10 +776,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO. 
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 

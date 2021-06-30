@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,36 +33,41 @@ class RawPostCommand():
     """ Raw form of the post command """
     def __init__(self):
         self.ident = {
-            'name':'rawpost',\
-            'usage':'rawpost [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
-                    'the data in the input file.\n\tMultiple POSTs can be performed in sequence by'\
+            'name':'rawpost',
+            'usage': None,
+            'description':'Run to send a post from '
+                    'the data in the input file.\n\tMultiple POSTs can be performed in sequence by'
                     ' \n\tadding more path/body key/value pairs.\n'
-                    '\n\texample: rawpost rawpost.' \
-                    'txt\n\n\tExample input file:\n\t{\n\t    "/' \
+                    '\n\texample: rawpost rawpost.'
+                    'txt\n\n\tExample input file:\n\t{\n\t    "/'
                     'redfish/v1/systems/(system ID)/Actions/ComputerSystem.'
-                    'Reset":\n\t    {\n\t        "ResetType": '\
-                    '"ForceRestart"\n\t    }\n\t}',\
-            'summary':'Raw form of the POST command.',\
-            'aliases': [],\
+                    'Reset":\n\t    {\n\t        "ResetType": '
+                    '"ForceRestart"\n\t    }\n\t}',
+            'summary':'Raw form of the POST command.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw patch worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -92,10 +97,10 @@ class RawPostCommand():
                         "Password" in contentsholder["body"] and \
                         len(list(contentsholder["body"].keys())) == 2:
                 encobj = Encryption()
-                contentsholder["body"]["UserName"] = encobj.decode_credentials(\
-                                            contentsholder["body"]["UserName"])
-                contentsholder["body"]["Password"] = encobj.decode_credentials(\
-                                            contentsholder["body"]["Password"])
+                contentsholder["body"]["UserName"] = encobj.decode_credentials(
+                    contentsholder["body"]["UserName"])
+                contentsholder["body"]["Password"] = encobj.decode_credentials(
+                    contentsholder["body"]["Password"])
 
         if options.headers:
             extraheaders = options.headers.split(',')
@@ -108,14 +113,14 @@ class RawPostCommand():
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self.rdmc.app.post_handler(contentsholder["path"], \
-                  contentsholder["body"], headers=headers, \
-                  silent=options.silent, service=options.service))
+            results.append(self.rdmc.app.post_handler(contentsholder["path"],
+                                                      contentsholder["body"], headers=headers,
+                                                      silent=options.silent, service=options.service))
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self.rdmc.app.post_handler(path, \
-                                            body, headers=headers, \
-                                            silent=options.silent, service=options.service))
+                results.append(self.rdmc.app.post_handler(path,
+                                                          body, headers=headers,
+                                                          silent=options.silent, service=options.service))
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % options.path)

@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,15 +25,16 @@ class SelectCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name': 'select',\
-            'usage': 'select [TYPE] [OPTIONS]',\
-            'description': 'Select the Redfish/HpRest type to be used. Run without a type to '\
-                        'display the currently selected type\n\texample: select\n\n\tIn order to ' \
-                        'remove the need of including the version\n\twhile selecting you' \
-                        ' can simply enter the type name\n\tuntil the first period\n\t' \
-                        'example: select HpBios.',\
-            'summary': 'Selects the object type to be used.',\
-            'aliases': ['sel'],\
+            'name': 'select',
+            'usage': None,
+            'description': 'Selects the Redfish/HpRest type to be used.\nIn order to '
+                           'remove the need of including the version while selecting you'
+                           ' can simply enter the type name until the first period\n\t'
+                           'example: select HpBios.\n'
+                           'Run without an argument to '
+                           'display the currently selected type\n\texample: select',
+            'summary': 'Selects the object type to be used.',
+            'aliases': ['sel'],
             'auxcommands': ['LoginCommand']
         }
         self.cmdbase = None
@@ -46,10 +47,12 @@ class SelectCommand():
         :param line: command line input
         :type line: string.
         """
+
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -58,7 +61,7 @@ class SelectCommand():
 
         if args:
             if options.ref:
-                LOGGER.warn("Patches from current selection will be cleared.")
+                LOGGER.warning("Patches from current selection will be cleared.")
             selector = args[0]
             selections = self.rdmc.app.select(selector=selector, path_refresh=options.ref)
 
@@ -79,7 +82,7 @@ class SelectCommand():
                 sellist = [sel for sel in self.rdmc.app.\
                    monolith.typesadded if selector.lower() in sel.lower()]
                 self.rdmc.ui.printer("Current selection: ")
-                self.rdmc.ui.printer('%s' % ', '.join(map(str, sellist)))
+                self.rdmc.ui.printer('%s\n' % ', '.join(map(str, sellist)))
             else:
                 raise NothingSelectedError
 
@@ -94,12 +97,15 @@ class SelectCommand():
 
         self.cmdbase.login_select_validation(self, options)
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for main select function
 
         :param line: entered command line
         :type line: list.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         self.selectfunction(line)
 
         #Return code
@@ -117,10 +123,10 @@ class SelectCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--refresh', \
-            dest='ref', \
-            action="store_true", \
-            help="Optionally reload the data of selected type and clear "\
-                                            "patches from current selection.", \
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear "
+                 "patches from current selection.",
             default=False,
         )

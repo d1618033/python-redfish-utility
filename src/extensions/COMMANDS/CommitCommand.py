@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,22 +28,14 @@ class CommitCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'commit',\
-            'usage':'commit [OPTIONS]\n\n\tRun to apply all changes made during' \
-                    ' the current session\n\texample: commit',\
-            'summary':'Applies all the changes made during the current session.',\
-            'aliases': [],\
+            'name':'commit',
+            'usage': None,
+            'description':'commit [OPTIONS]\n\n\tRun to apply all changes made during'
+                    ' the current session\n\texample: commit',
+            'summary':'Applies all the changes made during the current session.',
+            'aliases': [],
             'auxcommands': ["LogoutCommand", "RebootCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
-
-        #remove reboot option if there is no reboot command
-        #try:
-        #    self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        #except KeyError:
-        #    self.parser.remove_option('--reboot')
 
         self.cmdbase = None
         self.rdmc = None
@@ -74,25 +66,29 @@ class CommitCommand():
             raise NoChangesFoundOrMadeError("No changes found or made during commit operation.")
         else:
             if failure:
-                raise FailureDuringCommitError('One or more types failed to commit. Run the '\
-                                               'status command to see uncommitted data. '\
-                                               'if you wish to discard failed changes refresh the '\
+                raise FailureDuringCommitError('One or more types failed to commit. Run the '
+                                               'status command to see uncommitted data. '
+                                               'if you wish to discard failed changes refresh the '
                                                'type using select with the --refresh flag.')
 
         if options.reboot:
             self.auxcommands['reboot'].run(options.reboot)
             self.auxcommands['logout'].run("")
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for commit main function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -108,8 +104,8 @@ class CommitCommand():
         try:
             _ = self.rdmc.app.current_client
         except:
-            raise NoCurrentSessionEstablished("Please login and make setting" \
-                                      " changes before using commit command.")
+            raise NoCurrentSessionEstablished("Please login and make setting"
+                                              " changes before using commit command.")
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

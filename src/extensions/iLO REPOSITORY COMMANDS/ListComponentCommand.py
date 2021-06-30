@@ -1,5 +1,5 @@
 # ##
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,31 +26,32 @@ class ListComponentCommand():
     """ Main download command class """
     def __init__(self):
         self.ident = {
-            'name':'listcomp', \
-            'usage':'listcomp [OPTIONS] \n\n\tRun to list the components of' \
-              'the currently logged in system.\n\texample: listcomp',\
-            'summary':'Lists components/binaries from the iLO Repository.', \
-            'aliases': [], \
+            'name':'listcomp',
+            'usage': None,
+            'description':'Run to list the components of '
+                    'the currently logged in system.\n\texample: listcomp',
+            'summary':'Lists components/binaries from the iLO Repository.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main listcomp worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -58,16 +59,16 @@ class ListComponentCommand():
         self.listcomponentvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are ' \
-                                                    'only available on iLO 5.')
+            raise IncompatibleiLOVersionError('iLO Repository commands are '
+                                              'only available on iLO 5.')
 
-        comps = self.rdmc.app.getcollectionmembers(\
-                            '/redfish/v1/UpdateService/ComponentRepository/')
+        comps = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/ComponentRepository/')
 
         if comps:
             self.printcomponents(comps, options)
         else:
-            self.rdmc.ui.warn('No components found.\n')
+            self.rdmc.ui.printer('No components found.\n')
 
         self.cmdbase.logout_routine(self, options)
         #Return code
@@ -88,9 +89,9 @@ class ListComponentCommand():
             for comp in comps:
                 self.rdmc.ui.printer('Id: %s\nName: %s\nVersion: %s\nLocked:%s\nComponent '\
                             'Uri:%s\nFile Path: %s\nSizeBytes: %s\n\n' % \
-                            (comp['Id'], comp['Name'].encode("ascii", "ignore"), comp['Version'], \
-                            'Yes' if comp['Locked'] else 'No', comp['ComponentUri'], \
-                            comp['Filepath'], str(comp['SizeBytes'])))
+                            (comp['Id'], comp['Name'], comp['Version'],
+                             'Yes' if comp['Locked'] else 'No', comp['ComponentUri'],
+                             comp['Filepath'], str(comp['SizeBytes'])))
 
     def listcomponentvalidation(self, options):
         """ listcomp validation function
@@ -112,12 +113,12 @@ class ListComponentCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-j', \
-            '--json', \
-            dest='json', \
-            action="store_true", \
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.", \
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"
+                 " displayed output to JSON format. Preserving the JSON data"
+                 " structure makes the information easier to parse.",
             default=False
         )

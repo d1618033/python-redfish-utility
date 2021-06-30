@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,37 +35,35 @@ class OneButtonEraseCommand():
     """ Backup and restore server using iLO's .bak file """
     def __init__(self):
         self.ident = {
-            'name':'onebuttonerase',\
-            'usage':'onebuttonerase [OPTIONS]\n\n\t'\
-                'Erase all iLO settings, Bios settings, User Data, and iLO Repository data.'\
-                '\n\texample: onebuttonerase\n\n\tSkip the confirmation before'\
-                ' erasing system data.\n\texample: onebuttonerase --confirm\n\nWARNING: This '\
-                'command will erase user data! Use with extreme caution! Complete erase can take'\
-                ' up to 24 hours to complete.',\
-            'summary':'Performs One Button Erase on a system.',\
-            'aliases': [],\
+            'name':'onebuttonerase',
+            'usage': None,
+            'description': 'Erase all iLO settings, Bios settings, User Data, and iLO Repository data.'
+                    '\n\tExample: onebuttonerase\n\n\tSkip the confirmation before'
+                    ' erasing system data.\n\texample: onebuttonerase --confirm\n\nWARNING: This '
+                    'command will erase user data! Use with extreme caution! Complete erase can take'
+                    ' up to 24 hours to complete.',
+            'summary':'Performs One Button Erase on a system.',
+            'aliases': [],
             'auxcommands': ["RebootCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
-        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main onebuttonerase function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -79,8 +77,8 @@ class OneButtonEraseCommand():
         results = self.rdmc.app.select(selector=select)
 
         if self.rdmc.app.getiloversion() < 5.140:
-            raise IncompatibleiLOVersionError('One Button Erase is only available on iLO 5 1.40 '\
-                                                                                    'and greater.')
+            raise IncompatibleiLOVersionError('One Button Erase is only available on iLO 5 1.40 '
+                                              'and greater.')
         try:
             results = results[0].dict
         except:
@@ -99,8 +97,8 @@ class OneButtonEraseCommand():
             if options.confirm:
                 userresp = 'erase'
             else:
-                userresp = input('Please type "erase" to begin erase process. Any other input will'\
-                  ' cancel the operation. If you wish to skip this prompt add the --confirm flag: ')
+                userresp = input('Please type "erase" to begin erase process. Any other input will'
+                                 ' cancel the operation. If you wish to skip this prompt add the --confirm flag: ')
 
             if userresp == 'erase':
                 if post_path and body_dict:
@@ -130,13 +128,13 @@ class OneButtonEraseCommand():
         :param path: Path to the one button monitor path
         :type path: str.
         """
-        print_dict = {'BIOSSettingsEraseStatus': 'Bios Settings Erase:', 'iLOSettingsEraseStatus': \
-         'iLO Settings Erase:', 'ElapsedEraseTimeInMinutes': 'Elapsed Time in Minutes:', \
-         'EstimatedEraseTimeInMinutes': 'Estimated Remaining Time in Minutes:', \
-         'NVDIMMEraseStatus': 'NVDIMM Erase:', 'NVMeDrivesEraseStatus': 'NVMe Drive Erase:',\
-         'SATADrivesEraseStatus': 'SATA Drive Erase:', 'TPMEraseStatus': 'TPM Erase:',\
-         'SmartStorageEraseStatus': 'Smart Storage Erase:', 'SystemROMAndiLOEraseStatus': \
-         'Bios and iLO Erase:', 'UserDataEraseStatus': 'User Data Erase:'}
+        print_dict = {'BIOSSettingsEraseStatus': 'Bios Settings Erase:', 'iLOSettingsEraseStatus':
+            'iLO Settings Erase:', 'ElapsedEraseTimeInMinutes': 'Elapsed Time in Minutes:',
+                      'EstimatedEraseTimeInMinutes': 'Estimated Remaining Time in Minutes:',
+                      'NVDIMMEraseStatus': 'NVDIMM Erase:', 'NVMeDrivesEraseStatus': 'NVMe Drive Erase:',
+                      'SATADrivesEraseStatus': 'SATA Drive Erase:', 'TPMEraseStatus': 'TPM Erase:',
+                      'SmartStorageEraseStatus': 'Smart Storage Erase:', 'SystemROMAndiLOEraseStatus':
+                          'Bios and iLO Erase:', 'UserDataEraseStatus': 'User Data Erase:'}
         colorama.init()
 
         self.rdmc.ui.printer('\tOne Button Erase Status\n')
@@ -151,17 +149,17 @@ class OneButtonEraseCommand():
 
             self.reset_output(eraselines)
 
-            for key in print_data.keys():
+            for key in list(print_data.keys()):
                 self.print_line(print_dict[key], print_data[key], counter)
             if counter == 7:
                 counter = 0
             else:
                 counter += 1
-            if all([print_data[key].lower() in ['completedwithsuccess', 'completedwitherrors', \
-                'failed'] for key in print_data.keys() if not key.lower() in \
+            if all([print_data[key].lower() in ['completedwithsuccess', 'completedwitherrors',
+                                                'failed'] for key in list(print_data.keys()) if not key.lower() in \
                                     ['elapsederasetimeinminutes', 'estimatederasetimeinminutes']]):
                 break
-            eraselines = len(print_data.keys())
+            eraselines = len(list(print_data.keys()))
             time.sleep(.5)
         colorama.deinit()
         self.cmdbase.logout_routine(self, options)
@@ -173,11 +171,11 @@ class OneButtonEraseCommand():
         :type resdict: dict.
         """
         retdata = OrderedDict()
-        data = [('ElapsedEraseTimeInMinutes', None), ('EstimatedEraseTimeInMinutes', None),\
-         ('SystemROMAndiLOEraseComponentStatus', ['BIOSSettingsEraseStatus', \
-         'iLOSettingsEraseStatus']), ('UserDataEraseComponentStatus', ['NVDIMMEraseStatus',\
-         'NVMeDrivesEraseStatus', 'SATADrivesEraseStatus', 'SmartStorageEraseStatus', \
-         'TPMEraseStatus'])]
+        data = [('ElapsedEraseTimeInMinutes', None), ('EstimatedEraseTimeInMinutes', None),
+                ('SystemROMAndiLOEraseComponentStatus', ['BIOSSettingsEraseStatus',
+                                                         'iLOSettingsEraseStatus']), ('UserDataEraseComponentStatus', ['NVDIMMEraseStatus',
+                                                                                                                       'NVMeDrivesEraseStatus', 'SATADrivesEraseStatus', 'SmartStorageEraseStatus',
+                                                                                                                       'TPMEraseStatus'])]
         for key, val in data:
             if val:
                 if key == 'SystemROMAndiLOEraseComponentStatus':

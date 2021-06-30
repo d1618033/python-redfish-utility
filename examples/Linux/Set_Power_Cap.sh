@@ -20,14 +20,14 @@
 #            iLO 4 - All versions.                                #
 
 runLocal(){
-  ilorest select Manager. -u USER_LOGIN -p PASSWORD
+  ilorest select Power. -u USER_LOGIN -p PASSWORD
   ilorest set PowerControl/PowerLimit/LimitInWatts=None
   ilorest commit
   ilorest logout
 }
 
 runRemote(){
-  ilorest select Manager. --url=$1 --user $2 --password $3
+  ilorest select Power. --url=$1 --user $2 --password $3
   ilorest set PowerControl/PowerLimit/LimitInWatts=None
   ilorest commit
   ilorest logout
@@ -40,7 +40,7 @@ error(){
 }
 
 if [ "$#" -eq "3" ]
-then 
+then
   runRemote "$1" "$2" "$3"
 elif [ "$#" -eq "0" ]
 then

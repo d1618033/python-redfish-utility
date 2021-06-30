@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,47 +25,44 @@ class VirtualMediaCommand():
                                                             """ logged in """
     def __init__(self):
         self.ident = {
-            'name':'virtualmedia',\
-            'usage':'virtualmedia [ID] [URI] [OPTIONS]\n\n\tRun without' \
-                    ' arguments to view the available virtual media sources.' \
-                    '\n\texample: virtualmedia\n\n\tInsert virtual media and ' \
-                    'set to boot on next restart.\n\texample: virtualmedia 2 ' \
-                    'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove ' \
-                    'current inserted media.\n\texample: virtualmedia 2 --remove',\
-            'summary':'Command for inserting and removing virtual media.',\
-            'aliases': [],\
-            'auxcommands': ["GetCommand", "SetCommand", "SelectCommand", \
+            'name':'virtualmedia',
+            'usage': None,
+            'description':'Run without'
+                    ' arguments to view the available virtual media sources.'
+                    '\n\tExample: virtualmedia\n\n\tInsert virtual media and '
+                    'set to boot on next restart.\n\texample: virtualmedia 2 '
+                    'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove '
+                    'current inserted media.\n\texample: virtualmedia 2 --remove',
+            'summary':'Command for inserting and removing virtual media.',
+            'aliases': [],
+            'auxcommands': ["GetCommand", "SetCommand", "SelectCommand",
                             "RebootCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-        #self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
-        #self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
-        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main iscsi configuration worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         if len(args) > 2:
-            raise InvalidCommandLineError("Invalid number of parameters. " \
-                "virtualmedia command takes a maximum of 2 parameters.")
+            raise InvalidCommandLineError("Invalid number of parameters. "
+                                          "virtualmedia command takes a maximum of 2 parameters.")
         else:
             self.virtualmediavalidation(options)
 
@@ -87,8 +84,8 @@ class VirtualMediaCommand():
                 paths[path] = paths[path]['@odata.id']
         else:
             isredfish = False
-            paths = self.auxcommands['get'].getworkerfunction("links/self/href", options, \
-                    results=True, uselist=False)
+            paths = self.auxcommands['get'].getworkerfunction("links/self/href", options,
+                                                              results=True, uselist=False)
             ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
             paths = {ind:path for ind, path in enumerate(paths)}
             ids = {ind:id for ind, id in enumerate(ids)}
@@ -109,8 +106,8 @@ class VirtualMediaCommand():
         elif not args:
             self.vmdefaulthelper(options, paths)
         else:
-            raise InvalidCommandLineError("Invalid parameter(s). Please run"\
-                                      " 'help virtualmedia' for parameters.")
+            raise InvalidCommandLineError("Invalid parameter(s). Please run"
+                                          " 'help virtualmedia' for parameters.")
 
         self.cmdbase.logout_routine(self, options)
         #Return code
@@ -143,9 +140,9 @@ class VirtualMediaCommand():
         try:
             path = paths[int(args[0])] if not path else path
         except:
-            raise InvalidCommandLineError("Invalid input value for virtual " \
-                                      "media please run the command with no " \
-                                      "arguments for possible values.")
+            raise InvalidCommandLineError("Invalid input value for virtual "
+                                          "media please run the command with no "
+                                          "arguments for possible values.")
 
         if ilover <= 4.230:
             self.rdmc.app.patch_handler(path, body)
@@ -184,8 +181,8 @@ class VirtualMediaCommand():
         try:
             path = paths[int(args[0])] if not path else path
         except:
-            raise InvalidCommandLineError("Invalid input value for virtual " \
-                                          "media please run the command with " \
+            raise InvalidCommandLineError("Invalid input value for virtual "
+                                          "media please run the command with "
                                           "no arguments for possible values.")
 
         if ilover <= 4.230:
@@ -209,7 +206,7 @@ class VirtualMediaCommand():
         """
         images = {}
         count = 0
-        mediatypes = self.auxcommands['get'].getworkerfunction(\
+        mediatypes = self.auxcommands['get'].getworkerfunction(
             "MediaTypes", options, results=True, uselist=False)
         ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
         ids = {ind:id for ind, id in enumerate(ids)}
@@ -264,13 +261,13 @@ class VirtualMediaCommand():
         try:
             path = paths[int(args[0])]
         except:
-            raise InvalidCommandLineError("Invalid input value for virtual media"\
-                                        " please run the command with no " \
-                                        "arguments for possible values.")
+            raise InvalidCommandLineError("Invalid input value for virtual media"
+                                          " please run the command with no "
+                                          "arguments for possible values.")
 
-        self.rdmc.app.patch_handler(path, \
-                    {"Oem":{self.rdmc.app.typepath.defs.oemhp:{"BootOnNextServerReset":\
-                                            True}}}, service=True, silent=True)
+        self.rdmc.app.patch_handler(path,
+                                    {"Oem":{self.rdmc.app.typepath.defs.oemhp:{"BootOnNextServerReset":
+                                                                                   True}}}, service=True, silent=True)
 
     def vmredfishhelper(self, action, number, image=None):
         """Redfish version of the worker function
@@ -293,13 +290,13 @@ class VirtualMediaCommand():
             pass
 
         if not bodydict:
-            raise InvalidCommandLineError("Invalid input value for virtual media"\
-                                            " please run the command with no " \
-                                            "arguments for possible values.")
+            raise InvalidCommandLineError("Invalid input value for virtual media"
+                                          " please run the command with no "
+                                          "arguments for possible values.")
         if action == 'remove' and not bodydict['Inserted']:
-            raise InvalidCommandLineError("Invalid input value for virtual media."\
-                    " No media present in this drive to unmount. Please recheck " \
-                                            "arguments for possible values.")
+            raise InvalidCommandLineError("Invalid input value for virtual media."
+                                          " No media present in this drive to unmount. Please recheck "
+                                          "arguments for possible values.")
 
         if action == 'insert' and image:
             for item in bodydict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Actions']:

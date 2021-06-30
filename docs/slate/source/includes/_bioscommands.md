@@ -726,6 +726,7 @@ None
 
 ### Setpassword command
 
+
 <aside class="notice">
 Please make sure the order of passwords is maintained. The passwords are extracted based on their position in the arguments list.
 </aside>
@@ -736,14 +737,15 @@ Please make sure the order of passwords is maintained. The passwords are extract
 
 <pre>
 iLOrest > <font color="#01a982">setpassword newpassword ""</font>
+setpassword --newpassword newpass1 --currentpassword
 The operation completed successfully.
 </pre>
-
 
 > When setting a bios or power on password back to nothing, `NEW_PASSWORD` must be set to `""`.
 
 <pre>
 iLOrest > <font color="#01a982">setpassword "" oldpassword</font>
+setpassword --newpassword "" --currentpassword newpass1
 The operation completed successfully.
 </pre>
 
@@ -760,7 +762,7 @@ The operation completed successfully.
 
 #### Syntax
 
-setpassword *[NEW_PASSWORD] [OLD_PASSWORD] [OPTIONS]*
+Setpassword –-newpassword <newpass> --currentpassword <currpass>
 
 #### Description
 

@@ -177,7 +177,7 @@ This example shows how the set password command on a Gen9 system is just a few s
 
 The `Bios` type has two properties that both need to be used to change the administrator password, `AdminPassword` and `OldAdminPassword`. `AdminPassword` is the new password you want to change to, and `OldAdminPassword` is the current password you have.
 
-<aside class="notice">If there is no current password, you must include <b>OldAdminPassword=””</b>.</aside>
+<aside class="notice">If there is no current password, you must include <b>OldAdminPassword=""</b>.</aside>
 
 ![BIOS Password Example 1](images/BIOSPassword_1.png "BIOS Password Example 1")
 
@@ -191,7 +191,7 @@ In order to change the administrator password, you need to set the `AdminPasswor
 
 ![BIOS Password Example 3](images/BIOSPassword_3.png "BIOS Password Example 3")
 
-After you’ve set the values for `AdminPassword` and `OldAdminPassword`, you need to commit your changes and reboot your server:
+After you&apos;ve set the values for `AdminPassword` and `OldAdminPassword`, you need to commit your changes and reboot your server:
 
 <aside class="notice">To change the administrator password, <b>AdminPassword</b> and <b>OldAdminPassword</b> must be set in the same line.</aside>
 
@@ -1019,11 +1019,11 @@ Deletion of a Federation Group
 
 ## Virtual Media
 
-iLO provides a method to boot from virtualized media by providing a remote URL. This can include bootable virtualized USB, Floppy disk, CD/DVD ISO media. 
+iLO provides a method to boot from virtualized media by providing a remote URL. This can include bootable virtualized USB, Floppy disk, CD/DVD ISO media.
 
 ### Mount Virtual Media
 
-Mount Virtual Media (To Be Updated) 
+Mount Virtual Media (To Be Updated)
 
 |    **Linux**                    | **Windows**                                                                  |
 |---------------------------------|------------------------------------------------------------------------------|

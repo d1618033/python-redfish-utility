@@ -1,5 +1,5 @@
 # ##
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ def _get_comp_type(payload):
     else:
         for device in payload['Devices']['Device']:
             for image in device['FirmwareImages']:
-                if 'DirectFlashOk' not in image.keys():
+                if 'DirectFlashOk' not in list(image.keys()):
                     raise InvalidFileInputError("Cannot flash this firmware.")
                 if image['DirectFlashOk']:
                     ctype = 'A'
@@ -65,56 +65,56 @@ class FwpkgCommand():
     """ Fwpkg command class """
     def __init__(self):
         self.ident = {
-            'name':'flashfwpkg', \
-            'usage':'flashfwpkg [FWPKG PATH] [OPTIONS]\n\n\tRun to upload and flash ' \
-              'components from fwpkg files.\n\n\tUpload component and flashes it or sets a task'\
-              'queue to flash.\n\texample: flashfwpkg component.fwpkg.\n\n\t'
-              'Skip extra checks before adding taskqueue. (Useful when adding '
-              'many flashfwpkg taskqueue items in sequence.)\n\texample: fwpkg '\
-              'component.fwpkg --ignorechecks',\
-            'summary':'Flashes fwpkg components using the iLO repository.',\
-            'aliases': ['fwpkg'], \
-            'auxcommands': ['UploadComponentCommand', 'UpdateTaskQueueCommand', \
+            'name':'flashfwpkg',
+            'usage': None,
+            'description':'Run to upload and flash '
+                    'components from fwpkg files.\n\n\tUpload component and flashes it or sets a task'
+                    'queue to flash.\n\texample: flashfwpkg component.fwpkg.\n\n\t'
+                    'Skip extra checks before adding taskqueue. (Useful when adding '
+                    'many flashfwpkg taskqueue items in sequence.)\n\texample: flashfwpkg '
+                    'component.fwpkg --ignorechecks',
+            'summary':'Flashes fwpkg components using the iLO repository.',
+            'aliases': ['fwpkg'],
+            'auxcommands': ['UploadComponentCommand', 'UpdateTaskQueueCommand',
                             'FirmwareUpdateCommand', 'FwpkgCommand']
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main fwpkg worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if self.rdmc.app.typepath.url:
-            if 'http' not in self.rdmc.app.typepath.url:
-                options.logout = True
-                self.cmdbase.logout_routine(self, options)
-        else:
-            options.logout = True
-            self.cmdbase.logout_routine(self, options)
         self.fwpkgvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError(\
-                      'iLO Repository commands are only available on iLO 5.')
+            raise IncompatibleiLOVersionError(
+                'iLO Repository commands are only available on iLO 5.')
 
         if self.rdmc.app.getiloversion() <= 5.120 and options.fwpkg.lower().startswith('iegen10'):
-            raise IncompatibleiLOVersionError('Please upgrade to iLO 5 1.20 or '\
-                       'greater to ensure correct flash of this firmware.')
+            raise IncompatibleiLOVersionError('Please upgrade to iLO 5 1.20 or '
+                                              'greater to ensure correct flash of this firmware.')
         tempdir = ''
         if not options.fwpkg.endswith('.fwpkg'):
-            InvalidFileInputError("Invalid file type. Please make sure the file "\
+            InvalidFileInputError("Invalid file type. Please make sure the file "
                                   "provided is a valid .fwpkg file type.")
 
         try:
@@ -166,26 +166,26 @@ class FwpkgCommand():
             pass
 
         powerstate = results.resp.dict['PowerState']
-        tasks = self.rdmc.app.getcollectionmembers(\
-                                '/redfish/v1/UpdateService/UpdateTaskQueue/')
+        tasks = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/UpdateTaskQueue/')
 
         for task in tasks:
             if task['State'] == 'Exception':
-                raise TaskQueueError("Exception found in taskqueue which will "\
-                               "prevent firmware from flashing. Please run "\
-                               "iLOrest command: taskqueue --cleanqueue to clear"\
-                               " any errors before continuing.")
+                raise TaskQueueError("Exception found in taskqueue which will "
+                                     "prevent firmware from flashing. Please run "
+                                     "iLOrest command: taskqueue --cleanqueue to clear"
+                                     " any errors before continuing.")
             if task['UpdatableBy'] == 'Uefi' and not powerstate == 'Off' or \
                 task['Command'] == "Wait":
-                raise TaskQueueError("Taskqueue item found that will "\
-                               "prevent firmware from flashing immediately. Please "\
-                               "run iLOrest command: taskqueue --resetqueue to "\
-                               "reset the queue if you wish to flash immediately "\
-                               "or include --ignorechecks to add this firmware "\
-                               "into the task queue anyway.")
+                raise TaskQueueError("Taskqueue item found that will "
+                                     "prevent firmware from flashing immediately. Please "
+                                     "run iLOrest command: taskqueue --resetqueue to "
+                                     "reset the queue if you wish to flash immediately "
+                                     "or include --ignorechecks to add this firmware "
+                                     "into the task queue anyway.")
         if tasks:
-            self.rdmc.ui.warn("Items are in the taskqueue that may delay the flash until they "\
-                        "are finished processing. Use the taskqueue command to monitor updates.\n")
+            self.rdmc.ui.warn("Items are in the taskqueue that may delay the flash until they "
+                              "are finished processing. Use the taskqueue command to monitor updates.\n")
 
     @staticmethod
     def preparefwpkg(self, pkgfile):
@@ -223,8 +223,8 @@ class FwpkgCommand():
         if comptype == 'C':
             imagefiles = [self.auxcommands['flashfwpkg'].type_c_change(tempdir, pkgfile)]
         else:
-            results = self.rdmc.app.getprops(selector="UpdateService.", \
-                                                                props=['Oem/Hpe/Capabilities'])
+            results = self.rdmc.app.getprops(selector="UpdateService.",
+                                             props=['Oem/Hpe/Capabilities'])
 
             for device in payloaddata['Devices']['Device']:
                 for firmwareimage in device['FirmwareImages']:

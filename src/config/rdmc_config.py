@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 """Rdmc config"""
 
 import os
-from .config import AutoConfigParser
+from config.config import AutoConfigParser
 
 class RdmcConfig(AutoConfigParser):
     """Rdmc config class for loading and parsing the .conf file global configuration options.
@@ -44,6 +44,9 @@ class RdmcConfig(AutoConfigParser):
         self._ac__cachedir = ''
         self._ac__savefile = ''
         self._ac__loadfile = ''
+        self._ac__user_cert = ''
+        self._ac__user_root_ca_key = ''
+        self._ac__user_root_ca_password = ''
 
     @property
     def configfile(self):
@@ -225,3 +228,30 @@ class RdmcConfig(AutoConfigParser):
     def ssl_cert(self, value):
         """Set proxy value for communication"""
         return self._set('sslcert', value)
+
+    @property
+    def user_cert(self):
+        return self._get('usercert')
+
+    @user_cert.setter
+    def user_cert(self, value):
+        return self._set('usercert', value)
+
+    @property
+    def user_root_ca_key(self):
+        return self._get('user_root_ca_key')
+
+    @user_root_ca_key.setter
+    def user_root_ca_key(self, value):
+        return self._set('user_root_ca_key', value)
+
+    @property
+    def user_root_ca_password(self):
+        return self._get('user_root_ca_password')
+
+    @user_root_ca_password.setter
+    def user_root_ca_password(self, value):
+        return self._set('user_root_ca_password', value)
+
+
+

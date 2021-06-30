@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,36 +33,41 @@ class RawPutCommand():
     """ Raw form of the put command """
     def __init__(self):
         self.ident = {
-            'name':'rawput',\
-            'usage':'rawput [FILENAME] [OPTIONS]\n\n\tRun to send a post from ' \
-                'the data in the input file.\n\tMultiple PUTs can be performed in sequence by '\
-                '\n\tadding more path/body key/value pairs.\n'
-                '\n\texample: rawput rawput.' \
-                'txt\n\n\tExample input file:\n\t{\n\t    "/redfish/' \
-                'v1/systems/(system ID)/bios/Settings/":\n\t    {\n\t'
-                '\t"Attributes": {\n\t\t' \
-                '  "BaseConfig": "default"\n\t\t}\n\t    }\n\t}',\
-            'summary':'Raw form of the PUT command.',\
-            'aliases': [],\
+            'name':'rawput',
+            'usage': None,
+            'description':'Run to send a post from '
+                    'the data in the input file.\n\tMultiple PUTs can be performed in sequence by '
+                    '\n\tadding more path/body key/value pairs.\n'
+                '\n\texample: rawput rawput.'
+                    'txt\n\n\tExample input file:\n\t{\n\t    "/redfish/'
+                    'v1/systems/(system ID)/bios/Settings/":\n\t    {\n\t'
+                '\t"Attributes": {\n\t\t'
+                    '  "BaseConfig": "default"\n\t\t}\n\t    }\n\t}',
+            'summary':'Raw form of the PUT command.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self._rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw put worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -100,14 +105,14 @@ class RawPutCommand():
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self.rdmc.app.put_handler(contentsholder["path"], \
-              contentsholder["body"], headers=headers, silent=options.silent, \
-              optionalpassword=options.biospassword, service=options.service))
+            results.append(self.rdmc.app.put_handler(contentsholder["path"],
+                                                     contentsholder["body"], headers=headers, silent=options.silent,
+                                                     optionalpassword=options.biospassword, service=options.service))
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self.rdmc.app.put_handler(path, \
-                                body, headers=headers, silent=options.silent, \
-                                optionalpassword=options.biospassword, service=options.service))
+                results.append(self.rdmc.app.put_handler(path,
+                                                         body, headers=headers, silent=options.silent,
+                                                         optionalpassword=options.biospassword, service=options.service))
         else:
             raise InvalidFileFormattingError("Input file '%s' was not "\
                                              "formatted properly." % options.path)

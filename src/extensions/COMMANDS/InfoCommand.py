@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,26 +26,25 @@ class InfoCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'info',\
-            'usage':'info [PROPERTY] [OPTIONS]\n\n\tDisplays detailed ' \
-                    'information about a property within a selected type' \
-                    '\n\texample: info property\n\n\tDisplays detailed ' \
-                    'information for several properties\n\twithin a selected ' \
-                    'type\n\texample: info property property/sub-property property\n\n\t' \
-                    'Run without arguments to display properties \n\tthat ' \
-                    'are available for info command\n\texample: info',\
-            'summary':'Displays detailed information about a property within a selected type.',\
-            'aliases': [],\
+            'name':'info',
+            'usage': None,
+            'description':'Displays detailed '
+                    'information about a property within a selected type'
+                    '\n\texample: info property\n\n\tDisplays detailed '
+                    'information for several properties\n\twithin a selected '
+                    'type\n\texample: info property property/sub-property property\n\n\t'
+                    'Run without arguments to display properties \n\tthat '
+                    'are available for info command\n\texample: info',
+            'summary':'Displays detailed information about a property within a selected type.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
 
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line, autotest=False):
+    def run(self, line, autotest=False, help_disp=False):
         """ Main info worker function
 
         :param line: command line input
@@ -53,10 +52,14 @@ class InfoCommand():
         :param autotest: flag to determine if running automatictesting
         :type autotest: bool.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -70,8 +73,8 @@ class InfoCommand():
                     if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
                         item = "Attributes/" + item
 
-                outdata = self.rdmc.app.info(props=item, dumpjson=options.json, \
-                                                latestschema=options.latestschema)
+                outdata = self.rdmc.app.info(props=item, dumpjson=options.json,
+                                             latestschema=options.latestschema)
 
                 if autotest:
                     return outdata
@@ -81,20 +84,20 @@ class InfoCommand():
                     self.rdmc.ui.printer(outdata)
 
                 if not outdata:
-                    raise InfoMissingEntriesError("There are no valid "\
-                            "entries for info in the current instance.")
+                    raise InfoMissingEntriesError("There are no valid "
+                                                  "entries for info in the current instance.")
                 else:
                     if len(args) > 1 and not item == args[-1]:
-                        self.rdmc.ui.printer("\n************************************"\
-                                                                    "**************\n")
+                        self.rdmc.ui.printer("\n************************************"
+                                             "**************\n")
         else:
             results = set()
             instances = self.rdmc.app.select()
             for instance in instances:
                 currdict = instance.resp.dict
                 currdict = currdict['Attributes'] if instance.maj_type.\
-                    startswith(self.rdmc.app.typepath.defs.biostype) and currdict.get('Attributes'\
-                                                     , None) else currdict
+                    startswith(self.rdmc.app.typepath.defs.biostype) and currdict.get('Attributes'
+                                                                                      , None) else currdict
                 results.update([key for key in currdict if key not in \
                                 HARDCODEDLIST and not '@odata' in key.lower()])
 
@@ -105,8 +108,8 @@ class InfoCommand():
                 for item in results:
                     self.rdmc.ui.printer("%s\n" % item)
             else:
-                raise InfoMissingEntriesError('No info items available for this selected type.'\
-                    ' Try running with the --latestschema flag.')
+                raise InfoMissingEntriesError('No info items available for this selected type.'
+                                              ' Try running with the --latestschema flag.')
 
         self.cmdbase.logout_routine(self, options)
         #Return code

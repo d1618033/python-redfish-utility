@@ -1,0 +1,15 @@
+LIT JSON file
+{
+    "path": "/redfish/v1/Systems/1/Storage/XXX/Drives/XXX",
+    "body": {
+        "IndicatorLED": "Lit"
+    }
+}
+
+OFF JSON file
+        {
+            "path": "/redfish/v1/Systems/1/Storage/XXX/Drives/XXX",
+            "body": {
+                "IndicatorLED": "Off"
+            }
+        }

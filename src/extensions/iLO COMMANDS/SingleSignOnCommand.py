@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,34 +25,39 @@ class SingleSignOnCommand():
     """ Commands Single Sign On actions to the server """
     def __init__(self):
         self.ident = {
-            'name':'singlesignon',\
-            'usage': None,\
-            'description':'Add or remove single sign on (SSO) records.\nTo view help on specific '\
-                    'sub-commands run: singlesignon <sub-command> -h\n\nExample: singlesignon '\
-                    'importcert -h\n\n', \
+            'name':'singlesignon',
+            'usage': None,
+            'description': 'Add or remove single sign on (SSO) records.\nTo view help on specific '
+                     'sub-commands run: singlesignon <sub-command> -h\n\nExample: singlesignon '
+                     'importcert -h\n\n',
             'summary':"Command for all single sign on available actions. ",
-            'aliases': ['sso'],\
+            'aliases': ['sso'],
             'auxcommands': []
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main SingleSignOnCommand function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
-
 
         self.singlesignonvalidation(options)
 
@@ -71,6 +76,10 @@ class SingleSignOnCommand():
             raise NoContentsFoundForOperationError("%s not found." % select)
 
         bodydict = results.resp.dict
+
+        if not options.command:
+            # self.rdmc.ui.printer(self.ident['usage'])
+            return ReturnCodes.SUCCESS
 
         if options.command.lower() == 'importdns':
             actionitem = "ImportDNSName"

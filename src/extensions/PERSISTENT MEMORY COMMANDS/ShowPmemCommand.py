@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,19 +79,17 @@ class ShowPmemCommand():
 
     def __init__(self):
         self.ident = {
-            'name':'showpmm',\
-            'usage':"showpmm [-h|--help] "\
-                    "[-I|--dimm=(DimmIDs)] [-D|--device] [-C|--pmmconfig] "
-                    "[-M|--summary] [-j|--json]\n\n\tDisplay information about "
-                    "Persistent Memory modules \n\texample: showpmm --device",\
-            'summary':"Display information about Persistent Memory modules.",\
-            'aliases': [],\
+            'name':'showpmm',
+            'usage': None,
+            'description':"Display information about "
+                    "Persistent Memory modules \n\texample: showpmm --device",
+            'summary':"Display information about Persistent Memory modules.",
+            'aliases': [],
             'auxcommands': []
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-
         self._display_helpers = DisplayHelpers()
         self._mapper = Mapper()
         self._pmem_helpers = PmemHelpers()
@@ -161,7 +159,7 @@ class ShowPmemCommand():
 
         elif options.logical:
             if not all_chunks:
-                self.rdmc.ui.warn("No Persistent Memory regions found\n\n")
+                self.rdmc.ui.printer("No Persistent Memory regions found\n\n")
                 return
             self.show_persistent_interleave_sets(selected_pmem_members, all_chunks, options)
 
@@ -270,28 +268,33 @@ class ShowPmemCommand():
         else:
             self._display_helpers.print_properties([display_output])
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """
         Wrapper function for new command main function
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         LOGGER.info("PMM: %s", self.ident['name'])
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
 
         self.rdmc.login_select_validation(self, options)
+
         if args:
             self.validate_args(options)
         self.validate_show_pmem_options(options)
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
+            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
                                                    "server might be in POST or powered off")
         self.show_pmem_modules(options)
 
@@ -308,7 +311,7 @@ class ShowPmemCommand():
         elif (options.device or options.config or not some_flag) and not options.dimm:
             raise InvalidCommandLineError("Use the '--dimm | -I' flag to filter by DIMM IDs")
         elif (options.device or options.config or not some_flag) and options.dimm:
-            raise InvalidCommandLineError("Values in a list must be comma-separated " \
+            raise InvalidCommandLineError("Values in a list must be comma-separated "
                                           "(no spaces)")
 
     @staticmethod

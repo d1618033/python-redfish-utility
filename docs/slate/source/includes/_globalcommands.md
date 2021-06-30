@@ -1,6 +1,8 @@
-## Global Options
+# Commands
 
-This section lists all global options available.
+## Global Optional Arguments
+
+This section lists all global options available. These options apply to ilorest as a whole and are either passed when invoking for interactive mode or can be passed  at every instance for scriptable mode.
 
 **-h, --help**
 
@@ -14,11 +16,63 @@ Use the provided configuration file instead of the default.
 
 Use the provided directory as the location to cache data instead of the default.
 
-**-v, --verbose**
+**-v**
 
-Display verbose information.
+Display verbose information. The `--verbose` option provides a brief response message from iLO.
+
+**-vv**
+
+The second level or "very verbose" option provides further details regarding iLO response information.
+
+
+
+<pre>
+HTTP Response Code: [400]
+MessageId: iLO.2.8.PropertyNotWritableOrUnknown
+Description: The request included a value for a  read-only or unknown property.
+Message: The property "NTPServers" is a read-only property and cannot be assigned a value, or not valid for this resource.
+Resolution: If the operation did not complete, remove the property from the request body and resubmit the request.
+</pre>
+
+The extended verbosity option provides the following additional information for iLO HTTP and the iLO Channel Interface Driver response messages:
+* An error response message id (“MessageId”), iLO response error message code identification.
+* An error response message description (“Description”), essentially a quick synopsis of the issue.
+* An error response message (“Message”) describing the reason for the error in greater detail. The offending properties are embedded as per the relevant error response resource.
+* An error response resolution (“Resolution”) describing steps to correct the error.
+
+> The following example shows extended verbosity:
 
 **-d, --debug**
+
+The debug option provides a timestamp of all transmit and response activity with iLO to a file called iLOrest.log. This files is saved in the same path where you launched the tool.
+
+>The following example shows the contents of the iLOrest.log file:
+
+<pre>
+2020-06-05 14:20:39,266 INFO    : Not using CA certificate.
+2020-06-05 14:20:39,267 INFO    : Initializing no proxy.
+2020-06-05 14:20:39,267 DEBUG : HTTP REQUEST: GET
+            PATH: /redfish/v1/
+            HEADERS: {'OData-Version': '4.0', 'Accept-Encoding': 'gzip'}
+            BODY: None
+2020-06-05 14:20:39,269 DEBUG : Starting new HTTPS connection (1): 16.83.61.104
+2020-06-05 14:20:39,884 DEBUG : https://16.83.61.104:443 "GET /redfish/v1/ HTTP/1.1" 200 None
+2020-06-05 14:20:39,885 INFO    : Response Time to /redfish/v1/: 0.615999937057 seconds.
+2020-06-05 14:20:39,887 DEBUG : HTTP RESPONSE for /redfish/v1/:
+Code:200 OK
+Headers:
+            Transfer-Encoding: chunked
+            ETag: W/"16CA421D"
+            Link: </redfish/v1/SchemaStore/en/ServiceRoot.json/>; rel=describedby
+            Allow: GET, HEAD
+            Cache-Control: no-cache
+            Date: Fri, 05 Jun 2020 19:21:15 GMT
+            OData-Version: 4.0
+            X-Frame-Options: sameorigin
+            Content-type: application/json; charset=utf-8
+
+Body Response of /redfish/v1/: {"@odata.context":"/redfish/v1/$metadata#ServiceRoot.ServiceRoot","@odata.etag":"W/\"16CA421D\"","@odata.id":"/redfish/v1/","@odata.type":"#ServiceRoot.v1_5_1.ServiceRoot","Id":"RootService","AccountService":{"@odata.id":"/redfish/v1/AccountService/"},"Chassis":{"@odata.id":"/redfish/v1/Chassis/"},"EventService":{"@odata.id":"/redfish/v1/EventService/"},"JsonSchemas":{"@odata.id":"/redfish/v1/JsonSchemas/"},"Links":{"Sessions":{"@odata.id":"/redfish/v1/SessionService/Sessions/"}},"Managers":{"@odata.id":"/redfish/v1/Managers/"},"Name":"HPE RESTful Root Service","Oem":{"Hpe":{"@odata.context":"/redfish/v1/$metadata#HpeiLOServiceExt.HpeiLOServiceExt","@odata.type":"#HpeiLOServiceExt.v2_3_0.HpeiLOServiceExt","Links":{"ResourceDirectory":{"@odata.id":"/redfish/v1/ResourceDirectory/"}},"Manager":[{"DefaultLanguage":"en","FQDN":"ILOMXQ849018N.americas.hpqcorp.net","HostName":"ILOMXQ849018N","Languages":[{"Language":"en","TranslationName":"English","Version":"2.10"}],"ManagerFirmwareVersion":"2.10","ManagerType":"iLO 5","Status":{"Health":"OK"}}],"Moniker":{"ADVLIC":"iLO Advanced","BMC":"iLO","BSYS":"BladeSystem","CLASS":"Baseboard Management Controller","FEDGRP":"DEFAULT","IPROV":"Intelligent Provisioning","PRODABR":"iLO","PRODFAM":"Integrated Lights-Out","PRODGEN":"iLO 5","PRODNAM":"Integrated Lights-Out 5","PRODTAG":"HPE iLO 5","STDLIC":"iLO Standard","SUMABR":"SUM","SUMGR":"Smart Update Manager","SYSFAM":"ProLiant","VENDABR":"HPE","VENDNAM":"Hewlett Packard Enterprise","WWW":"www.hpe.com","WWWAHSV":"www.hpe.com/servers/ahsv","WWWBMC":"www.hpe.com/info/ilo","WWWDOC":"www.hpe.com/support/ilo-docs","WWWERS":"www.hpe.com/services/getconnected","WWWGLIS":"reserved for liconf URI","WWWIOL":"www.hpe.com/info/insightonline","WWWLIC":"www.hpe.com/info/ilo","WWWLML":"www.hpe.com/support","WWWPASS":"www.hpe.com/support/hpesc","WWWPRV":"www.hpe.com/info/privacy","WWWQSPEC":"www.hpe.com/info/qs","WWWRESTDOC":"www.hpe.com/support/restfulinterface/docs","WWWSUP":"www.hpe.com/support/ilo5","WWWSWLIC":"www.hpe.com/software/SWLicensing"},"Sessions":{"CertCommonName":"ILOMXQ849018N.americas.hpqcorp.net","CertificateLoginEnabled":false,"KerberosEnabled":false,"LDAPAuthLicenced":true,"LDAPEnabled":false,"LocalLoginEnabled":true,"LoginFailureDelay":0,"LoginHint":{"Hint":"POST to /Sessions to login using the following JSON object:","HintPOSTData":{"Password":"password","UserName":"username"}},"SecurityOverride":false,"ServerName":""},"System":[{"Status":{"Health":"OK"}}],"Time":"2020-06-05T19:21:15Z"}},"Product":"ProLiant DL360 Gen10","ProtocolFeaturesSupported":{"ExpandQuery":{"ExpandAll":false,"Levels":true,"Links":false,"MaxLevels":1,"NoLinks":true},"FilterQuery":true,"OnlyMemberQuery":true,"SelectQuery":false},"RedfishVersion":"1.6.0","Registries":{"@odata.id":"/redfish/v1/Registries/"},"SessionService":{"@odata.id":"/redfish/v1/SessionService/"},"Systems":{"@odata.id":"/redfish/v1/Systems/"},"Tasks":{"@odata.id":"/redfish/v1/TaskService/"},"TelemetryService":{"@odata.id":"/redfish/v1/TelemetryService/"},"UUID":"d3372204-1b09-54ea-9aa0-88940c369d59","UpdateService":{"@odata.id":"/redfish/v1/UpdateService/"},"Vendor":"HPE"}
+</pre>
 
 Display debug information.
 
@@ -50,15 +104,15 @@ Use this flag if you wish to enable Redfish only compliance. It is enabled by de
 
 **--latestschema**
 
-Optionally use the latest schema instead of the one requested by the file. 
+Optionally use the latest schema instead of the one requested by the file.
 
 <aside class="notice">
 Might cause errors in some data retrieval due to difference in schema versions.
 </aside>
 
-## Global commands
+## Global Commands
 
-This section includes commands as well as their usage and examples of general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, and authenticating and logging in and out of the server.
+This section includes commands as well as their usage and examples of general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, authenticating and logging in and out of the server.
 
 ### Help Command
 
@@ -87,7 +141,7 @@ Options:
     --nocache           During execution the application will temporarily
                         store data only in memory.
     --nologo            Include to block copyright and logo.
-	--notoolbar         Include to block bottom status bar.
+  --notoolbar         Include to block bottom status bar.
     --redfish           Use this flag if you wish to to enable Redfish only
                         compliance. It is enabled by default in systems with
                         iLO5 and above.
@@ -240,6 +294,11 @@ Usage: login [URL] [OPTIONS]
         To login remotely run using iLO url and iLO credentials
         example: login <iLO url/hostname> -u <iLO username> -p <iLO password>
 
+        To login on a server with certificate based authentication (self-signed)
+        example: login <iLO url/hostname> -u <iLO username> --usercacert <root CA certificate>
+        --privateusercert <user certificate> --userrootcakey <user certificate private key>
+        (See Advanced Usage for further details)
+
         To login on a local server run without arguments
         example: login
 
@@ -250,6 +309,16 @@ Options:
                         log into a server in the same command.
   -p PASSWORD, --password=PASSWORD
                         Use the provided iLO password to log in.
+  -cert, --usercacert   File containing the root certificate authority certificate.
+                        Only needed for self signing process (optional).
+  -privatecert, --privateusercert
+                        File containing the user certificate
+  -certkey, --userrootcakey
+                        File containting the private key of the user certificate.
+  -certpass, --userrootcapassword
+                        File containing the encryption key for the user root private key
+                        (if set). The user will be prompted for submission of the
+                        credential (if required).  (optional)
   --includelogs         Optionally include logs in the data retrieval process.
   --selector=SELECTOR   Optionally include this flag to select a type to run
                         the current command on. Use this flag when you wish to
@@ -318,15 +387,15 @@ Displays command-line syntax and help menus for individual commands. Use this co
 
 #### Parameters
 
-- Command 
+- Command
 
 Supplying a command to help will display the help message corresponding to the given command, as well as the options relating to that particular command.
 
-<aside class="notice">If no command is provided, the help command will list and provide a brief description of all available commands.</aside>
+<aside class="notice">If no command is provided, the help command lists and provides a brief description of all available commands.</aside>
 
 - **-h, --help**
 
-Running the `help` command with the **–h** or **–help** command will display information on how to use the `help` command.
+Running the `help` command with the **&#8209;h** or **&#8209;&#8209;help** parameter displays information on how to use the `help` command.
 
 - **-c FILE, --config=FILE**
 
@@ -344,16 +413,25 @@ None
 
 None
 
-### Login command
+### Login Command
 
-> Login example commands:
-
-> To login remotely, supply the URL, username, and password for the server. 
-
+> To login remotely, with basic authentication, supply the URL, username, and password for the server.
 
 <pre>
 iLOrest > <font color="#01a982">login xx.xx.xx.xx -u username -p password</font>
 Discovering data...Done
+</pre>
+
+> To login remotely, with self-signed certificate based authentication, supply the URL, username, user CA certificate, root CA certificate and optionally the root CA private key password.
+
+<pre>
+iLOrest> <font color="#01a982">login xx.xx.xx.xx -u username -privatecert "user_ca_certificate" -certkey "private_root_ca_certificate" -certpass "private_root_ca_password" </font>
+</pre>
+
+> To login remotely, with trusted CA certificate based authentication, supply the URL, username, user CA certificate and certificate bundle location for trusted CAs.
+
+<pre>
+iLOrest> <font color="#01a982">login xx.xx.xx.xx -u username -privatecert "user_ca_certificate" -cert "ca_cert_bundle" </font>
 </pre>
 
 > Here the selector option has been included so that the `Bios` type is selected once the user is logged in. You can prove that the `Bios` type has indeed been selected when we enter the select command.
@@ -394,9 +472,44 @@ login *[URL] [User] [Password] [Optional Parameters]*
 
 Connects to a server, establishes a secure session, and discovers data from iLO. If you are logging in to a local server, run the command without arguments. If you are not logging in to a local server, supply the URL argument along with the user and password options.
 
+<aside class="notice"> Authentication is not performed in production (default) mode. If a username and password are included then the configuration will default to an internal, unauthenticated administrative level
+privileged user account. Higher security modes, if configured, require a valid iLO management username and password to connect.
+</aside>
+
 #### Usage in Other Commands
 
-Login remotely as part of other commands by including the *--url*, *(-u, --user)*, and *(-p, --password)* flags. Optionally include the *--https* flag to validate the SSL certificate when logging in. Locally you will be logged in automatically unless running in higher security modes (see [Higher Security Modes](#higher-security-modes)).
+Login remotely with basic authentication as part of other commands by including the *--url*, *(-u, --user)*, and *(-p, --password)* flags. Alternatively, use certificate based authentication by including the *--url*, *(-u, --user)*, *(-privatecert, --privateusercert)*, *(-certkey, --userrootcakey)* or certificate bundle *(-cert, --usercacert)*. Optionally include the *--https* flag to validate the SSL certificate when logging in. Locally you will be logged in automatically unless running in higher security modes (see [Higher Security Modes](#higher-security-modes)).
+
+#### Special Notes for Certificate Based Authentication
+
+<aside class="notice">For certificate based authentication, iLO 5 version 2.40 is required, with the following configured:
+- A valid date and time synced with NTP.
+- An applicable "iLO Advanced Premium Security Edition" license.
+- Valid X509 SSL certificate.
+- Root CA certificate added to iLO.
+- CAC/Smartcard Authentication Enabled.
+- An iLO management account mapped to the relevant user certificate.
+</aside>
+
+Steps to configure iLO Certificate based Authentication:
+1. Generate root CA private key:
+- openssl genrsa -out testCA.key 4096
+2. Configure and set X509 SSL certificate by generating a CSR from iLO and signing with private root CA key.
+- openssl req -x509 -new –nodes -key testCA.key -sha256 -days 1024 -subj "/O=HPE/OU=R&D/CN=CA for testing iLO authentication" -out testCA.crt
+3. Add SSL certificate to iLO.
+- (Security | CAC/Smartcard | Import Trusted CA Certificates | Direct Import).
+4. Generate user rsa private key.
+- openssl genrsa -out user_root_CA.key 4096
+5. Generate user root CA
+- openssl req -x509 -new -nodes -key user_root_CA.key -sha256 -days 1825 -out user_root_CA.pem
+6. Generate user CA certificate
+- openssl x509 -req -in user.csr -CA user_root_CA.pem -CAkey user.key -CAcreateserial -sha256 -days 1024 -out userCA.pem
+7. Add root CA certificate
+- (Security | CAC/Smartcard | Import Trusted CA Certificates)
+8. Add user CA certificate mapping to specified user
+- (Security | Certificate Mappings | Authorized Certificates | <iLO username>)
+
+<aside class="notice">Suggest to always use ".pem" format for TLS certificates</aside>
 
 #### Parameters
 
@@ -416,11 +529,6 @@ Connect to the server as the provided user.
 
 Connect to the server with the password corresponding to the given user.
 
-- **--https**
-
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
-
 - **--includelogs**
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
@@ -435,7 +543,7 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be /rest/v1.
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 - **--biospassword=BIOSPASSWORD**
 
@@ -443,7 +551,7 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 <aside class="notice">This option is only used on Gen 9 systems.</aside>
 
-### Types command
+### Types Command
 
 > Types example commands:
 
@@ -593,10 +701,11 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-cert CA Certificate Bundle, --usercacert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--includelogs**
 
@@ -608,7 +717,7 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -618,7 +727,7 @@ None
 
 None
 
-### Select command
+### Select Command
 
 > Select example commands:
 
@@ -722,11 +831,6 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
-
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
-
 - **--includelogs**
 
 Optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
@@ -737,7 +841,7 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
 
 #### Inputs
 
@@ -747,7 +851,7 @@ None
 
 None
 
-### List command
+### List Command
 
 <aside class="notice">arguments are not case-sensitive.</aside>
 
@@ -781,7 +885,7 @@ BootMode=Uefi
 ...
 </pre>
 
-> Including the `-j`,`--json` option preserves the JSON structure of the type’s information. The full list has been truncated here for space.
+> Including the `-j`,`--json` option preserves the JSON structure of the type&apos;s information. The full list has been truncated here for space.
 
 <pre>
 iLOrest > select ComputerSystem.
@@ -859,10 +963,6 @@ Optionally set a filter value for a filter attribute. This uses the provided fil
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure can make the information easier to parse.
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 #### Login Parameters
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -879,10 +979,9 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
 
 - **--includelogs**
 
@@ -894,7 +993,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1071,15 +1174,11 @@ Including the help flag will display help for the command.
 
 Optionally use the latest schema instead of the one requested by the file.
 
-<aside class="warning">This might cause errors in some data retrieval due to differences in the schema’s organizational structure between versions.</aside>
+<aside class="warning">This might cause errors in some data retrieval due to differences in the schema&apos;s organizational structure between versions.</aside>
 
 - **-j, --json**
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to read.
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Login Parameters
 
@@ -1097,10 +1196,29 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--includelogs**
 
@@ -1112,7 +1230,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1122,7 +1244,7 @@ None
 
 None
 
-### Get command
+### Get Command
 
 > Get example commands:
 
@@ -1273,10 +1395,6 @@ Optionally include this flag to change the displayed output to JSON format. Pres
 
 Optionally include this flag to display properties that are not read-only. This is useful to see what is configurable with the selected type(s).
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 #### Login Parameters
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -1293,10 +1411,29 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--includelogs**
 
@@ -1308,7 +1445,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1318,7 +1459,7 @@ None
 
 None
 
-### Set command
+### Set Command
 
 <aside class="notice">Arguments are not case-sensitive.</aside>
 
@@ -1381,23 +1522,23 @@ set *[Property=Value] [Path] [Optional Parameters]*
 
 **Correct** syntax. This sets the `AdminName` to John.
 
-- `set “AdminName=John Doe”`
+- `set "AdminName=John Doe"`
 
 **Correct** syntax. If the property has a space in it, use quotes around the entire property/value pair. Here the `AdminName` has been set to John Doe.
 
-- `set AdminName=””`
+- `set AdminName=""`
 
 **Correct** syntax. Use this syntax, only quotes with no value, to remove the `AdminName` property value.
 
-- `set AdminName=’’`
+- `set AdminName=''`
 
 **Correct** syntax. This is an alternate syntax that also removes the `AdminName` property and sets it to nothing. Use single quotes with nothing between them.
 
-- `set AdminName=’””’`
+- `set AdminName='"'`
 
 **Correct** syntax. This deletes the `AdminName` value.
 
-- `set AdminName=”John Doe”`
+- `set AdminName="John Doe"`
 
 This is **incorrect** syntax, and will not be correctly reflected on the server.
 
@@ -1445,10 +1586,6 @@ Use this flag to perform a reboot command function after completion of operation
 
 Override the measures stopping the tool from writing over items that are system unique.
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 #### Login Parameters
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -1465,10 +1602,29 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--includelogs**
 
@@ -1480,7 +1636,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1490,11 +1650,11 @@ None
 
 None
 
-### Save command
+### Save Command
 
 > Save example commands:
 
-> Here, the server is logged into, Bios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the Bios type, so the `ilorest.json` file that was saved holds the information about `Bios.` The file holding that information looks like the following. 
+> Here, the server is logged into, Bios is selected, and the corresponding JSON file is saved to a local directory as the file ilorest.json. The ilorest.json file holds all the information regarding the selected type. Here, the save function was performed on the Bios type, so the `ilorest.json` file that was saved holds the information about `Bios.` The file holding that information looks like the following.
 
 <pre>
 iLOrest > <font color="#01a982">save --select Bios. --url xx.xx.xx.xx -u username -p password</font>
@@ -1510,35 +1670,35 @@ Configuration saved to: ilorest.json
 [
   {
     "Comments": {
-      "Manufacturer": "HPE", 
-      "Model": "ProLiant DL360 Gen10", 
-      "BIOSFamily": "U32", 
-      "BIOSDate": "12/14/2018", 
-      "SerialNumber": "Kappa", 
+      "Manufacturer": "HPE",
+      "Model": "ProLiant DL360 Gen10",
+      "BIOSFamily": "U32",
+      "BIOSDate": "12/14/2018",
+      "SerialNumber": "Kappa",
       "iLOVersion": "iLO 5 v1.40"
     }
-  }, 
+  },
   {
     "#Bios.v1_0_0.Bios": {
       "/redfish/v1/systems/1/bios/settings/": {
-        "@odata.context": "/redfish/v1/$metadata#Bios.Bios", 
-        "@odata.etag": "W/\"02E13BA89B606F6F6F02950EB3CA676D\"", 
-        "@odata.id": "/redfish/v1/systems/1/bios/settings/", 
-        "AttributeRegistry": "BiosAttributeRegistryU32.v1_2_10", 
+        "@odata.context": "/redfish/v1/$metadata#Bios.Bios",
+        "@odata.etag": "W/\"02E13BA89B606F6F6F02950EB3CA676D\"",
+        "@odata.id": "/redfish/v1/systems/1/bios/settings/",
+        "AttributeRegistry": "BiosAttributeRegistryU32.v1_2_10",
         "Attributes": {
-          "MemFastTraining": "Enabled", 
-          "PowerRegulator": "DynamicPowerSavings", 
-          "EmbeddedDiagnostics": "Enabled", 
-          "Ipv6Address": "::", 
-          "PersistentMemBackupPowerPolicy": "UseExternalBackupPower", 
-          "ServiceEmail": "", 
-          "FlexLom1Aspm": "Disabled", 
-          "UrlBootFile": "", 
-          "DcuStreamPrefetcher": "Enabled", 
-          "IntelNicDmaChannels": "Enabled", 
+          "MemFastTraining": "Enabled",
+          "PowerRegulator": "DynamicPowerSavings",
+          "EmbeddedDiagnostics": "Enabled",
+          "Ipv6Address": "::",
+          "PersistentMemBackupPowerPolicy": "UseExternalBackupPower",
+          "ServiceEmail": "",
+          "FlexLom1Aspm": "Disabled",
+          "UrlBootFile": "",
+          "DcuStreamPrefetcher": "Enabled",
+          "IntelNicDmaChannels": "Enabled",
           ...
-        }, 
-        "Id": "settings", 
+        },
+        "Id": "settings",
         "Name": "BIOS Pending Settings"
       }
     }
@@ -1555,7 +1715,7 @@ Saving configuration...
 Configuration saved to: ilorest.json
 </pre>
 
-> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, saves the JSON response to a file called `BiosInfo.json` in a local directory, and then logs out. 
+> This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), selects the `Bios.` type, saves the JSON response to a file called `BiosInfo.json` in a local directory, and then logs out.
 
 <pre>
 iLOrest > <font color="#01a982">save --select Bios. --url xx.xx.xx.xx -u username -p password -f BiosInfo.json --logout</font>
@@ -1568,7 +1728,7 @@ Logging session out.
 #### Syntax
 
 save *[Optional Parameters]*
- 
+
 #### Description
 
 Saves the JSON information of a selected type to a local file. Use this command along with the `load` command when you want to modify properties of a selected type through file editing. Using this command saves a local copy of your selected type’s JSON information.
@@ -1605,10 +1765,6 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 
 Optionally include this flag to encrypt a file using the key provided.
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 #### Login Parameters
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -1625,10 +1781,29 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--includelogs**
 
@@ -1640,7 +1815,11 @@ Optionally choose to set the **includelogs** flag. Doing so will include logs in
 
 Optionally set a starting point for data collection. If you do not specify a starting point, the default path will be` /redfish/v1/`. (see [Path Option](#path-option) for more information).
 
-<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn’t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+<aside class="notice">The <b>path</b> flag can only be specified at the time of login, so if you are already logged into the server, the <b>path</b> flag will not change the path. If you are entering a command that isn&apos;t the <b>login</b> command, but includes your login information, you can still specify the path flag there.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1650,9 +1829,9 @@ None
 
 JSON file
 
-Save a selected type to a file in JSON format. You can edit the values in the file, and then use the `load` command to upload the changes to the server. 
+Save a selected type to a file in JSON format. You can edit the values in the file, and then use the `load` command to upload the changes to the server.
 
-### Load command
+### Load Command
 
 > Load example commands:
 
@@ -1748,10 +1927,6 @@ Use the provided directory to output data for a multiple server configuration.
 
 Optionally include this flag to decrypt a file using the key provided.
 
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
-
 #### Login Parameters
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -1768,10 +1943,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. You need to be logged in to use this flag.
 
 #### Inputs
 
@@ -1783,7 +1981,7 @@ Input a JSON object to load from a custom configuration file, otherwise the conf
 
 None
 
-### Status command
+### Status Command
 
 > Status example commands:
 
@@ -1839,7 +2037,7 @@ None
 
 None
 
-### Commit command
+### Commit Command
 
 > Commit example commands:
 
@@ -1925,7 +2123,7 @@ None
 
 None
 
-### Logout command
+### Logout Command
 
 > Logout example commands:
 
@@ -1973,7 +2171,7 @@ None
 
 None
 
-### Exit command
+### Exit Command
 
 > Exit example commands
 

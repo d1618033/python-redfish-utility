@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,33 +27,34 @@ class FirmwareIntegrityCheckCommand():
     """ Reboot server that is currently logged in """
     def __init__(self):
         self.ident = {
-            'name':'fwintegritycheck',\
-            'usage':'fwintegritycheck [OPTIONS]\n\n\tPerform a firmware ' \
-                    'integrity check on the current logged in server.\n\t' \
-                    'example: fwintegritycheck\n\n\tPerform a firmware integrity check and '\
-                    'return results of the check.\n\texmaple: fwintegritycheck --results',\
-            'summary':'Perform a firmware integrity check on the currently logged in server.',\
-            'aliases': [],\
+            'name':'fwintegritycheck',
+            'usage': None,
+            'description':'Perform a firmware '
+                    'integrity check on the current logged in server.\n\t'
+                    'example: fwintegritycheck\n\n\tPerform a firmware integrity check and '
+                    'return results of the check.\n\texmaple: fwintegritycheck --results',
+            'summary':'Perform a firmware integrity check on the currently logged in server.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main firmware update worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -63,8 +64,8 @@ class FirmwareIntegrityCheckCommand():
 
         self.firmwareintegritycheckvalidation(options)
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('fwintegritycheck command is ' \
-                                                    'only available on iLO 5.')
+            raise IncompatibleiLOVersionError('fwintegritycheck command is '
+                                              'only available on iLO 5.')
 
         licenseres = self.rdmc.app.select(selector='HpeiLOLicense.')
         try:
@@ -97,12 +98,12 @@ class FirmwareIntegrityCheckCommand():
             while polling > 0:
                 if not polling % 5:
                     self.rdmc.ui.printer('.')
-                get_results = self.rdmc.app.get_handler(bodydict['@odata.id'],\
-                    service=True, silent=True)
+                get_results = self.rdmc.app.get_handler(bodydict['@odata.id'],
+                                                        service=True, silent=True)
                 if get_results:
-                    curr_time = strptime(bodydict['Oem']['Hpe']\
+                    curr_time = time.strptime(bodydict['Oem']['Hpe']\
                                         ['CurrentTime'], "%Y-%m-%dT%H:%M:%SZ")
-                    scan_time = strptime(get_results.dict['Oem']['Hpe']\
+                    scan_time = time.strptime(get_results.dict['Oem']['Hpe']\
                         ['FirmwareIntegrity']['LastScanTime'], "%Y-%m-%dT%H:%M:%SZ")
 
                     if scan_time > curr_time:

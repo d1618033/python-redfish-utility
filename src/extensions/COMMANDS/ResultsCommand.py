@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,33 +31,33 @@ class ResultsCommand():
     """ Monolith class command """
     def __init__(self):
         self.ident = {
-            'name':'results',\
-            'usage':'results [OPTIONS]\n\n\tRun to show the results of the last' \
-                    ' changes after a server reboot.\n\texample: results',\
-            'summary':'Show the results of changes which require a server reboot.',\
-            'aliases': [],\
+            'name':'results',
+            'usage': None,
+            'description':'Run to show the results of the last'
+                    ' changes after a server reboot.\n\texample: results',
+            'summary':'Show the results of changes which require a server reboot.',
+            'aliases': [],
             'auxcommands': ['LoginCommand', 'SelectCommand']
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
-        #self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj) # not in use?
-        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj) 
 
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Gather results of latest BIOS change
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -80,15 +80,15 @@ class ResultsCommand():
         except:
             sapaths = None
 
-        biosresults = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath, \
-                    service=True, silent=True)
-        iscsiresults = self.rdmc.app.get_handler(iscsipath, \
-                    service=True, silent=True)
-        bootsresults = self.rdmc.app.get_handler(bootpath, \
-                    service=True, silent=True)
+        biosresults = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,
+                                                service=True, silent=True)
+        iscsiresults = self.rdmc.app.get_handler(iscsipath,
+                                                 service=True, silent=True)
+        bootsresults = self.rdmc.app.get_handler(bootpath,
+                                                 service=True, silent=True)
         if sapaths:
-            saresults = [self.rdmc.app.get_handler(path, service=True, \
-                            silent=True) for path in sapaths]
+            saresults = [self.rdmc.app.get_handler(path, service=True,
+                                                   silent=True) for path in sapaths]
         try:
             results.update({'Bios:': biosresults.dict[self.rdmc.app.typepath.defs.\
                                             biossettingsstring]['Messages']})
@@ -128,8 +128,8 @@ class ResultsCommand():
                 for msg in results[result]:
                     resp = ResponseHandler(self.rdmc.app.validationmanager,
                         self.rdmc.app.typepath.defs.messageregistrytype).\
-                        message_handler(response_data=msg, message_text="", verbosity=0, \
-                        dl_reg=False)
+                        message_handler(response_data=msg, message_text="", verbosity=0,
+                                        dl_reg=False)
                     pass
             except EmptyRaiseForEAFP as exp:
                 raise EmptyRaiseForEAFP(exp)

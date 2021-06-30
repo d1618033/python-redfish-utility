@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,36 +25,39 @@ class IloBackupRestoreCommand():
     """ Backup and restore server using iLO's .bak file """
     def __init__(self):
         self.ident = {
-            'name':'backuprestore',\
-            'usage':'backuprestore [OPTIONS]\n\n\t'\
-                'Create a .bak file. \n\texample: backuprestore backup\n\n\t' \
-                'Restore a server using a .bak file. \n\texample: backuprestore '\
-                'restore\n\n\tNOTE: This command is designed to only restore\n\tthe '\
-                'machine from which the backup file was created against.\n\tIf you would like to '\
-                'take one configuration and apply it\n\tto multiple systems see the '\
-                'serverclone command.\n\tThis command is only available in remote mode.',\
-            'summary':'Backup and restore iLO to a server using a .bak file.',\
-            'aliases': ['br'],\
+            'name':'backuprestore',
+            'usage': None,
+            'description': 'Create a .bak file. \n\tExample: backuprestore backup\n\n\t'
+                    'Restore a server using a .bak file. \n\texample: backuprestore '
+                    'restore\n\n\tNOTE: This command is designed to only restore\n\tthe '
+                    'machine from which the backup file was created against.\n\tIf you would like to '
+                    'take one configuration and apply it\n\tto multiple systems see the '
+                    'serverclone command.\n\tThis command is only available in remote mode.',
+            'summary':'Backup and restore iLO to a server using a .bak file.',
+            'aliases': ['br'],
             'auxcommands': ["LogoutCommand"]
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-        #self.definearguments(self.parser)
-        #self._rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main factorydefaults function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -114,8 +117,8 @@ class IloBackupRestoreCommand():
         if options.fpass:
             postdata.append(('password', options.fpass))
         self.rdmc.ui.printer("Downloading backup file %s..." % backupname)
-        backupfile = self.rdmc.app.post_handler(backuplocation, postdata,\
-          service=True, silent=True)
+        backupfile = self.rdmc.app.post_handler(backuplocation, postdata,
+                                                service=True, silent=True)
 
         if backupfile:
             self.rdmc.ui.printer("Download complete.\n")
@@ -142,11 +145,11 @@ class IloBackupRestoreCommand():
             files = []
             files = [f for f in os.listdir('.') if os.path.isfile(f) and f.endswith('.bak')]
             if files and len(files) > 1:
-                raise InvalidFileInputError("More than one .bak file found in "\
-                                            "the current directory. Please specify "\
+                raise InvalidFileInputError("More than one .bak file found in "
+                                            "the current directory. Please specify "
                                             "a file using the -f option.")
             elif not files:
-                raise InvalidFileInputError("No .bak file found in current "\
+                raise InvalidFileInputError("No .bak file found in current "
                                             "directory. Please specify a file using the -f option.")
             else:
                 filename = files[0]
@@ -172,19 +175,20 @@ class IloBackupRestoreCommand():
         if options.fpass:
             postdata.append(('password', options.fpass))
         postdata.append(('file', (filename, bakfile, 'application/octet-stream')))
-
-        resp = self.rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True, \
-                                    headers={'Cookie': 'sessionKey=' + skey.decode('utf-8')})
+        if isinstance(skey, bytes):
+            skey = skey.decode('utf-8')
+        resp = self.rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True,
+                                          headers={'Cookie': 'sessionKey=' + skey})
 
         if not resp.status == 200:
             if resp.ori == 'invalid_restore_password':
-                raise UploadError("Invalid or no password supplied during restore. Please "\
+                raise UploadError("Invalid or no password supplied during restore. Please "
                                   "supply the password used during creation of the backup file.")
             else:
                 raise UploadError("Error while uploading the backup file.")
         else:
-            self.rdmc.ui.warn("Restore in progress. iLO while be unresponsive while the "\
-                                        "restore completes.\nYour session will be terminated.\n")
+            self.rdmc.ui.printer("Restore in progress. iLO while be unresponsive while the "
+                              "restore completes.\nYour session will be terminated.\n")
             self.auxcommands['logout'].run("")
 
     def ilobackuprestorevalidation(self, options):

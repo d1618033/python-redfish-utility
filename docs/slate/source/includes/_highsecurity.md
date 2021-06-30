@@ -1,6 +1,6 @@
 ## Higher Security Modes
 
-This section describes how to set higher security modes and how to use the RESTful Interface Tool in these modes.
+This section describes how to set higher security modes and how to use the RESTful Interface Tool in these modes. For more information about the higher security modes in iLO 5, see the <a href="https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/#securitystate" target="_blank">Security State topic in the iLO 5 API documentation</a>. 
 <aside class="notice">These security settings are only available in HPE Gen10 servers.</aside>
 
 ### Setting iLO Higher Security Modes

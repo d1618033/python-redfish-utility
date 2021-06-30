@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,11 +26,12 @@ class IloResetCommand():
     """ Reset iLO on the server that is currently logged in """
     def __init__(self):
         self.ident = {
-            'name':'iloreset',\
-            'usage':'iloreset [OPTIONS]\n\n\tReset iLO on the current logged in'\
-                                            ' server.\n\texample: iloreset',\
-            'summary':'Reset iLO on the current logged in server.',\
-            'aliases': [],\
+            'name':'iloreset',
+            'usage': None,
+            'description':'Reset iLO on the current logged in'
+                    ' server.\n\tExample: iloreset',
+            'summary':'Reset iLO on the current logged in server.',
+            'aliases': [],
             'auxcommands': []
         }
         #self.definearguments(self.parser)
@@ -40,24 +41,28 @@ class IloResetCommand():
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main iLO reset worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         self.iloresetvalidation(options)
 
-        self.rdmc.ui.warn('\nAfter iLO resets, the session will be terminated.' \
-                          '\nPlease wait for iLO to initialize completely before logging '\
+        self.rdmc.ui.warn('\nAfter iLO resets, the session will be terminated.'
+                          '\nPlease wait for iLO to initialize completely before logging '
                           'in again.\nThis process may take up to 3 minutes to complete.\n\n')
 
         select = "Manager."

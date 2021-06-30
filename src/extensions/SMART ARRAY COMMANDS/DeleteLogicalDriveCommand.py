@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,40 +26,41 @@ class DeleteLogicalDriveCommand():
     """ Delete logical drive command """
     def __init__(self):
         self.ident = {
-            'name':'deletelogicaldrive',\
-            'usage':'deletelogicaldrive [OPTIONS]\n\n\tTo delete a logical ' \
-                'drive a controller by index.\n\texample: deletelogicaldrive ' \
-                '1 --controller=1\n\n\tTo delete multiple logical drives by ' \
-                'index.\n\texample: deletelogicaldrive 1,2 --controller=1' \
-                '\n\n\tTo delete all logical drives on a controller.\n\t' \
-                'example: deletelogicaldrive --controller=1 --all\n\n\t'\
-                'example: deletelogicaldrive --controller="Slot1" --all\n\n\tNOTE: ' \
-                'You can also delete logical drives by ' \
-                '"VolumeUniqueIdentifier".\n\n\t' \
-                'You can also delete logical drives by ' \
-                '"LogicalDriveName".', \
-            'summary':'Deletes logical drives from the selected controller.',\
-            'aliases': [],\
+            'name':'deletelogicaldrive',
+            'usage': None,
+            'description':'To delete a logical '
+                    'drive a controller by index.\n\texample: deletelogicaldrive '
+                    '1 --controller=1\n\n\tTo delete multiple logical drives by '
+                    'index.\n\tExample: deletelogicaldrive 1,2 --controller=1'
+                    '\n\n\tTo delete all logical drives on a controller.\n\t'
+                    'deletelogicaldrive --controller=1 --all\n\n\t'
+                    'deletelogicaldrive --controller="Slot1" --all\n\n\tNOTE: '
+                    'You can also delete logical drives by '
+                    '"VolumeUniqueIdentifier".\n\n\t'
+                    'You can also delete logical drives by '
+                    '"LogicalDriveName".',
+            'summary':'Deletes logical drives from the selected controller.',
+            'aliases': [],
             'auxcommands': ["SelectCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -94,7 +95,7 @@ class DeleteLogicalDriveCommand():
             if not controllist:
                 raise InvalidCommandLineError("")
         except InvalidCommandLineError:
-            raise InvalidCommandLineError("Selected controller not found in the current inventory "\
+            raise InvalidCommandLineError("Selected controller not found in the current inventory "
                                           "list.")
 
         self.deletelogicaldrives(controllist, logicaldrives, options.all, options.force)
@@ -154,7 +155,7 @@ class DeleteLogicalDriveCommand():
                                     if ans.lower() == 'y':
                                         break
                                     elif ans.lower() == 'n':
-                                        self.rdmc.ui.warn("Stopping command without "\
+                                        self.rdmc.ui.warn("Stopping command without "
                                                           "deleting logical drive.\n")
                                         return
                             self.rdmc.ui.printer('Setting logical drive %s ' \
@@ -180,10 +181,10 @@ class DeleteLogicalDriveCommand():
             if changes:
                 self.rdmc.ui.printer(
                     "DeleteLogicalDrive path and payload: %s, %s\n" % (controller["@odata.id"], controller))
-                self.rdmc.app.put_handler(controller["@odata.id"], controller,\
-                    headers={'If-Match': self.getetag(controller['@odata.id'])})
-                self.rdmc.app.download_path([controller["@odata.id"]], path_refresh=True, \
-                                                 crawl=False)
+                self.rdmc.app.put_handler(controller["@odata.id"], controller,
+                                          headers={'If-Match': self.getetag(controller['@odata.id'])})
+                self.rdmc.app.download_path([controller["@odata.id"]], path_refresh=True,
+                                            crawl=False)
 
     def lastlogicaldrive(self, controller):
         """Special case that sets required properties after last drive deletion
@@ -191,14 +192,14 @@ class DeleteLogicalDriveCommand():
         :param controller: controller change settings on
         :type controller: dict.
         """
-        changelist = ['PredictiveSpareRebuild', 'SurfaceScanAnalysisPriority', \
-                  'FlexibleLatencySchedulerSetting', 'DegradedPerformanceOptimization', \
-                  'CurrentParallelSurfaceScanCount', 'SurfaceScanAnalysisDelaySeconds', \
-                  'MonitorAndPerformanceAnalysisDelaySeconds', \
-                  'InconsistencyRepairPolicy', 'DriveWriteCache', \
-                  'ExpandPriority', 'EncryptionEULA', 'NoBatteryWriteCache', \
-                  'ReadCachePercent', 'WriteCacheBypassThresholdKiB', \
-                  'RebuildPriority', 'QueueDepth', 'ElevatorSort']
+        changelist = ['PredictiveSpareRebuild', 'SurfaceScanAnalysisPriority',
+                      'FlexibleLatencySchedulerSetting', 'DegradedPerformanceOptimization',
+                      'CurrentParallelSurfaceScanCount', 'SurfaceScanAnalysisDelaySeconds',
+                      'MonitorAndPerformanceAnalysisDelaySeconds',
+                      'InconsistencyRepairPolicy', 'DriveWriteCache',
+                      'ExpandPriority', 'EncryptionEULA', 'NoBatteryWriteCache',
+                      'ReadCachePercent', 'WriteCacheBypassThresholdKiB',
+                      'RebuildPriority', 'QueueDepth', 'ElevatorSort']
 
         for item in changelist:
             if item in list(controller.keys()):
@@ -235,8 +236,8 @@ class DeleteLogicalDriveCommand():
         customparser.add_argument(
             '--controller',
             dest='controller',
-            help="""Use this flag to select the corresponding controller """ \
-                """using either the slot number or index.""",
+            help="Use this flag to select the corresponding controller "
+                "using either the slot number or index.",
             default=None,
         )
         customparser.add_argument(

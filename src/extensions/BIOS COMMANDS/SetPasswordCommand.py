@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,33 +29,41 @@ class SetPasswordCommand():
     def __init__(self):
         self.ident = {
             'name':'setpassword',
-            'usage':'setpassword --newpassword <NEW_PASSWORD> --currentpassword <OLD_PASSWORD> [OPTIONS]\n\n\t'
+            'usage': None,
+            'description':'Sets the admin password and power-on password\n'
+                    'setpassword --newpassword <NEW_PASSWORD> --currentpassword <OLD_PASSWORD> [OPTIONS]\n\n\t'
                     'Setting the admin password with no previous password set.'
                     '\n\texample: setpassword --newpassword testnew --currentpassword None\n\n\tSetting the admin '
                     'password back to nothing.\n\texample: setpassword --newpassword None --currentpassword testnew '
                     '\n\n\tSetting the power on password.\n\texample: setpassword'
                     ' --newpassword testnew --currentpassword None --poweron\n\tNote: '
-                    'if it is empty password, send None as above\n.',
+                    'if it is empty password, send None as above.',
             'summary':'Sets the admin password and power-on password',
             'aliases': [],
             'auxcommands': ['LoginCommand', 'SetCommand', 'SelectCommand',
                             'CommitCommand', 'RebootCommand', 'LogoutCommand']
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main set password worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -112,8 +120,8 @@ class SetPasswordCommand():
                     _args.append(arg)
             args = _args
         if self.rdmc.app.typepath.defs.isgen10:
-            bodydict = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,\
-                service=True, silent=True).dict
+            bodydict = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,
+                                                 service=True, silent=True).dict
 
             for item in bodydict['Actions']:
                 if 'ChangePassword' in item:
@@ -123,7 +131,7 @@ class SetPasswordCommand():
             if options.poweron:
                 body = {"PasswordName": "User", "OldPassword": args[1], "NewPassword": args[0]}
             else:
-                body = {"PasswordName": "Administrator", "OldPassword": args[1],\
+                body = {"PasswordName": "Administrator", "OldPassword": args[1],
                         "NewPassword": args[0]}
 
             self.rdmc.app.post_handler(path, body)
@@ -136,8 +144,8 @@ class SetPasswordCommand():
                 self.auxcommands['select'].run("HpBios.")
                 self.auxcommands['set'].run("AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1]))
                 self.auxcommands['commit'].run("")
-                self.rdmc.ui.printer('\nThe session will now be terminated.\n'\
-                    ' login again with updated credentials in order to continue.\n')
+                self.rdmc.ui.printer('\nThe session will now be terminated.\n'
+                                     ' login again with updated credentials in order to continue.\n')
                 self.auxcommands['logout'].run("")
 
         if options:

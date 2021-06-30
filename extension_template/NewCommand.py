@@ -9,11 +9,12 @@ class NewCommand():
     """ Main new command template class """
     def __init__(self):
         self.ident = {
-            'name':'newcommand',\
-            'usage': "newcommand [OPTIONS]\n\n\tRun to show the new command is " \
-                     "working\n\texample: newcommand",\
-            'summary':'New command tutorial.',\
-            'aliases': [],\
+            'name':'newcommand',
+            'usage' : None,
+            'description': "Run to show the new command is "
+                     "working\n\texample: newcommand",
+            'summary':'New command tutorial.',
+            'aliases': [],
             'auxcommands': []
         }
 
@@ -33,7 +34,7 @@ class NewCommand():
         #       Refer to other commands for an example of this function
         sys.stdout.write(u"Hello World. It's me %s.\n" % options.name)
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for new command main function
 
         :param line: command line input

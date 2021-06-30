@@ -1,5 +1,5 @@
 # ##
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,29 +31,28 @@ class InstallSetCommand():
     """ Main download command class """
     def __init__(self):
         self.ident = {
-            'name':'installset', \
-            'usage': None,\
-            'description':'\tRun to perform operations on install sets.\nTo view help on specific '\
-                        'sub-commands run: installset <sub-command> -h\n\n\tExample: installset '\
-                        'add -h\n\n\tNote: Support starting on iLO 5 systems.', \
-            'summary':'Manages install sets for iLO.',\
-            'aliases': [],\
+            'name':'installset',
+            'usage': None,
+            'description':'Run to perform operations on install sets.\nTo view help on specific '
+                          'sub-commands run: installset <sub-command> -h\n\n\tExample: installset '
+                          'add -h\nNote: iLO 5 required.',
+            'summary':'Manages install sets for iLO.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main listcomp worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             _subcommands = ['add', 'delete', 'invoke']
             found = False
@@ -61,7 +60,7 @@ class InstallSetCommand():
                 if arg in _subcommands:
                     found = True
                     try:
-                        if line[i+1] not in self.parser._option_string_actions.keys():
+                        if line[i+1] not in list(self.parser._option_string_actions.keys()):
                             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
                         else:
                             raise IndexError
@@ -73,6 +72,7 @@ class InstallSetCommand():
                 (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -80,8 +80,8 @@ class InstallSetCommand():
         self.installsetvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are ' \
-                                                    'only available on iLO 5.')
+            raise IncompatibleiLOVersionError('iLO Repository commands are '
+                                              'only available on iLO 5.')
 
         if hasattr(options, 'name'):
             if options.name:
@@ -114,8 +114,8 @@ class InstallSetCommand():
         :type name: str.
         """
         path = '/redfish/v1/UpdateService/InstallSets/'
-        comps = self.rdmc.app.getcollectionmembers(\
-                            '/redfish/v1/UpdateService/ComponentRepository/')
+        comps = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/ComponentRepository/')
 
         sets = self.rdmc.app.getcollectionmembers(path)
 
@@ -165,16 +165,16 @@ class InstallSetCommand():
         """
         path = None
         name = options.name
-        sets = self.rdmc.app.getcollectionmembers(\
-                                       '/redfish/v1/UpdateService/InstallSets/')
+        sets = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/InstallSets/')
 
         for setvar in sets:
             if setvar['Name'] == name:
                 path = setvar['Actions']['#HpeComponentInstallSet.Invoke']['target']
 
         if not path:
-            raise NoContentsFoundForOperationError('No install set with the' \
-                                            ' provided name could be found.')
+            raise NoContentsFoundForOperationError('No install set with the'
+                                                   ' provided name could be found.')
 
         self.rdmc.ui.printer('Invoking install set:%s\n' % name)
 
@@ -223,7 +223,7 @@ class InstallSetCommand():
             self.rdmc.ui.printer('Install Sets:\n')
 
         if not sets:
-            self.rdmc.ui.warn('No install sets found.\n')
+            self.rdmc.ui.printer('No install sets found.\n')
         elif not options.json:
             for setvar in sets:
                 if setvar['IsRecovery']:
@@ -238,11 +238,11 @@ class InstallSetCommand():
 
                 for item in setvar['Sequence']:
                     if 'Filename' in list(item.keys()):
-                        self.rdmc.ui.printer('\t%s: %s %s\n' % (item['Name'], \
-                                                        item['Command'], item['Filename']))
+                        self.rdmc.ui.printer('\t%s: %s %s\n' % (item['Name'],
+                                                                item['Command'], item['Filename']))
                     elif 'WaitTimeSeconds' in list(item.keys()):
-                        self.rdmc.ui.printer('\t%s: %s %s seconds\n' % (item['Name'], \
-                                              item['Command'], str(item['WaitTimeSeconds'])))
+                        self.rdmc.ui.printer('\t%s: %s %s seconds\n' % (item['Name'],
+                                                                        item['Command'], str(item['WaitTimeSeconds'])))
                     else:
                         self.rdmc.ui.printer('\t%s: %s\n' % (item['Name'], item['Command']))
         elif options.json:
@@ -302,8 +302,8 @@ class InstallSetCommand():
         """
         rfdtregex = '\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ?'
         if not re.match(rfdtregex, timestr):
-            raise InvalidCommandLineError('Invalid redfish date-time format. '\
-                'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
+            raise InvalidCommandLineError('Invalid redfish date-time format. '
+                                          'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
 
     def installsetvalidation(self, options):
         """ installset validation function
@@ -351,7 +351,7 @@ class InstallSetCommand():
         self.cmdbase.add_login_arguments_group(default_parser)
 
         #add sub-parser
-        add_help='\tAdds an install set on the currently logged in server.'
+        add_help='Adds an install set on the currently logged in server.'
         add_parser = subcommand_parser.add_parser(
             'add',
             help=add_help,

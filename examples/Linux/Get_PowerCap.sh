@@ -17,12 +17,12 @@
 #            iLO 4 - All versions.                                #
 
 runLocal(){
-  ilorest get PowerControl/PowerLimit --selector=Power -u USER_LOGIN -p PASSWORD
+  ilorest get PowerControl/PowerLimit --selector=Power. -u USER_LOGIN -p PASSWORD
   ilorest logout
 }
 
 runRemote(){
-  ilorest get PowerControl/PowerLimit --selector=Power --url=$1 --user $2 --password $3
+  ilorest get PowerControl/PowerLimit --selector=Power. --url=$1 --user $2 --password $3
   ilorest logout
 }
 
@@ -33,7 +33,7 @@ error(){
 }
 
 if [ "$#" -eq "3" ]
-then 
+then
   runRemote "$1" "$2" "$3"
 elif [ "$#" -eq "0" ]
 then

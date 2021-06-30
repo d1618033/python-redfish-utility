@@ -133,7 +133,7 @@ PROC 2 DIMM 12  126.38 GB   OK        GoodInUse     100%    01.02.00.5360
 
 
 <pre>
-iLOrest > <font color="#01a982">showpmm --config --dimm=1@12,2@12</font>
+iLOrest > <font color="#01a982">showpmm --pmmconfig --dimm=1@12,2@12</font>
 
 Location        VolatileSize    PmemSize    PmemInterleaved
 PROC 1 DIMM 12  126.38 GB       0.0 GB      N/A
@@ -176,7 +176,7 @@ TotalPmemSize:  0.0 GB
 
 showpmm --device | -D [--dimm=(DIMM IDs) | -I] [--json | -j]
 
-showpmm --config | -C [--dimm=(DIMM IDs) | -I] [--json | -j]
+showpmm --pmmconfig | -C [--dimm=(DIMM IDs) | -I] [--json | -j]
 
 showpmm --logical | -L [--json | -j]
 
@@ -200,7 +200,7 @@ Displays help on the usage of this command.
 
 Shows a physical overview of installed persistent memory modules.
 
-- **-C, --config**
+- **-C, --pmmconfig**
 
 Shows the current configuration of installed persistent memory modules.
 
@@ -214,7 +214,7 @@ Shows a summary of the installed persistent memory modules.
 
 - **-I, --dimm**
 
-Optionally use this flag to filter output by DIMM IDs (ProcessorNumber@SlotNumber). Can be used in conjunction with the `-D | --device` or the `-C | --config` flags.
+Optionally use this flag to filter output by DIMM IDs (ProcessorNumber@SlotNumber). Can be used in conjunction with the `-D | --device` or the `-C | --pmmconfig` flags.
 
 - **-j, --json**
 
@@ -246,7 +246,7 @@ PmemNotInterleaved
 
 
 <pre>
-iLOrest > <font color="#01a982">applypmmconfig --config MemoryMode</font>
+iLOrest > <font color="#01a982">applypmmconfig --pmmconfig MemoryMode</font>
 
 
 ***WARNING: Configuration changes require reboot to take effect***
@@ -263,7 +263,7 @@ CREATE       0.0 GB      252.76 GB       2@1, 2@12
 
 applypmmconfig -L | --list
 
-applypmmconfig -C | --config [-f | --force]
+applypmmconfig -C | --pmmconfig [-f | --force]
 
 
 #### Description
@@ -283,7 +283,7 @@ Displays help on the usage of this command.
 
 Display a list of available predefined configIDs along with a brief description.
 
-- **-C, --config**
+- **-C, --pmmconfig**
 
 Specify one of the predefined configIDs to apply to all persistent memory modules.
 
@@ -364,6 +364,50 @@ showrecommendedpmmconfig
 
 
 Shows the recommended persistent memory configurations.
+
+
+#### Parameters
+
+
+- **-h, --help**
+
+Displays help on the usage of this command.
+
+
+### Display Security State Command
+
+
+> Example: Displaying the Security state of dimms
+
+
+<pre>
+iLOrest > <font color="#01a982">pmmsecuritystate</font>
+
++-------------+----------+
+| Location    | State    |
+|-------------+----------|
+| proc1dimm2  | Disabled |
+| proc1dimm5  | Disabled |
+| proc1dimm8  | Disabled |
+| proc1dimm11 | Disabled |
+| proc2dimm2  | Disabled |
+| proc2dimm5  | Disabled |
+| proc2dimm8  | Disabled |
+| proc2dimm11 | Disabled |
++-------------+----------+
+
+</pre>
+
+#### Syntax
+
+
+pmmsecuritystate
+
+
+#### Description
+
+
+Displaying the Security state of dimms.
 
 
 #### Parameters

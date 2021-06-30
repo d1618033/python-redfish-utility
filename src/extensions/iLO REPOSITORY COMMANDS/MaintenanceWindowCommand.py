@@ -1,5 +1,5 @@
 # ##
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,25 +34,25 @@ class MaintenanceWindowCommand():
     """ Main maintenancewindow command class """
     def __init__(self):
         self.ident = {
-            'name':'maintenancewindow', \
-            'usage': None,\
-            'description':'Add or delete maintenance windows from the iLO repository.\nTo '\
-                  ' view help on specific sub-commands run: serverclone <sub-command> -h\n\n' \
-                  'NOTE: iLO 5 required.',
-            'summary':'Manages the maintenance windows for iLO.',\
-            'aliases': [],\
+            'name':'maintenancewindow',
+            'usage': None,
+            'description':'Add or delete maintenance windows from the iLO repository.\nTo '
+                          ' view help on specific sub-commands run: maintenancewindow <sub-command> -h\n\n'
+                          'NOTE: iLO 5 required.',
+            'summary':'Manages the maintenance windows for iLO.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main update maintenance window worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             ident_subparser = False
             for cmnd in __subparsers__:
@@ -64,6 +64,7 @@ class MaintenanceWindowCommand():
                 (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -71,11 +72,11 @@ class MaintenanceWindowCommand():
         self.maintenancewindowvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError(\
-                      'iLO Repository commands are only available on iLO 5.')
+            raise IncompatibleiLOVersionError(
+                'iLO Repository commands are only available on iLO 5.')
 
-        windows = self.rdmc.app.getcollectionmembers(\
-                                '/redfish/v1/UpdateService/MaintenanceWindows/')
+        windows = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/MaintenanceWindows/')
 
         if options.command.lower() == 'add':
             self.addmaintenancewindow(options, windows, options.time_window)
@@ -205,11 +206,11 @@ class MaintenanceWindowCommand():
                 errorlist.append('Description must be 64 characters or less.')
         if 'Expire' in list(cmw.keys()):
             if not re.match(rfdtregex, cmw['Expire']):
-                errorlist.append('Invalid redfish date-time format in Expire. '\
-                    'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
+                errorlist.append('Invalid redfish date-time format in Expire. '
+                                 'Accepted formats: YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
         if not re.match(rfdtregex, cmw['StartAfter']):
-            errorlist.append('Invalid redfish date-time format in StartAfter. '\
-                    'Accepted formats YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
+            errorlist.append('Invalid redfish date-time format in StartAfter. '
+                             'Accepted formats YYYY-MM-DDThh:mm:ss, YYYY-MM-DDThh:mm:ssZ')
 
         return errorlist
 
@@ -236,7 +237,7 @@ class MaintenanceWindowCommand():
         #default sub-parser
         default_parser = subcommand_parser.add_parser(
             'default',
-            help='Running without any sub-command will return all maintenace windows on the '\
+            help='Running without any sub-command will return all maintenace windows on the '
                  'currently logged in server.'
         )
         default_parser.add_argument(
@@ -244,8 +245,8 @@ class MaintenanceWindowCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
+            help="Optionally include this flag if you wish to change the"
+            " displayed output to JSON format. Preserving the JSON data"
             " structure makes the information easier to parse.",
             default=False
         )
@@ -256,8 +257,8 @@ class MaintenanceWindowCommand():
         add_parser = subcommand_parser.add_parser(
             'add',
             help=add_help,
-            description=add_help+'\nexample: maintenancewindow add 1998-11-21T00:00:00 '\
-                        '--expire=1998-11-22T00:00:00 --name=MyMaintenanceWindow --description '\
+            description=add_help+'\nexample: maintenancewindow add 1998-11-21T00:00:00 '
+                        '--expire=1998-11-22T00:00:00 --name=MyMaintenanceWindow --description '
                         '"My maintenance window description.,"',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -270,7 +271,7 @@ class MaintenanceWindowCommand():
         add_parser.add_argument(
             '--description',
             dest='description',
-            help="Optionally include this flag if you would like to add a "\
+            help="Optionally include this flag if you would like to add a "
             "description to the maintenance window you create",
             default=None
         )
@@ -278,15 +279,15 @@ class MaintenanceWindowCommand():
             '-n',
             '--name',
             dest='name',
-            help="Optionally include this flag if you would like to add a "\
-            "name to the maintenance window you create. If you do not specify one"\
+            help="Optionally include this flag if you would like to add a "
+            "name to the maintenance window you create. If you do not specify one"
             " a unique name will be added.",
             default=None
         )
         add_parser.add_argument(
             '--expire',
             dest='expire',
-            help="Optionally include this flag if you would like to add a "\
+            help="Optionally include this flag if you would like to add a "
             "time the maintenance window expires.",
             default=None
         )
@@ -297,14 +298,14 @@ class MaintenanceWindowCommand():
         delete_parser = subcommand_parser.add_parser(
             'delete',
             help=delete_help,
-            description=delete_help+'\nexample: maintenancewindow delete mymaintenancewindowname\n'\
+            description=delete_help+'\nexample: maintenancewindow delete mymaintenancewindowname\n'
                         'Note: The maintenance window identifier can be referenced by Name or ID#.'
             'maintenancewindow delete name',
             formatter_class=RawDescriptionHelpFormatter
         )
         delete_parser.add_argument(
             'identifier',
-            help='The unique identifier provided by iLO or the identifier provided by \'--name\' ' \
+            help='The unique identifier provided by iLO or the identifier provided by \'--name\' '
                  'when the maintenance window was created.'
         )
         self.cmdbase.add_login_arguments_group(delete_parser)

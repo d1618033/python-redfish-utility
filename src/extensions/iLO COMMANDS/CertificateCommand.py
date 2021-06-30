@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,37 +29,41 @@ class CertificateCommand():
     """ Commands Certificates actions to the server """
     def __init__(self):
         self.ident = {
-            'name':'certificate',\
-            'usage':'certificate [OPTIONS]\n\n\tRun to get the smbios for the system.', \
-            'description':'Generate a certificate signing request (CSR) or import an X509 formatted' \
-                    ' TLS or CA certificate.\nTo view help on specific sub-commands run: ' \
-                    'singlesignon <sub-command> -h\n\nExample: singlesignon importcert -h\n\n' \
-                    'NOTE: Use the singlesignon command to import single sign on certificates.\n\n'\
-                    'NOTE: Use quotes to include parameters which contain whitespace when '\
-                    'generating a CSR.\nexample: certificate csr \"Hewlett Packard Enterprise\"'\
-                    '\"iLORest Group\" \"CName\"\n\"United States\" \"Texas\" \"Houston\"',
-            'summary':"Command for importing both iLO and login authorization "\
-                    "certificates as well as generating iLO certificate signing requests (CSR)",\
-            'aliases': [],\
+            'name':'certificate',
+            'usage': None,
+            'description':'Generate a certificate signing request (CSR) or import an X509 formatted'
+                          ' TLS or CA certificate.\nTo view help on specific sub-commands run: '
+                          'singlesignon <sub-command> -h\n\nExample: singlesignon importcert -h\n\n'
+                          'NOTE: Use the singlesignon command to import single sign on certificates.\n\n'
+                          'NOTE: Use quotes to include parameters which contain whitespace when '
+                          'generating a CSR.\nexample: certificate csr \"Hewlett Packard Enterprise\"'
+                          '\"iLORest Group\" \"CName\"\n\"United States\" \"Texas\" \"Houston\"',
+            'summary':"Command for importing both iLO and login authorization "
+                      "certificates as well as generating iLO certificate signing requests (CSR)",
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main Certificates Command function
 
         :param options: list of options
         :type options: list.
         """
-
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -116,12 +120,12 @@ class CertificateCommand():
         except:
             action = "GenerateCSR"
 
-        body = {"Action": action, "OrgName" :options.csr_orgname.strip('\"'), "OrgUnit": \
-                options.csr_orgunit.strip('\"'), "CommonName": options.csr_commonname.strip('\"'), \
-                "Country": options.csr_country.strip('\"'), "State": \
-                options.csr_state.strip('\"'), "City": options.csr_city.strip('\"')}
+        body = {"Action": action, "OrgName" :options.csr_orgname.strip('\"'), "OrgUnit":
+            options.csr_orgunit.strip('\"'), "CommonName": options.csr_commonname.strip('\"'),
+                "Country": options.csr_country.strip('\"'), "State":
+                    options.csr_state.strip('\"'), "City": options.csr_city.strip('\"')}
 
-        self.rdmc.ui.printer("iLO is creating a new certificate signing request. "\
+        self.rdmc.ui.printer("iLO is creating a new certificate signing request. "
                              "This process can take up to 10 minutes.\n")
 
         self.rdmc.app.post_handler(path, body)
@@ -147,9 +151,9 @@ class CertificateCommand():
                 if not csr:
                     raise ValueError
             except (KeyError, ValueError):
-                raise NoContentsFoundForOperationError('Unable to find a valid certificate. If '\
-                                                       'you just generated a new certificate '\
-                                                       'signing request the process may take '\
+                raise NoContentsFoundForOperationError('Unable to find a valid certificate. If '
+                                                       'you just generated a new certificate '
+                                                       'signing request the process may take '
                                                        'up to 10 minutes.')
 
             if not options.filename:
@@ -165,7 +169,7 @@ class CertificateCommand():
         else:
             raise NoContentsFoundForOperationError("Unable to find %s" % select)
 
-    def importhelper(self, options):
+    def importtlshelper(self, options):
         """ Helper function for importing TLS certificate
 
         :param options: list of options

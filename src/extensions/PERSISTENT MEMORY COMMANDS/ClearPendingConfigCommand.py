@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,14 +30,13 @@ class ClearPendingConfigCommand():
     def __init__(self):
         self.ident = {
             'name':'clearpmmpendingconfig',
-            'usage':"clearpmmpendingconfig [-h|--help]\n\n"
-                    "\tClear pmm pending config tasks\n"
+            'usage': None,
+            'description':"Clear pmm pending config tasks\n"
                     "\texample: clearpmmpendingconfig",
             'summary':"Clear pending config tasks",
             'aliases': [],
             'auxcommands': []
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
@@ -54,7 +53,7 @@ class ClearPendingConfigCommand():
             memory_chunk_tasks = RestHelpers(rdmcObject=self.rdmc).filter_task_members(tasks)
             if memory_chunk_tasks:
                 return memory_chunk_tasks
-        self.rdmc.ui.warn("No pending configuration tasks found.\n\n")
+        self.rdmc.ui.printer("No pending configuration tasks found.\n\n")
         return []
 
     def delete_tasks(self, memory_chunk_tasks, verbose=False):
@@ -79,18 +78,22 @@ class ClearPendingConfigCommand():
                                                 "task #{}".format(task_id))
         return None
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """
         Wrapper function for new command main function
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         LOGGER.info("Clear Pending Configuration: %s", self.ident['name'])
         # pylint: disable=unused-variable
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
@@ -98,7 +101,7 @@ class ClearPendingConfigCommand():
             raise InvalidCommandLineError("Chosen flag doesn't expect additional arguments")
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
+            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
                                                    "server might be in POST or powered off")
         memory_chunk_tasks = self.get_memory_chunk_tasks()
         self.delete_tasks(memory_chunk_tasks, verbose=True)

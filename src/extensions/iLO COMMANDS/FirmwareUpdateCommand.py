@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,33 +28,38 @@ class FirmwareUpdateCommand():
     """ Reboot server that is currently logged in """
     def __init__(self):
         self.ident = {
-            'name':'firmwareupdate',\
-            'usage':'firmwareupdate [URI] [OPTIONS]\n\n\tApply a firmware ' \
-                    'update to the current logged in server.\n\texample: ' \
-                    'firmwareupdate <url/hostname>/images/image.bin',\
-            'summary':'Perform a firmware update on the currently logged in server.',\
-            'aliases': [],\
+            'name': 'firmwareupdate',
+            'usage': None,
+            'description': 'Apply a firmware '
+                    'update to the current logged in server.\n\texample: '
+                    'firmwareupdate <url/hostname>/images/image.bin',
+            'summary': 'Perform a firmware update on the currently logged in server.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
-        #self.logoutobj = rdmcObj.commands_dict["LogoutCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main firmware update worker function
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -62,8 +67,8 @@ class FirmwareUpdateCommand():
         if len(args) == 1:
             self.firmwareupdatevalidation(options)
         else:
-            raise InvalidCommandLineError("Invalid number of parameters." \
-                          " Firmware update takes exactly 1 parameter.")
+            raise InvalidCommandLineError("Invalid number of parameters."
+                                          " Firmware update takes exactly 1 parameter.")
 
         if args[0].startswith('"') and args[0].endswith('"'):
             args[0] = args[0][1:-1]
@@ -146,8 +151,8 @@ class FirmwareUpdateCommand():
                 pass
 
             if not results:
-                raise FirmwareUpdateError("Unable to contact Update Service. " \
-                                            "Please re-login and try again.")
+                raise FirmwareUpdateError("Unable to contact Update Service. "
+                                          "Please re-login and try again.")
 
             if results["State"].lower().startswith("idle"):
                 time.sleep(2)
@@ -162,8 +167,8 @@ class FirmwareUpdateCommand():
                         self.rdmc.ui.printer("iLO is uploading the necessary files. Please wait...")
 
                 time.sleep(0.5)
-            elif results["State"].lower().startswith(("progressing", \
-                                          "updating", "verifying", "writing")):
+            elif results["State"].lower().startswith(("progressing",
+                                                      "updating", "verifying", "writing")):
                 counter = 0
 
                 for _ in range(2):
@@ -177,11 +182,11 @@ class FirmwareUpdateCommand():
                         position += 1
                         time.sleep(0.1)
             elif results["State"].lower().startswith("complete"):
-                self.rdmc.ui.printer('\n\nFirmware update has completed and iLO' \
-                                     ' may reset. \nIf iLO resets the' \
-                                     ' session will be terminated.\nPlease wait' \
-                                     ' for iLO to initialize completely before' \
-                                     ' logging in again.\nA reboot may be required'\
+                self.rdmc.ui.printer('\n\nFirmware update has completed and iLO'
+                                     ' may reset. \nIf iLO resets the'
+                                     ' session will be terminated.\nPlease wait'
+                                     ' for iLO to initialize completely before'
+                                     ' logging in again.\nA reboot may be required'
                                      ' for firmware changes to take effect.\n')
                 break
             elif results["State"].lower().startswith("error"):
@@ -195,8 +200,8 @@ class FirmwareUpdateCommand():
         try:
             error = error.dict['Oem']['Hpe']['Result']['MessageId'].split('.')
             #TODO: Update to new ResponseHandler Method 'return_reg'
-            errmessages = ResponseHandler(self.rdmc.app.validation_manager,\
-                                      self.rdmc.app.typepath.defs.messageregistrytype).get_error_messages()
+            errmessages = ResponseHandler(self.rdmc.app.validation_manager,
+                                          self.rdmc.app.typepath.defs.messageregistrytype).get_error_messages()
             for messagetype in list(errmessages.keys()):
                 if error[0] == messagetype:
                     if errmessages[messagetype][error[-1]]["NumberOfArgs"] == 0:

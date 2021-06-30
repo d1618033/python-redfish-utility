@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,36 +25,37 @@ class ListCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'list',\
-            'usage':'list [OPTIONS]\n\n\tDisplays the current values of the ' \
-                    'properties within\n\ta selected type including'\
-                    ' reserved properties\n\texample: list\n\n\tNOTE: If ' \
-                    'you wish to not list all the reserved properties\n\t     ' \
-                    ' run the get command instead',\
-            'summary':'Displays the current value(s) of a' \
-                    ' property(ies) within a selected type including'\
-                    ' reserved properties.',\
-            'aliases': ['ls'],\
+            'name':'list',
+            'usage': None,
+            'description':'Displays the current values of the '
+                    'properties within\n\ta selected type including'
+                    ' reserved properties\n\texample: list\n\n\tNOTE: If '
+                    'you wish to not list all the reserved properties\n\t     '
+                    ' run the get command instead',
+            'summary':'Displays the current value(s) of a'
+                      ' property(ies) within a selected type including'
+                      ' reserved properties.',
+            'aliases': ['ls'],
             'auxcommands': ["GetCommand"]
         }
-        #self.definearguments(self.parser)
-        #self._rdmc = rdmcObj
-        #self.getobj = rdmcObj.commands_dict["GetCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for main list function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -72,8 +73,8 @@ class ListCommand():
                 (sel, val) = options.filter.split('=')
                 fvals = (sel.strip(), val.strip())
             except:
-                raise InvalidCommandLineError("Invalid filter" \
-                  " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError("Invalid filter"
+                                              " parameter format [filter_attribute]=[filter_value]")
 
         self.auxcommands['get'].getworkerfunction(args, options, filtervals=fvals, uselist=False)
 
@@ -112,33 +113,33 @@ class ListCommand():
         )
 
         customparser.add_argument(
-            '--filter',\
-            dest='filter',\
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",\
+            '--filter',
+            dest='filter',
+            help="Optionally set a filter value for a filter attribute."
+                 " This uses the provided filter for the currently selected"
+                 " type. Note: Use this flag to narrow down your results. For"
+                 " example, selecting a common type might return multiple"
+                 " objects that are all of that type. If you want to modify"
+                 " the properties of only one of those objects, use the filter"
+                 " flag to narrow down results based on properties."
+                 "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None
         )
         customparser.add_argument(
-            '-j',\
-            '--json',\
-            dest='json',\
-            action="store_true",\
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"
+                 " displayed output to JSON format. Preserving the JSON data"
+                 " structure makes the information easier to parse.",
             default=False
         )
         customparser.add_argument(
-            '--refresh',\
-            dest='ref',\
-            action="store_true",\
-            help="Optionally reload the data of selected type and clear "\
-                                            "patches from current selection.",
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear "
+                 "patches from current selection.",
             default=False
         )

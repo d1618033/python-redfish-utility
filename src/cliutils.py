@@ -52,8 +52,8 @@ def get_user_config_dir():
             csidl_appdata = 26
 
             shgetfolderpath = windll.shell32.SHGetFolderPathW
-            shgetfolderpath.argtypes = [wintypes.HWND, ctypes.c_int, \
-                             wintypes.HANDLE, wintypes.DWORD, wintypes.LPCWSTR]
+            shgetfolderpath.argtypes = [wintypes.HWND, ctypes.c_int,
+                                        wintypes.HANDLE, wintypes.DWORD, wintypes.LPCWSTR]
 
 
             path_buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
@@ -135,8 +135,8 @@ def get_terminal_size():
         if which_stty:
             args = [which_stty, 'size']
             try:
-                procs = subprocess.Popen(args, shell=False, \
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                procs = subprocess.Popen(args, shell=False,
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except OSError as excp:
                 raise ResourceAllocationError(str(excp))
             (stdout_s, _) = procs.communicate()

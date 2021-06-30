@@ -1,1 +1,1 @@
-cmd /C mklink .\hprest.exe .\ilorest.exe
+Rem cmd /C mklink .\hprest.exe .\ilorest.exe

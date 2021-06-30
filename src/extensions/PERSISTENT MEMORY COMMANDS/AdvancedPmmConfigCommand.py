@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,10 +51,8 @@ class AdvancedPmmConfigCommand():
     def __init__(self):
         self.ident = {
             'name':"provisionpmm",
-            'usage':"provisionpmm [-h | --help]"
-                    "[-m | --memory-mode=(0|%%)] [-i | --pmem-interleave=(On|Off)]"
-                    "[-pid | --proc=(processorID)] [-f | --force]\n\n"
-                    "\tApplies specified configuration to PMM\n"
+            'usage': None,
+            'description':"Applies specified configuration to PMM.\n"
                     "\texample: provisionpmm -m 50 -i On -pid 1,2",
             'summary':"Applies specified configuration to PMM.",
             'aliases': ["provisionpmm"],
@@ -65,18 +63,25 @@ class AdvancedPmmConfigCommand():
         self.auxcommands = dict()
         self._rest_helpers = RestHelpers(rdmcObject=self.rdmc)
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """
         Wrapper function for new command main function
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         LOGGER.info("PMM: %s", self.ident['name'])
 
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
@@ -86,7 +91,7 @@ class AdvancedPmmConfigCommand():
         self.validate_options(options)
         # Raise exception if server is in POST
         if self._rest_helpers.in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
+            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
                                                    "server might be in POST or powered off")
         self.configure_pmm(options)
 
@@ -234,8 +239,8 @@ class AdvancedPmmConfigCommand():
                 "cause data loss.\n")
         # If Pending Configuration Tasks exist, display warning
         if memory_chunk_tasks:
-            self.rdmc.ui.warn(
-                "Pending configuration tasks found. Proceeding with applying "
+            self.rdmc.ui.printer(
+                "Warning: Pending configuration tasks found. Proceeding with applying "
                 "a new configuration will result in overwriting the pending "
                 "configuration tasks.\n")
         # Raise a NoChangesFoundOrMade exception when either of the above conditions exist
@@ -420,9 +425,9 @@ class AdvancedPmmConfigCommand():
                     raise NoChangesFoundOrMadeError("Error occurred while applying configuration")
 
         # Display warning
-        self.rdmc.ui.warn("\nConfiguration changes require reboot to take effect.\n")
+        self.rdmc.ui.printer("\nConfiguration changes require reboot to take effect.\n")
 
         # Display pending configuration
-        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ), \
-                                                                                dict(json=False)))
+        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ),
+                                                                          dict(json=False)))
         return None

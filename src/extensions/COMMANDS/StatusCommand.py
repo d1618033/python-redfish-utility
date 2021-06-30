@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,33 +26,34 @@ class StatusCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'status',\
-            'usage':'status\n\n\tRun to display all pending changes within'\
-                    ' the currently\n\tselected type that need to be' \
-                    ' committed\n\texample: status',\
-            'summary':'Displays all pending changes within a selected type'\
-                    ' that need to be committed.',\
-            'aliases': [],\
+            'name':'status',
+            'usage': None,
+            'description':'Run to display all pending changes within'
+                    ' the currently\n\tselected type that need to be'
+                    ' committed\n\texample: status',
+            'summary':'Displays all pending changes within a selected type'
+                      ' that need to be committed.',
+            'aliases': [],
             'auxcommands': ['SelectCommand']
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj) # not in use?
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main status worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -66,7 +67,7 @@ class StatusCommand():
         elif contents:
             self.outputpatches(contents, selector)
         else:
-            self.rdmc.ui.warn("No changes found\n")
+            self.rdmc.ui.printer("No changes found\n")
 
         #Return code
         return ReturnCodes.SUCCESS
@@ -127,11 +128,11 @@ class StatusCommand():
                                             not len(content[0]["value"]) == 0:
                             if content[0]["value"][0] == '"' and \
                                                 content[0]["value"][-1] == '"':
-                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], \
-                                                    content[0]["value"][1:-1]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:],
+                                                                  content[0]["value"][1:-1]))
                             else:
-                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], \
-                                                     content[0]["value"]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:],
+                                                                  content[0]["value"]))
                         else:
                             output = content[0]["value"]
 
@@ -142,17 +143,17 @@ class StatusCommand():
                             self.rdmc.ui.printer('\t%s=%s' % (content[0]["path"][1:], output))
                     except:
                         if isinstance(content["value"], int):
-                            self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
-                                                                                content["value"]))
+                            self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:],
+                                                              content["value"]))
                         elif not isinstance(content["value"], bool) and \
                                                 not len(content["value"]) == 0:
                             if content["value"][0] == '"' and \
                                                     content["value"][-1] == '"':
-                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
-                                                                                content["value"]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:],
+                                                                  content["value"]))
                             else:
-                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:], \
-                                                                                content["value"]))
+                                self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:],
+                                                                  content["value"]))
                         else:
                             output = content["value"]
 

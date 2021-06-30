@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@ class ExitCommand():
     """ Exit class to handle exiting from interactive mode """
     def __init__(self):
         self.ident = {
-            'name':'exit',\
-            'usage':'exit\n\n\tRun to exit from the interactive shell\n\texample: exit',\
-            'summary':'Exits from the interactive shell.',\
-            'aliases': ['quit'],\
+            'name':'exit',
+            'usage': None,
+            'description':'Run to exit from the interactive shell\n\texample: exit',
+            'summary':'Exits from the interactive shell.',
+            'aliases': ['quit'],
             'auxcommands': ["LogoutCommand"]
         }
         #self.rdmc = rdmcObj
@@ -38,12 +39,15 @@ class ExitCommand():
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """If an argument is present, print help else exit
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (_, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):

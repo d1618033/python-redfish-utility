@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,51 +30,52 @@ class RebootCommand():
     """ Reboot server that is currently logged in """
     def __init__(self):
         self.ident = {
-            'name':'reboot',\
-            'usage':'reboot [OPTIONS]\n\n\tRemotely control system power state commands such as, ' \
-                '\n\t1. Turning the system on.\n\t2. Turning the system off.\n\t3. Power ' \
-                'cycling/rebooting.\n\t4. Issuing a Non-Maskable Interrupt (NMI).\n\t5. Any ' \
-                'number of pre-defined operations through virtual power-button presses.' \
-                '\n\n\tNote: By default a force ' \
-                'restart will occur, if the system is in an applicable power state.\n\texample: ' \
-                'reboot On\n\n\tOPTIONAL PARAMETERS AND DESCRIPTIONS:' \
-                '\n\tOn \t\t(Turns the system on.)\n\tForceOff  ' \
-                '\t(Performs an immediate non-graceful shutdown.)' \
-                '\n\tForceRestart \t(DEFAULT) (Performs' \
-                ' an immediate non-graceful shutdown,\n\t\t\t' \
-                ' followed by a restart of the system.)\n\tNmi  ' \
-                '\t\t(Generates a Non-Maskable Interrupt to cause' \
-                ' an\n\t\t\t immediate system halt.)\n\tPushPowerButton ' \
-                '(Simulates the pressing of the physical power ' \
-                'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND' \
-                ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the' \
-                ' physical power button\n\t\t\t on this system.)\n\t' \
-                'PressAndHold\t(Simulates pressing and holding of the power' \
-                ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately' \
-                ' Removes power from the server,\n\t\t\tfollowed by a restart' \
-                ' of the system)', \
-            'summary':'Reboot operations for the current logged in server.',\
-            'aliases': [],\
+            'name':'reboot',
+            'usage': None,
+            'description':'Remotely control system power state commands such as, '
+                    '\n\t1. Turning the system on.\n\t2. Turning the system off.\n\t3. Power '
+                    'cycling/rebooting.\n\t4. Issuing a Non-Maskable Interrupt (NMI).\n\t5. Any '
+                    'number of pre-defined operations through virtual power-button presses.'
+                    '\n\n\tNote: By default a force '
+                    'restart will occur, if the system is in an applicable power state.\n\texample: '
+                    'reboot On\n\n\tOPTIONAL PARAMETERS AND DESCRIPTIONS:'
+                    '\n\tOn \t\t(Turns the system on.)\n\tForceOff  '
+                    '\t(Performs an immediate non-graceful shutdown.)'
+                    '\n\tForceRestart \t(DEFAULT) (Performs'
+                    ' an immediate non-graceful shutdown,\n\t\t\t'
+                    ' followed by a restart of the system.)\n\tNmi  '
+                    '\t\t(Generates a Non-Maskable Interrupt to cause'
+                    ' an\n\t\t\t immediate system halt.)\n\tPushPowerButton '
+                    '(Simulates the pressing of the physical power '
+                    'button\n\t\t\t on this system.)\n\n\tOEM PARAMETERS AND'
+                    ' DESCRIPTIONS:\n\tPress\t\t(Simulates the pressing of the'
+                    ' physical power button\n\t\t\t on this system.)\n\t'
+                    'PressAndHold\t(Simulates pressing and holding of the power'
+                    ' button\n\t\t\t on this systems.)\n\tColdBoot\t(Immidiately'
+                    ' Removes power from the server,\n\t\t\tfollowed by a restart'
+                    ' of the system)',
+            'summary':'Reboot operations for the current logged in server.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main reboot worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -82,8 +83,8 @@ class RebootCommand():
         if len(args) < 2:
             self.rebootvalidation(options)
         else:
-            raise InvalidCommandLineError("Invalid number of parameters." \
-                                      " Reboot takes a maximum of 1 parameter.")
+            raise InvalidCommandLineError("Invalid number of parameters."
+                                          " Reboot takes a maximum of 1 parameter.")
 
         if not args:
             self.rdmc.ui.warn('\nAfter the server is rebooted the session will be terminated.'
@@ -174,33 +175,33 @@ class RebootCommand():
         :type flag: str
         """
         if flag.upper() == "ON":
-            self.rdmc.ui.warn('\nThe server is powering on. Note, the current session will be '\
-                'terminated.\nPlease wait for the server to boot completely before logging in '\
-                'again.\nTurning on the server in 3 seconds...\n')
+            self.rdmc.ui.warn('\nThe server is powering on. Note, the current session will be '
+                              'terminated.\nPlease wait for the server to boot completely before logging in '
+                              'again.\nTurning on the server in 3 seconds...\n')
         elif flag.upper() == "FORCEOFF":
-            self.rdmc.ui.warn('\nThe server is powering off. Note, the current session will be '\
-                'terminated.\nPlease wait for the server to power off completely before logging '\
-                'in again.\nPowering off the server in 3 seconds...\n')
+            self.rdmc.ui.warn('\nThe server is powering off. Note, the current session will be '
+                              'terminated.\nPlease wait for the server to power off completely before logging '
+                              'in again.\nPowering off the server in 3 seconds...\n')
         elif flag.upper() == "FORCERESTART":
-            self.rdmc.ui.warn('\nForcing a server restart. Note, the current session will be '\
-                'terminated.\nPlease wait for the server to boot completely before logging in '\
-                'again.\nRebooting the server in 3 seconds...\n')
+            self.rdmc.ui.warn('\nForcing a server restart. Note, the current session will be '
+                              'terminated.\nPlease wait for the server to boot completely before logging in '
+                              'again.\nRebooting the server in 3 seconds...\n')
         elif flag.upper() == "NMI":
-            self.rdmc.ui.warn('\nA non-maskable interrupt will be issued to this server. Note, the '\
-                'current session will be terminated.\nIssuing interrupt in 3 seconds...\n')
+            self.rdmc.ui.warn('\nA non-maskable interrupt will be issued to this server. Note, the '
+                              'current session will be terminated.\nIssuing interrupt in 3 seconds...\n')
         elif flag.upper() == "PUSHPOWERBUTTON" or flag.upper() == "PRESS":
-            self.rdmc.ui.warn('\nThe server power button will be virtually pushed; the reaction '\
-                'will be dependent on the current system power and boot state. Note the current '\
-                'session will be terminated.\nVirtual push in 3 seconds...\n')
+            self.rdmc.ui.warn('\nThe server power button will be virtually pushed; the reaction '
+                              'will be dependent on the current system power and boot state. Note the current '
+                              'session will be terminated.\nVirtual push in 3 seconds...\n')
         elif flag.upper() == "COLDBOOT":
-            self.rdmc.ui.warn('\nThe server will be cold boot, power cycled. Note, the current '\
-                'session will be terminated.\nPlease wait for the server to boot completely '\
-                'before logging in again.\nCold Booting server in 3 seconds...\n')
+            self.rdmc.ui.warn('\nThe server will be cold boot, power cycled. Note, the current '
+                              'session will be terminated.\nPlease wait for the server to boot completely '
+                              'before logging in again.\nCold Booting server in 3 seconds...\n')
         elif flag.upper() == "PRESSANDHOLD":
-            self.rdmc.ui.warn('\nThe server will be forcefully powered off. Note, the current '\
-                'session will be terminated.\nPlease wait for the server to power off '\
-                'completely before logging in again.\nPressing and holding the power button in '\
-                '3 seconds...\n')
+            self.rdmc.ui.warn('\nThe server will be forcefully powered off. Note, the current '
+                              'session will be terminated.\nPlease wait for the server to power off '
+                              'completely before logging in again.\nPressing and holding the power button in '
+                              '3 seconds...\n')
         else:
             raise InvalidCommandLineError("Invalid parameter: '%s'. Please run"\
                                                         " 'help reboot' for parameters." % flag)

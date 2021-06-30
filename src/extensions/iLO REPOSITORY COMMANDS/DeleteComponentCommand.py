@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,36 +24,40 @@ class DeleteComponentCommand():
     """ Main download command class """
     def __init__(self):
         self.ident = {
-            'name':'deletecomp', \
-            'usage':'deletecomp [COMPONENT URI/ID] [OPTIONS] \n\n\tRun to ' \
-              'delete component(s) of the currently logged in system.\n\n\t'\
-              'Delete a single component by name.\n\texample: deletecomp ' \
-              'CP327.zip\n\n\tDelete multiple components by ' \
-              'id.\n\texample: deletecomp 377fg6c4 327cf4c7\n\n\tDelete '
+            'name':'deletecomp',
+            'usage': None,
+            'description':'Run to delete component(s) of the currently logged in system.\n\n\t'
+                    'Delete a single component by name.\n\texample: deletecomp '
+                    'CP327.zip\n\n\tDelete multiple components by '
+                    'id.\n\tExample: deletecomp 377fg6c4 327cf4c7\n\n\tDelete '
               'multiple components by filename.\n\texample: deletecomp '
-              'CP327.exe CP99.exe',\
-            'summary': 'Deletes components/binaries from the iLO Repository.', \
-            'aliases': [], \
+              'CP327.exe CP99.exe',
+            'summary': 'Deletes components/binaries from the iLO Repository.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
 
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main deletecomp worker function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -61,14 +65,14 @@ class DeleteComponentCommand():
         self.deletecomponentvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are ' \
+            raise IncompatibleiLOVersionError('iLO Repository commands are '
                                               'only available on iLO 5.')
 
-        comps = self.rdmc.app.getcollectionmembers(\
-                            '/redfish/v1/UpdateService/ComponentRepository/')
+        comps = self.rdmc.app.getcollectionmembers(
+            '/redfish/v1/UpdateService/ComponentRepository/')
 
         if not comps:
-            self.rdmc.ui.warn('No components found to delete\n')
+            self.rdmc.ui.printer('No components found to delete\n')
 
         elif options.deleteall:
             delopts = []
@@ -152,10 +156,10 @@ class DeleteComponentCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-a', \
-            '--all', \
-            dest='deleteall', \
-            action="store_true", \
-            help="""Delete all components.""", \
+            '-a',
+            '--all',
+            dest='deleteall',
+            action="store_true",
+            help="""Delete all components.""",
             default=False,
         )

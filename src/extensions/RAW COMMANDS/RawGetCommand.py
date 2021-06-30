@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,38 +31,43 @@ class RawGetCommand():
     """ Raw form of the get command """
     def __init__(self):
         self.ident = {
-            'name':'rawget',\
-            'usage':'rawget [PATH] [OPTIONS]\n\n\tRun to to retrieve data from ' \
-                    'the passed in path.\n\texample: rawget "/redfish/v1/' \
-                    'systems/(system ID)"',\
-            'summary':'Raw form of the GET command.',\
-            'aliases': [],\
+            'name':'rawget',
+            'usage': None,
+            'description':'Run to to retrieve data from '
+                    'the passed in path.\n\tExample: rawget "/redfish/v1/'
+                    'systems/(system ID)"',
+            'summary':'Raw form of the GET command.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw get worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         url = None
         headers = {}
-        
+
         self.getvalidation(options)
 
         if options.path.startswith('"') and options.path.endswith('"'):
@@ -79,15 +84,15 @@ class RawGetCommand():
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    InvalidCommandLineError("Invalid format for --headers " \
-                                                                    "option.")
+                    InvalidCommandLineError("Invalid format for --headers "
+                                            "option.")
 
         returnresponse = False
         if options.response or options.getheaders:
             returnresponse = True
 
-        results = self.rdmc.app.get_handler(options.path, headers=headers,\
-                silent=options.silent, service=options.service)
+        results = self.rdmc.app.get_handler(options.path, headers=headers,
+                                            silent=options.silent, service=options.service)
 
         if results and results.status == 200 and options.binfile:
             output = results.read
@@ -105,7 +110,7 @@ class RawGetCommand():
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder, \
+                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder,
                                         sort_keys=True)
 
                     filehndl = open(options.filename[0], "w")
@@ -165,8 +170,8 @@ class RawGetCommand():
         customparser.add_argument(
             '--headers',
             dest='headers',
-            help="Use this flag to add extra headers to the request."\
-            "\t\t\t\t\t Usage: --headers=HEADER:VALUE,HEADER:VALUE",
+            help="Use this flag to add extra headers to the request."
+                " example: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
         customparser.add_argument(

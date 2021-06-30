@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,16 +23,14 @@ class TypesCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'types',\
-            'usage':'types [TYPE] [OPTIONS]\n\n\tRun to display currently ' \
-                    'available selectable types\n\texample: types',\
-            'summary':'Displays all selectable types within the currently logged in server.',\
-            'aliases': [],\
+            'name':'types',
+            'usage': None,
+            'description':'Run to display currently '
+                    'available selectable types\n\tExample: types',
+            'summary':'Displays all selectable types within the currently logged in server.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
@@ -49,6 +47,7 @@ class TypesCommand():
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -71,12 +70,15 @@ class TypesCommand():
 
         self.cmdbase.logout_routine(self, options)
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for types main function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         self.typesfunction(line)
 
         #Return code

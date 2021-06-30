@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,9 +37,9 @@ class _AccountParse(Action):
     def __call__(self, parser, namespace, values, option_strings):
         """ Account privileges option helper"""
 
-        privkey = {1: 'LoginPriv', 2: 'RemoteConsolePriv', 3:'UserConfigPriv', 4:'iLOConfigPriv', \
-         5: 'VirtualMediaPriv', 6: 'VirtualPowerAndResetPriv', 7: 'HostNICConfigPriv', \
-         8: 'HostBIOSConfigPriv', 9: 'HostStorageConfigPriv', 10: 'SystemRecoveryConfigPriv'}
+        privkey = {1: 'LoginPriv', 2: 'RemoteConsolePriv', 3:'UserConfigPriv', 4:'iLOConfigPriv',
+                   5: 'VirtualMediaPriv', 6: 'VirtualPowerAndResetPriv', 7: 'HostNICConfigPriv',
+                   8: 'HostBIOSConfigPriv', 9: 'HostStorageConfigPriv', 10: 'SystemRecoveryConfigPriv'}
 
         for priv in next(iter(values)).split(','):
             try:
@@ -71,30 +71,29 @@ class IloAccountsCommand():
     def __init__(self):
         self.ident = {
             'name':'iloaccounts',
-            'usage': None,\
-            'description':'\tView, Add, Remove, and Modify iLO accounts based on the '\
-            '\n\tsub-command used.\n\n\tTo view help on specific sub-commands run: '\
-            '\n\n\tiloaccounts <sub-command> -h\n\n\t'\
-            'Example: iloaccounts add -h\n\n\t*Note*: UserName and LoginName are reversed '\
-            '\n\tin the iLO GUI for Redfish compatibility.',
+            'usage': None,
+            'description':'\tView, Add, Remove, and Modify iLO accounts based on the '
+                          'sub-command used.\n\n\tTo view help on specific sub-commands run: '
+                          'iloaccounts <sub-command> -h\n\t'
+                          'Example: iloaccounts add -h\n\t*Note*: UserName and LoginName are reversed '
+                          'in the iLO GUI for Redfish compatibility.',
             'summary':'Views/Adds/deletes/modifies an iLO account on the currently logged in server.',
-            'aliases': ['iloaccount'],\
+            'aliases': ['iloaccount'],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main iloaccounts function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         acct = mod_acct = None
         try:
             ident_subparser = False
@@ -126,8 +125,8 @@ class IloAccountsCommand():
                 results = list()
 
         for indx, acct in enumerate(results):
-            acct = self.rdmc.app.get_handler(acct[self.rdmc.app.typepath.defs.hrefstring],\
-                                                                service=True, silent=True).dict
+            acct = self.rdmc.app.get_handler(acct[self.rdmc.app.typepath.defs.hrefstring],
+                                             service=True, silent=True).dict
             try:
                 if hasattr(options, 'identifier'):
                     if acct['Id'] == options.identifier or acct['UserName'] == options.identifier:
@@ -153,7 +152,7 @@ class IloAccountsCommand():
         outdict = dict()
         if options.command.lower() == 'default':
             if not options.json:
-                self.rdmc.ui.printer("\niLO Account info:\n\n[Id] UserName (LoginName): "\
+                self.rdmc.ui.printer("\niLO Account info:\n\n[Id] UserName (LoginName): "
                                      "\nPrivileges\n-----------------\n\n", verbose_override=True)
             for acct in sorted(results, key=lambda k: int(k['Id'])):
                 privstr = ""
@@ -167,10 +166,10 @@ class IloAccountsCommand():
                 if not options.json:
                     for priv in privs:
                         privstr += priv + '=' + str(privs[priv]) + '\n'
-                    self.rdmc.ui.printer("[%s] %s (%s):\n%s\n%s\n" % (acct['Id'], \
-                                    acct['UserName'], \
-                                    acct['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName'], \
-                                    service, privstr), verbose_override=True)
+                    self.rdmc.ui.printer("[%s] %s (%s):\n%s\n%s\n" % (acct['Id'],
+                                                                      acct['UserName'],
+                                                                      acct['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName'],
+                                                                      service, privstr), verbose_override=True)
                 keyval = '['+str(acct['Id'])+'] '+acct['UserName']
                 outdict[keyval] = privs
                 outdict[keyval]['ServiceAccount'] = service.split('=')[-1].lower()
@@ -206,7 +205,7 @@ class IloAccountsCommand():
                     {self.rdmc.app.typepath.defs.oemhp: {"LoginName": options.loginname}}}
             if privs:
                 body["Oem"][self.rdmc.app.typepath.defs.oemhp].update({"Privileges": privs})
-            self.credentialsvalidation(options.identifier, options.loginname, \
+            self.credentialsvalidation(options.identifier, options.loginname,
                                        options.acct_password, acct, True)
             if options.serviceacc:
                 body["Oem"][self.rdmc.app.typepath.defs.oemhp].update({"ServiceAccount": True})
@@ -214,8 +213,8 @@ class IloAccountsCommand():
                 if self.rdmc.app.getiloversion() >= 5.140:
                     body["RoleId"] = options.role
                 else:
-                    raise IncompatibleiLOVersionError("Roles can only be set in iLO 5"\
-                                                                                " 1.40 or greater.")
+                    raise IncompatibleiLOVersionError("Roles can only be set in iLO 5"
+                                                      " 1.40 or greater.")
             if path and body:
                 self.rdmc.app.post_handler(path, body)
         elif options.command.lower() == 'modify':
@@ -227,10 +226,10 @@ class IloAccountsCommand():
                 body.update({'Oem': {self.rdmc.app.typepath.defs.oemhp: {'Privileges': {}}}})
                 if any(priv for priv in options.optprivs if 'SystemRecoveryConfigPriv' in priv) \
                                                             and 'SystemRecoveryConfigPriv' not in \
-                                                                        self.getsesprivs().keys():
-                    raise IdTokenError("The currently logged in account must have The System "\
-                                         "Recovery Config privilege to add the System Recovery "\
-                                         "Config privilege.")
+                                                                        list(self.getsesprivs().keys()):
+                    raise IdTokenError("The currently logged in account must have The System "
+                                       "Recovery Config privilege to add the System Recovery "
+                                       "Config privilege.")
                 privs = self.getprivs(options)
                 body['Oem'][self.rdmc.app.typepath.defs.oemhp]['Privileges'] = privs
 
@@ -251,11 +250,11 @@ class IloAccountsCommand():
             certpath = '/redfish/v1/AccountService/UserCertificateMapping/'
             privs = self.getsesprivs()
             if self.rdmc.app.typepath.defs.isgen9:
-                IncompatibleiLOVersionError("This operation is only available on gen 10 "\
-                                                  "and newer machines.")
+                IncompatibleiLOVersionError("This operation is only available on gen 10 "
+                                            "and newer machines.")
             elif not privs['UserConfigPriv']:
-                raise IdTokenError("The currently logged in account must have The User "\
-                                     "Config privilege to manage certificates for users.")
+                raise IdTokenError("The currently logged in account must have The User "
+                                   "Config privilege to manage certificates for users.")
             else:
                 if options.command.lower() == 'addcert':
                     if not acct:
@@ -295,13 +294,13 @@ class IloAccountsCommand():
         setprivs = {}
         availableprivs = self.getsesprivs(availableprivsopts=True)
 
-        if not 'UserConfigPriv' in sesprivs.keys():
-                raise IdTokenError("The currently logged in account does not have the User Config "\
-                                 "privilege and cannot add or modify user accounts.")
+        if not 'UserConfigPriv' in list(sesprivs.keys()):
+                raise IdTokenError("The currently logged in account does not have the User Config "
+                                   "privilege and cannot add or modify user accounts.")
 
         if options.optprivs:
             for priv in options.optprivs:
-                priv = next(iter(priv.keys()))
+                priv = next(iter(list(priv.keys())))
                 if priv not in availableprivs:
                     raise IncompatibleiLOVersionError("Privilege %s is not available on this "\
                                                                             "iLO version." % priv)
@@ -309,9 +308,9 @@ class IloAccountsCommand():
             if all(priv.values() for priv in options.optprivs):
                 if any(priv for priv in options.optprivs if 'SystemRecoveryConfigPriv' in priv) and\
                                             'SystemRecoveryConfigPriv' not in sesprivs.keys():
-                    raise IdTokenError("The currently logged in account must have The System "\
-                                     "Recovery Config privilege to add the System Recovery "\
-                                     "Config privilege.")
+                    raise IdTokenError("The currently logged in account must have The System "
+                                       "Recovery Config privilege to add the System Recovery "
+                                       "Config privilege.")
                 else:
                     setprivs = {}
             for priv in options.optprivs:
@@ -334,17 +333,17 @@ class IloAccountsCommand():
             ses = self.rdmc.app.get_handler(sespath, service=False, silent=True)
 
             if not ses:
-                raise SessionExpired("Invalid session. Please logout and "\
-                                    "log back in or include credentials.")
+                raise SessionExpired("Invalid session. Please logout and "
+                                     "log back in or include credentials.")
 
-            sesoemhp = ses.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
-            if 'Privileges' in sesoemhp.keys():
-                sesprivs = sesoemhp['Privileges']
-            else:
-                sesprivs = {'HostBIOSConfigPriv': True, 'HostNICConfigPriv': True, 'HostStorageConfigPriv': True,
-                            'LoginPriv': True, 'RemoteConsolePriv': True, 'SystemRecoveryConfigPriv': True,
-                            'UserConfigPriv': True, 'VirtualMediaPriv': True, 'VirtualPowerAndResetPriv': True, 'iLOConfigPriv': True}
-            availableprivs = sesprivs.keys()
+            sesprivs = {'HostBIOSConfigPriv': True, 'HostNICConfigPriv': True, 'HostStorageConfigPriv': True,
+                        'LoginPriv': True, 'RemoteConsolePriv': True, 'SystemRecoveryConfigPriv': True,
+                        'UserConfigPriv': True, 'VirtualMediaPriv': True, 'VirtualPowerAndResetPriv': True, 'iLOConfigPriv': True}
+            if 'Oem' in ses.dict:
+                sesoemhp = ses.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
+                if 'Privileges' in list(sesoemhp.keys()):
+                    sesprivs = sesoemhp['Privileges']
+            availableprivs = list(sesprivs.keys())
             updated_privs = dict()
             for priv, val in sesprivs.items():
                 if val:
@@ -358,8 +357,8 @@ class IloAccountsCommand():
         else:
             return sesprivs
 
-    def credentialsvalidation(self, username='', loginname='', password='', acct=None, \
-                                                            check_password=False, options=None):
+    def credentialsvalidation(self, username='', loginname='', password='', acct=None,
+                              check_password=False, options=None):
         """ sanity validation of credentials
         :param username: username to be added
         :type username: str.
@@ -377,7 +376,7 @@ class IloAccountsCommand():
         password_max_chars = 39 #PASSWORD MAX CHARS
         password_min_chars = 8  #PASSWORD MIN CHARS
 
-        password_min_chars = next(iter(self.rdmc.app.select(\
+        password_min_chars = next(iter(self.rdmc.app.select(
             'AccountService.'))).dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['MinPasswordLength']
 
         if username != '' and loginname != '':
@@ -422,8 +421,8 @@ class IloAccountsCommand():
         :param parser: The parser to add the --addprivs option group to
         :type parser: ArgumentParser/OptionParser
         """
-        group = parser.add_argument_group('GLOBAL OPTIONS', 'Options are available for all ' \
-                                                'arguments within the scope of this command.')
+        group = parser.add_argument_group('GLOBAL OPTIONS', 'Options are available for all '
+                                                            'arguments within the scope of this command.')
 
         group.add_argument(
             '--addprivs',
@@ -447,7 +446,7 @@ class IloAccountsCommand():
         if not customparser:
             return
 
-        #self.cmdbase.add_login_arguments_group(customparser)
+        self.cmdbase.add_login_arguments_group(customparser)
         subcommand_parser = customparser.add_subparsers(dest='command')
         privilege_help='\n\n\tPRIVILEGES:\n\t1: Login\n\t2: Remote Console\n\t3: User Config\n\t4:'\
             ' iLO Config\n\t5: Virtual Media\n\t6: Virtual Power and Reset\n\n\tiLO 5 added '\
@@ -456,32 +455,32 @@ class IloAccountsCommand():
         #default sub-parser
         default_parser = subcommand_parser.add_parser(
             'default',
-            help='Running without any sub-command will return all account information on the '\
-            'currently logged in server.'
+            help="Running without any sub-command will return all account information on the\n"
+            "currently logged in server."
         )
         default_parser.add_argument(
             '-j',
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
+            help="Optionally include this flag if you wish to change the"
+            " displayed output to JSON format. Preserving the JSON data"
             " structure makes the information easier to parse.",
             default=False
         )
         self.cmdbase.add_login_arguments_group(default_parser)
         #add sub-parser
-        add_help='\tAdds an iLO user account to the currently logged in server with privileges\n\t'\
+        add_help='Adds an iLO user account to the currently logged in server with privileges\n'\
             'specified in --addprivs.'
         add_parser = subcommand_parser.add_parser(
             __subparsers__[0],
             help=add_help,
-            description=add_help+'\n\t*Note*:By default only the login privilege is added to the'\
-            ' newly created account\n\twith role "ReadOnly"in iLO 5 and no privileges in iLO 4.'\
+            description=add_help+'\n\t*Note*:By default only the login privilege is added to the'
+            ' newly created account\n\twith role "ReadOnly"in iLO 5 and no privileges in iLO 4.'
             +privilege_help+
-            '\n\n\tExamples:\n\n\tAdd an account with specific privileges:\n\t\tiloaccounts add '\
-            'username accountname password --addprivs 1,2,4\n\n\tAdd an account and specify '\
-            'privileges by role:\n\t\tiloaccounts add username accountname password --role '\
+            '\n\n\tExamples:\n\n\tAdd an account with specific privileges:\n\t\tiloaccounts add '
+            'username accountname password --addprivs 1,2,4\n\n\tAdd an account and specify '
+            'privileges by role:\n\t\tiloaccounts add username accountname password --role '
             'ReadOnly',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -493,14 +492,14 @@ class IloAccountsCommand():
         )
         add_parser.add_argument(
             'loginname',
-            help='The loginname of the iLO account to add. This is NOT used to login to the newly '\
+            help='The loginname of the iLO account to add. This is NOT used to login to the newly '
             'created account.',
             metavar='LOGINNAME'
         )
         add_parser.add_argument(
             'acct_password',
-            help='The password of the iLO account to add. If you do not include a password, you '\
-            'will be prompted to enter one before an account is created. This is used to login to '\
+            help='The password of the iLO account to add. If you do not include a password, you '
+            'will be prompted to enter one before an account is created. This is used to login to '
             'the newly created account.',
             metavar='PASSWORD',
             nargs='?',
@@ -510,7 +509,7 @@ class IloAccountsCommand():
             '--role',
             dest='role',
             choices=['Administrator', 'ReadOnly', 'Operator'],
-            help="Optionally include this option if you would like to specify Privileges by role."\
+            help="Optionally include this option if you would like to specify Privileges by role."
             " Roles are a set of privileges created based on the role of the account.",
             default=None
         )
@@ -518,7 +517,7 @@ class IloAccountsCommand():
             '--serviceaccount',
             dest='serviceacc',
             action="store_true",
-            help="Optionally include this flag if you wish to created account "\
+            help="Optionally include this flag if you wish to created account "
             "to be a service account.",
             default=False
         )
@@ -526,17 +525,17 @@ class IloAccountsCommand():
 
         self.options_argument_group(add_parser)
         #modify sub-parser
-        modify_help='\tModifies the provided iLO user account on the currently logged in server'\
-            '\n\tadding privileges using "--addprivs" to include privileges and using\n\t'\
+        modify_help='Modifies the provided iLO user account on the currently logged in server'\
+            '\nadding privileges using "--addprivs" to include privileges and using\n'\
             '"--removeprivs" for removing privileges.'
         modify_parser = subcommand_parser.add_parser(
             __subparsers__[1],
             help=modify_help,
-            description=modify_help+privilege_help+'\n\n\tExamples:\n\n\tModify an iLO account\'s '\
+            description=modify_help+privilege_help+'\n\n\tExamples:\n\n\tModify an iLO account\'s '
             'privileges by adding:\n\tiloaccounts modify username --addprivs 3,5\n\n\t'
             'Modify an iLO account\'s privileges by removal:\n\tiloaccounts modify username '
-            '--removeprivs 10\n\n\tOr modify an iLO account\'s privileges by both simultaneously '\
-            'adding and removing privleges:\n\n\tiloaccounts modify username --addprivs 3,7 '\
+            '--removeprivs 10\n\n\tOr modify an iLO account\'s privileges by both simultaneously '
+            'adding and removing privleges:\n\n\tiloaccounts modify username --addprivs 3,7 '
             '--removeprivs 9,10',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -552,7 +551,7 @@ class IloAccountsCommand():
             '--role',
             dest='role',
             choices=['Administrator', 'ReadOnly', 'Operator'],
-            help="Optionally include this option if you would like to specify Privileges by role."\
+            help="Optionally include this option if you would like to specify Privileges by role."
             " Roles are a set of privileges created based on the role of the account.",
             default=None
         )
@@ -562,8 +561,8 @@ class IloAccountsCommand():
             nargs='*',
             action=_AccountParse,
             type=str,
-            help="Include this flag if you wish to specify "\
-            "which privileges you want removed from the iLO account. Pick "\
+            help="Include this flag if you wish to specify "
+            "which privileges you want removed from the iLO account. Pick "
             "privileges from the privilege list in the above help text. EX: --removeprivs=1,2,4",
             default=None,
             metavar='PRIV,'
@@ -574,7 +573,7 @@ class IloAccountsCommand():
         changepass_parser = subcommand_parser.add_parser(
             __subparsers__[2],
             help=changepass_help,
-            description=changepass_help+'\n\nExamples:\n\nChange the password of an account:\n\t'\
+            description=changepass_help+'\n\nExamples:\n\nChange the password of an account:\n\t'
             'iloaccounts changepass 2 newpassword',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -585,8 +584,8 @@ class IloAccountsCommand():
         )
         changepass_parser.add_argument(
             'acct_password',
-            help='The password to change the selected iLO account to. If you do not include a '\
-            'password, you will be prompted to enter one before an account is created. This is '\
+            help='The password to change the selected iLO account to. If you do not include a '
+            'password, you will be prompted to enter one before an account is created. This is '
             'used to login to the newly created account.',
             metavar='PASSWORD',
             nargs='?',
@@ -599,7 +598,7 @@ class IloAccountsCommand():
         delete_parser = subcommand_parser.add_parser(
             __subparsers__[3],
             help=delete_help,
-            description=delete_help+'\n\nExamples:\n\nDelete an iLO account:\n\t'\
+            description=delete_help+'\n\nExamples:\n\nDelete an iLO account:\n\t'
             'iloaccounts delete username',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -616,7 +615,7 @@ class IloAccountsCommand():
         addcert_parser = subcommand_parser.add_parser(
             __subparsers__[4],
             help=addcert_help,
-            description=addcert_help+ r'\n\nExamples:\n\nAdd a user certificate to the provided '\
+            description=addcert_help+ r'\n\nExamples:\n\nAdd a user certificate to the provided '
             r'iLO account.\n\tiloaccounts addcert accountUserName C:\Users\user\cert.txt',
             formatter_class=RawDescriptionHelpFormatter
         )
@@ -638,7 +637,7 @@ class IloAccountsCommand():
         deletecert_parser = subcommand_parser.add_parser(
             __subparsers__[5],
             help=deletecert_help,
-            description=deletecert_help+'\n\nExamples:\n\nDelete a user certificate from the '\
+            description=deletecert_help+'\n\nExamples:\n\nDelete a user certificate from the '
             'provided iLO account.\n\tiloaccounts deletecert username',
             formatter_class=RawDescriptionHelpFormatter
         )

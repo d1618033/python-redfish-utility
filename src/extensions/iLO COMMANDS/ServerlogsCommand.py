@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,15 +29,14 @@ import datetime
 import platform
 import itertools
 import subprocess
-
 from argparse import ArgumentParser, SUPPRESS
-
 from six.moves import queue
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 from redfish.ris.utils import filter_output
 from redfish.rest.connections import SecurityStateError
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, \
+
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, InvalidKeyError,\
                 InvalidMSCfileInputError, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
                 LOGGER, InvalidCListFileError, NoContentsFoundForOperationError, \
                 IncompatibleiLOVersionError, Encryption, PartitionMoutingError, \
@@ -52,67 +51,70 @@ class ServerlogsCommand():
     """ Download logs from the server that is currently logged in """
     def __init__(self):
         self.ident = {
-            'name':'serverlogs',\
-            'usage':'serverlogs [LOG_SELECTION] [OPTIONS]\n\n\tDownload the AHS' \
-                ' logs from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=AHS \n\n\tClear the AHS logs ' \
-                'from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=AHS --clearlog\n\n\tDownload the IEL' \
-                ' logs from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs ' \
-                'from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=IEL --clearlog\n\n\tDownload the IML' \
-                ' logs from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs ' \
-                'from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)' \
-                '\n\tInsert entry in the IML logs from the logged in ' \
-                'server.\n\texample: serverlogs --selectlog=IML -m "Text' \
-                ' message for maintenance"\n\n\tDownload the iLO Security' \
-                ' logs from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=SL -f SLlog.txt\n\n\tClear the iLO Security logs ' \
-                'from the logged in server.\n\texample: serverlogs ' \
-                '--selectlog=SL --clearlog\n\n\tDownload logs from multiple servers' \
-                '\n\texample: serverlogs --mpfile mpfilename.txt -o output' \
-                'directorypath --mplog=IEL,IML\n\n\tNote: multiple server file ' \
-                'format (1 server per new line)\n\t--url <iLO url/hostname> ' \
-                '-u admin -p password\n\t--url <iLO url/hostname> -u admin -' \
-                'p password\n\t--url <iLO url/hostname> -u admin -p password'\
-                '\n\n\tInsert customized string '\
-                'if required for AHS\n\texample: serverlogs --selectlog=' \
-                'AHS --customiseAHS "from=2014-03-01&&to=2014' \
-                '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/' \
-                'path of directory where AHS log needs to be saved.'\
-                ' \n\texample: serverlogs --selectlog=AHS '\
-                '--directorypath=C:\\Python27\\DataFiles\n\n\tRepair IML log.'\
-                '\n\texample: serverlogs --selectlog=IML --repair IMLlogID',\
-            'summary':'Download and perform log operations.',\
-            'aliases': ['logservices'],\
+            'name':'serverlogs',
+            'usage': None,
+            'description':'Download the AHS'
+                    ' logs from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=AHS \n\n\tClear the AHS logs '
+                    'from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=AHS --clearlog\n\n\tDownload the IEL'
+                    ' logs from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs '
+                    'from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=IEL --clearlog\n\n\tDownload the IML'
+                    ' logs from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs '
+                    'from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)'
+                    '\n\tInsert entry in the IML logs from the logged in '
+                    'server.\n\texample: serverlogs --selectlog=IML -m "Text'
+                    ' message for maintenance"\n\n\tDownload the iLO Security'
+                    ' logs from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=SL -f SLlog.txt\n\n\tClear the iLO Security logs '
+                    'from the logged in server.\n\texample: serverlogs '
+                    '--selectlog=SL --clearlog\n\n\tDownload logs from multiple servers'
+                    '\n\texample: serverlogs --mpfile mpfilename.txt -o output'
+                    'directorypath --mplog=IEL,IML\n\n\tNote: multiple server file '
+                    'format (1 server per new line)\n\t--url <iLO url/hostname> '
+                    '-u admin -p password\n\t--url <iLO url/hostname> -u admin -'
+                    'p password\n\t--url <iLO url/hostname> -u admin -p password'
+                    '\n\n\tInsert customized string '
+                    'if required for AHS\n\texample: serverlogs --selectlog='
+                    'AHS --customiseAHS "from=2014-03-01&&to=2014'
+                    '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/'
+                    'path of directory where AHS log needs to be saved.'
+                    ' \n\texample: serverlogs --selectlog=AHS '
+                    '--directorypath=C:\\Python38\\DataFiles\n\n\tRepair IML log.'
+                    '\n\texample: serverlogs --selectlog=IML --repair IMLlogID',
+            'summary':'Download and perform log operations.',
+            'aliases': ['logservices'],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = self.rdmc.app.typepath\
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-
         self.dontunmount = None
         self.queue = queue.Queue()
         self.abspath = None
         self.lib = None
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """Main serverlogs function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -221,8 +223,8 @@ class ServerlogsCommand():
         os.mkdir(createdir)
 
         oofile = open(os.path.join(createdir, 'CompleteOutputfile.txt'), 'w+')
-        self.rdmc.ui.printer('Creating multiple processes to load configuration '\
-                                                                'concurrently to all servers...\n')
+        self.rdmc.ui.printer('Creating multiple processes to load configuration '
+                             'concurrently to all servers...\n')
 
         while True:
             if not self.queue.empty():
@@ -245,8 +247,8 @@ class ServerlogsCommand():
                 listargforsubprocess = " ".join(listargforsubprocess)
 
             logfile = open(os.path.join(createdir, urlfilename+".txt"), "w+")
-            pinput = subprocess.Popen(listargforsubprocess, shell=True,\
-                                                stdout=logfile, stderr=logfile)
+            pinput = subprocess.Popen(listargforsubprocess, shell=True,
+                                      stdout=logfile, stderr=logfile)
 
             processes.append((pinput, finput, urlvar, logfile))
 
@@ -405,8 +407,8 @@ class ServerlogsCommand():
             bodydict["path"] = imlidpath
             bodydict["body"] = {"Oem": {"Hpe": {"Repaired": True}}}
 
-            LOGGER.info("Repairing maintenance log at %s with %s", str(imlidpath), \
-                                                                            str(bodydict["body"]))
+            LOGGER.info("Repairing maintenance log at %s with %s", str(imlidpath),
+                        str(bodydict["body"]))
 
             self.rdmc.app.patch_handler(imlidpath, bodydict["body"])
 
@@ -485,7 +487,7 @@ class ServerlogsCommand():
                 datadict = list()
 
                 for members in completedatadictlist:
-                    if len(members.keys()) == 1:
+                    if len(list(members.keys())) == 1:
                         memberpath = members[self.rdmc.app.typepath.defs.hrefstring]
                         data = self.rdmc.app.get_handler(memberpath, silent=True)
                         datadict = datadict+[data.dict]
@@ -609,7 +611,7 @@ class ServerlogsCommand():
         """
 
         if not self.rdmc.app.typepath.defs.isgen10 or not self.rdmc.app.getiloversion() >= 5.210:
-            raise IncompatibleiLOVersionError("Security logs are only available on iLO 5 2.10 or"\
+            raise IncompatibleiLOVersionError("Security logs are only available on iLO 5 2.10 or"
                                               " greater.")
         LOGGER.info("Obtaining SL path for download.")
         path = ""
@@ -654,8 +656,8 @@ class ServerlogsCommand():
         path = ""
 
         if options.filename:
-            raise InvalidCommandLineError("AHS logs must be downloaded with " \
-                            "default name. Please re-run command without filename option.")
+            raise InvalidCommandLineError("AHS logs must be downloaded with "
+                                          "default name. Please re-run command without filename option.")
 
         val = self.rdmc.app.typepath.defs.hpiloactivehealthsystemtype
         filtereddatainstance = self.rdmc.app.select(selector=val)
@@ -712,10 +714,10 @@ class ServerlogsCommand():
                             weekagostr = list(map(int, (str(weekago).split()[0]).\
                                                                     split('-')))
 
-                            strdate = min(max(datetime.date(weekagostr[0], \
-                                weekagostr[1], weekagostr[2]), \
-                                  datetime.date(startdat[0], startdat[1], \
-                                    startdat[2])), datetime.date(enddat[0], enddat[1], enddat[2]))
+                            strdate = min(max(datetime.date(weekagostr[0],
+                                                            weekagostr[1], weekagostr[2]),
+                                              datetime.date(startdat[0], startdat[1],
+                                                            startdat[2])), datetime.date(enddat[0], enddat[1], enddat[2]))
 
                             aweekstr = "from=" + str(strdate) + "&&to=" + enddate
                         else:
@@ -798,8 +800,8 @@ class ServerlogsCommand():
                 raise InvalidCommandLineError("AHS loacal download is not supported on VMWare")
 
         if options.filename:
-            raise InvalidCommandLineError("AHS logs must be downloaded with " \
-                            "default name! Re-run command without filename!")
+            raise InvalidCommandLineError("AHS logs must be downloaded with "
+                                          "default name! Re-run command without filename!")
 
         secstate = risblobstore2.BlobStore2().get_security_state()
         #self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
@@ -812,8 +814,8 @@ class ServerlogsCommand():
             secstate = 0
         self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
         if int(secstate) > 3:
-            raise SecurityStateError("AHS logs cannot be downloaded" \
-                                        " locally in high security state.\n")
+            raise SecurityStateError("AHS logs cannot be downloaded"
+                                     " locally in high security state.\n")
 
         self.lib = risblobstore2.BlobStore2.gethprestchifhandle()
 
@@ -931,7 +933,7 @@ class ServerlogsCommand():
                 strdate = datetime.date(int(strdatestr[0]), int(strdatestr[1]), int(strdatestr[2]))
                 enddate = datetime.date(int(enddatestr[0]), int(enddatestr[1]), int(enddatestr[2]))
             except Exception as excp:
-                LOGGER.warn(excp)
+                LOGGER.warning(excp)
                 raise InvalidCommandLineError("Cannot parse customized AHSinput.")
 
         atleastonefile = False
@@ -1089,8 +1091,8 @@ class ServerlogsCommand():
             count = count+1
             time.sleep(3)
 
-        raise PartitionMoutingError("iLO not responding to request " \
-                                                "for mounting AHS partition")
+        raise PartitionMoutingError("iLO not responding to request "
+                                    "for mounting AHS partition")
 
     def manualmountbb(self):
         """Manually mount blackbox when after fixed time."""
@@ -1108,8 +1110,8 @@ class ServerlogsCommand():
                         except Exception as excp:
                             raise excp
 
-                    pmount = subprocess.Popen(['mount', device.device_node, \
-                        dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    pmount = subprocess.Popen(['mount', device.device_node,
+                                               dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     _, _ = pmount.communicate()
 
                     return (True, dirpath)
@@ -1126,8 +1128,8 @@ class ServerlogsCommand():
         :type dirpath: str
         """
         LOGGER.info("Manually unmounting the blackbox.")
-        pmount = subprocess.Popen(['umount', dirpath], stdout=subprocess.PIPE, \
-                                                        stderr=subprocess.PIPE)
+        pmount = subprocess.Popen(['umount', dirpath], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
         _, _ = pmount.communicate()
 
     def mountbb(self):
@@ -1152,8 +1154,8 @@ class ServerlogsCommand():
 
         drive_bitmask = ctypes.cdll.kernel32.GetLogicalDrives()
 
-        return list(itertools.compress(string.ascii_uppercase,\
-            [ord(drive) - ord('0') for drive in bin(drive_bitmask)[:1:-1]]))
+        return list(itertools.compress(string.ascii_uppercase,
+                                       [ord(drive) - ord('0') for drive in bin(drive_bitmask)[:1:-1]]))
 
     def filterdata(self, data=None, tofilter=None):
         """Filter the logs
@@ -1177,8 +1179,8 @@ class ServerlogsCommand():
                 if val.lower() == "true" or val.lower() == "false":
                     val = val.lower() in ("yes", "true", "t", "1")
             except:
-                raise InvalidCommandLineError("Invalid filter" \
-                  " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError("Invalid filter"
+                                              " parameter format [filter_attribute]=[filter_value]")
 
             # Severity inside Oem/Hpe should be filtered
             if sel == 'Severity':
@@ -1208,12 +1210,13 @@ class ServerlogsCommand():
                 raise NoContentsFoundForOperationError("")
         except Exception:
             try:
-                resp = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath,\
-                    silent=True, service=True, uncache=True)
+                resp = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath,
+                                                 silent=True, service=True, uncache=True)
                 snum = resp.dict["SerialNumber"] if resp else snum
+            except KeyError:
+                raise InvalidKeyError("Unable to find key SerialNumber, please check path %s" % self.rdmc.app.typepath.defs.systempath)
             except:
-                raise NoContentsFoundForOperationError("Unable to retrieve " \
-                                                            "log instance.")
+                raise NoContentsFoundForOperationError("Unable to retrieve log instance.")
 
         snum = filtereddictslists[0]["SerialNumber"] if not snum else snum
         snum = 'UNKNOWN' if snum.isspace() else snum

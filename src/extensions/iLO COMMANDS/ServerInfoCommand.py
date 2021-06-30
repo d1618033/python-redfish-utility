@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,32 +28,31 @@ class ServerInfoCommand():
     """ Show details of a server """
     def __init__(self):
         self.ident = {
-            'name':'serverinfo',\
-            'usage':'serverinfo [OPTIONS]\n\n\t'\
-                'Show all information.\n\texample: serverinfo\n\t\t'\
-                ' serverinfo --all\n\n\t'\
-                'Show enabled fan, processor, and thermal information.\n\texample: ' \
-                'serverinfo --fans --processors --thermals\n\n\tShow all memory '\
-                'and fan information, including absent locations in json format.\n\t'\
-                'example: serverinfo --firmware --software --memory --fans --showabsent -j',\
-            'summary':'Shows aggregate health status and details of the currently logged in server.',\
-            'aliases': ['health', 'serverstatus', 'systeminfo'],\
+            'name':'serverinfo',
+            'usage': None,
+            'description': 'Shows all information.\n\tExample: serverinfo\n\t\t'
+                    ' serverinfo --all\n\n\t'
+                    'Show enabled fan, processor, and thermal information.\n\texample: '
+                    'serverinfo --fans --processors --thermals --proxy\n\n\tShow all memory '
+                    'and fan information, including absent locations in json format.\n\t'
+                    'example: serverinfo --proxy --firmware --software --memory --fans --showabsent -j',
+            'summary':'Shows aggregate health status and details of the currently logged in server.',
+            'aliases': ['health', 'serverstatus', 'systeminfo'],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main serverinfo function.
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
@@ -63,7 +62,7 @@ class ServerInfoCommand():
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("serverinfo command takes no "\
+            raise InvalidCommandLineError("serverinfo command takes no "
                                           "arguments.")
 
         self.serverinfovalidation(options)
@@ -73,7 +72,7 @@ class ServerInfoCommand():
         info = self.gatherinfo(options)
 
         if not info:
-            raise InvalidCommandLineError("Please verify the commands entered "\
+            raise InvalidCommandLineError("Please verify the commands entered "
                                           "and try again.")
 
         if options.json:
@@ -101,8 +100,8 @@ class ServerInfoCommand():
             except:
                 pass
             if csysresults:
-                info['system']['Model'] = "%s %s" % (csysresults['Manufacturer'],\
-                                                            csysresults['Model'])
+                info['system']['Model'] = "%s %s" % (csysresults['Manufacturer'],
+                                                     csysresults['Model'])
                 info['system']['Bios Version'] = csysresults['BiosVersion']
 
             biosresults = self.rdmc.app.select(selector=self.rdmc.app.typepath.defs.biostype)
@@ -116,7 +115,8 @@ class ServerInfoCommand():
                 try:
                     info['system']['Serial Number'] = biosresults['Attributes']['SerialNumber']
                 except:
-                    info['system']['Serial Number'] = biosresults['SerialNumber']
+                    if 'SerialNumber' in biosresults:
+                        info['system']['Serial Number'] = biosresults['SerialNumber']
 
             getloc = self.rdmc.app.getidbytype("EthernetInterfaceCollection.")
             if getloc:
@@ -153,6 +153,13 @@ class ServerInfoCommand():
             else:
                 info['memory'] = None
             info['memory'] = data
+        if options.proxy:
+            getloc = self.rdmc.app.getidbytype('NetworkProtocol.')
+            if getloc:
+                data = self.rdmc.app.getcollectionmembers(getloc[0], fullresp=True)[0]
+            else:
+                info['proxy'] = None
+            info['proxy'] = data
         if options.processors:
             getloc = self.rdmc.app.getidbytype('ProcessorCollection.')
             if getloc:
@@ -248,6 +255,20 @@ class ServerInfoCommand():
                 output += "%s : %s\n" % (sw['Name'], sw['Version'])
             self.rdmc.ui.printer(output, verbose_override=True)
 
+        if 'proxy' in headers:
+            output = ""
+            data = info['proxy']
+            output = '------------------------------------------------\n'
+            output += 'Proxy Information\n'
+            output += '------------------------------------------------\n'
+            try:
+                proxy_info = data['Oem']['Hpe']['WebProxyConfiguration']
+                for k,v in proxy_info.items():
+                    output += "%s : %s\n" % (k, v)
+            except KeyError:
+                pass
+            self.rdmc.ui.printer(output, verbose_override=True)
+
         if 'processor' in headers:
             output = ""
             data = info['processor']
@@ -297,8 +318,8 @@ class ServerInfoCommand():
             for dimm in data[self.rdmc.app.typepath.defs.collectionstring]:
                 output += "Location: %s\n" % dimm['DeviceLocator']
                 try:
-                    output += "Memory Type: %s %s\n" % (dimm['MemoryType'], \
-                                                                        dimm['MemoryDeviceType'])
+                    output += "Memory Type: %s %s\n" % (dimm['MemoryType'],
+                                                        dimm['MemoryDeviceType'])
                 except KeyError:
                     output += "Memory Type: %s\n" % dimm['MemoryType']
                 output += "Capacity: %s MiB\n" % dimm['CapacityMiB']
@@ -420,11 +441,11 @@ class ServerInfoCommand():
         :param options: command line options
         :type options: list
         """
-        optlist = [options.firmware, options.software, options.memory, options.thermals, options.fans, \
-           options.power, options.processors, options.system, options.showabsent]
+        optlist = [options.proxy, options.firmware, options.software, options.memory, options.thermals, options.fans,
+                   options.power, options.processors, options.system, options.showabsent]
         if not any(optlist):
             self.setalloptionstrue(options)
-        if options.all == True:
+        if options.all:
             self.setalloptionstrue(options)
         return options
 
@@ -439,6 +460,7 @@ class ServerInfoCommand():
         options.processors = True
         options.power = True
         options.system = True
+        options.proxy = True
         options.showabsent = True
 
     def definearguments(self, customparser):
@@ -453,6 +475,7 @@ class ServerInfoCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
+            '-all',
             '--all',
             dest='all',
             action="store_true",
@@ -460,6 +483,7 @@ class ServerInfoCommand():
             default=False
         )
         customparser.add_argument(
+            '-fw',
             '--firmware',
             dest='firmware',
             action="store_true",
@@ -467,6 +491,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-sw',
             '--software',
             dest='software',
             action="store_true",
@@ -474,6 +499,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-memory',
             '--memory',
             dest='memory',
             action="store_true",
@@ -481,6 +507,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-fans',
             '--fans',
             dest='fans',
             action="store_true",
@@ -488,6 +515,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-processors',
             '--processors',
             dest='processors',
             action="store_true",
@@ -495,6 +523,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-thermals',
             '--thermals',
             dest='thermals',
             action="store_true",
@@ -502,6 +531,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-power',
             '--power',
             dest='power',
             action="store_true",
@@ -509,6 +539,7 @@ class ServerInfoCommand():
             default=False,
         )
         customparser.add_argument(
+            '-system',
             '--system',
             dest='system',
             action="store_true",
@@ -520,6 +551,14 @@ class ServerInfoCommand():
             dest='showabsent',
             action="store_true",
             help="Include information on absent components in the output.",
+            default=False,
+        )
+        customparser.add_argument(
+            '-proxy',
+            '--proxy',
+            dest='proxy',
+            action="store_true",
+            help="Add proxy information to the output",
             default=False,
         )
         customparser.add_argument(

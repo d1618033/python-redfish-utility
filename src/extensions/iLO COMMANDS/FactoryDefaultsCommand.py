@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,33 +24,33 @@ class FactoryDefaultsCommand():
     """ Reset server to factory default settings """
     def __init__(self):
         self.ident = {
-            'name':'factorydefaults',\
-            'usage':'factorydefaults [OPTIONS]\n\n\t'\
-                'Reset iLO to factory defaults in the current logged in ' \
-                'server.\n\texample: factorydefaults',\
-            'summary':'Resets iLO to factory defaults. WARNING: user data will ' \
-                'be removed use with caution.',\
-            'aliases': [],\
+            'name':'factorydefaults',
+            'usage': None,
+            'description': 'Reset iLO to factory defaults in the current logged in '
+                    'server.\n\texample: factorydefaults',
+            'summary':'Resets iLO to factory defaults. WARNING: user data will '
+                      'be removed use with caution.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main factorydefaults function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -60,8 +60,8 @@ class FactoryDefaultsCommand():
 
         self.factorydefaultsvalidation(options)
 
-        self.rdmc.ui.warn("Resetting iLO to factory default settings.\n"\
-                                        "Current session will be terminated.\n")
+        self.rdmc.ui.warn("Resetting iLO to factory default settings.\n"
+                          "Current session will be terminated.\n")
 
         select = 'Manager.'
         results = self.rdmc.app.select(selector=select)
@@ -90,8 +90,8 @@ class FactoryDefaultsCommand():
                     body = {"Action": action, "ResetType": "Default"}
                     break
         except:
-            body = {"Action": "ResetToFactoryDefaults", \
-                                "Target": "/Oem/Hp", "ResetType": "Default"}
+            body = {"Action": "ResetToFactoryDefaults",
+                    "Target": "/Oem/Hp", "ResetType": "Default"}
 
         self.rdmc.app.post_handler(path, body, service=True)
 

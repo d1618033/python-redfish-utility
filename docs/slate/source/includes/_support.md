@@ -81,24 +81,17 @@ U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://ww
 ### Documents
 
 - [Transition to the RESTful Interface Tool (iLORest)](https://support.hpe.com/hpsc/doc/public/display?docId=a00061427en_us)
-
 - [iLO RESTful API Data Model Reference (iLO 4)](http://h22208.www2.hpe.com/eginfolib/servers/docs/HPRestfultool/iLo4/data_model_reference.html)
 - [HPE iLO 4 Scripting and Command Line Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03334058)
 - [HPE iLO 4 Release Notes](http://h20565.www2.hpe.com/hpsc/doc/public/display?docId=emr_na-c03334036&lang=en-us&cc=us)
 - [HPE ROM-Based Setup Utility User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c00191707)
-- [HPE UEFI System Utilities User Guide](http://www.hp.com/ctg/Manual/c04398276.pdf)
-- [HPE Intelligent Provisioning User Guide for HPE ProLiant Gen9 Servers](http://www.hp.com/ctg/Manual/c04419967.pdf)
-- [Scripting Toolkit for Linux User Guide](http://h10032.www1.hp.com/ctg/Manual/c04409570.pdf)
-- [Scripting Toolkit for Windows User Guide](http://h10032.www1.hp.com/ctg/Manual/c04083436)
-- [Smart Update Firmware DVD User Guide](ftp://ftp.hp.com/pub/c-products/servers/management/smartstart/FWUsersGuide9.00.pdf)
+- [HPE UEFI System Utilities User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=a00016407en_us)
+- [HPE Intelligent Provisioning User Guide for HPE ProLiant Gen9 Servers](https://support.hpe.com/hpesc/public/docDisplay?docId=c04419967)
+- [Scripting Toolkit for Linux User Guide](https://support.hpe.com/hpesc/public/docDisplay?docLocale=en_US&docId=emr_na-a00047893en_us)
+- [Scripting Toolkit for Windows User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=a00017070en_us)
 - [Smart Update Manager User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c05059565)
 - [Service Pack for ProLiant User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03190790)
-- [HPE Systems Insight Manager User Guide](http://h20628.www2.hp.com/km-ext/kmcsdirect/emr_na-c04764043-2.pdf)
 - [HPE BladeSystem Onboard Administrator User Guide](http://h20628.www2.hpe.com/km-ext/kmcsdirect/emr_na-c00705292-47.pdf)
-- [HPE ProLiant Gen9 Troubleshooting Guide, Volume I: Troubleshooting](http://www.hp.com/ctg/Manual/c04444029.pdf)
-- [HPE Insight Remote Support Installation and Configuration Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04844076)
-- [HPE Insight Remote Support Monitored Devices Configuration Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04844085)
-- [HPE Insight Remote Support and Insight Online Setup Guide for HPE ProLiant Servers and HPE BladeSystem c-Class Enclosures](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03508827)
 - [HPE iLO Federation User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04149067)
 
 ## Customer self-repair
@@ -111,7 +104,7 @@ For more information about CSR, contact your local service provider or go to the
 
 ## Remote Support
 
-Remote support is available with supported devices as part of your warranty or contractual support agreement. It provides intelligent event diagnosis, and automatic, secure submission of hardware event notifications to Hewlett Packard Enterprise, which will initiate a fast and accurate resolution based on your product’s service level. Hewlett Packard Enterprise strongly recommends that you register your device for remote support.
+Remote support is available with supported devices as part of your warranty or contractual support agreement. It provides intelligent event diagnosis, and automatic, secure submission of hardware event notifications to Hewlett Packard Enterprise, which will initiate a fast and accurate resolution based on your product&apos;s service level. Hewlett Packard Enterprise strongly recommends that you register your device for remote support.
 
 For more information and device support details, go to the following website.
 

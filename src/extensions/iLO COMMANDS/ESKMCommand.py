@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,31 +24,36 @@ class ESKMCommand():
     """ Commands ESKM available actions """
     def __init__(self):
         self.ident = {
-            'name':'eskm',\
-            'usage':'eskm [OPTIONS]\n\n\tClear the ESKM logs.\n\texample: eskm' \
-                    ' clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections',\
-            'summary':"Command for all ESKM available actions.",\
-            'aliases': [],\
+            'name':'eskm',
+            'usage': None,
+            'description':'Clear the ESKM logs.\n\texample: eskm'
+                    ' clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections',
+            'summary':"Command for all ESKM available actions.",
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
 
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main ESKMCommand function
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")

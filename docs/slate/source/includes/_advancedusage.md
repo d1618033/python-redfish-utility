@@ -1,8 +1,8 @@
-##Filtering and Other Advanced Options
+# Advanced Options
+
+## Filtering Option
 
 This section covers some of the advanced features and options available with the RESTful Interface Tool (iLOREST).
-
-### Filter Option
 
 > Selecting the `EthernetInterface.` type reveals many instances. To return a single instance we can filter by a property value. In this case we are filtering by `@odata.id`.
 
@@ -55,15 +55,15 @@ EthernetInterface.v1_4_1(/redfish/v1/Managers/1/EthernetInterfaces/2/) (Currentl
         FullDuplex=True
 </pre>
 
-#### Syntax
+### Syntax
 --filter [FILTER_PROPERTY=FILTER_VALUE]
 
-#### Description
+### Description
 If there is more than one instance of a type on the system, when you select it, the `filter` option can be used to narrow down the results. With this narrowed result, you can set specific instance properties, list specific instance properties, or get specific instance properties.
 
 <aside class="notice"> The filter option can be used in the get, list, and set commands.</aside>
 
-### Path Option
+## Path Option
 
 > To start type collection from a specific path include the `--path` option followed by the path to start from. This can limit or add new types depending on the path specified.
 
@@ -116,8 +116,8 @@ HpeESKM.v2_0_0
 
 
 
-#### Syntax
+### Syntax
 --path [URI]
 
-#### Description
+### Description
 The path option can set a different URI as the starting point for type discovery. The default path is `/redfish/v1/`. This option is useful if you wish to view specific types, which are not available by default or if you wish to lower the time it takes to login. It is not recommended to use this flag on systems with a resource directory.

@@ -47,40 +47,43 @@ class EthernetCommand():
 
     def __init__(self):
         self.ident = {
-            'name': 'ethernet', \
-            'usage': None, \
-            'description': 'Save or load from a JSON formatted file containing ' \
-                           'properties pertaining to a system\'s iLO ethernet management controller. ' \
-                           'Additionally enable/disable individual management controller NICs (including VNIC), ' \
-                           'IPv4 and IPv6 addressing configuration and domain name servers.' \
-                           '\n\tBy default the JSON file will be named \'eth.json\'.\n\t' \
-                           '\n\t***Credentials for an iLO administrator level account must be provided as' \
-                           ' well as the iLO base URL.***' \
-                           '\n\n\tSave ethernet management controller data.\n\texample: ethernet save ' \
-                           '\n\n\tLoad ethernet management controller data.\n\texample: ethernet load' \
-                           '\n\n\tSave ethernet management controller data to a different file, silently\n\t' \
+            'name': 'ethernet',
+            'usage': None,
+            'description': 'Save or load from a JSON formatted file containing '
+                           'properties pertaining to a system\'s iLO ethernet management controller. '
+                           'Additionally enable/disable individual management controller NICs (including VNIC), '
+                           'IPv4 and IPv6 addressing configuration and domain name servers.'
+                           '\n\tBy default the JSON file will be named \'eth.json\'.\n\t'
+                           '\n\t***Credentials for an iLO administrator level account must be provided as'
+                           ' well as the iLO base URL.***'
+                           '\n\n\tSave ethernet management controller data.\n\texample: ethernet save '
+                           '\n\n\tLoad ethernet management controller data.\n\texample: ethernet load'
+                           '\n\n\tSave ethernet management controller data to a different file, silently\n\t'
                            'ethernet save -f <filename> --silent.'
-                           '\n\n\tLoad etherent management controller data from a different file, silently\n\t' \
-                           'ethernet load -f <filename> --silent.' \
-                           '\n\n\tEnable network interfaces by listing each interface to be enabled. **Note**:' \
-                           ' Non-existent interfaces will be omitted from configuration.\n\t ' \
-                           'ethernet --enable_nic 1,2,3' \
-                           '\n\n\tDisable network interfaces by listing each interface to be disabled. **Note**:' \
-                           ' Non-existent interfaces will be omitted from configuration.\n\t ' \
-                           'ethernet --disable_nic 1,2,3' \
-                           '\n\n\tConfigure Domain Name Servers (DNS) in a list: <DNS1> <DNS2>\n\t' \
-                           'ethernet --name_servers 8.8.8.8, 1.1.1.1 OR ethernet --name_servers ' \
-                           'dns_resolver1.aws.com, dns_resolver2.aws.com' \
-                           '\n\n\tConfigure Static IPv4 Settings. Provide a list of network settings\n\t' \
-                           'ethernet --network_ipv4 <ipv4 address>, <ipv4 gateway>, <ipv4 network mask>.' \
-                           '\n\n\tConfigure Static IPv6 Settings. Provide a list of network settings\n\t' \
+                           '\n\n\tLoad etherent management controller data from a different file, silently\n\t'
+                           'ethernet load -f <filename> --silent.'
+                           '\n\n\tEnable network interfaces by listing each interface to be enabled. **Note**:'
+                           ' Non-existent interfaces will be omitted from configuration.\n\t '
+                           'ethernet --enable_nic 1,2,3'
+                           '\n\n\tDisable network interfaces by listing each interface to be disabled. **Note**:'
+                           ' Non-existent interfaces will be omitted from configuration.\n\t '
+                           'ethernet --disable_nic 1,2,3'
+                           '\n\n\tConfigure Domain Name Servers (DNS) in a list: <DNS1> <DNS2>\n\t'
+                           'ethernet --nameservers 8.8.8.8,1.1.1.1 OR ethernet --nameservers '
+                           'dns_resolver1.aws.com, dns_resolver2.aws.com'
+                           '\n\n\tConfigure Static IPv4 Settings. Provide a list of network settings\n\t'
+                           'ethernet --network_ipv4 <ipv4 address>, <ipv4 gateway>, <ipv4 network mask>.'
+                           '\n\n\tConfigure Proxy Settings. Provide a proxy server and port\n\t'
+                           'ethernet --proxy http://proxy.company.net:8080'
+                           '\n\n\tClear Proxy Settings. \n\t'
+                           'ethernet --proxy None'
+                           '\n\n\tConfigure Static IPv6 Settings. Provide a list of network settings\n\t'
                            'ethernet --network_ipv6 <ipv6 address>, <ipv6 gateway>, <ipv6 network mask>.',
-            'summary': "Command for configuring Ethernet Management Controller Interfaces and" \
-                       "associated properties", \
-            'aliases': [], \
+            'summary': "Command for configuring Ethernet Management Controller Interfaces and "
+                       "associated properties",
+            'aliases': [],
             'auxcommands': []
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
@@ -90,12 +93,14 @@ class EthernetCommand():
         self.eth_args = None
         self.saved_inputline = None  # set in validation
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main Ethernet Management Controller Interfaces Run
         :param line: string of arguments passed in
         :type line: str.
         """
-
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             ident_subparser = False
             for cmnd in __subparsers__:
@@ -107,6 +112,7 @@ class EthernetCommand():
                 (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except:
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -117,19 +123,20 @@ class EthernetCommand():
             data = self.get_data(options)
             get_data = True
             for inst in data:
-                if 'ethernetinterface' in inst.lower() or 'ethernetnetworkinterface' \
-                        in inst.lower():
+                if 'ethernetinterface' in inst.lower() or 'ethernetnetworkinterface' in inst.lower():
                     for path in data[inst]:
-                        if 'managers' in path.lower():  # only process managers interfaces
-                            if (options.enable_nic or options.disable_nic):
+                        if 'managers/1/ethernetinterfaces/1' in path.lower() or 'managers/1/ethernetnetworkinterfaces/1' in path.lower():  # only process managers interfaces
+                            if options.enable_nic or options.disable_nic:
                                 get_data = False
                                 self.enable_disable_nics(data[inst][path], options)
 
-                            if (options.network_ipv4 or options.network_ipv6 or \
-                                options.name_servers) and 'virtual' not in \
+                            if (options.network_ipv4 or options.network_ipv6 or
+                                options.nameservers or options.proxy) and 'virtual' not in \
                                     data[inst][path]['Name'].lower():
                                 get_data = False
                                 self.configure_static_settings(data[inst][path], options)
+                                if options.proxy:
+                                    return ReturnCodes.SUCCESS
             if get_data:
                 self.output_data(data, options, get_data)
             else:
@@ -147,8 +154,6 @@ class EthernetCommand():
             self.save = False
             self.load = True
             self.load_main_function(options)
-        else:
-            raise InvalidCommandLineErrorOPTS("")
 
         return ReturnCodes.SUCCESS
 
@@ -277,13 +282,15 @@ class EthernetCommand():
         if options.network_ipv4:
             usr_data = re.split('[, ]', options.network_ipv4)
             if len(usr_data) > 2:
-                data['IPv4Addresses'][0] = {'Address': usr_data[0], \
+                data['IPv4Addresses'][0] = {'Address': usr_data[0],
                                             'Gateway': usr_data[1], 'SubnetMask': usr_data[2]}
                 data['DHCPv4'].update({'DHCPEnabled': False})
                 data['Oem'][self.rdmc.app.typepath.defs.oemhp]['DHCPv4'].update({'Enabled': False})
             else:
                 raise InvalidCommandLineErrorOPTS("An invalid number of arguments provided to "
                                                   " quick networking configuration. Check \'--network_ipv4\' entry.")
+        else:
+            del data['IPv4Addresses']
 
         if options.network_ipv6:
             usr_data = re.split('[, ]', options.network_ipv6)
@@ -296,28 +303,100 @@ class EthernetCommand():
             else:
                 raise InvalidCommandLineErrorOPTS("An invalid number of arguments provided to "
                                                   " quick networking configuration. Check \'--network_ipv4\' entry.")
+        else:
+            del data['IPv6Addresses']
 
-        if options.name_servers:
-            usr_data = re.split('[, ]', options.name_servers)
-            for elem in usr_data:
-                oem_ipv4 = data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv4']
-                oem_ipv6 = data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv6']
-                if "::" in elem:
-                    tmp = oem_ipv6['DNSServers']
-                    if elem not in tmp:
-                        tmp.append(elem)
-                        oem_ipv6['DNSServers'] = tmp
-                elif "." in elem:
-                    tmp = oem_ipv4['DNSServers']
-                    if elem not in tmp:
-                        tmp.append(elem)
-                        oem_ipv4['DNSServers'] = tmp
-                tmp = data['NameServers']
-                tmp.append(elem)
-                data['NameServers'] = tmp
-                tmp = data['StaticNameServers']
-                tmp.append(elem)
-                data['StaticNameServers'] = tmp
+        if options.nameservers:
+            usr_data = re.split('[, ]', options.nameservers)
+            if len(usr_data) <= 2:
+                for elem in usr_data:
+                    oem_ipv4 = data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv4']
+                    oem_ipv6 = data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv6']
+                    if "::" in elem:
+                        tmp = oem_ipv6['DNSServers']
+                        if elem not in tmp:
+                            tmp.append(elem)
+                            oem_ipv6['DNSServers'] = tmp
+                    elif "." in elem:
+                        tmp = oem_ipv4['DNSServers']
+                        if elem not in tmp:
+                            tmp.append(elem)
+                            oem_ipv4['DNSServers'] = tmp
+                    # tmp = data['NameServers']
+                    # tmp.append(elem)
+                    # data['NameServers'] = tmp
+                    # tmp = data['StaticNameServers']
+                    tmp = list()
+                    tmp.append(elem)
+                    data['StaticNameServers'] = tmp
+            else:
+                raise InvalidCommandLineErrorOPTS("Name Servers argument has to be less than or equal to 2")
+        else:
+            del data['StaticNameServers']
+            del data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv4']['DNSServers']
+            del data['Oem'][self.rdmc.app.typepath.defs.oemhp]['IPv6']['DNSServers']
+
+        if options.proxy != 'None':
+            body = dict()
+            body['Oem'] = {}
+            body['Oem']['Hpe'] = {}
+            body['Oem']['Hpe']['WebProxyConfiguration'] = {}
+            proxy_body = body['Oem']['Hpe']['WebProxyConfiguration']
+            proxy_body['ProxyServer'] = None
+            proxy_body['ProxyUserName'] = None
+            proxy_body['ProxyPassword'] = None
+            if 'https' in options.proxy:
+                proxy_body['ProxyPort'] = 443
+            else:
+                proxy_body['ProxyPort'] = 80
+            if '@' in options.proxy:
+                proxy = options.proxy.split('@')
+                proxy_usr_pass = proxy[0]
+                proxy_srv_port = proxy[1]
+                if '//' in proxy_usr_pass:
+                    proxy_usr_pass = proxy_usr_pass.split('//')[1]
+                if ':' in proxy_srv_port:
+                    proxy = proxy_srv_port.split(':')
+                    proxy_body['ProxyServer'] = proxy[0]
+                    proxy_body['ProxyPort'] = int(proxy[1])
+                else:
+                    proxy_body['ProxyServer'] = proxy_srv_port
+                if ':' in proxy_usr_pass:
+                    proxy = proxy_usr_pass.split(':')
+                    proxy_body['ProxyPassword'] = proxy[1]
+                    proxy_body['ProxyUserName'] = proxy[0]
+                else:
+                    proxy_body['ProxyUserName'] = proxy_usr_pass
+            else:
+                proxy_srv_port = options.proxy
+                if '//' in proxy_srv_port:
+                    proxy_srv_port = proxy_srv_port.split('//')[1]
+                if ':' in proxy_srv_port:
+                    proxy = proxy_srv_port.split(':')
+                    proxy_body['ProxyServer'] = proxy[0]
+                    proxy_body['ProxyPort'] = int(proxy[1])
+                else:
+                    proxy_body['ProxyServer'] = proxy_srv_port
+            path = self.rdmc.app.getidbytype('NetworkProtocol.')
+
+            if path and body:
+                self.rdmc.ui.printer("Enabling Proxy configuration...\n", verbose_override=True)
+                self.rdmc.app.patch_handler(path[0], body, service=False, silent=False)
+        else:
+            body = dict()
+            body['Oem'] = {}
+            body['Oem']['Hpe'] = {}
+            body['Oem']['Hpe']['WebProxyConfiguration'] = {}
+            proxy_body = body['Oem']['Hpe']['WebProxyConfiguration']
+            proxy_body['ProxyServer'] = ""
+            proxy_body['ProxyPort'] = None
+            proxy_body['ProxyUserName'] = ""
+            proxy_body['ProxyPassword'] = None
+            path = self.rdmc.app.getidbytype('NetworkProtocol.')
+
+            if path and body:
+                self.rdmc.ui.printer("Clearing Proxy configuration...\n", verbose_override=True)
+                self.rdmc.app.patch_handler(path[0], body, service=False, silent=False)
 
         json_traversal_delete_empty(data, None, None)
 
@@ -328,6 +407,8 @@ class EthernetCommand():
         and iLO reset after completion of all post and patch commands.
         :param options: command line options
         :type options: attribute
+        :param data: data
+        :type data: optional
         """
 
         if self.rdmc.app.redfishinst.is_redfish:
@@ -335,8 +416,8 @@ class EthernetCommand():
         else:
             eth_type = 'ethernetnetworkinterface.'
 
-        linking_dict = {'manager_interfaces': eth_type, 'systems_interfaces': eth_type, \
-                        'manager_network_services': 'networkprotocol.', 'ilo_date_time': \
+        linking_dict = {'manager_interfaces': eth_type, 'systems_interfaces': eth_type,
+                        'manager_network_services': 'networkprotocol.', 'ilo_date_time':
                             'datetime.'}
 
         if not data:
@@ -344,13 +425,13 @@ class EthernetCommand():
             try:
                 if options.encryption:
                     with open(self.eth_file, 'rb') as file_handle:
-                        data = json.loads(Encryption().decrypt_file(file_handle.read(), \
+                        data = json.loads(Encryption().decrypt_file(file_handle.read(),
                                                                     options.encryption))
                 else:
                     with open(self.eth_file, 'rb') as file_handle:
                         data = json.loads(file_handle.read())
             except:
-                raise InvalidFileInputError("Invalid file formatting found. Verify the file has a " \
+                raise InvalidFileInputError("Invalid file formatting found. Verify the file has a "
                                             "valid JSON format.")
 
         for ilotype, subsect in data.items():
@@ -363,18 +444,18 @@ class EthernetCommand():
                     if 'managers' in _path.lower():
                         self.load_ethernet_aux(_type, _path, data[ilotype][_path])
                     elif 'systems' in _path.lower():
-                        self.rdmc.ui.printer("Systems Ethernet Interfaces \'%s\' " \
-                                             "cannot be modified.\n" % _path)
+                        self.rdmc.ui.warn("Systems Ethernet Interfaces \'%s\' " \
+                                          "cannot be modified." % _path)
                         continue
                 elif 'datetime' in _type.lower():
-                    if 'StaticNTPServers' in subsect.get(_path).keys():
+                    if 'StaticNTPServers' in list(subsect.get(_path).keys()):
                         # must set NTP Servers to static in OEM then reset iLO for StaticNTPServers
                         # property to appear in iLODateTime
                         if self.rdmc.app.redfishinst.is_redfish:
                             eth_config_type = 'ethernetinterface'
                         else:
                             eth_config_type = 'ethernetnetworkinterface'
-                        for key in data.keys():
+                        for key in list(data.keys()):
                             if key.split('.')[0].lower() == eth_config_type:
                                 eth_config_type = key
                                 for _path in data[eth_config_type]:
@@ -395,8 +476,8 @@ class EthernetCommand():
                                         except KeyError:
                                             self.rdmc.ui.printer("Unable to configure " \
                                                                  "\'UseNTPServers\' for \'%s\'.\n" % _path)
-                                        self.rdmc.ui.printer('iLO must be reset in order for ' \
-                                                             'changes to static network time protocol servers to ' \
+                                        self.rdmc.ui.printer('iLO must be reset in order for '
+                                                             'changes to static network time protocol servers to '
                                                              'take effect.\n')
 
     def load_ethernet_aux(self, _type, _path, ethernet_data):
@@ -405,9 +486,9 @@ class EthernetCommand():
         :type _type: string
         :param _path: URI path to be patched.
         :type _path: string
-        :param eth_data: JSON containing the ethernet instance (and valid, associated
+        :param ethernet_data: JSON containing the ethernet instance (and valid, associated
                          properties) to be patched.
-        :type eth_data: JSON
+        :type ethernet_data: JSON
 
         """
 
@@ -442,7 +523,7 @@ class EthernetCommand():
 
         ident_name = curr_sel.dict.get('Name')
         ident_id = curr_sel.dict.get('Id')
-        # ENABLING ETHERNET INTEFACE SECTION
+        # ENABLING ETHERNET INTERFACE SECTION
         try:
             # Enable the Interface if called for and not already enabled
             if ethernet_data.get('InterfaceEnabled') and not \
@@ -454,8 +535,8 @@ class EthernetCommand():
             elif not ethernet_data.get('InterfaceEnabled') and not \
                     curr_sel.dict.get('InterfaceEnabled'):
                 self.rdmc.app.patch_handler(_path, {"InterfaceEnabled": False}, silent=True)
-                self.rdmc.ui.printer("NIC Interface Disabled. All additional configurations "
-                                     "omitted.\n")
+                self.rdmc.ui.warn("NIC Interface Disabled. All additional configurations "
+                                  "omitted.")
                 return
         except (KeyError, NameError, TypeError, AttributeError):
             # check OEM for NICEnabled instead
@@ -474,15 +555,15 @@ class EthernetCommand():
         # performing any other operations if the interface can not be set.
 
         # END ENABLING ETHERNET INTEFACE SECTION
-        # ---------------
+        # ---------------------------------------
         # DETERMINE DHCPv4 and DHCPv6 States and associated flags
 
-        if 'NICSupportsIPv6' in curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp].keys():
+        if 'NICSupportsIPv6' in list(curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp].keys()):
             support_ipv6 = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['NICSupportsIPv6']
 
         # obtain DHCPv4 Config and OEM
         try:
-            if 'DHCPv4' in curr_sel.dict.keys() and 'DHCPv4' in ethernet_data.keys():
+            if 'DHCPv4' in list(curr_sel.dict.keys()) and 'DHCPv4' in list(ethernet_data.keys()):
                 dhcpv4curr = copy.deepcopy(curr_sel.dict['DHCPv4'])
                 dhcpv4conf = copy.deepcopy(ethernet_data['DHCPv4'])
         except (KeyError, NameError, TypeError, AttributeError):
@@ -502,11 +583,11 @@ class EthernetCommand():
 
         try:
             if support_ipv6:
-                if 'DHCPv6' in curr_sel.dict.keys() and 'DHCPv6' in ethernet_data.keys():
+                if 'DHCPv6' in list(curr_sel.dict.keys()) and 'DHCPv6' in list(ethernet_data.keys()):
                     dhcpv6curr = copy.deepcopy(curr_sel.dict['DHCPv6'])
                     dhcpv6conf = copy.deepcopy(ethernet_data['DHCPv6'])
             else:
-                self.rdmc.ui.warn("NIC Does not support IPv6.\n")
+                self.rdmc.ui.warn("NIC Does not support IPv6.")
         except (KeyError, NameError, TypeError, AttributeError):
             errors.append("Unable to find Redfish DHCPv6 Settings.\n")
         finally:
@@ -538,8 +619,8 @@ class EthernetCommand():
             try:
                 if oem_dhcpv4conf.get('Enabled') and not curr_sel.dict \
                         ['Oem'][self.rdmc.app.typepath.defs.oemhp]['DHCPv4']['Enabled']:
-                    self.rdmc.app.patch_handler(_path, {'Oem': { \
-                        self.rdmc.app.typepath.defs.oemhp: {"DHCPv4": {"DHCPEnabled": True}}}}, \
+                    self.rdmc.app.patch_handler(_path, {'Oem': {
+                        self.rdmc.app.typepath.defs.oemhp: {"DHCPv4": {"DHCPEnabled": True}}}},
                                                 silent=True)
                     self.rdmc.ui.printer("DHCP Enabled.\n")
                     if 'IPv4Addresses' in ethernet_data:
@@ -557,19 +638,19 @@ class EthernetCommand():
         try:
             # if the ClientIDType is custom and we are missing the ClientID then this property can
             # not be set.
-            if 'ClientIdType' in dhcpv4conf.keys():
-                if dhcpv4conf['ClientIdType'] == 'Custom' and 'ClientID' not in dhcpv4conf.keys():
+            if 'ClientIdType' in list(dhcpv4conf.keys()):
+                if dhcpv4conf['ClientIdType'] == 'Custom' and 'ClientID' not in list(dhcpv4conf.keys()):
                     del ethernet_data['DHCPv4']['ClientIdType']
-            elif 'ClientIdType' in oem_dhcpv4conf.keys():
+            elif 'ClientIdType' in list(oem_dhcpv4conf.keys()):
                 if oem_dhcpv4conf['ClientIdType'] == 'Custom' and 'ClientID' not in \
-                        oem_dhcpv4conf.keys():
+                        list(oem_dhcpv4conf.keys()):
                     del ethernet_data['Oem'][self.rdmc.app.typepath.defs.oemhp]['DHCPv4'] \
                         ['ClientIdType']
         except (KeyError, NameError, TypeError, AttributeError):
             try:
-                if 'ClientIdType' in oem_dhcpv4conf.keys():
+                if 'ClientIdType' in list(oem_dhcpv4conf.keys()):
                     if oem_dhcpv4conf['ClientIdType'] == 'Custom' and 'ClientID' not in \
-                            oem_dhcpv4conf.keys():
+                            list(oem_dhcpv4conf.keys()):
                         del ethernet_data['Oem'][self.rdmc.app.typepath.defs.oemhp]['DHCPv4'] \
                             ['ClientIdType']
             except (KeyError, NameError) as exp:
@@ -626,7 +707,7 @@ class EthernetCommand():
             try:
                 if oem_dhcpv4conf.get('UseDNSServers'):
                     # del_sections('DNSServers', ethernet_data)
-                    json_traversal_delete_empty(data=ethernet_data, \
+                    json_traversal_delete_empty(data=ethernet_data,
                                                 remove_list=['DNSServers'])
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
@@ -638,7 +719,7 @@ class EthernetCommand():
         finally:
             try:
                 if oem_dhcpv4conf.get('UseWINSServers'):
-                    json_traversal_delete_empty(data=ethernet_data, \
+                    json_traversal_delete_empty(data=ethernet_data,
                                                 remove_list=['WINServers', 'WINSRegistration'])
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
@@ -651,7 +732,7 @@ class EthernetCommand():
         finally:
             try:
                 if oem_dhcpv4conf.get('UseStaticRoutes'):
-                    json_traversal_delete_empty(data=ethernet_data, \
+                    json_traversal_delete_empty(data=ethernet_data,
                                                 remove_list=['StaticRoutes'])
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
@@ -659,14 +740,14 @@ class EthernetCommand():
         try:
             # if using DHCPv4, remove static addresses
             if dhcpv4conf.get('DHCPEnabled'):
-                json_traversal_delete_empty(data=ethernet_data, \
+                json_traversal_delete_empty(data=ethernet_data,
                                             remove_list=['IPv4Addresses', 'IPv4StaticAddresses'])
         except (KeyError, NameError, TypeError, AttributeError):
             pass
         finally:
             try:
                 if oem_dhcpv4conf.get('Enabled'):
-                    json_traversal_delete_empty(data=ethernet_data, \
+                    json_traversal_delete_empty(data=ethernet_data,
                                                 remove_list=['IPv4Addresses', 'IPv4StaticAddresses'])
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
@@ -674,14 +755,14 @@ class EthernetCommand():
         try:
             # if not using DHCPv6, remove static addresses from payload
             if dhcpv6conf.get('OperatingMode') == 'Disabled':
-                json_traversal_delete_empty(data=ethernet_data, \
+                json_traversal_delete_empty(data=ethernet_data,
                                             remove_list=['IPv6Addresses', 'IPv6StaticAddresses'])
         except (KeyError, NameError, TypeError, AttributeError):
             pass
         finally:
             try:
                 if not oem_dhcpv6conf.get('StatefulModeEnabled'):
-                    json_traversal_delete_empty(data=ethernet_data, \
+                    json_traversal_delete_empty(data=ethernet_data,
                                                 remove_list=['IPv6Addresses', 'IPv6StaticAddresses'])
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
@@ -704,14 +785,14 @@ class EthernetCommand():
             errors.append("iLO Responded with the following errors setting DHCP: %s.\n" % excp)
 
         try:
-            if 'AutoNeg' not in ethernet_data.keys():
-                json_traversal_delete_empty(data=ethernet_data, \
+            if 'AutoNeg' not in list(ethernet_data.keys()):
+                json_traversal_delete_empty(data=ethernet_data,
                                             remove_list=['FullDuplex', 'SpeedMbps'])
 
             # if Full Duplex exists, check if FullDuplexing enabled. If so,
             # remove Speed setting.
-            elif 'FullDuplex' in ethernet_data.keys():
-                json_traversal_delete_empty(data=ethernet_data, \
+            elif 'FullDuplex' in list(ethernet_data.keys()):
+                json_traversal_delete_empty(data=ethernet_data,
                                             remove_list=['FullDuplex', 'SpeedMbps'])
         except (KeyError, NameError) as exp:
             errors.append("Unable to remove property %s.\n" % exp)
@@ -743,7 +824,10 @@ class EthernetCommand():
 
         try:
             if eth_data:
-                tmp = self.rdmc.app.patch_handler(_path, eth_data, silent=True)
+                # eth_data = json.dumps(eth_data)
+                # import ast
+                # eth_data = ast.literal_eval(eth_data)
+                tmp = self.rdmc.app.patch_handler(_path, eth_data, silent=False, service=False)
                 if tmp.status == 400:
                     raise InvalidPropertyError(tmp.dict['error'][next(iter(tmp.dict['error']))])
             else:
@@ -767,7 +851,7 @@ class EthernetCommand():
                         eth_data.pop(key)
                     except (AttributeError, KeyError, StopIteration):
                         try:
-                            drill_to_data(eth_data, list_o_keys=json_traversal(eth_data, key, \
+                            drill_to_data(eth_data, list_o_keys=json_traversal(eth_data, key,
                                                                                ret_key_path=True))
                         except:
                             errors.append("Unable to find \'%s\'" % key)
@@ -804,7 +888,7 @@ class EthernetCommand():
         parser.add_argument(
             '--encryption',
             dest='encryption',
-            help="Optionally include this flag to encrypt/decrypt a file" \
+            help="Optionally include this flag to encrypt/decrypt a file"
                  " using the key provided.",
             default=None
         )
@@ -830,55 +914,65 @@ class EthernetCommand():
         subcommand_parser = customparser.add_subparsers(dest='command')
         default_parser = subcommand_parser.add_parser(
             'default',
-            help="""Obtain iLO management networking interface details and configure basic'\
-            'properties such as enablement/disablement, domain name servers, ipv4 and ipv6 '\
-            'networking configuration.""",
+            help="Obtain iLO management networking interface details and configure basic "
+            "properties such as enablement/disablement, domain name servers, ipv4 and ipv6 "
+            "networking configuration.",
             formatter_class=RawDescriptionHelpFormatter
         )
         default_parser.add_argument(
             '--enable_nic',
             dest='enable_nic',
-            help="""Enable network interfaces. List each interface to be enabled by ID: "\
-            "--enable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "\
-            "configuration.""",
+            help="Enable network interfaces. List each interface to be enabled by ID: "
+            "ethernet --enable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
+            "configuration.",
             type=str,
             default=None,
         )
         default_parser.add_argument(
             '--disable_nic',
             dest='disable_nic',
-            help="""Disable network interfaces. List each interface to be disabled by ID: "\
-            "--disable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
-            "configuration.""",
+            help="Disable network interfaces. List each interface to be disabled by ID: "
+            "ethernet --disable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
+            "configuration.",
             type=str,
             default=None,
         )
         default_parser.add_argument(
             '--nameservers',
-            dest='name_servers',
-            help="""Configure physcial and shared management network interface domain name "\
-            "servers (DNS) in a list as follows: <DNS1> <DNS2> "\
-            "Ex: --name_servers 8.8.8.8, 1.1.1.1. Ex: --nameservers dns_resolver1.aws.com, " \
-            "dns_resolver2.aws.com""",
+            dest='nameservers',
+            help="Configure physical and shared management network interface domain name "
+            "servers (DNS) in a list as follows: <DNS1> <DNS2> "
+            "Ex: ethernet --nameservers 8.8.8.8,1.1.1.1, ethernet --nameservers dns_resolver1.aws.com, "
+            "dns_resolver2.aws.com",
+            default=None,
+        )
+        default_parser.add_argument(
+            '--proxy',
+            dest='proxy',
+            type=str,
+            help="Configure or clear proxy server for the network "
+            "Ex:\nTo set proxy\nethernet --proxy http://proxy.abc.net:8080 or \n"
+            "To clear proxy settings\n"
+            "ethernet --proxy None",
             default=None,
         )
         default_parser.add_argument(
             '--network_ipv4',
             dest='network_ipv4',
-            help="""Configure physical and shared management network interface static IPv4 "\
-            "settings. Settings provided in a list as follows: "\
-            "<ipv4 address>, <ipv4 gateway>, <ipv4 network mask>. Ex: --network_ipv4 " \
-            "192.168.1.10, 192.168.1.1, 255.255.0.0""",
+            help="Configure physical and shared management network interface static IPv4 "
+            "settings. Settings provided in a list as follows: "
+            "<ipv4 address>, <ipv4 gateway>, <ipv4 network mask>. Ex: ethernet --network_ipv4 "
+            "192.168.1.10, 192.168.1.1, 255.255.0.0",
             default=None,
         )
         default_parser.add_argument(
             '--network_ipv6',
             dest='network_ipv6',
-            help="""Configure physical and shared management network interface static IPv6 "\
-            "settings. Settings provided in a list as follows: "\
-            "<ipv6 address>, <ipv6 gateway>, <ipv6 network mask>. Ex: --network_ipv6 " \
-            "0:0:0:0:ffff:c0a8:10e, 0:0:0:0:0:ffff:c0a8:101, 64. **Note**: IPv6 network mask"\
-            "is restricted to '64' bits.""",
+            help="Configure physical and shared management network interface static IPv6 "
+            "settings. Settings provided in a list as follows: "
+            "<ipv6 address>, <ipv6 gateway>, <ipv6 network mask>. Ex: ethernet --network_ipv6 "
+            "0:0:0:0:ffff:c0a8:10e, 0:0:0:0:0:ffff:c0a8:101, 64. **Note**: IPv6 network mask"
+            "is restricted to '64' bits.",
             default=None,
         )
         default_parser.add_argument(
@@ -886,8 +980,8 @@ class EthernetCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the" \
-                 " displayed output to JSON format. Preserving the JSON data" \
+            help="Optionally include this flag if you wish to change the"
+                 " displayed output to JSON format. Preserving the JSON data"
                  " structure makes the information easier to parse.",
             default=False
         )
@@ -896,11 +990,10 @@ class EthernetCommand():
         save_parser = subcommand_parser.add_parser(
             __subparsers__[0],
             help=save_help,
-            description=save_help + '\n\texample: ethernet save' \
-                                    '\n\n\tSave iLO ethernet network management interface settings to a non-default file ' \
-                                    'name.\n\texample: ethernet save -f networking.json'
-                                    '\n\n\tSave an encrypted iLO networking configuration file\n\texample: ethernet save ' \
-                                    '--encryption <ENCRYPTION_KEY>',
+            description='{0}\n\texample: ethernet save\n\n\tSave iLO ethernet network management interface '
+                        'settings to a non-default file name.\n\tEx: ethernet save -f networking.json\n\n\tSave '
+                        'an encrypted iLO networking configuration file\n\texample: ethernet save --encryption '
+                        '<ENCRYPTION_KEY>'.format(save_help),
             formatter_class=RawDescriptionHelpFormatter
         )
         self.cmdbase.add_login_arguments_group(save_parser)
@@ -909,11 +1002,10 @@ class EthernetCommand():
         load_parser = subcommand_parser.add_parser(
             __subparsers__[1],
             help=load_help,
-            description=load_help + '\n\texample: ethernet load' \
-                                    '\n\n\tLoad iLO ethernet networking management interface settings from a non-default ' \
-                                    'file name.\n\texample: ethernet load -f networking.json' \
-                                    '\n\n\tLoad an encrypted iLO networking configuration file\n\texample: ethernet load ' \
-                                    '--encryption <ENCRYPTION KEY>',
+            description='{0}\n\texample: ethernet load\n\n\tLoad iLO ethernet networking management interface '
+                        'settings from a non-default file name.\n\tEx: ethernet load -f '
+                        'networking.json\n\n\tLoad an encrypted iLO networking configuration file\n\texample: '
+                        'ethernet load --encryption <ENCRYPTION KEY>'.format(load_help),
             formatter_class=RawDescriptionHelpFormatter
         )
         self.cmdbase.add_login_arguments_group(load_parser)

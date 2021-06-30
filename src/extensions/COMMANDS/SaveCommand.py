@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,22 +24,25 @@ from collections import OrderedDict
 import redfish.ris
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-                            InvalidCommandLineError, InvalidFileFormattingError, Encryption
+    InvalidCommandLineError, InvalidFileFormattingError, Encryption, iLORisCorruptionError
 
-#default file name
+# default file name
 __filename__ = 'ilorest.json'
+
 
 class SaveCommand():
     """ Constructor """
+
     def __init__(self):
         self.ident = {
-            'name':'save',
-            'usage':'save [OPTIONS]\n\n\tRun to save a selected type to a file'
-                    '\n\texample: save --selector HpBios.\n\n\tChange the default '
-                    'output filename\n\texample: save --selector HpBios. -f '
-                    'output.json\n\n\tTo save multiple types in one file\n\texample: '
-                    'save --multisave Bios.,ComputerSystem.',
-            'summary':"Saves the selected type's settings to a file.",
+            'name': 'save',
+            'usage': None,
+            'description': 'Run to save a selected type to a file'
+                     '\n\texample: save --selector HpBios.\n\n\tChange the default '
+                     'output filename\n\texample: save --selector HpBios. -f '
+                     'output.json\n\n\tTo save multiple types in one file\n\texample: '
+                     'save --multisave Bios.,ComputerSystem.',
+            'summary': "Saves the selected type's settings to a file.",
             'aliases': [],
             'auxcommands': ["SelectCommand"]
         }
@@ -48,16 +51,23 @@ class SaveCommand():
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main save worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -70,7 +80,7 @@ class SaveCommand():
         self.rdmc.ui.printer("Saving configuration...\n")
         if options.filter:
             try:
-                if (str(options.filter)[0] == str(options.filter)[-1])\
+                if (str(options.filter)[0] == str(options.filter)[-1]) \
                         and str(options.filter).startswith(("'", '"')):
                     options.filter = options.filter[1:-1]
 
@@ -78,11 +88,11 @@ class SaveCommand():
                 sel = sel.strip()
                 val = val.strip()
             except:
-                raise InvalidCommandLineError("Invalid filter" \
-                  " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError("Invalid filter"
+                                              " parameter format [filter_attribute]=[filter_value]")
 
-            instances = self.rdmc.app.select(selector=self.rdmc.app.selector, \
-                                                fltrvals=(sel, val), path_refresh=options.ref)
+            instances = self.rdmc.app.select(selector=self.rdmc.app.selector,
+                                             fltrvals=(sel, val), path_refresh=options.ref)
             contents = self.saveworkerfunction(instances=instances)
         else:
             contents = self.saveworkerfunction()
@@ -95,22 +105,23 @@ class SaveCommand():
         if not contents:
             raise redfish.ris.NothingSelectedError
         else:
-            #TODO: Maybe add this to the command. Not sure we use it elsewhere in the lib
+            # TODO: Maybe add this to the command. Not sure we use it elsewhere in the lib
             contents = self.add_save_file_header(contents)
 
         if options.encryption:
             with open(self.filename, 'wb') as outfile:
-                outfile.write(Encryption().encrypt_file(json.dumps(contents, \
-                                indent=2, cls=redfish.ris.JSONEncoder), options.encryption))
+                outfile.write(Encryption().encrypt_file(json.dumps(contents,
+                                                                   indent=2, cls=redfish.ris.JSONEncoder),
+                                                        options.encryption))
         else:
             with open(self.filename, 'w') as outfile:
-                outfile.write(json.dumps(contents, indent=2, cls=redfish.ris.JSONEncoder, \
-                                                                            sort_keys=True))
+                outfile.write(json.dumps(contents, indent=2, cls=redfish.ris.JSONEncoder,
+                                         sort_keys=True))
         self.rdmc.ui.printer("Configuration saved to: %s\n" % self.filename)
 
         self.cmdbase.logout_routine(self, options)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def saveworkerfunction(self, instances=None):
@@ -122,10 +133,14 @@ class SaveCommand():
 
         content = self.rdmc.app.getprops(insts=instances)
         try:
-            contents = [{val[self.rdmc.app.typepath.defs.hrefstring]:val} for val in content]
+            contents = [{val[self.rdmc.app.typepath.defs.hrefstring]: val} for val in content]
         except KeyError:
-            contents = [{val['links']['self'][self.rdmc.app.typepath.defs.hrefstring]:val} \
-                                                                            for val in content]
+            try:
+                contents = [{val['links']['self'][self.rdmc.app.typepath.defs.hrefstring]: val} \
+                        for val in content]
+            except KeyError:
+                raise iLORisCorruptionError("iLO Database seems to be corrupted. Please check. Reboot the server to "
+                                            "restore\n")
         type_string = self.rdmc.app.typepath.defs.typestring
 
         templist = list()
@@ -186,7 +201,7 @@ class SaveCommand():
 
         self.cmdbase.login_select_validation(self, options)
 
-        #filename validations and checks
+        # filename validations and checks
         self.filename = None
 
         if options.filename and len(options.filename) > 1:
@@ -230,8 +245,8 @@ class SaveCommand():
             '-f',
             '--filename',
             dest='filename',
-            help="Use this flag if you wish to use a different filename than the default one. "\
-            "The default filename is %s." % __filename__,
+            help="Use this flag if you wish to use a different filename than the default one. " \
+                 "The default filename is %s." % __filename__,
             action="append",
             default=None,
         )
@@ -239,28 +254,28 @@ class SaveCommand():
         customparser.add_argument(
             '--selector',
             dest='selector',
-            help="Optionally include this flag to select a type to run the current command on. "\
-            "Use this flag when you wish to select a type without entering another command, "\
-            "or if you wish to work with a type that is different from the one currently "\
-            "selected.",
+            help="Optionally include this flag to select a type to run the current command on. " \
+                 "Use this flag when you wish to select a type without entering another command, " \
+                 "or if you wish to work with a type that is different from the one currently " \
+                 "selected.",
             default=None,
         )
         customparser.add_argument(
             '--multisave',
             dest='multisave',
-            help="Optionally include this flag to save multiple types to a single file. "\
-            "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
+            help="Optionally include this flag to save multiple types to a single file. " \
+                 "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
             default='',
         )
         customparser.add_argument(
             '--filter',
             dest='filter',
-            help="Optionally set a filter value for a filter attribute. This uses the provided "\
-            "filter for the currently selected type. Note: Use this flag to narrow down your "\
-            "results. For example, selecting a common type might return multiple objects that "\
-            "are all of that type. If you want to modify the properties of only one of those "\
-            "objects, use the filter flag to narrow down results based on properties."\
-            "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            help="Optionally set a filter value for a filter attribute. This uses the provided " \
+                 "filter for the currently selected type. Note: Use this flag to narrow down your " \
+                 "results. For example, selecting a common type might return multiple objects that " \
+                 "are all of that type. If you want to modify the properties of only one of those " \
+                 "objects, use the filter flag to narrow down results based on properties." \
+                 "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None,
         )
         customparser.add_argument(
@@ -268,9 +283,9 @@ class SaveCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the displayed output to "\
-            "JSON format. Preserving the JSON data structure makes the information easier to "\
-            "parse.",
+            help="Optionally include this flag if you wish to change the displayed output to " \
+                 "JSON format. Preserving the JSON data structure makes the information easier to " \
+                 "parse.",
             default=False,
         )
         customparser.add_argument(

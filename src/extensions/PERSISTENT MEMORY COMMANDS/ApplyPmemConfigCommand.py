@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,8 +60,8 @@ class ApplyPmemConfigCommand():
     def __init__(self):
         self.ident = {
             'name':'applypmmconfig',
-            'usage':"applypmmconfig [-h | --help] [-C | --pmmconfig=(configID)] " "[-L | --list] "
-                    "[-f | --force]\n\n\tApplies a pre-defined configuration to PMM\n"
+            'usage': None,
+            'description':"Applies a pre-defined configuration to PMM\n"
                     "\texample: applypmmconfig --pmmconfig MemoryMode\n",
             'summary':"Applies a pre-defined configuration to PMM.",
             'aliases': [],
@@ -115,17 +115,24 @@ class ApplyPmemConfigCommand():
             default=False
         )
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """
         Wrapper function for new command main function
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         LOGGER.info("PMM Apply Pre-Defined Configuration: %s", self.ident['name'])
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
@@ -183,7 +190,7 @@ class ApplyPmemConfigCommand():
         elif options.config:
             # Raise exception if server is in POST
             if RestHelpers(rdmcObject=self.rdmc).in_post():
-                raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
+                raise NoContentsFoundForOperationError("Unable to retrieve resources - "
                                                        "server might be in POST or powered off")
             self.apply_predefined_config(options)
 
@@ -211,12 +218,12 @@ class ApplyPmemConfigCommand():
         """
         # If Memory Chunks exist, display Existing configuration warning
         if memory_chunks:
-            self.rdmc.ui.warn("Existing configuration found. Proceeding with applying a new "
+            self.rdmc.ui.printer("Warning: Existing configuration found. Proceeding with applying a new "
                   "configuration will result in overwriting the current configuration and "
                   "cause data loss.\n")
         # If Pending Configuration Tasks exist, display warning
         if memory_chunk_tasks:
-            self.rdmc.ui.warn("Pending configuration tasks found. Proceeding with applying "
+            self.rdmc.ui.printer("Warning: Pending configuration tasks found. Proceeding with applying "
                   "a new configuration will result in overwriting the pending "
                   "configuration tasks.\n")
         # Raise a NoChangesFoundOrMade exception when either of the above conditions exist
@@ -328,8 +335,8 @@ class ApplyPmemConfigCommand():
                     raise NoChangesFoundOrMadeError("Error occured while applying configuration")
 
         # display warning
-        self.rdmc.ui.warn("Configuration changes require reboot to take effect.\n")
+        self.rdmc.ui.printer("Configuration changes require reboot to take effect.\n")
 
         # display pending configuration
-        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ), \
+        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ),
                                                                           dict(json=False)))

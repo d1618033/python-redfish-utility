@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,36 +24,39 @@ class DriveSanitizeCommand():
     """ Drive erase/sanitize command """
     def __init__(self):
         self.ident = {
-            'name':'drivesanitize',\
-            'usage':'drivesanitize [OPTIONS]\n\n\tTo sanitize a physical drive ' \
-                'by index.\n\texample: drivesanitize "1I:1:1" --controller=1\n\n\tTo' \
-                ' sanitize multiple drives by specifying location.\n\texample: ' \
-                'drivesanitize 1I:1:1,1I:1:2 --controller=1 --mediatype HDD/SSD\n\texample: drivesanitize ' \
-                '1I:1:1,1I:1:2 --controller="Slot1" --mediatype="HDD" ' \
-                'if incorrect mediatype is specified, error will generated',\
-            'summary':'Erase/Sanitize physical drive(s)',\
-            'aliases': [],\
+            'name': 'drivesanitize',
+            'usage': None,
+            'description': 'To sanitize a physical drive '
+                    'by index.\n\texample: drivesanitize "1I:1:1" --controller=1\n\n\tTo'
+                    ' sanitize multiple drives by specifying location.\n\texample: '
+                    'drivesanitize 1I:1:1,1I:1:2 --controller=1 --mediatype HDD/SSD\n\texample: drivesanitize '
+                    '1I:1:1,1I:1:2 --controller="Slot 1" --mediatype="HDD" '
+                    'if incorrect mediatype is specified, error will generated',
+            'summary': 'Erase/Sanitize physical drive(s)',
+            'aliases': [],
             'auxcommands': ["SelectCommand", "RebootCommand", "SmartArrayCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.selobj = rdmcObj.commands_dict["SelectCommand"](rdmcObj)
-        #self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -94,7 +97,7 @@ class DriveSanitizeCommand():
             if not controllist:
                 raise InvalidCommandLineError("")
         except InvalidCommandLineError:
-            raise InvalidCommandLineError("Selected controller not found in the current inventory "\
+            raise InvalidCommandLineError("Selected controller not found in the current inventory "
                                           "list.")
 
         if self.sanitizedrives(controllist, physicaldrives, controller_physicaldrives, options.mediatype, options.all):
@@ -170,9 +173,9 @@ class DriveSanitizeCommand():
                 else:
                     erase_pattern_string = "SanitizeRestrictedOverwrite"
 
-                contentsholder = {"Actions": [{"Action": "PhysicalDriveErase", \
-                            "ErasePattern": erase_pattern_string, \
-                            "PhysicalDriveList": sanitizedrivelist}], "DataGuard": "Disabled"}
+                contentsholder = {"Actions": [{"Action": "PhysicalDriveErase",
+                                               "ErasePattern": erase_pattern_string,
+                                               "PhysicalDriveList": sanitizedrivelist}], "DataGuard": "Disabled"}
 
                 self.rdmc.ui.printer("DriveSanitize path and payload: %s, %s\n" % (controller["@odata.id"], contentsholder))
 
@@ -215,8 +218,8 @@ class DriveSanitizeCommand():
         customparser.add_argument(
             '--controller',
             dest='controller',
-            help="""Use this flag to select the corresponding controller """ \
-                """using either the slot number or index.""",
+            help="Use this flag to select the corresponding controller "
+                "using either the slot number or index.",
             default=None,
         )
         customparser.add_argument(
@@ -228,9 +231,9 @@ class DriveSanitizeCommand():
         customparser.add_argument(
             '--reboot',
             dest='reboot',
-            help="""Include this flag to perform a coldboot command """ \
-                """function after completion of operations and monitor """ \
-                """sanitization.""",
+            help="Include this flag to perform a coldboot command "
+                "function after completion of operations and monitor "
+                "sanitization.",
             action="store_true",
             default=False,
         )

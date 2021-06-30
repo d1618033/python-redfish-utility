@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,15 +26,14 @@ class LogoutCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name': 'logout',\
-            'usage': 'logout\n\n\tRun to end the current session and disconnect' \
-                    ' from the server\n\texample: logout',\
-            'summary': 'Ends the current session and disconnects from the server.',\
-            'aliases': [],\
+            'name': 'logout',
+            'usage': None,
+            'description': 'Run to end the current session and disconnect'
+                     ' from the server\n\tExample: logout',
+            'summary': 'Ends the current session and disconnects from the server.',
+            'aliases': [],
             'auxcommands': []
-            #argparser=ArgumentParser()
         }
-        #self.definearguments(self.parser)
         self.cmdbase = None
         self.rdmc = None
 
@@ -48,18 +47,22 @@ class LogoutCommand():
             (_, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         self.rdmc.app.logout("")
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for main logout function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         self.rdmc.ui.printer("Logging session out.\n")
         self.logoutfunction(line)
 

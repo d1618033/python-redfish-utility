@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,31 +33,36 @@ class RawHeadCommand():
 
     def __init__(self):
         self.ident = {
-            'name': 'rawhead', \
-            'usage': 'rawhead [PATH]\n\n\tRun to to retrieve data from the ' \
-                     'passed in path\n\texample: rawhead "/redfish/v1/systems/' \
-                     '(system ID)"', \
-            'summary': 'Raw form of the HEAD command.', \
-            'aliases': [], \
+            'name': 'rawhead',
+            'usage': None,
+            'description': 'Run to to retrieve data from the '
+                     'passed in path\n\texample: rawhead "/redfish/v1/systems/'
+                     '(system ID)"',
+            'summary': 'Raw form of the HEAD command.',
+            'aliases': [],
             'auxcommands': []
         }
-        # self.definearguments(self.parser)
-        # self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw head worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -67,7 +72,7 @@ class RawHeadCommand():
         if options.path.startswith('"') and options.path.endswith('"'):
             options.path = options.path[1:-1]
 
-        results = self.rdmc.app.head_handler(options.path, silent=options.silent, \
+        results = self.rdmc.app.head_handler(options.path, silent=options.silent,
                                              service=options.service)
 
         content = None

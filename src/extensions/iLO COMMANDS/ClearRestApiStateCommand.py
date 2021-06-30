@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,33 +27,35 @@ class ClearRestApiStateCommand():
     """ Clear the rest api state of the server """
     def __init__(self):
         self.ident = {
-            'name':'clearrestapistate',\
-            'usage':'clearrestapistate [OPTIONS]\n\n\t'\
-                'Clears the persistent rest api state.\n\texample: ' \
-                'clearrestapistate\n\n\tNote: Some types such as Bios, '\
-                'Iscsi, and SmartStorageConfig will be unavailable until '\
-                'a system reboot occurs after running this command.',\
-            'summary':'Clears the persistent state of the REST API. Some '\
-            'portions of the API may not be available until after the server reboots.',\
-            'aliases': [],\
+            'name':'clearrestapistate',
+            'usage': None,
+            'description': 'Clears the persistent rest api state.\n\texample: '
+                    'clearrestapistate\n\n\tNote: Some types such as Bios, '
+                    'Iscsi, and SmartStorageConfig will be unavailable until '
+                    'a system reboot occurs after running this command.',
+            'summary':'Clears the persistent state of the REST API. Some '
+                      'portions of the API may not be available until after the server reboots.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-        #self.typepath = rdmcObj.app.typepath
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main clearrestapistate function.
 
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")

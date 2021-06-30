@@ -9,7 +9,7 @@ The Smart Array commands are designed for use with HPE Gen10 servers.
 </ul>
 </aside>
 
-### Clearcontrollerconfig command
+### Clearcontrollerconfig Command
 
 > Clearcontrollerconfig example commands:
 
@@ -57,10 +57,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -68,29 +91,29 @@ None
 #### Outputs
 None
 
-### Createlogicaldrive command
-
-<aside class="notice">
-The createlogicaldrive command requires a reboot before creating the logical drives. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
-</aside>
+### Createlogicaldrive Command
 
 > Createlogicaldrive example commands:
 
 > To create a quick logical drive run the command with the following arguments: The type of creation as quickdrive, the raid level, the number of drives to use, the type of drive to use, the drive interface type, and the drive location. Also include the `--controller` option selecting the controller the drive will be created on. See the options list for possible values of these and more.
 
 <pre>
-ilorest > <font color="#01a982">createlogicaldrive quickdrive Raid0 2 HDD SATA Internal --controller=1</font>
+ilorest > <font color="#01a982">createlogicaldrive quickdrive Raid0 1E:1:2 HDD SATA Internal --controller=1</font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
-> To create a custom logical drive run the command with the following arguments: The type of creation as customdrive, the raid level, and the physicaldrive index(s). Also include the `--controller` option selecting the controller the drive will be created on. See the options list for possible values of these and more.
+> To create a custom logical drive run the command with the following arguments: The type of creation as customdrive, the raid level, and the physicaldrive drive location. Also include the `--controller` option selecting the controller the drive will be created on. See the options list for possible values of these and more.
 
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 1,3,4,5,6 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</font>
+ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 1E:1:2 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</font>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
+
+<aside class="notice">
+The createlogicaldrive command requires a reboot before creating the logical drives. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
+</aside>
 
 #### Syntax
 
@@ -125,7 +148,7 @@ Optionally include to set the drive name (usable in custom creation only).
 
 - **--spare-drives=SPAREDRIVES**
 
-Optionally include to set the spare drives by the physical drive's index (usable in custom creation only).
+Optionally include to set the spare drives by the physical drive's drive Location (usable in custom creation only).
 
 - **--capacityGiB=CAPACITYGIB**
 
@@ -183,10 +206,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -195,11 +241,11 @@ None
 #### Outputs
 None
 
-### Deletelogicaldrive command
+### Deletelogicaldrive Command
 
 > Deletelogicaldrive example commands:
 
-> To delete multiple logical drives by index include the index of the drive you wish to delete. Also include the `--controller` option specifying the controller to use. You can specify multiple drives as well as a comma separated list.
+> To delete multiple logical drives by drive location include the drive location of the drive you wish to delete. Also include the `--controller` option specifying the controller to use. You can specify multiple drives as well as a comma separated list.
 
 <aside class="notice">
 A Volume Unique Identifier must be available to delete a logical drive. Pending drives may not be deleted.
@@ -263,10 +309,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -274,11 +343,11 @@ None
 #### Outputs
 None
 
-### Drivesanitize command
+### Drivesanitize Command
 
 > Drivesanitize example commands:
 
-> To sanitize a physical drive pass its index along with the `--controller` option to dpecify which controller to perform the operation on.
+> To sanitize a physical drive pass its drive location along with the `--controller` option to specify which controller to perform the operation on.
 
 <pre>
 ilorest > drivesanitize --controller=1 <font color="#01a982">1</font>
@@ -287,10 +356,10 @@ One or more properties were changed and will not take effect until system is res
 Sanitization will occur on the next system reboot.
 </pre>
 
-> To sanitize multiple physical drives pass the indexes as a comma separated list along with the `--controller` option to dpecify which controller to perform the operation on.
+> To sanitize multiple physical drives pass the location as a comma separated list along with the `--controller` option to dpecify which controller to perform the operation on.
 
 <pre>
-ilorest > drivesanitize --controller=1 <font color="#01a982">2,3,4</font>
+ilorest > drivesanitize --controller=<font color="#01a982">1E:1:2</font>
 Setting physical drive 1I:3:3 for sanitization
 Setting physical drive 1I:3:2 for sanitization
 Setting physical drive 1I:3:1 for sanitization
@@ -339,10 +408,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -350,7 +442,7 @@ None
 #### Outputs
 None
 
-### Factoryresetcontroller command
+### Factoryresetcontroller Command
 
 > Factoryresetcontroller example commands:
 
@@ -401,10 +493,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -413,7 +528,7 @@ None
 #### Outputs
 None
 
-### SmartArray command
+### SmartArray Command
 
 > To list all available smart array controllers run the command without arguments.
 
@@ -610,10 +725,33 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None

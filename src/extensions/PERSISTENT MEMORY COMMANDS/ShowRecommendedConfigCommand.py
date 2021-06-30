@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,12 +35,12 @@ class ShowRecommendedConfigCommand():
 
     def __init__(self):
         self.ident = {
-            'name':"showrecommendedpmmconfig",\
-            'usage':"showrecommendedpmmconfig [-h|--help]\n\n" \
-                    "\tShow recommended configurations\n" \
-                    "\texample: showrecommendedpmmconfig",\
-            'summary':"Show Recommended Configuration",\
-            'aliases': [],\
+            'name':"showrecommendedpmmconfig",
+            'usage': None,
+            'description':"Show recommended configurations\n"
+                    "\texample: showrecommendedpmmconfig",
+            'summary':"Show Recommended Configuration",
+            'aliases': [],
             'auxcommands': []
         }
         self.cmdbase = None
@@ -70,17 +70,21 @@ class ShowRecommendedConfigCommand():
             default=False
         )
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """
         Wrapper function for new command main function
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         LOGGER.info("Show Recommended Configuration: %s", self.ident['name'])
         try:
             (_, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineError("Failed to parse options")
@@ -88,7 +92,7 @@ class ShowRecommendedConfigCommand():
             raise InvalidCommandLineError("Chosen command doesn't expect additional arguments")
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "\
+            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
                                                    "server might be in POST or powered off")
         self.show_recommended_config()
 

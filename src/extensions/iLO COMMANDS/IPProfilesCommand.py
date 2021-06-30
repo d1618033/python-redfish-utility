@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,52 +44,50 @@ class IPProfilesCommand():
     """ Raw form of the get command """
     def __init__(self):
         self.ident = {
-            'name':'ipprofiles',\
-            'usage':'ipprofile [OPTIONS]\n\n\tDecodes and lists ' \
-                    'ipprofiles. This is default option. No argument required'\
-                    '\n\texample: ipprofiles'\
-                    '\n\n\tAdds a new ipprofile from the provided json file.'\
-                    '\n\tNOTE: Path can be absolute or from the '\
-                    'same path you launch iLOrest.'\
-                    '\n\texample: ipprofiles <file path>'\
+            'name':'ipprofiles',
+            'usage': None,
+            'description':'Decodes and lists '
+                    'ipprofiles. This is default option. No argument required'
+                    '\n\tExample: ipprofiles'
+                    '\n\n\tAdds a new ipprofile from the provided json file.'
+                    '\n\tNOTE: Path can be absolute or from the '
+                    'same path you launch iLOrest.'
+                    '\n\tipprofiles <file path>'
                     '\n\n\tDelete an ipprofile or list of profiles.\n\t'
-                    'Provide the unique key that corresponds to the ipprofile'\
-                    ' data you want to delete.\n\tSeveral IDs can be comma-separated'\
-                    ' with no space in between to delete more than one profile. '\
-                    '\n\texample: ipprofiles -d ID1,ID2,ID3...'\
-                    '\n\n\tCopies ip profile with the specified ID into the ip job queue.'\
-                    'and starts it.\n\texample: ipprofiles --start=<profile ID>',\
-            'summary':'This is used to manage hpeipprofile data store.',\
-            'aliases': [],\
+                    'Provide the unique key that corresponds to the ipprofile'
+                    ' data you want to delete.\n\tSeveral IDs can be comma-separated'
+                    ' with no space in between to delete more than one profile. '
+                    '\n\tipprofiles -d ID1,ID2,ID3...'
+                    '\n\n\tCopies ip profile with the specified ID into the ip job queue.'
+                    'and starts it.\n\texample: ipprofiles --start=<profile ID>',
+            'summary':'This is used to manage hpeipprofile data store.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.lobobj = rdmcObj.commands_dict["LoginCommand"](rdmcObj)
-        #self.setobj = rdmcObj.commands_dict["SetCommand"](rdmcObj)
-        #self.bootorderobj = rdmcObj.commands_dict["BootOrderCommand"](rdmcObj)
         self.path = ''
         self.ipjobs = ''
         self.running_jobs = ''
         self.hvt_output = ''
-        #self.syspath = '/redfish/v1/Systems/1/'
         self.ipjobtype = ['langsel', 'hvt', 'ssa', 'install', 'rbsu']
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw get worker function
 
         :param line: command line input
         :type line: string.
 
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -143,9 +141,9 @@ class IPProfilesCommand():
 
         results = self.rdmc.app.get_handler(self.path, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "\
-                                   "is not available on this system. You may need"\
-                                   " to run IP at least once to add the resource.")
+            raise PathUnavailableError("The Intelligent Provisioning resource "
+                                       "is not available on this system. You may need"
+                                       " to run IP at least once to add the resource.")
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
@@ -158,7 +156,7 @@ class IPProfilesCommand():
             results.read = json.dumps(j2python, ensure_ascii=False, sort_keys=True)
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder, \
+                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder,
                                         sort_keys=True)
 
                     filehndl = open(options.filename[0], "w")
@@ -179,13 +177,13 @@ class IPProfilesCommand():
 
         results = self.rdmc.app.get_handler(self.running_jobs, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "\
-                                   "is not available on this system. You may need"\
-                                   " to run IP at least once to add the resource.")
+            raise PathUnavailableError("The Intelligent Provisioning resource "
+                                       "is not available on this system. You may need"
+                                       " to run IP at least once to add the resource.")
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
-            for _, val in enumerate(j2python.keys()):
+            for _, val in enumerate(list(j2python.keys())):
                 if isinstance(val, six.string_types):
                     result = self.decode_base64_string(str(j2python[val]))
                     if result is not None:
@@ -205,13 +203,13 @@ class IPProfilesCommand():
         return_value = {}
         results = self.rdmc.app.get_handler(self.hvt_output, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "\
-                                   "is not available on this system. You may need"\
-                                   " to run IP at least once to add the resource.")
+            raise PathUnavailableError("The Intelligent Provisioning resource "
+                                       "is not available on this system. You may need"
+                                       " to run IP at least once to add the resource.")
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
-            for _, val in enumerate(j2python.keys()):
+            for _, val in enumerate(list(j2python.keys())):
                 if isinstance(val, six.string_types) and '@' not in val:
                     return_value = json.loads(self.decode_base64_string(str(j2python[val])))
             self.rdmc.ui.print_out_json(return_value)
@@ -274,8 +272,8 @@ class IPProfilesCommand():
 
         ipjob = self.hasipjobs()
         if not ipjob:
-            raise InvalidFileFormattingError("System does not have any IP"\
-                                        " profile to copy to the job queue.\n")
+            raise InvalidFileFormattingError("System does not have any IP"
+                                             " profile to copy to the job queue.\n")
 
         current_state = self.inipstate(ipprovider)
         if current_state is None:
@@ -305,8 +303,8 @@ class IPProfilesCommand():
                 return ReturnCodes.SUCCESS
 
         try:
-            self.bootorderobj.run("--onetimeboot=Utilities "\
-                                                    "--reboot=ColdBoot --commit")
+            self.bootorderobj.run("--onetimeboot=Utilities "
+                                  "--reboot=ColdBoot --commit")
         except:
             raise InvalidFileFormattingError("System failed to reboot")
 
@@ -318,8 +316,8 @@ class IPProfilesCommand():
             self.copyjobtoipqueue(ipjob, options.start_ip)
             self.rdmc.ui.printer("Copy operation was successful...\n")
         else:
-            raise InvalidFileFormattingError("\nSystem reboot took longer than 4 minutes."\
-                "something is wrong. You need to physically check this system.\n")
+            raise InvalidFileFormattingError("\nSystem reboot took longer than 4 minutes."
+                                             "something is wrong. You need to physically check this system.\n")
 
         return ReturnCodes.SUCCESS
 
@@ -398,11 +396,11 @@ class IPProfilesCommand():
                     copy_job.update({k: v.update(_critical_props) or v \
                         for k, v in json.loads(_decode).items() if k in self.ipjobtype})
                 else:
-                    raise NoContentsFoundForOperationError(\
+                    raise NoContentsFoundForOperationError(
                         "Not supported profile content")
                 break
         if not copy_job:
-            raise NoContentsFoundForOperationError(\
+            raise NoContentsFoundForOperationError(
                 "The ID %s does not match any ipprofile" % jobkey)
         payload = {}
         payload["path"] = self.ipjobs

@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,35 +32,39 @@ class GetCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'get',\
-            'usage':'get [PROPERTY] [OPTIONS]\n\n\tTo retrieve all' \
-                    ' the properties run without arguments. \n\t*Note*: '\
-                    'a type will need to be selected or this will return an '\
-                    'error.\n\texample: get\n\n\tTo retrieve multiple ' \
-                    'properties use the following example\n\texample: '\
-                    'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.' \
-                    '\n\n\tTo change output style format provide'\
-                    ' the json flag\n\texample: get --json',\
-            'summary':'Displays the current value(s) of a' \
-                    ' property(ies) within a selected type.',\
-            'aliases':[],\
+            'name':'get',
+            'usage': None,
+            'description':'To retrieve all'
+                    ' the properties run without arguments. \n\t*Note*: '
+                    'a type will need to be selected or this will return an '
+                    'error.\n\texample: get\n\n\tTo retrieve multiple '
+                    'properties use the following example\n\texample: '
+                    'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.'
+                    '\n\n\tTo change output style format provide'
+                    ' the json flag\n\texample: get --json',
+            'summary':'Displays the current value(s) of a'
+                      ' property(ies) within a selected type.',
+            'aliases':[],
             'auxcommands':["LogoutCommand"]
         }
-        #self.definearguments(self.parser)
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main get worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -79,18 +83,18 @@ class GetCommand():
                 filtr = (sel.strip(), val.strip())
 
             except:
-                raise InvalidCommandLineError("Invalid filter" \
-                  " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError("Invalid filter"
+                                              " parameter format [filter_attribute]=[filter_value]")
 
-        self.getworkerfunction(args, options, results=None, uselist=True, filtervals=filtr,\
+        self.getworkerfunction(args, options, results=None, uselist=True, filtervals=filtr,
                                readonly=options.noreadonly)
 
         self.cmdbase.logout_routine(self, options)
         #Return code
         return ReturnCodes.SUCCESS
 
-    def getworkerfunction(self, args, options, readonly=False, filtervals=(None, None),\
-                                results=None, uselist=False):
+    def getworkerfunction(self, args, options, readonly=False, filtervals=(None, None),
+                          results=None, uselist=False):
         """ main get worker function
 
         :param args: command line arguments
@@ -112,44 +116,20 @@ class GetCommand():
         nocontent = set()
         instances = None
         arg = None
-        argsdict = {}
-        multicontents = False
 
-        #For rest redfish compatibility of bios.
+        # For rest redfish compatibility of bios.
         args = [args] if args and isinstance(args, six.string_types) else args
-        if not self.rdmc.app.selector:
-            raise InvalidCommandLineError('No type is selected yet. Please use select command or specify --select option')
-        args = ["Attributes/"+arg if self.rdmc.app.selector.lower().startswith('bios.') \
-                                     and 'attributes' not in arg.lower() else arg for arg in args] if args else args
-
+        args = ["Attributes/" + arg if self.rdmc.app.selector.lower(). \
+                                           startswith('bios.') and 'attributes' not in arg.lower() else arg \
+                for arg in args] if args else args
         if filtervals[0]:
             instances = self.rdmc.app.select(selector=self.rdmc.app.selector, \
-                                                                    fltrvals=filtervals)
+                                              fltrvals=filtervals)
 
         try:
-            if len(args) > 1:
-                contents = []
-                for arg in args:
-                    splitarg = arg.split('/')
-                    if splitarg[0] in argsdict:
-                        argsdict[splitarg[0]].append(splitarg[1])
-                    else:
-                        try:
-                            argsdict[splitarg[0]] = [splitarg[1]]
-                        except IndexError:
-                            argsdict[splitarg[0]] = [splitarg[0]]
-                for key in argsdict.keys():
-                    contents = self.rdmc.app.getprops(props=key, \
-                       remread=readonly, nocontent=nocontent, insts=instances)
-                    values = argsdict[key]
-                    self.collectandclear(contents, key, values)
-                    self.checktoprint(options, contents, nocontent, arg)
-                multicontents = True
-                uselist = False if readonly else uselist
-            else:
-                contents = self.rdmc.app.getprops(props=args, remread=readonly,\
-                                   nocontent=nocontent, insts=instances)
-                uselist = False if readonly else uselist
+            contents = self.rdmc.app.getprops(props=args, remread=readonly, nocontent=nocontent, \
+                                               insts=instances)
+            uselist = False if readonly else uselist
         except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
             contents = self.rdmc.app.getprops(props=args, nocontent=nocontent)
         for ind, content in enumerate(contents):
@@ -164,8 +144,23 @@ class GetCommand():
             return contents
 
         contents = contents[0] if len(contents) == 1 else contents
-        if not multicontents:
-            self.checktoprint(options, contents, nocontent, arg)
+        if options and options.json and contents:
+            UI().print_out_json(contents)
+        elif contents:
+            UI().print_out_human_readable(contents)
+        else:
+            try:
+                if nocontent or not any(next(iter(contents))):
+                    raise Exception()
+            except:
+                strtoprint = ', '.join(str(val) for val in nocontent)
+                if not strtoprint and arg:
+                    strtoprint = arg
+                    raise NoContentsFoundForOperationError('No get contents found for entry: %s' \
+                                                           % strtoprint)
+                else:
+                    raise NoContentsFoundForOperationError('No get contents found for ' \
+                                                           'selected type.')
         if options.logout:
             self.auxcommands['logout'].run("")
 
@@ -216,8 +211,8 @@ class GetCommand():
                     raise NoContentsFoundForOperationError('No get contents '\
                                            'found for entry: %s' % strtoprint)
                 else:
-                    raise NoContentsFoundForOperationError('No get contents '\
-                                                   'found for selected type.')
+                    raise NoContentsFoundForOperationError('No get contents '
+                                                           'found for selected type.')
 
     def collectandclear(self, contents, key, values):
         """ function to find and remove unneeded values from contents dictionary
@@ -272,42 +267,42 @@ class GetCommand():
         )
 
         customparser.add_argument(
-            '--filter',\
-            dest='filter',\
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",\
+            '--filter',
+            dest='filter',
+            help="Optionally set a filter value for a filter attribute."
+                 " This uses the provided filter for the currently selected"
+                 " type. Note: Use this flag to narrow down your results. For"
+                 " example, selecting a common type might return multiple"
+                 " objects that are all of that type. If you want to modify"
+                 " the properties of only one of those objects, use the filter"
+                 " flag to narrow down results based on properties."
+                 "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None
         )
         customparser.add_argument(
-            '-j',\
-            '--json',\
-            dest='json',\
-            action="store_true",\
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",\
+            '-j',
+            '--json',
+            dest='json',
+            action="store_true",
+            help="Optionally include this flag if you wish to change the"
+                 " displayed output to JSON format. Preserving the JSON data"
+                 " structure makes the information easier to parse.",
             default=False
         )
         customparser.add_argument(
-            '--noreadonly',\
-            dest='noreadonly',\
-            action="store_true",\
-            help="Optionally include this flag if you wish to only show"\
-            " properties that are not read-only. This is useful to see what "\
-            "is configurable with the selected type(s).",\
+            '--noreadonly',
+            dest='noreadonly',
+            action="store_true",
+            help="Optionally include this flag if you wish to only show"
+                 " properties that are not read-only. This is useful to see what "
+                 "is configurable with the selected type(s).",
             default=False
         )
         customparser.add_argument(
-            '--refresh',\
-            dest='ref',\
-            action="store_true",\
-            help="Optionally reload the data of selected type and clear "\
-                                            "patches from current selection.",\
+            '--refresh',
+            dest='ref',
+            action="store_true",
+            help="Optionally reload the data of selected type and clear "
+                 "patches from current selection.",
             default=False
         )

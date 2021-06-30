@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,31 +26,22 @@ class SetCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'set',\
-            'usage':'set [PROPERTY=VALUE] [OPTIONS]\n\n\tSetting a ' \
-                'single level property example:\n\tset property=value\n\n\t' \
-                'Setting multiple single level properties example:\n\tset ' \
-                'property=value property=value property=value\n\n\t' \
-                'Setting a multi level property example:\n\tset property/' \
-                'subproperty=value',\
-            'summary':'Changes the value of a property within the'\
-                    ' currently selected type.',\
-            'aliases': [],\
+            'name':'set',
+            'usage': None,
+            'description':'Setting a '
+                    'single level property example:\n\tset property=value\n\n\t'
+                    'Setting multiple single level properties example:\n\tset '
+                    'property=value property=value property=value\n\n\t'
+                    'Setting a multi level property example:\n\tset property/'
+                    'subproperty=value',
+            'summary':'Changes the value of a property within the'
+                      ' currently selected type.',
+            'aliases': [],
             'auxcommands': ["CommitCommand", "RebootCommand"]
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.auxcommands['commit'] = rdmcObj.commands_dict["CommitCommand"](rdmcObj)
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-
-        #remove reboot option if there is no reboot command
-        #try:
-        #    self.rebootobj = rdmcObj.commands_dict["RebootCommand"](rdmcObj)
-        #except KeyError:
-        #    self.parser.remove_option('--reboot')
 
     def setfunction(self, line, skipprint=False):
         """ Main set worker function
@@ -60,17 +51,22 @@ class SetCommand():
         :param skipprint: boolean to determine output
         :type skipprint: boolean.
         """
+
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         if not self.rdmc.interactive and not self.rdmc.app.cache:
-            raise InvalidCommandLineError("The 'set' command is not useful in "\
-                                      "non-interactive and non-cache modes.")
+            raise InvalidCommandLineError("The 'set' command is not useful in "
+                                          "non-interactive and non-cache modes.")
 
         self.setvalidation(options)
         fsel = None
@@ -82,14 +78,14 @@ class SetCommand():
                     (fsel, fval) = str(options.filter).strip('\'\" ').split('=')
                     (fsel, fval) = (fsel.strip(), fval.strip())
                 except:
-                    raise InvalidCommandLineError("Invalid filter" \
-                      " parameter format [filter_attribute]=[filter_value]")
+                    raise InvalidCommandLineError("Invalid filter"
+                                                  " parameter format [filter_attribute]=[filter_value]")
 
             if any([s.lower().startswith('adminpassword=') for s in args]) \
                     and not any([s.lower().startswith('oldadminpassword=') for s in args]):
-                raise InvalidCommandLineError("'OldAdminPassword' must also " \
-                            "be set with the current password \nwhen " \
-                            "changing 'AdminPassword' for security reasons.")
+                raise InvalidCommandLineError("'OldAdminPassword' must also "
+                                              "be set with the current password \nwhen "
+                                              "changing 'AdminPassword' for security reasons.")
             count = 0
             for arg in args:
                 if arg:
@@ -100,7 +96,8 @@ class SetCommand():
                         if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
                             args[count] = None
                 count += 1
-
+                if not '.' in self.rdmc.app.selector:
+                    self.rdmc.app.selector = self.rdmc.app.selector + '.'
                 if self.rdmc.app.selector:
                     if self.rdmc.app.selector.lower().startswith('bios.'):
                         if 'attributes' not in arg.lower():
@@ -135,20 +132,20 @@ class SetCommand():
                         payload = {key:payload}
 
                 try:
-                    contents = self.rdmc.app.loadset(seldict=payload,\
-                        latestschema=options.latestschema, fltrvals=(fsel, fval), \
-                                        uniqueoverride=options.uniqueoverride)
+                    contents = self.rdmc.app.loadset(seldict=payload,
+                                                     latestschema=options.latestschema, fltrvals=(fsel, fval),
+                                                     uniqueoverride=options.uniqueoverride)
                     if not contents:
                         if not sel.lower() == 'oldadminpassword':
-                            raise InvalidOrNothingChangedSettingsError("Setting " \
-                                                "for '%s' is the same as " \
-                                                "the current value." % sel)
+                            raise InvalidOrNothingChangedSettingsError("Nothing changed " \
+                                                "for attribute '%s'. Please check if it is READONLY or the " \
+                                                "value trying to set is same or invalid" % sel)
                     elif contents == "No entries found":
                         raise InvalidOrNothingChangedSettingsError("No " \
                                        "entries found in the current " \
                                        "selection for the setting '%s'." % sel)
                     elif contents == "reverting":
-                        self.rdmc.ui.error("Removing previous patch and returning to the "\
+                        self.rdmc.ui.error("Removing previous patch and returning to the "
                                            "original value.\n")
                     else:
                         for content in contents:
@@ -186,7 +183,7 @@ class SetCommand():
         else:
             raise InvalidCommandLineError("Missing parameters for 'set' command.\n")
 
-    def run(self, line, skipprint=False):
+    def run(self, line, skipprint=False, help_disp=False):
         """ Main set function
 
         :param line: command line input
@@ -194,6 +191,9 @@ class SetCommand():
         :param skipprint: boolean to determine output
         :type skipprint: boolean.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         self.setfunction(line, skipprint=skipprint)
 
         #Return code
@@ -234,50 +234,50 @@ class SetCommand():
         )
 
         customparser.add_argument(
-            '--filter',\
-            dest='filter',\
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",\
+            '--filter',
+            dest='filter',
+            help="Optionally set a filter value for a filter attribute."
+                 " This uses the provided filter for the currently selected"
+                 " type. Note: Use this flag to narrow down your results. For"
+                 " example, selecting a common type might return multiple"
+                 " objects that are all of that type. If you want to modify"
+                 " the properties of only one of those objects, use the filter"
+                 " flag to narrow down results based on properties."
+                 "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None
         )
         customparser.add_argument(
-            '--commit',\
-            dest='commit',\
-            action="store_true",\
-            help="Use this flag when you are ready to commit all pending"\
-            " changes. Note that some changes made in this way will be updated"\
-            " instantly, while others will be reflected the next time the"\
-            " server is started.",\
+            '--commit',
+            dest='commit',
+            action="store_true",
+            help="Use this flag when you are ready to commit all pending"
+                 " changes. Note that some changes made in this way will be updated"
+                 " instantly, while others will be reflected the next time the"
+                 " server is started.",
             default=None
         )
         customparser.add_argument(
-            '--reboot',\
-            dest='reboot',\
-            help="Use this flag to perform a reboot command function after"\
-            " completion of operations.  For help with parameters and"\
-            " descriptions regarding the reboot flag, run help reboot.",\
+            '--reboot',
+            dest='reboot',
+            help="Use this flag to perform a reboot command function after"
+                 " completion of operations.  For help with parameters and"
+                 " descriptions regarding the reboot flag, run help reboot.",
             default=None
         )
         customparser.add_argument(
-            '--latestschema',\
-            dest='latestschema',\
-            action='store_true',\
-            help="Optionally use the latest schema instead of the one "\
-            "requested by the file. Note: May cause errors in some data "\
-            "retrieval due to difference in schema versions.",\
+            '--latestschema',
+            dest='latestschema',
+            action='store_true',
+            help="Optionally use the latest schema instead of the one "
+                 "requested by the file. Note: May cause errors in some data "
+                 "retrieval due to difference in schema versions.",
             default=None
         )
         customparser.add_argument(
-            '--uniqueitemoverride',\
-            dest='uniqueoverride',\
-            action='store_true',\
-            help="Override the measures stopping the tool from writing "\
-            "over items that are system unique.",\
+            '--uniqueitemoverride',
+            dest='uniqueoverride',
+            action='store_true',
+            help="Override the measures stopping the tool from writing "
+                 "over items that are system unique.",
             default=None
         )

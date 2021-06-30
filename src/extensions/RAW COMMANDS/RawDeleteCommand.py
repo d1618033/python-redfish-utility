@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,31 +29,36 @@ class RawDeleteCommand():
     """ Raw form of the delete command """
     def __init__(self):
         self.ident = {
-            'name':'rawdelete',\
-            'usage':'rawdelete [PATH] [OPTIONS]\n\n\tRun to to delete data from' \
-                    ' the passed in path.\n\texample: rawdelete "/redfish/v1/' \
-                    'Sessions/(session ID)"', \
-            'summary':'Raw form of the DELETE command.',\
-            'aliases': [],\
+            'name':'rawdelete',
+            'usage': None,
+            'description':'Run to to delete data from'
+                    ' the passed in path.\n\texample: rawdelete "/redfish/v1/'
+                    'Sessions/(session ID)"',
+            'summary':'Raw form of the DELETE command.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw delete worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -90,16 +95,16 @@ class RawDeleteCommand():
 
         if currentsess and (options.path in currentsess):
             self.rdmc.app.logout()
-            self.rdmc.ui.printer("Your session has been terminated (deleted).\nPlease log "\
-                                        "back in if you wish to continue.\n")
+            self.rdmc.ui.printer("Your session has been terminated (deleted).\nPlease log "
+                                 "back in if you wish to continue.\n")
         else:
             returnresponse = False
 
             if options.response or options.getheaders:
                 returnresponse = True
 
-            results = self.rdmc.app.delete_handler(options.path, \
-                headers=headers, silent=options.silent, service=options.service)
+            results = self.rdmc.app.delete_handler(options.path,
+                                                   headers=headers, silent=options.silent, service=options.service)
 
             if returnresponse and results:
                 if options.getheaders:

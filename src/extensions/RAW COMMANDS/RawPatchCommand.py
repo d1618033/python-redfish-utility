@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,35 +34,40 @@ class RawPatchCommand():
     """ Raw form of the patch command """
     def __init__(self):
         self.ident = {
-            'name':'rawpatch',\
-            'usage':'rawpatch [FILENAME]\n\n\tRun to send a patch from the data' \
-                    ' in the input file.\n\tMultiple PATCHes can be performed in sequence by '\
+            'name':'rawpatch',
+            'usage': None,
+            'description':'Run to send a patch from the data'
+                    ' in the input file.\n\tMultiple PATCHes can be performed in sequence by '
                     '\n\tadding more path/body key/value pairs.\n'
-                    '\n\texample: rawpatch rawpatch.txt' \
-                    '\n\n\tExample input file:\n\t{\n\t    "/redfish/' \
-                    'v1/systems/(system ID)":\n\t    {\n\t        ' \
-                    '"AssetTag": "NewAssetTag"\n\t    }\n\t}',\
-            'summary':'Raw form of the PATCH command.',\
-            'aliases': [],\
+                    '\n\texample: rawpatch rawpatch.txt'
+                    '\n\n\tExample input file:\n\t{\n\t    "/redfish/'
+                    'v1/systems/(system ID)":\n\t    {\n\t        '
+                    '"AssetTag": "NewAssetTag"\n\t    }\n\t}',
+            'summary':'Raw form of the PATCH command.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main raw patch worker function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -99,15 +104,15 @@ class RawPatchCommand():
                     raise InvalidCommandLineError("Invalid format for --headers option.")
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self.rdmc.app.patch_handler(contentsholder["path"], \
-                  contentsholder["body"], headers=headers, silent=options.silent, \
-                  optionalpassword=options.biospassword, service=options.service))
+            results.append(self.rdmc.app.patch_handler(contentsholder["path"],
+                                                       contentsholder["body"], headers=headers, silent=options.silent,
+                                                       optionalpassword=options.biospassword, service=options.service))
 
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self.rdmc.app.patch_handler(path, \
-                        body, headers=headers, silent=options.silent, \
-                        optionalpassword=options.biospassword, service=options.service))
+                results.append(self.rdmc.app.patch_handler(path,
+                                                           body, headers=headers, silent=options.silent,
+                                                           optionalpassword=options.biospassword, service=options.service))
         else:
             raise InvalidFileFormattingError("Input file '%s' was not format properly." % \
                                                                                     options.path)

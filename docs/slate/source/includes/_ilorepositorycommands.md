@@ -4,9 +4,7 @@
 The iLO repository commands are designed for use with HPE Gen10 servers.
 </aside>
 
-
-
-### Deletecomp command
+### Deletecomp Command
 
 > Deletecomp example commands:
 
@@ -28,7 +26,7 @@ The operation completed successfully.
 Deleted b5a00edc
 </pre>
 
-> To delete all firmware on the iLO repository run the command and include the `--all` option. 
+> To delete all firmware on the iLO repository run the command and include the `--all` option.
 
 <pre>
 iLOrest > <font color="#01a982">deletecomp --all</font>
@@ -77,10 +75,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -88,7 +109,7 @@ None
 #### Outputs
 None
 
-### Downloadcomp command
+### Downloadcomp Command
 
 > Downloadcomp example commands:
 
@@ -123,6 +144,16 @@ The path to the firmware to download.
 
 Including the help flag will display help for the command.
 
+- **outdir=OUTDIR**
+
+output directory for saving the file.
+
+#### Login Parameters
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
 - **-u User, --user=USER**
 
 If you are not logged in yet, including this flag along with the password and URL flags can be used to log into a server in the same command.
@@ -131,12 +162,32 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--url=URL**
+- **-privatecert User CA Certificate, --privateusercert**
 
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--sessionid=SESSIONID**
-                        
+
 Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
 
 - **--includelogs**         
@@ -147,21 +198,13 @@ Optionally include logs in the data retrieval process.
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-- **outdir=OUTDIR**
-
-output directory for saving the file.
-
 #### Inputs
 None
 
 #### Outputs
-None 
+None
 
-### Flashfwpkg command
-
-<aside class="notice">
-Some firmware can be flashed directly without a reboot, may require a reboot to take effect, or may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
-</aside>
+### Flashfwpkg Command
 
 > flashfwpkg example commands:
 
@@ -191,7 +234,9 @@ iLO will reboot to complete flashing. Session will be terminated.
 Logging session out.
 </pre>
 
-
+<aside class="notice">
+Some firmware can be flashed directly without a reboot, may require a reboot to take effect, or may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
+</aside>
 
 #### Syntax
 
@@ -217,7 +262,7 @@ Include this flag to force upload firmware with the same name already on the rep
 
 - **--ignorechecks**
 
-Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file. 
+Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file.
 
 #### Login Parameters
 
@@ -235,10 +280,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -246,7 +314,7 @@ None
 #### Outputs
 None
 
-### Installset command
+### Installset Command
 
 > Installset example commands:
 
@@ -334,7 +402,7 @@ The operation completed successfully.
 }
 ```
 
-> Or a list of sequences. 
+> Or a list of sequences.
 
 ``` json
 [
@@ -422,18 +490,41 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
 
 #### Outputs
-None 
+None
 
-### Listcomp command
+### Listcomp Command
 
 > Listcomp example commands:
 
@@ -492,18 +583,41 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
-None 
+None
 
 #### Outputs
 None
 
-### Maintenancewindow command
+### Maintenancewindow Command
 
 > maintenancewindow example commands:
 
@@ -531,7 +645,7 @@ iLOrest > maintenancewindow add 2019-11-21T00:00:00 <font color="#01a982">--expi
 [201] The operation completed successfully.
 </pre>
 
-> To delete a maintenance window run the command with the `delete` keyword followed by the name of the maintenance window you wish to delete. 
+> To delete a maintenance window run the command with the `delete` keyword followed by the name of the maintenance window you wish to delete.
 
 <pre>
 iLOrest > <font color="#01a982">maintenancewindow delete MyMaintenanceWindow</font>
@@ -588,10 +702,33 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
 None
@@ -599,7 +736,7 @@ None
 #### Outputs
 None
 
-### Makeinstallset command
+### Makeinstallset Command
 
 > Makeinstallset example commands:
 
@@ -714,7 +851,7 @@ makeinstallset *[Optional Parameters]*
 
 #### Description
 
-Run to make installsets for iLO. 
+Run to make installsets for iLO.
 If not logged into the server, the command will provide basic guidance on making an installset.
 If logged into the server, the command will provide guidance based on the current components on the system.
 <aside class="notice">When using this command on a logged in sever, for best results, upload the components before running this command.</aside>
@@ -729,13 +866,57 @@ Including the help flag on this command will display help.
 
 Include this flag to use a different filename than the default one. The default filename is myinstallset.json
 
+#### Login Parameters
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+- **--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **-privatecert User CA Certificate, --privateusercert**
+
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
 #### Inputs
 None
 
 #### Outputs
 None
 
-### Taskqueue command
+### Taskqueue Command
 
 > Taskqueue example commands:
 
@@ -786,8 +967,6 @@ Deleting: Update-740856 iLO 5
 The operation completed successfully.
 </pre>
 
-
-
 #### Syntax
 
 taskqueue *[Optional Parameters]*
@@ -834,18 +1013,41 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
-None 
+None
 
 #### Outputs
-None 
+None
 
-### Uploadcomp command
+### Uploadcomp Command
 
 > Uploadcomp example commands:
 
@@ -860,7 +1062,7 @@ Waiting for iLO UpdateService to finish processing the component
 </pre>
 
 > By default the firmware is uploaded to the iLO Repository. For firmware iLO is capable of flashing you can instead directly flash it.
-To do this you need to include the `--update_repository`  flag to not include the firmware in the iLO repository and the `--update_target` 
+To do this you need to include the `--update_repository`  flag to not include the firmware in the iLO repository and the `--update_target`
 flag to trigger iLO to flash.
 
 <pre>
@@ -879,6 +1081,13 @@ uploadcomp *[Optional Parameters]*
 #### Description
 
 Command to upload firmware on to iLO repository.
+<aside class="notice">
+The </b>uploadcomp</b> command requires iLO firmware version v1.48(a) or later. Earlier iLO Firmware versions will fail with a return code 103.  
+iLO firmware version v1.48(a) or later is required because the <b>uploadcomp</b> command depends on the Bunny Hop feature found in that version of the iLO firmware.  
+Before updating the iLO firmware, see <a href="https://support.hpe.com/hpesc/public/docDisplay?docId=emr_na-a00068199en_us" target="_blank">the customer advisory regarding iLO firmware upgrades</a>.
+To download the latest iLO Firmware, see the <a href="https://support.hpe.com/hpsc/swd/public/detail?swItemId=MTX_912b35cf18cd4b7ea530732822" target="_blank">Drivers & Software page for the Online ROM Flash Firmware Package - HPE iLO 5</a>
+</aside>
+
 
 #### Parameters
 
@@ -895,7 +1104,7 @@ Optionally include logs in the data retrieval process.
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
 - **--component=COMPONENT**
-  
+
 Component or binary file path to upload to the update service.
 
 - **--compsig=COMPONENTSIG**
@@ -914,9 +1123,9 @@ If true, uploads the component/binary on to the Repository. The default is set t
 
 If true, the uploaded component/binary will be flashed. The default is set to False.
 
-- **--logout**
+- **--update_srs**
 
-Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+The component uploaded will become a part of the system recovery set (srs).
 
 #### Login Parameters
 
@@ -934,13 +1143,36 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--https**
+- **-privatecert User CA Certificate, --privateusercert**
 
-Use the provided CA bundle or SSL certificate with your login to connect 
-securely to the system in remote mode. This flag has no effect in local mode.
+Specify a user CA certificate file path for certificate based authentication with iLO.
+
+<aside class="notice">A root user CA key is required.</aside>
+
+- **-certkey Private User Root CA, --userrootcakey**
+
+Specify a user root ca key file path for certificate based authentication with iLO
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-certpass Private User Root CA Password, --userrootcapassword**
+
+Optionally specify a user root ca key file password for a password protected user root CA.
+
+<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
+
+- **-cert CA Certificate Bundle, --usercacert**
+
+Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
+
+<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
 #### Inputs
-None 
+None
 
 #### Outputs
-None 
+None

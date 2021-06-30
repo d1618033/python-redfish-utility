@@ -1,5 +1,5 @@
 # ##
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,30 +47,35 @@ class DownloadComponentCommand():
     """ Main download component command class """
     def __init__(self):
         self.ident = {
-            'name':'downloadcomp', \
-            'usage':'downloadcomp [COMPONENT URI] [OPTIONS]\n\n\tRun to ' \
-                'download the file from path\n\texample: downloadcomp ' \
-                '/fwrepo/filename.exe --outdir <output location>' \
-                'download the file by name\n\texample: downloadcomp ' \
-                'filename.exe --outdir <output location>', \
-            'summary':'Downloads components/binaries from the iLO Repository.', \
-            'aliases': [], \
+            'name':'downloadcomp',
+            'usage': None,
+            'description':'Run to '
+                    'download the file from path\n\texample: downloadcomp '
+                    '/fwrepo/filename.exe --outdir <output location>'
+                    'download the file by name\n\texample: downloadcomp '
+                    'filename.exe --outdir <output location>',
+            'summary':'Downloads components/binaries from the iLO Repository.',
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = rdmcObj.app.typepath
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Wrapper function for download command main function
 
         :param line: command line input
         :type line: string.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self,line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -78,8 +83,8 @@ class DownloadComponentCommand():
         self.downloadcomponentvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are ' \
-                                                            'only available on iLO 5.')
+            raise IncompatibleiLOVersionError('iLO Repository commands are '
+                                              'only available on iLO 5.')
 
         start_time = time.time()
         ret = ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
@@ -150,13 +155,13 @@ class DownloadComponentCommand():
                 raise InvalidFileInputError("Invalid output file location.")
             if not os.access(os.path.join(os.path.split(destination)[0]), os.W_OK):
                 raise InvalidFileInputError("File location is not writable.")
-            if os.access(destination, os.F_OK) and not os.access(destination, \
+            if os.access(destination, os.F_OK) and not os.access(destination,
                                                                  os.W_OK):
                 raise InvalidFileInputError("Existing File cannot be overwritten.")
 
-            ret = dll.downloadComponent(ctypes.create_string_buffer(\
-                                filename.encode('utf-8')), ctypes.create_string_buffer(\
-                                                            destination.encode('utf-8')))
+            ret = dll.downloadComponent(ctypes.create_string_buffer(
+                filename.encode('utf-8')), ctypes.create_string_buffer(
+                destination.encode('utf-8')))
 
             if ret != 0:
                 self.rdmc.ui.error("Component " + filename + " download failed\n")
@@ -187,7 +192,7 @@ class DownloadComponentCommand():
             return
 
         self.cmdbase.add_login_arguments_group(customparser)
-        
+
         customparser.add_argument(
             'component',
             help="""Component name (starting with path '/fwrepo/<comp name>') of the target"""\

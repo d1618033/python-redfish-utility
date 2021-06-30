@@ -4,7 +4,7 @@
 	<?define ProductCode = "6EB632E0-45CD-4157-8B34-AFAA26C35A1B"?>
 	<?define UpgradeCode = "3BA91156-C954-4E41-BD1A-116EA0FFFC82"?>
 	<?define ProductVersion = "$product_version"?>
-	
+
     <Product
         Id           = "*"
         UpgradeCode  = "$(var.UpgradeCode)"
@@ -14,7 +14,7 @@
         Manufacturer = "Hewlett Packard Enterprise"
         Codepage     = '1252'
     >
-        
+
         <Package
             Description      = "Command line utility for managing your ProLiant server"
             Comments         = "This utility is for advanced users, please see documentation for usage"
@@ -32,15 +32,15 @@
                     </Directory>
                 </Directory>
             </Directory>
-            
+
             <Directory Id="ProgramMenuFolder">
                 <Directory Id="ProgramMenuDirHP" Name="Hewlett Packard Enterprise">
                     <Directory Id="ProgramMenuDirHPIp" Name="RESTful Interface Tool" />
                 </Directory>
             </Directory>
         </Directory>
-        
-        
+
+
         <DirectoryRef Id="INSTALLDIR">
             <Component Id='cILORESTEXE' Guid='5A4D3AAD-6479-448A-8CF8-81338600E6DA' Win64="yes">
                 <File Id='ILORESTEXE' Name='ilorest.exe' Source='dist\ilorest.exe' KeyPath='yes' ProcessorArchitecture='x64' Checksum='yes' />
@@ -56,12 +56,12 @@
 				<RemoveFile Id="removeProgramFilesHpRmc" Name="*" On="uninstall" />
             </Component>
         </DirectoryRef>
-                        
+
 
 
         <DirectoryRef Id="ProgramMenuDirHPIp">
             <Component Id="cProgramMenuDirHPIp" Guid="97E2A837-84E2-4C64-B2B8-4358FA0C98CA">
-            
+
                 <Shortcut Id="s_ILOREST"
                     Directory="ProgramMenuDirHPIp"
                     Name="RESTful Interface Tool"
@@ -70,7 +70,9 @@
                     Target="[CMD.EXE]"
                     Arguments='/k "[INSTALLDIR]rdmc-envs.bat"'
                     WorkingDirectory="PersonalFolder"
-                />     
+                    >
+                    <Icon Id="MyIconID" SourceFile=".\hpe.ico"></Icon>
+                </Shortcut>
 
             <RemoveFolder Id='removeProgramMenuDirHPIp' Directory='ProgramMenuDirHP' On='uninstall' />
             <RemoveFolder Id='removeProgramMenuDirHP' Directory='ProgramMenuDirHPIp' On='uninstall' />
@@ -88,13 +90,15 @@
 		  </Custom>
 		</InstallExecuteSequence>
 
-        <Property Id="CMD.EXE"                        Value="cmd.exe" />    
-        <Property Id="MSIEXEC.EXE"                    Value="msiexec.exe" />    
-        <Property Id='ARPPRODUCTICON'>appicon.ico</Property>
+        <Property Id="CMD.EXE"                        Value="cmd.exe" />
+        <Property Id="MSIEXEC.EXE"                    Value="msiexec.exe" />
+        <Icon Id="icon.ico" SourceFile=".\hpe.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+        <!--Property Id='ARPPRODUCTICON'>hpe.ico</Property-->
 
         <!-- ALLUSERS Property puts the shortcuts in the all users ProgramMenu -->
         <Property Id="ALLUSERS"><![CDATA[2]]></Property>
-            
+
         <!-- Features -->
         <Feature Id='FEAT_ILOREST' Title='RESTful Interface Tool' Description='RESTful Interface Tool' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR' InstallDefault='local' AllowAdvertise='no'>
             <ComponentRef Id="cILORESTEXE" />
@@ -107,13 +111,13 @@
         <UIRef Id="WixUI_InstallDir" />
         <UI>
            <!-- skip licence dialog -->
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg">1</Publish>  
-            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">NOT Installed</Publish>  
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">NOT Installed</Publish>
         </UI>
-		
+
 		<!-- INSTALL DESCRIPTION -->
         <Media Id='1' Cabinet='ilorest.cab' EmbedCab='yes' />
-		
+
 		<Upgrade Id="$(var.UpgradeCode)">
 			<UpgradeVersion OnlyDetect="yes"
 							Minimum="$(var.ProductVersion)"
@@ -131,7 +135,7 @@
 					 IncludeMinimum="yes" IncludeMaximum="yes" OnlyDetect="yes" />
 
 		</Upgrade>
-		
+
 		<InstallExecuteSequence>
 			<!-- Schedule RemoveExistingProducts early -->
 			<RemoveExistingProducts After="InstallInitialize" />
@@ -143,6 +147,6 @@
 		<InstallExecuteSequence>
 			<Custom Action="Run_Shortcut" Before="InstallFinalize"></Custom>
 		</InstallExecuteSequence>
-		
+
     </Product>
 </Wix>

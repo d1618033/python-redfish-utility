@@ -118,6 +118,7 @@ class ReturnCodes(object):
     NIC_MISSING_OR_INVALID_ERROR = 43
     NO_CURRENT_SESSION_ESTABLISHED = 44
     FAILURE_DURING_COMMIT_OPERATION = 45
+    USERNAME_PASSWORD_REQUIRED_ERROR = 46
     MULTIPLE_SERVER_CONFIG_FAIL = 51
     MULTIPLE_SERVER_INPUT_FILE_ERROR = 52
     LOAD_SKIP_SETTING_ERROR = 53
@@ -151,6 +152,7 @@ class ReturnCodes(object):
     ENCRYPTION_ERROR = 81
     DRIVE_MISSING_ERROR = 82
     PATH_UNAVAILABLE_ERROR = 83
+    ILO_RIS_CORRUPTION_ERROR = 84
 
     # ****** RIS ERRORS ******
     RIS_RIS_BIOS_UNREGISTERED_ERROR = 100
@@ -176,6 +178,14 @@ class ConfigurationFileError(RdmcError):
 
 class CommandNotEnabledError(RdmcError):
     """ Raised when user tries to invoke a command that isn't enabled """
+    pass
+
+class iLORisCorruptionError(RdmcError):
+    """ Raised when user tries to invoke a command that isn't enabled """
+    pass
+
+class UsernamePasswordRequiredError(RdmcError):
+    """Raised when username and password are required for local chif login"""
     pass
 
 class PathUnavailableError(Exception):
@@ -359,8 +369,8 @@ class UI(object):
 
     def command_not_found(self, cmd):
         """ Called when command was not found """
-        self.printer(("\nCommand '%s' not found. Use the help command to " \
-                        "see a list of available commands\n" % cmd), excp=True)
+        self.printer(("\nCommand '%s' not found. Use the help command to "
+                      "see a list of available commands\n" % cmd), excp=True)
         return ReturnCodes.UI_CLI_COMMAND_NOT_FOUND_EXCEPTION
 
     def command_not_enabled(self, cmd, excp):
@@ -368,6 +378,10 @@ class UI(object):
         self.printer(("\nCommand \'%s\' has not been enabled: %s\n" % (cmd, excp)), excp=excp)
 
     def invalid_commmand_line(self, excp):
+        """ Called when user entered invalid command line entries """
+        self.printer(("\nError: %s\n" % excp), excp=excp)
+
+    def ilo_ris_corruption(self, excp):
         """ Called when user entered invalid command line entries """
         self.printer(("\nError: %s\n" % excp), excp=excp)
 
@@ -381,9 +395,9 @@ class UI(object):
 
     def user_not_admin(self):
         """ Called when file formatting in unrecognizable """
-        self.printer(("\nBoth remote and local mode is accessible when %s " \
-             "is run as administrator. Only remote mode is available for non-" \
-             "admin user groups.\n" % versioning.__longname__), excp=True)
+        self.printer(("\nBoth remote and local mode is accessible when %s "
+                      "is run as administrator. Only remote mode is available for non-"
+                      "admin user groups.\n" % versioning.__longname__), excp=True)
 
     def no_contents_found_for_operation(self, excp):
         """ Called when no contents were found for the current operation"""
@@ -391,9 +405,9 @@ class UI(object):
 
     def nothing_selected(self):
         """ Called when nothing has been select yet """
-        self.printer("\nNo type currently selected. Please use the" \
-                         " 'types' command to\nget a list of types, or input" \
-                         " your type by using the '--selector' flag.\n", excp=True)
+        self.printer("\nNo type currently selected. Please use the"
+                     " 'types' command to\nget a list of types, or input"
+                     " your type by using the '--selector' flag.\n", excp=True)
 
     def nothing_selected_filter(self):
         """ Called when nothing has been select after a filter set """
@@ -426,39 +440,45 @@ class UI(object):
             time.sleep(1)
             self.printer(".", excp=True)
 
-        self.printer("\nError: Could not authenticate. Invalid " \
-                         "credentials, or bad username/password.\n", excp=True)
+        self.printer("\nError: Could not authenticate. Invalid "
+                     "credentials, or bad username/password.\n", excp=True)
 
     def bios_unregistered_error(self):
         """ Called when ilo/bios unregistered error occurs """
-        self.printer("\nERROR 100: Bios provider is unregistered. Please" \
+        self.printer("\nERROR 100: Bios provider is unregistered. Please"
                      " refer to the documentation for details on this issue.\n", excp=True)
 
     def error(self, msg, inner_except=None):
         """ Used for general error handling
         :param inner_except: raised exception to be logged
         :type inner_except: exception.
+        :param msg: warning message
+        :type msg: string.
         """
         LOGGER.error(msg)
         if inner_except is not None:
             LOGGER.error(inner_except)
             self.printer("\nError: %s, %s\n" % (msg, inner_except))
-        self.printer("\nError: %s\n" % msg)
+        if self.verbosity > 0:
+            self.printer("Error: %s\n" % msg)
 
     def warn(self, msg, inner_except=None):
         """ Used for general warning handling
         :param inner_except: raised exception to be logged
         :type inner_except: exception.
+        :param msg: warning message
+        :type msg: string.
         """
-        LOGGER.warn(msg)
+        LOGGER.warning(msg)
         if inner_except is not None:
-            LOGGER.warn(inner_except)
+            LOGGER.warning(inner_except)
             self.printer("\nWarning: %s, %s\n" % (msg, inner_except))
-        self.printer("\nWarning: %s\n" % msg)
+        if self.verbosity > 1:
+            self.printer("Warning: %s\n" % msg)
 
     def retries_exhausted_attemps(self):
         """ Called when url retries have been exhausted """
-        self.printer(("\nError: Could not reach URL. Retries have been exhausted.\n"), excp=True)
+        self.printer("\nError: Could not reach URL. Retries have been exhausted.\n", excp=True)
 
     def print_out_json(self, content):
         """ Print out json content to std.out with sorted keys
@@ -520,6 +540,7 @@ class UI(object):
 
             content = '""' if not content else content
             #Changed to support py3, verify if there is a unicode prit issue.
+
             self.printer(content)
 
 class Encryption(object):
@@ -535,8 +556,8 @@ class Encryption(object):
         if os.name == 'nt':
             reg = winreg.ConnectRegistry(None, HKEY_LOCAL_MACHINE)
             try:
-                reg = winreg.OpenKey(reg, 'System\\CurrentControlSet\\Control\\'\
-                                            'Lsa\\FipsAlgorithmPolicy')
+                reg = winreg.OpenKey(reg, 'System\\CurrentControlSet\\Control\\'
+                                          'Lsa\\FipsAlgorithmPolicy')
                 winreg.QueryInfoKey(reg)
                 value, _ = winreg.QueryValueEx(reg, 'Enabled')
                 if value:
@@ -585,7 +606,7 @@ class Encryption(object):
         except (UnicodeDecodeError, AttributeError):
             pass #must be encoded already
         if Encryption.check_fips_mode_os():
-            raise CommandNotEnabledError("Encrypting of files is not available"\
+            raise CommandNotEnabledError("Encrypting of files is not available"
                                          " in FIPS mode.")
         if len(key) not in [16, 24, 32]:
             raise InvalidKeyError("")
@@ -617,8 +638,8 @@ class Encryption(object):
             try:
                 json.loads(decryptedfile)
             except:
-                raise UnableToDecodeError("Unable to decrypt the file, make "\
-                        "sure the key is the same as used in encryption.")
+                raise UnableToDecodeError("Unable to decrypt the file, make "
+                                          "sure the key is the same as used in encryption.")
 
         return decryptedfile
 

@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,26 +72,26 @@ def log_decor(func):
             sys.stderr.write("You have logged into iLO with an account which has insufficient "\
                 " user access privileges to modify properties in this type:\n %s\n" % (excp))
             if args[0].rdmc.opts.debug:
-                logging(func.func_name if hasattr(func, 'func_name') else str(func), \
-                                                                traceback.format_exc(), excp, args)
+                logging(func.func_name if hasattr(func, 'func_name') else str(func),
+                        traceback.format_exc(), excp, args)
         except NoDifferencesFoundError as excp:
             sys.stderr.write("No differences identified from current configuration.\n")
             if args[0].rdmc.opts.debug:
-                logging(func.func_name if hasattr(func, 'func_name') else str(func), \
-                                                                traceback.format_exc(), excp, args)
+                logging(func.func_name if hasattr(func, 'func_name') else str(func),
+                        traceback.format_exc(), excp, args)
         except ExitHandler as excp:
-            sys.stderr.write("Exiting Servferclone command...no further changes have been "\
-                                                                                "implemented.\n")
-            raise NoChangesFoundOrMadeError("Exiting Serverclone command...no further changes " \
-                                                                        "have been implemented.\n")
+            sys.stderr.write("Exiting Servferclone command...no further changes have been "
+                             "implemented.\n")
+            raise NoChangesFoundOrMadeError("Exiting Serverclone command...no further changes "
+                                            "have been implemented.\n")
 
         except Exception as excp:
             sys.stderr.write("Unhandled exception(s) occurred: %s\n" % str(excp))
             if args[0].rdmc.opts.debug:
                 args[0].rdmc.ui.error("Check the ServerClone Error logfile for further info: %s\n" \
                                    % __error_log_file__, excp)
-                logging(func.func_name if hasattr(func, 'func_name') else str(func), \
-                                                                traceback.format_exc(), excp, args)
+                logging(func.func_name if hasattr(func, 'func_name') else str(func),
+                        traceback.format_exc(), excp, args)
 
     return func_wrap
 
@@ -130,39 +130,37 @@ class ServerCloneCommand():
     """ Constructor """
     def __init__(self):
         self.ident = {
-            'name':'serverclone',\
-            'usage': 'serverclone [COMMAND] [OPTIONAL ARGUMENTS]', \
-            'description':'Create from a server or restore to a server a JSON formatted file\n'\
-            'containing the configuration settings of a system\'s iLO and Bios configuration.\n'\
-            'SSA controller settings and logical configurations can be optionally be included for '\
-            'save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n'\
-            'NOTE 1: Use the \'--silent\' OR \'--quiet\'option to ignore \n'\
-            'all user input. Intended for scripting purposes.\n\n\t' \
-            'NOTE 2: During clone load, login using an ilo account with full privileges'\
-            ' (such as the Administrator account)\n to ensure all items are cloned '\
-            'successfully.\n\n'
-            'NOTE 3: It is suggested to only include types and properties targetted for '\
-            'modification when loading. If entire sections of properties (or all sub dictionaries)'\
-            ' of a particular types) are to be removed; then the type, path and all associated '
-            'properties within the section should be removed in a manner preserving the JSON ' \
-            'formatting. Individual properties or entire sections may be removed.\n\n'
-            'NOTE 4: Any iLO management account or iLO federation account not present in the '\
-            'serverclone file will be deleted if present on the server during load.',\
-            'summary':"Creates a JSON formatted clone file of a system's iLO, Bios, and SSA "\
-            "configuration which can be duplicated onto other systems. "\
-            "User editable JSON file can be manipulated to modify settings before being "\
-            "loaded onto another machine.", \
-            'aliases': [],\
-            'auxcommands': ["LoginCommand", "LogoutCommand", "LoadCommand", "EthernetCommand", \
-                "CreateLogicalDriveCommand", "CreateLogicalDriveCommand", "IloAccountsCommand", \
-                "IloFederationCommand", "IloLicenseCommand", "CertificateCommand", \
-                "SingleSignOnCommand", "IloResetCommand", "RebootCommand"]
+            'name':'serverclone',
+            'usage': None,
+            'description':'Clone from a server or restore to a server a JSON formatted file '
+                          'containing the configuration settings of a system\'s iLO and Bios configuration.\n'
+                          'SSA controller settings and logical configurations can be optionally be included for '
+                          'save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n'
+                          'NOTE 1: Use the \'--silent\' OR \'--quiet\'option to ignore '
+                          'all user input. Intended for scripting purposes.\n'
+                          'NOTE 2: During clone load, login using an ilo account with full privileges'
+                          ' (such as the Administrator account) to ensure all items are cloned '
+                          'successfully.\n'
+                          'NOTE 3: It is suggested to only include types and properties targetted for '
+                          'modification when loading. If entire sections of properties (or all sub dictionaries)\n\t'
+                          'of a particular types) are to be removed; then the type, path and all associated '
+                          'properties within the section should be removed \n\tin a manner preserving the JSON '
+                          'formatting.Individual properties or entire sections may be removed.\n'
+                          'NOTE 4: Any iLO management account or iLO federation account not present in the '
+                          'serverclone file will be deleted if present on the server during load.',
+            'summary':"Creates a JSON formatted clone file of a system's iLO, Bios, and SSA "
+                      "configuration which can be duplicated onto other systems. "
+                      "User editable JSON file can be manipulated to modify settings before being "
+                      "loaded onto another machine.",
+            'aliases': [],
+            'auxcommands': ["LoginCommand", "LogoutCommand", "LoadCommand", "EthernetCommand",
+                            "CreateLogicalDriveCommand", "CreateLogicalDriveCommand", "IloAccountsCommand",
+                            "IloFederationCommand", "IloLicenseCommand", "CertificateCommand",
+                            "SingleSignOnCommand", "IloResetCommand", "RebootCommand"]
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-
         self.clone_file = None #set in validation
         self._cache_dir = None #set in validation
         self.tmp_clone_file = __tmp_clone_file__
@@ -182,16 +180,23 @@ class ServerCloneCommand():
         self.load = None
         self._fdata = None
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main Serverclone Command function
         :param line: string of arguments passed in
         :type line: str.
         """
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         _valid_args = ['save', 'load']
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -244,17 +249,17 @@ class ServerCloneCommand():
             if operation in writeable_ops:
                 if options.encryption:
                     with open(filename, operation + 'b') as outfile:
-                        outfile.write(Encryption().encrypt_file(json.dumps(data, indent=2, \
-                            cls=redfish.ris.JSONEncoder, sort_keys=sk), options.encryption))
+                        outfile.write(Encryption().encrypt_file(json.dumps(data, indent=2,
+                                                                           cls=redfish.ris.JSONEncoder, sort_keys=sk), options.encryption))
                 else:
                     with open(filename, operation) as outfile:
-                        outfile.write(json.dumps(data, indent=2, cls=redfish.ris.JSONEncoder, \
-                                                                                sort_keys=sk))
+                        outfile.write(json.dumps(data, indent=2, cls=redfish.ris.JSONEncoder,
+                                                 sort_keys=sk))
             else:
                 if options.encryption:
                     with open(filename, operation + 'b') as file_handle:
-                        fdata = json.loads(Encryption().decrypt_file(file_handle.read(),\
-                                                                options.encryption))
+                        fdata = json.loads(Encryption().decrypt_file(file_handle.read(),
+                                                                     options.encryption))
                 else:
                     with open(filename, operation) as file_handle:
                         fdata = json.loads(file_handle.read())
@@ -273,18 +278,18 @@ class ServerCloneCommand():
         :type options: attribute
         :returns: returns list of types
         """
-
-        supported_types_dict = {'ManagerAccount': ['4', '5'], 'AccountService': ['4', '5'], \
-                                'Bios': ['4', '5'], 'Manager': ['4', '5'], \
-                                'SNMP': ['4', '5'], 'iLOLicense': ['4', '5'], \
-                                'ManagerNetworkService': ['4', '5'], \
-                                'EthernetNetworkInterface': ['4', '5'], \
-                                'iLODateTime': ['4', '5'], 'iLOFederationGroup': ['4', '5'], \
-                                'iLOSSO': ['4', '5'], 'ESKM': ['4', '5'], \
-                                'ComputerSystem': ['4', '5'], 'EthernetInterface': ['4', '5'], \
-                                'ServerBootSettings': ['4', '5'], 'SecureBoot': ['4', '5'], \
-                                'SmartStorageConfig': ['5'], 'HpSmartStorage': [4], \
+        supported_types_dict = {'ManagerAccount': ['4', '5'], 'AccountService': ['4', '5'],
+                                'Bios': ['4', '5'], 'Manager': ['4', '5'],
+                                'SNMP': ['4', '5'], 'iLOLicense': ['4', '5'],
+                                'ManagerNetworkService': ['4', '5'],
+                                'EthernetNetworkInterface': ['4', '5'],
+                                'iLODateTime': ['4', '5'], 'iLOFederationGroup': ['4', '5'],
+                                'iLOSSO': ['4', '5'], 'ESKM': ['4', '5'],
+                                'ComputerSystem': ['4', '5'], 'EthernetInterface': ['4', '5'],
+                                'ServerBootSettings': ['4', '5'], 'SecureBoot': ['4', '5'],
+                                'SmartStorageConfig': ['5'], 'HpSmartStorage': [4],
                                 'HpeSmartStorage': [4]}
+
 
         if self.save:
             if options.noBIOS:
@@ -295,7 +300,6 @@ class ServerCloneCommand():
                 del supported_types_dict['SmartStorageConfig']
                 del supported_types_dict['HpSmartStorage']
                 del supported_types_dict['HpeSmartStorage']
-
         unsupported_types_list = ['Collection', 'PowerMeter', 'BiosMapping', 'Controller']
 
         #supported types comparison
@@ -398,11 +402,11 @@ class ServerCloneCommand():
         if not server_avail_types:
             raise NoContentsFoundForOperationError("Unable to Obtain iLO Types from server.")
 
-        if 'Comments' in self._fdata.keys():
+        if 'Comments' in list(self._fdata.keys()):
             self.system_compatibility_check(self._fdata['Comments'], options)
             del self._fdata['Comments']
         else:
-            raise InvalidFileInputError("Clone File \'%s\' does not include a valid \'Comments\' "\
+            raise InvalidFileInputError("Clone File \'%s\' does not include a valid \'Comments\' "
                                         "dictionary.")
         if options.ssocert:
             self.load_ssocertificate()  #check and load sso certificates
@@ -434,11 +438,11 @@ class ServerCloneCommand():
             try:
                 root_path_comps = self.get_rootpath(thispath)
 
-                multi_sel = self.rdmc.app.select(_type.split('.')[0] + '.', \
-                    (self.rdmc.app.typepath.defs.hrefstring, root_path_comps[0] + '*'), path_refresh=True)
+                multi_sel = self.rdmc.app.select(_type.split('.')[0] + '.',
+                                                 (self.rdmc.app.typepath.defs.hrefstring, root_path_comps[0] + '*'), path_refresh=True)
 
-                curr_sel = self.rdmc.app.select(_type.split('.')[0] + '.', \
-                                (self.rdmc.app.typepath.defs.hrefstring, thispath), path_refresh=True)
+                curr_sel = self.rdmc.app.select(_type.split('.')[0] + '.',
+                                                (self.rdmc.app.typepath.defs.hrefstring, thispath), path_refresh=True)
 
             except InstanceNotFoundError:
                 curr_sel = self.rdmc.app.select(_type.split('.')[0] + '.')
@@ -450,8 +454,8 @@ class ServerCloneCommand():
             finally:
                 try:
                     if 'multi_sel' in locals() and 'curr_sel' in locals():
-                        if len(multi_sel) > 1 and len(curr_sel) == 1 and (root_path_comps[1].\
-                                                    isdigit() or 'iLOFederationGroup' in _type or 'ManagerAccount' in _type):
+                        if len(multi_sel) > 1 and len(curr_sel) == 1 and (root_path_comps[1].
+                                                                                  isdigit() or 'iLOFederationGroup' in _type or 'ManagerAccount' in _type):
                             singlet = False
                             curr_sel = multi_sel
                 except (ValueError, KeyError):
@@ -459,19 +463,19 @@ class ServerCloneCommand():
 
             scanned_dict = dict()
             for thing in curr_sel:
-                scanned_dict[thing.path] = {'Origin': 'Server', 'Scanned': False, \
+                scanned_dict[thing.path] = {'Origin': 'Server', 'Scanned': False,
                                             'Data': thing.dict}
             for thing in self._fdata[_type]:
                 # if we only have a single path, the base path is in the path and only a single
                 #instance was retrieved from the server
                 if 'ManagerAccount' in _type or 'iLOFederationGroup' in _type:
-                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False, \
+                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False,
                                            'Data': self._fdata[_type][thing]}
                 elif singlet and root_path_comps[0] in thing and len(scanned_dict) == 1:
-                    scanned_dict[next(iter(scanned_dict))] = {'Origin': 'File', 'Scanned': False, \
+                    scanned_dict[next(iter(scanned_dict))] = {'Origin': 'File', 'Scanned': False,
                                                               'Data': self._fdata[_type][thing]}
                 else:
-                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False, \
+                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False,
                                            'Data': self._fdata[_type][thing]}
 
             for path in scanned_dict.keys():
@@ -483,7 +487,7 @@ class ServerCloneCommand():
                                          "%s\n" % (_type, path))
                         tmp = self.subhelper(scanned_dict[path]['Data'], _type, path, options)
                         if tmp:
-                            sys.stdout.write("Special entry not applicable...reserving for "\
+                            sys.stdout.write("Special entry not applicable...reserving for "
                                              "patch loading stage.\n")
                             data.append(tmp)
                         else:
@@ -491,7 +495,7 @@ class ServerCloneCommand():
 
                 except KeyError as excp:
                     if path in str(excp) and self._fdata.get(_type):
-                        if self.delete(scanned_dict[path]['Data'], _type, path, \
+                        if self.delete(scanned_dict[path]['Data'], _type, path,
                                        self._fdata[_type], options):
                             #ok so this thing does not have a valid path, is not considered a
                             #deletable item so....idk what to do with you. You go to load.
@@ -529,16 +533,16 @@ class ServerCloneCommand():
         #due to EthernetInterfaces OEM/HPE/DHCPv4 also having a key with 'Name'
         #this is required, removing readonly types after POST commands have
         #completed. Would be great if that was resolved...
-        prop_list = ["Modified", "Type", "Description", "Status", "Name",\
-                    "AttributeRegistry", "links", "SettingsResult", \
-                    "@odata.context", "@odata.type", "@odata.id",\
-                    "@odata.etag", "Links", "Actions", \
-                    "AvailableActions", "MACAddress", "BiosVersion"]
+        prop_list = ["Modified", "Type", "Description", "Status", "Name",
+                     "AttributeRegistry", "links", "SettingsResult",
+                     "@odata.context", "@odata.type", "@odata.id",
+                     "@odata.etag", "Links", "Actions",
+                     "AvailableActions", "MACAddress", "BiosVersion"]
 
         tmp = dict()
         tmp[_type] = {path: data}
-        tmp[_type][path] = self.rdmc.app.removereadonlyprops(tmp[_type][path], False, True, \
-                                                                                    prop_list)
+        tmp[_type][path] = self.rdmc.app.removereadonlyprops(tmp[_type][path], False, True,
+                                                             prop_list)
         json_traversal_delete_empty(tmp, None, None)
         if not self.ilo_special_functions(tmp, _type, path, options):
             return tmp
@@ -631,13 +635,13 @@ class ServerCloneCommand():
 
         try:
             if 'EthernetInterface' in _type:
-                instances = self.rdmc.app.select(_typep + '.', (self.rdmc.app.typepath.defs.hrefstring, \
-                                        self.rdmc.app.typepath.defs.managerpath + '*'), path_refresh=True)
+                instances = self.rdmc.app.select(_typep + '.', (self.rdmc.app.typepath.defs.hrefstring,
+                                                                self.rdmc.app.typepath.defs.managerpath + '*'), path_refresh=True)
             #'links/self/href' required when using iLO 4 (rest).
             elif 'EthernetNetworkInterface' in _type:
-                instances = self.rdmc.app.select(_typep + '.', ("links/self/" + \
-                            self.rdmc.app.typepath.defs.hrefstring, self.rdmc.app.typepath.defs.managerpath + '*'), \
-                                                                                path_refresh=True)
+                instances = self.rdmc.app.select(_typep + '.', ("links/self/" +
+                                                                self.rdmc.app.typepath.defs.hrefstring, self.rdmc.app.typepath.defs.managerpath + '*'),
+                                                 path_refresh=True)
             else:
                 instances = self.rdmc.app.select(_typep + '.', path_refresh=True)
 
@@ -658,9 +662,9 @@ class ServerCloneCommand():
                 _itc_pass = True
                 for _itm in _spec_list:
                     if _itm.lower() in _type.lower():
-                        templist = ["Modified", "Type", "Description", "Status", "links", \
-                                    "SettingsResult", "@odata.context", "@odata.type", "@odata.id",\
-                                    "@odata.etag", "Links", "Actions", \
+                        templist = ["Modified", "Type", "Description", "Status", "links",
+                                    "SettingsResult", "@odata.context", "@odata.type", "@odata.id",
+                                    "@odata.etag", "Links", "Actions",
                                     "AvailableActions", "BiosVersion"]
                         instance = iterateandclear(instance, templist)
                         _itc_pass = False
@@ -786,8 +790,8 @@ class ServerCloneCommand():
                     self.rdmc.ui.printer("Proceeding with Deletion...\n")
                     return True
                 elif ans.lower() == 'n':
-                    self.rdmc.ui.warn("Aborting deletion. No changes have been made made to "\
-                                     "the server.\n")
+                    self.rdmc.ui.warn("Aborting deletion. No changes have been made made to "
+                                      "the server.\n")
                     return False
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
@@ -800,7 +804,7 @@ class ServerCloneCommand():
             try:
                 for curr_sel in self.rdmc.app.select(_type.split('.')[0] + '.'):
                     try:
-                        if 'UserName' in curr_sel.dict.keys():
+                        if 'UserName' in list(curr_sel.dict.keys()):
                             curr_un = curr_sel.dict['UserName']
                             #check file to make sure this is not to be added later?
                         for fpath in fdata:
@@ -825,7 +829,7 @@ class ServerCloneCommand():
                             del fdata[fpath]
                             return False
                         else:
-                            self.rdmc.ui.error("Deletion of the Default System Administrator "\
+                            self.rdmc.ui.error("Deletion of the Default System Administrator "
                                                "account is not allowed.\n")
                     except (KeyError, NameError):
                         self.rdmc.ui.error("Unable to obtain the account information "\
@@ -903,31 +907,31 @@ class ServerCloneCommand():
         errors = []
 
         if 'StaticNTPServers' in datetime_data:
-            self.rdmc.ui.printer("Attempting to modify \'UseNTPServers\' in each iLO Management "\
-                             "Network Interface regarding the StaticNTPServers list in "\
-                             "section \'iLODateTime (DateTime)\'\n")
+            self.rdmc.ui.printer("Attempting to modify \'UseNTPServers\' in each iLO Management "
+                                 "Network Interface regarding the StaticNTPServers list in "
+                                 "section \'iLODateTime (DateTime)\'\n")
             oem_str = self.rdmc.app.typepath.defs.oempath
             prop_str = (oem_str + '/DHCPv4/UseNTPServers')[1:]
             path_str = self.rdmc.app.typepath.defs.managerpath + '*'
-            _instances = self.rdmc.app.select('EthernetInterface', \
-                                                        (self.rdmc.app.typepath.defs.hrefstring, path_str))
-            _content = self.rdmc.app.getprops('EthernetInterface', \
-                                                        [prop_str], None, True, True, _instances)
+            _instances = self.rdmc.app.select('EthernetInterface',
+                                              (self.rdmc.app.typepath.defs.hrefstring, path_str))
+            _content = self.rdmc.app.getprops('EthernetInterface',
+                                              [prop_str], None, True, True, _instances)
 
             for item in _content:
                 try:
                     if next(iter(jsonpath_rw.parse('$..UseNTPServers').find(item))).value:
-                        self.rdmc.app.patch_handler(path, \
-                                {'Oem':{oem_str:{'DHCPv4':{'UseNTPServers':True}}}})
+                        self.rdmc.app.patch_handler(path,
+                                                    {'Oem':{oem_str:{'DHCPv4':{'UseNTPServers':True}}}})
                     else:
-                        self.rdmc.app.patch_handler(path, \
-                                {'Oem':{oem_str:{'DHCPv4':{'UseNTPServers':False}}}})
+                        self.rdmc.app.patch_handler(path,
+                                                    {'Oem':{oem_str:{'DHCPv4':{'UseNTPServers':False}}}})
                 except IloResponseError as excp:
                     errors.append("iLO Responded with the following error: %s.\n" % excp)
 
         if errors:
-            self.rdmc.ui.error("iLO responded with an error while attempting to set values " \
-                               "for \'UseNTPServers\'. An attempt to patch DateTime "\
+            self.rdmc.ui.error("iLO responded with an error while attempting to set values "
+                               "for \'UseNTPServers\'. An attempt to patch DateTime "
                                "properties will be performed, but may be unsuccessful.\n")
             raise IloResponseError("The following errors in, \'DateTime\' were found " \
                                    "collectively: %s" % errors)
@@ -947,7 +951,7 @@ class ServerCloneCommand():
         valid_key = False
         license_keys = []
         try:
-            if 'LicenseKey' in license_data['ConfirmationRequest']['EON'].keys():
+            if 'LicenseKey' in list(license_data['ConfirmationRequest']['EON'].keys()):
                 license_keys.append(license_data['ConfirmationRequest']['EON']['LicenseKey'])
         except:
             pass
@@ -1093,7 +1097,7 @@ class ServerCloneCommand():
             password[0] = __DEFAULT__
             self.rdmc.ui.printer("Using a placeholder password of \'%s\' in %s file.\n"  % \
                                                                     (password[0], self.clone_file))
-        accounts = {"AccountType": account_type, "UserName": account_un, "LoginName": account_ln,\
+        accounts = {"AccountType": account_type, "UserName": account_un, "LoginName": account_ln,
                     "Password": password[0], "RoleId": role_id, "Privileges": privileges}
 
         return accounts
@@ -1123,7 +1127,7 @@ class ServerCloneCommand():
         for _t in self._fdata:
             try:
                 if 'AccountService' in _t:
-                    _t_path = next(iter(self._fdata.get(_t).keys()))
+                    _t_path = next(iter(list(self._fdata.get(_t).keys())))
                     pass_dict = {"Oem": {self.rdmc.app.typepath.defs.oemhp: {}}}
                     pass_dict["Oem"][self.rdmc.app.typepath.defs.oemhp]['MinPasswordLength'] = \
                                                 self._fdata[_t][_t_path]["Oem"]\
@@ -1135,8 +1139,8 @@ class ServerCloneCommand():
             except KeyError as excp:
                     pass
             except Exception as excp:
-                self.rdmc.ui.error("Unable to set minimum password length for manager accounts.\n",\
-                                                                                            excp)
+                self.rdmc.ui.error("Unable to set minimum password length for manager accounts.\n",
+                                   excp)
 
         #set the current privileges to those in the clone file
         curr_privs = user_accounts['Privileges']
@@ -1158,7 +1162,7 @@ class ServerCloneCommand():
                     curr_privs = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Privileges']
                     curr_role_id = curr_sel.dict.get('RoleId')
                     #curr_ln = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName']
-                    if 'UserName' in curr_sel.dict.keys():
+                    if 'UserName' in list(curr_sel.dict.keys()):
                         curr_un = curr_sel.dict['UserName']
                     else:
                         curr_un = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName']
@@ -1296,8 +1300,8 @@ class ServerCloneCommand():
             fedkey[0] = __DEFAULT__
             self.rdmc.ui.warn("Using a placeholder federation key \'%s\' in %s file.\n" % \
                                                                     (fedkey[0], self.clone_file))
-        fedaccts = {"AccountID": fed_id, "FederationName": fed_name, "FederationKey": fedkey[0], \
-                                                                        "Privileges": privileges}
+        fedaccts = {"AccountID": fed_id, "FederationName": fed_name, "FederationKey": fedkey[0],
+                    "Privileges": privileges}
         return fedaccts
 
     @log_decor
@@ -1432,14 +1436,14 @@ class ServerCloneCommand():
                 self.rdmc.ui.warn("The iLO Versions are compatible; however, the revisions "\
                     "differ (system version: iLO %s %s, file version: iLO %s %s). Some "\
                     "differences in properties, schemas and incompatible dependencies may "\
-                    "exist. Proceed with caution.\n" % (self.curr_iloversion, curr_ilorev, \
-                                                                    file_iloversion, file_ilorev))
+                    "exist. Proceed with caution.\n" % (self.curr_iloversion, curr_ilorev,
+                                                        file_iloversion, file_ilorev))
                 checks.append(False)
             else:
                 self.rdmc.ui.warn("The iLO Versions are different. Compatibility issues may exist "\
                     "attempting to commit changes to this system.\n(System version: iLO %s %s, "\
-                    "file version: iLO %s %s)\n" % (self.curr_iloversion, curr_ilorev, \
-                                                                    file_iloversion, file_ilorev))
+                    "file version: iLO %s %s)\n" % (self.curr_iloversion, curr_ilorev,
+                                                    file_iloversion, file_ilorev))
                 checks.append(False)
         except KeyError as exp:
             if 'iLOVersion' in str(exp):
@@ -1556,8 +1560,8 @@ class ServerCloneCommand():
         Obtain a dictionary of filenames for clonefile, and cert files
         :returns: returns dictionary of filenames
         """
-        return {'clone_file': self.clone_file, \
-                'https_cert_file': self.https_cert_file, \
+        return {'clone_file': self.clone_file,
+                'https_cert_file': self.https_cert_file,
                 'sso_cert_file': self.sso_cert_file}
 
     def check_files(self, options):
@@ -1566,14 +1570,14 @@ class ServerCloneCommand():
         :param options: command line options
         :type options: attribute
         """
-
         if options.encryption:
             if self.save:
                 self.rdmc.ui.printer("Serverclone JSON, \'%s\' will be encrypted.\n" \
                                   % self.clone_file)
             if self.load:
-                self.rdmc.ui.error("Expecting an encrypted JSON clone file: %s.\n" \
-                                 % self.clone_file)
+                self.rdmc.ui.printer("Loading the encrypted JSON clone file: %s.\n" \
+                                     % self.clone_file)
+                self.rdmc.ui.printer("Note: Make sure %s is encrypted.\n" % self.clone_file)
 
         #delete anything in the change log file
         with open(self.change_log_file, 'w+') as clf:
@@ -1699,16 +1703,16 @@ class ServerCloneCommand():
                 if len(options.ssocert) < 2 and self.load:
                     self.sso_cert_file = options.ssocert[0]
                 else:
-                    raise InvalidCommandLineError("Ensure you are loading a single SSO certificate"\
-                                                      ".\n")
+                    raise InvalidCommandLineError("Ensure you are loading a single SSO certificate"
+                                                  ".\n")
             if options.tlscert:
                 if len(options.tlscert) < 2 and self.load:
                     self.https_cert_file = options.tlscert[0]
                 else:
-                    raise InvalidCommandLineError("Ensure you are loading a single TLS certificate"\
-                                                      ".\n")
+                    raise InvalidCommandLineError("Ensure you are loading a single TLS certificate"
+                                                  ".\n")
         if self.rdmc.opts.debug:
-            self.rdmc.ui.warn("Debug selected...all exceptions will be handled in an external log "\
+            self.rdmc.ui.warn("Debug selected...all exceptions will be handled in an external log "
                               "file (check error log for automatic testing).\n")
             with open(self.error_log_file, 'w+') as efh:
                 efh.write("")
@@ -1793,7 +1797,7 @@ class ServerCloneCommand():
         self.cmdbase.add_login_arguments_group(save_parser)
         self.options_argument_group(save_parser)
 
-        load_help = '\n\n\tLoad an iLO, Bios and/or SSA config.'
+        load_help = 'Load an iLO, Bios and/or SSA config.'
         #load sub-parser
         load_parser = subcommand_parser.add_parser(
             'load',

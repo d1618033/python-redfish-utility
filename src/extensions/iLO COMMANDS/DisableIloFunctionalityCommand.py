@@ -1,5 +1,5 @@
 ###
-# Copyright 2020 Hewlett Packard Enterprise, Inc. All rights reserved.
+# Copyright 2016-2021 Hewlett Packard Enterprise, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,39 +28,38 @@ class DisableIloFunctionalityCommand():
     """ Disables iLO functionality to the server """
     def __init__(self):
         self.ident = {
-            'name':'disableilofunctionality',\
-            'usage':'disableilofunctionality [OPTIONS]\n\n\t'\
-                'Disable iLO functionality on the current logged in server.' \
-                '\n\texample: disableilofunctionality\n\n\tWARNING: this will' \
-                ' render iLO unable to respond to network operations.\n\n\t'\
-                'Add the --force flag to ignore critical task checking.',\
-            'summary':"disables iLO's accessibility via the network and resets "\
-            "iLO. WARNING: This should be used with caution as it will "\
-            "render iLO unable to respond to further network operations "\
-            "(including REST operations) until iLO is re-enabled using the"\
-            " RBSU menu.",\
-            'aliases': [],\
+            'name':'disableilofunctionality',
+            'usage': None,
+            'description': 'Disable iLO functionality on the current logged in server.'
+                    '\n\texample: disableilofunctionality\n\n\tWARNING: this will'
+                    ' render iLO unable to respond to network operations.\n\n\t'
+                    'Add the --force flag to ignore critical task checking.',
+            'summary':"disables iLO's accessibility via the network and resets "
+                      "iLO. WARNING: This should be used with caution as it will "
+                      "render iLO unable to respond to further network operations "
+                      "(including REST operations) until iLO is re-enabled using the"
+                      " RBSU menu.",
+            'aliases': [],
             'auxcommands': []
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.rdmc.app.typepath = rdmcObj.app.typepath
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
-    def run(self, line):
+    def run(self, line, help_disp=False):
         """ Main DisableIloFunctionalityCommand function
 
         :param line: string of arguments passed in
         :type line: str.
         """
-
+        if help_disp:
+            self.parser.print_help()
+            return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
+                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -85,9 +84,9 @@ class DisableIloFunctionalityCommand():
 
         bodydict = results.resp.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
         if bodydict['iLOFunctionalityRequired']:
-            raise IncompatableServerTypeError("disableilofunctionality"\
-                " command is not available. iLO functionality is required"\
-                " and can not be disabled on this platform.")
+            raise IncompatableServerTypeError("disableilofunctionality"
+                                              " command is not available. iLO functionality is required"
+                                              " and can not be disabled on this platform.")
 
         try:
             for item in bodydict['Actions']:
@@ -101,12 +100,12 @@ class DisableIloFunctionalityCommand():
                     body = {"Action": action}
                     break
         except:
-            body = {"Action": "iLOFunctionality", \
-                                "Target": "/Oem/Hp"}
+            body = {"Action": "iLOFunctionality",
+                    "Target": "/Oem/Hp"}
 
         if self.ilodisablechecks(options):
 
-            self.rdmc.ui.warn("Disabling iLO functionality. iLO will be unavailable on the logged "\
+            self.rdmc.ui.warn("Disabling iLO functionality. iLO will be unavailable on the logged "
                               " in server until it is re-enabled manually.\n")
 
             results = self.rdmc.app.post_handler(path, body, silent=True, service=True)
@@ -126,7 +125,7 @@ class DisableIloFunctionalityCommand():
                                        % json_payload)
 
         else:
-            self.rdmc.ui.error("iLO is currently performing a critical task and "\
+            self.rdmc.ui.error("iLO is currently performing a critical task and "
                                "can not be safely disabled at this time. Please try again later.\n")
 
         self.cmdbase.logout_routine(self, options)
