@@ -48,7 +48,7 @@ If you perform a `get` command to find the current `AdminPassword` and `OldAdmin
 
 ![BIOS Password Example 2](images/BIOSPassword_2.png "BIOS Password Example 2")
 
-In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `–biospassword` flag if the system is iLO 4.
+In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `-biospassword` flag if the system is iLO 4.
 
 <aside class="notice">The <b>biospassword</b> value is the same as the <b>OldAdminPassword</b> value.</aside>
 

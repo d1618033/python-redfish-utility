@@ -495,7 +495,7 @@ Steps to configure iLO Certificate based Authentication:
 1. Generate root CA private key:
 - openssl genrsa -out testCA.key 4096
 2. Configure and set X509 SSL certificate by generating a CSR from iLO and signing with private root CA key.
-- openssl req -x509 -new –nodes -key testCA.key -sha256 -days 1024 -subj "/O=HPE/OU=R&D/CN=CA for testing iLO authentication" -out testCA.crt
+- openssl req -x509 -new -nodes -key testCA.key -sha256 -days 1024 -subj "/O=HPE/OU=R&D/CN=CA for testing iLO authentication" -out testCA.crt
 3. Add SSL certificate to iLO.
 - (Security | CAC/Smartcard | Import Trusted CA Certificates | Direct Import).
 4. Generate user rsa private key.

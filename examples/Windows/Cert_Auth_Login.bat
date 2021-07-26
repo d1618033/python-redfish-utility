@@ -21,7 +21,7 @@
 ::           openssl genrsa -out testCA.key 4096                   ::
 ::        2. Configure and set X509 SSL certificate by generating  ::
 ::           a CSR from iLO and signing with private root CA key.  ::
-::           openssl req -x509 -new –nodes -key testCA.key         ::
+::           openssl req -x509 -new -nodes -key testCA.key         ::
 ::           -sha256 -days 1024 -subj "/O=HPE/OU=R&D/CN=CA for     ::
 ::           testing iLO authentication" -out testCA.crt
 ::        3. Add SSL certificate to iLO                            ::

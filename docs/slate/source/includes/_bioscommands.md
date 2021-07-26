@@ -762,7 +762,7 @@ The operation completed successfully.
 
 #### Syntax
 
-Setpassword –-newpassword <newpass> --currentpassword <currpass>
+Setpassword --newpassword <newpass> --currentpassword <currpass>
 
 #### Description
 
