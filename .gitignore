@@ -9,4 +9,3 @@ src/ilorest.log
 .settings
 .idea/
 .cache/
-*.py
