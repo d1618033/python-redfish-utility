@@ -8,7 +8,7 @@ What's New:
 * Upgraded OpenSSL version to 1.0.2r.
 * Setpassword able to set empty password.
 * Introduced Ethernet command. The Ethernet command handles the Ethernet related set and get parameters like IP, DNS, and so on. This also has save and load features.
-* Serverclone options –silent and –quiet replaced with –auto.
+* Serverclone options -silent and -quiet replaced with -auto.
 
 Fixes:
 
