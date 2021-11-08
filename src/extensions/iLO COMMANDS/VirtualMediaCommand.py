@@ -18,22 +18,24 @@
 """ Virtual Media Command for rdmc """
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                InvalidCommandLineErrorOPTS, UI, IloLicenseError
+    InvalidCommandLineErrorOPTS, UI, IloLicenseError
+
 
 class VirtualMediaCommand():
     """ Changes the iscsi configuration for the server that is currently """ \
-                                                            """ logged in """
+    """ logged in """
+
     def __init__(self):
         self.ident = {
-            'name':'virtualmedia',
+            'name': 'virtualmedia',
             'usage': None,
-            'description':'Run without'
-                    ' arguments to view the available virtual media sources.'
-                    '\n\tExample: virtualmedia\n\n\tInsert virtual media and '
-                    'set to boot on next restart.\n\texample: virtualmedia 2 '
-                    'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove '
-                    'current inserted media.\n\texample: virtualmedia 2 --remove',
-            'summary':'Command for inserting and removing virtual media.',
+            'description': 'Run without'
+                           ' arguments to view the available virtual media sources.'
+                           '\n\tExample: virtualmedia\n\n\tInsert virtual media and '
+                           'set to boot on next restart.\n\texample: virtualmedia 2 '
+                           'http://xx.xx.xx.xx/vm.iso --bootnextreset\n\n\tRemove '
+                           'current inserted media.\n\texample: virtualmedia 2 --remove',
+            'summary': 'Command for inserting and removing virtual media.',
             'aliases': [],
             'auxcommands': ["GetCommand", "SetCommand", "SelectCommand",
                             "RebootCommand"]
@@ -47,6 +49,8 @@ class VirtualMediaCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -55,7 +59,6 @@ class VirtualMediaCommand():
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -78,8 +81,8 @@ class VirtualMediaCommand():
             isredfish = True
             paths = self.auxcommands['get'].getworkerfunction("@odata.id", options, results=True, uselist=False)
             ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
-            paths = {ind:path for ind, path in enumerate(paths)}
-            ids = {ind:id for ind, id in enumerate(ids)}
+            paths = {ind: path for ind, path in enumerate(paths)}
+            ids = {ind: id for ind, id in enumerate(ids)}
             for path in paths:
                 paths[path] = paths[path]['@odata.id']
         else:
@@ -87,8 +90,8 @@ class VirtualMediaCommand():
             paths = self.auxcommands['get'].getworkerfunction("links/self/href", options,
                                                               results=True, uselist=False)
             ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
-            paths = {ind:path for ind, path in enumerate(paths)}
-            ids = {ind:id for ind, id in enumerate(ids)}
+            paths = {ind: path for ind, path in enumerate(paths)}
+            ids = {ind: id for ind, id in enumerate(ids)}
             for path in paths:
                 paths[path] = paths[path]['links']['self']['href']
         # To keep indexes consistent between versions
@@ -110,7 +113,7 @@ class VirtualMediaCommand():
                                           " 'help virtualmedia' for parameters.")
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def vmremovehelper(self, args, options, paths, isredfish, ilover):
@@ -209,8 +212,8 @@ class VirtualMediaCommand():
         mediatypes = self.auxcommands['get'].getworkerfunction(
             "MediaTypes", options, results=True, uselist=False)
         ids = self.auxcommands['get'].getworkerfunction("Id", options, results=True, uselist=False)
-        ids = {ind:id for ind, id in enumerate(ids)}
-        mediatypes = {ind:med for ind, med in enumerate(mediatypes)}
+        ids = {ind: id for ind, id in enumerate(ids)}
+        mediatypes = {ind: med for ind, med in enumerate(mediatypes)}
         # To keep indexes consistent between versions
         if not list(ids.keys())[0] == list(list(ids.values())[0].values())[0]:
             finalmet = {}
@@ -246,7 +249,7 @@ class VirtualMediaCommand():
                 json_str['MediaTypes'][str(media)] = imagestr
             else:
                 self.rdmc.ui.printer("[%s] Media Types Available: %s Image Inserted:" \
-                                        " %s\n" %(str(image), str(media), imagestr))
+                                     " %s\n" % (str(image), str(media), imagestr))
         if getattr(options, "json", False):
             UI().print_out_json(json_str)
 
@@ -266,8 +269,8 @@ class VirtualMediaCommand():
                                           "arguments for possible values.")
 
         self.rdmc.app.patch_handler(path,
-                                    {"Oem":{self.rdmc.app.typepath.defs.oemhp:{"BootOnNextServerReset":
-                                                                                   True}}}, service=True, silent=True)
+                                    {"Oem": {self.rdmc.app.typepath.defs.oemhp: {"BootOnNextServerReset":
+                                                                                     True}}}, service=True, silent=True)
 
     def vmredfishhelper(self, action, number, image=None):
         """Redfish version of the worker function
@@ -347,9 +350,9 @@ class VirtualMediaCommand():
         customparser.add_argument(
             '--reboot',
             dest='reboot',
-            help="Use this flag to perform a reboot command function after"\
-            " completion of operations.  For help with parameters and"\
-            " descriptions regarding the reboot flag, run help reboot.",
+            help="Use this flag to perform a reboot command function after" \
+                 " completion of operations.  For help with parameters and" \
+                 " descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
         customparser.add_argument(
@@ -363,10 +366,10 @@ class VirtualMediaCommand():
             '--bootnextreset',
             dest='bootnextreset',
             action="store_true",
-            help="Use this flag if you wish to boot from the image on "\
-            "next server reboot. NOTE: The image will be ejected "\
-            "automatically on the second server reboot so that the server "\
-            "does not boot to this image twice.",
+            help="Use this flag if you wish to boot from the image on " \
+                 "next server reboot. NOTE: The image will be ejected " \
+                 "automatically on the second server reboot so that the server " \
+                 "does not boot to this image twice.",
             default=False
         )
         customparser.add_argument(
@@ -374,8 +377,8 @@ class VirtualMediaCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
             default=False
         )

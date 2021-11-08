@@ -13,7 +13,7 @@ Some changes are not applied until the system is reset.
 </aside>
 
 <pre>
-iLOrest > <font color="#01a982">biosdefaults</font>
+iLOrest > <span style="color: #01a982; ">biosdefaults</span>
 Resetting the currently logged in server's BIOS settings to defaults.
 One or more properties were changed and will not take effect until system is reset.
 </pre>
@@ -21,7 +21,7 @@ One or more properties were changed and will not take effect until system is res
 > To set the bios back to user defaults, include the `--userdefaults` flag.
 
 <pre>
-iLOrest > biosdefaults <font color="#01a982">--userdefaults</font>
+iLOrest > biosdefaults <span style="color: #01a982; ">--userdefaults</span>
 Resetting the currently logged in server's BIOS settings to defaults.
 One or more properties were changed and will not take effect until system is reset.
 </pre>
@@ -29,7 +29,7 @@ One or more properties were changed and will not take effect until system is res
 > This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), sets the bios back to default settings, then reboots *(--reboot)* the server to apply the changes. Using the reboot option automatically logs-out of the server.
 
 <pre>
-iLOrest > <font color="#01a982">biosdefaults --url xx.xx.xx.xx -u username -p password --reboot=ForceRestart</font>
+iLOrest > <span style="color: #01a982; ">biosdefaults --url xx.xx.xx.xx -u username -p password --reboot=ForceRestart</span>
 Discovering data...Done
 Resetting the currently logged in server's BIOS settings to defaults.
 One or more properties were changed and will not take effect until system is reset.
@@ -43,15 +43,15 @@ Logging session out.
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 biosdefaults *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Sets the BIOS settings of the currently logged in server back to the default settings.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -75,7 +75,7 @@ Sets bios to user defaults instead of factory defaults.
 
 Sets bios to manufacturer defaults instead of factory defaults.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -96,23 +96,19 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
-
 
 ### Bootorder command
 
 > Bootorder example commands:
 
 > Run without arguments to view the current persistent boot order, continuous and one time boot options, and continuous and one time boot UEFI options.
-
-#### Example
 
 <pre>
 root > ./ilorest bootorder
@@ -152,7 +148,7 @@ Continuous and one time boot uefi options:
 > List numbers associated with the `Current Persistent Boot Order` list to set a new boot order. Any numbers left off of the new list will be added to the end. Using the previous examples Current Persistent Boot Order, this command will place `Generic.USB.1.1`, `HD.SD.1.2`, and `HD.EmbRAID.1.8` at the top in that order. The commit flag will commit the changes, otherwise changes are not saved.
 
 <pre>
-iLOrest > <font color="#01a982">bootorder [11,6,3] --commit</font>
+iLOrest > <span style="color: #01a982; ">bootorder [11,6,3] --commit</span>
 Committing changes...
 One or more properties were changed and will not take effect until system is reset.
 iLOrest > bootorder
@@ -177,7 +173,7 @@ Current Persistent Boot Order:
 > Use partial string matching to set a boot order independent of the current boot order. All boot options not listed will be added to the end of the boot order. This command will set All v4 NICs first, followed by all hard drives, followed by Generic.USB.1.1, then committing the results.
 
 <pre>
-iLOrest > <font color="#01a982">bootorder NIC.*v4 HD* Generic.USB.1.1</font>
+iLOrest > <span style="color: #01a982; ">bootorder NIC.*v4 HD* Generic.USB.1.1</span>
 iLOrest > bootorder
 
 Current Persistent Boot Order:
@@ -200,7 +196,7 @@ Current Persistent Boot Order:
 > Change the one time boot order using the `--onetimeboot` option. Specify a option to boot to from the `Continuous and one time boot options` list.
 
 <pre>
-iLOrest > bootorder <font color="#01a982">--onetimeboot=Hdd</font> --commit
+iLOrest > bootorder <span style="color: #01a982; ">--onetimeboot=Hdd</span> --commit
 Committing changes...
 The operation completed successfully.
 </pre>
@@ -209,7 +205,7 @@ The operation completed successfully.
 > Change the continuous boot order using the `--continuousboot` option. Specify a option to boot to from the `Continuous and one time boot options` list.
 
 <pre>
-iLOrest > bootorder <font color="#01a982">--continuousboot=Cd</font> --commit
+iLOrest > bootorder <span style="color: #01a982; ">--continuousboot=Cd</span> --commit
 Committing changes...
 The operation completed successfully.
 </pre>
@@ -218,22 +214,22 @@ The operation completed successfully.
 > To turn off any continuous or one-time boot options that have been configured, use the `--disablebootflag` option.
 
 <pre>
-iLOrest > bootorder <font color="#01a982">--disablebootflag</font> --commit
+iLOrest > bootorder <span style="color: #01a982; ">--disablebootflag</span> --commit
 Committing changes...
 The operation completed successfully.
 </pre>
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 bootorder *[Boot Order] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 This command prints a list of entries when no arguments are provided. Run this command with arguments to change the bootorder and set continuous and one-time boot settings. Arguments for the bootorder command include entries as a list, which is enumerated in the order of the default command. Entries provided are rotated, in order, to the top of the boot queue; missing entries are appended to the end of the new queue, in order. Changes do not take effect until a reboot. To perform a one-time boot, continuous boot, or disable continuous boot or one-time boot, use the respective options.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **Boot Order**
 
@@ -273,7 +269,7 @@ Use this to disable either continuous or one-time boot modes.
 
 Use this flag to perform actions on secure boot keys. Possible values include defaultkeys: resets all keys to default, deletekeys: deletes all keys, deletepk: deletes all product keys.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -294,11 +290,11 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
@@ -310,7 +306,7 @@ None
 > Using the iscsiconfig command without any options will display the current ISCSI configuration, including ISCSI initiator name and currently configured boot entries.
 
 <pre>
-iLOrest > <font color="#01a982">iscsiconfig</font>
+iLOrest > <span style="color: #01a982; ">iscsiconfig</span>
 
 Iscsi Initiator Name: "iqn.2015-02.com.hpe:uefi-U32-Kappa"
 
@@ -324,7 +320,7 @@ Available iSCSI Boot Network Interfaces:
 > Use the list flag to retrieve the current configured iscsi boot attempts. If none are configured, then all sections will have a message stating **Not Added**.
 
 <pre>
-iLOrest > iscsiconfig <font color="#01a982">--list</font>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--list</span>
 Current iSCSI Attempts:
 [
   {
@@ -345,7 +341,7 @@ Current iSCSI Attempts:
 > To add an iSCSI boot attempt use the `--add` option, specifying which iSCSI Network Interface to attempt a boot from. This command will add a boot attempt from option [2] in the `Available iSCSI Boot Network Interfaces` list.
 
 <pre>
-iLOrest > iscsiconfig <font color="#01a982">--add [2]</font>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--add [2]</span>
 One or more properties were changed and will not take effect until system is reset.
 iLOrest > iscsiconfig --list
 Current iSCSI Attempts:
@@ -395,9 +391,9 @@ Current iSCSI Attempts:
 > Modify properties for boot attempts by outputting them to a file, editing the file, then apply the changes with the `--modify` option. You must include the `--list` option with the `-f` option to write to a file.
 
 <pre>
-iLOrest > iscsiconfig <font color="#01a982">--list -f output.txt</font>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--list -f output.txt</span>
 Results written out to 'output.txt'
-iLOrest > iscsiconfig <font color="#01a982">--modify output.txt</font>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--modify output.txt</span>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
@@ -448,7 +444,7 @@ Current iSCSI Attempts:
   }
 ]
 
-iLOrest > iscsiconfig <font color="#01a982">--delete 1</font>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--delete 1</span>
 One or more properties were changed and will not take effect until system is reset.
 iLOrest > iscsiconfig --list
 Current iSCSI Attempts:
@@ -470,15 +466,15 @@ Current iSCSI Attempts:
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 iscsiconfig *[iSCSI Configuration] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to view the current iSCSI configuration, save the current iSCSI configuration to a file, load an iSCSI configuration from a file, or view available NIC resources for iSCSI configuration.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **--add=ADD**
 
@@ -514,7 +510,7 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 Use this flag to perform a reboot command function after completion of operations. For help with parameters and descriptions regarding the reboot flag, run `help reboot`.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -535,11 +531,11 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
@@ -551,7 +547,7 @@ None
 > Run `pending` with no arguments to show current changes that *have* been committed to the server and are awaiting a reboot. In this example, no changes have been found.
 
 <pre>
-iLOrest > <font color="#01a982">pending</font>
+iLOrest > <span style="color: #01a982; ">pending</span>
 Current Pending Changes:
 
 SmartStorageConfig.v2_0_1:
@@ -586,7 +582,7 @@ iLOrest > select bios.
 iLOrest > set AdminName=newname --commit
 Committing changes...
 One or more properties were changed and will not take effect until system is reset.
-iLOrest > <font color="#01a982">pending</font>
+iLOrest > <span style="color: #01a982; ">pending</span>
 Current Pending Changes:
 
 SmartStorageConfig.v2_0_1:
@@ -617,21 +613,21 @@ HpeTlsConfig.v1_0_0:
 No pending changes found.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 pending *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Displays pending committed changes that will be applied after a reboot.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
 Including the help flag will display help for the command.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -652,11 +648,11 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
@@ -667,7 +663,7 @@ None
 > Run the command without any parameters to gather the results of any changes which occurred on the last reboot.
 
 <pre>
-iLOrest > <font color="#01a982">results</font>
+iLOrest > <span style="color: #01a982; ">results</span>
 Results of the previous reboot changes:
 
 Bios:
@@ -680,21 +676,21 @@ Iscsi:
 The operation completed successfully.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 results *[optional parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Show the results of any changes, which require a system reboot to take effect.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
 Including the help flag will display help for the command.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -715,17 +711,16 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
 
 ### Setpassword command
-
 
 <aside class="notice">
 Please make sure the order of passwords is maintained. The passwords are extracted based on their position in the arguments list.
@@ -733,10 +728,11 @@ Please make sure the order of passwords is maintained. The passwords are extract
 
 > Setpassword example commands:
 
-> To set a new password, include the new password and the current password. When setting a bios or power on password with no previous password set, `OLD_PASSWORD` must be set to `""` signifying no password.
+> To set a new password, include the new password and the current password. When setting a bios or power on password with no previous password set, `OLD_PASSWORD` must be set to `None` signifying no password.
 
 <pre>
-iLOrest > <font color="#01a982">setpassword newpassword ""</font>
+iLOrest > <span style="color: #01a982; ">setpassword --newpassword newpassword --currentpassword None</span>
+
 setpassword --newpassword newpass1 --currentpassword
 The operation completed successfully.
 </pre>
@@ -744,31 +740,28 @@ The operation completed successfully.
 > When setting a bios or power on password back to nothing, `NEW_PASSWORD` must be set to `""`.
 
 <pre>
-iLOrest > <font color="#01a982">setpassword "" oldpassword</font>
-setpassword --newpassword "" --currentpassword newpass1
+iLOrest > <span style="color: #01a982; ">setpassword --newpassword None --currentpassword oldpassword</span>
+
+setpassword --newpassword None --currentpassword newpass1
 The operation completed successfully.
 </pre>
-
 
 > To set the power on password, include the `--poweron` option.
 
 <pre>
-iLOrest > setpassword newpassword "" <font color="#01a982">--poweron</font>
+iLOrest > setpassword --newpassword newpassword --currentpassword None <span style="color: #01a982; ">--poweron</span>
 The operation completed successfully.
 </pre>
 
+<p class="fake_header">Syntax</p>
 
+Setpassword –-newpassword <newpass> --currentpassword <currpass>
 
-
-#### Syntax
-
-Setpassword --newpassword <newpass> --currentpassword <currpass>
-
-#### Description
+<p class="fake_header">Description</p>
 
 Sets the BIOS admin password and power on password.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -782,7 +775,7 @@ Use this flag to set power on password instead of the BIOS admin password.
 
 Use this flag to perform a reboot command function after completion of operations. 'REBOOT' is replaceable parameter that can have multiple values. For help with parameters and descriptions regarding the reboot flag, run help reboot.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -803,11 +796,11 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 Use the provided CA bundle or SSL certificate with your login to connect
 securely to the system in remote mode. This flag has no effect in local mode.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None

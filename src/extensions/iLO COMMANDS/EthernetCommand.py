@@ -62,12 +62,16 @@ class EthernetCommand():
                            'ethernet save -f <filename> --silent.'
                            '\n\n\tLoad etherent management controller data from a different file, silently\n\t'
                            'ethernet load -f <filename> --silent.'
-                           '\n\n\tEnable network interfaces by listing each interface to be enabled. **Note**:'
-                           ' Non-existent interfaces will be omitted from configuration.\n\t '
+                           '\n\n\tEnable network interfaces by listing each interface to be enabled. **Note**: '
+                           'Non-existent interfaces will be omitted from configuration.\n\t '
                            'ethernet --enable_nic 1,2,3'
-                           '\n\n\tDisable network interfaces by listing each interface to be disabled. **Note**:'
-                           ' Non-existent interfaces will be omitted from configuration.\n\t '
+                           '\n\n\tDisable network interfaces by listing each interface to be disabled. **Note**: '
+                           'Non-existent interfaces will be omitted from configuration.\n\t '
                            'ethernet --disable_nic 1,2,3'
+                           '\n\n\tEnable virtual network interface of management network.\n\t'
+                           'ethernet --enable_vnic'
+                           '\n\n\tDisable virtual network interface of management network.\n\t  '
+                           'ethernet --disable_vnic'
                            '\n\n\tConfigure Domain Name Servers (DNS) in a list: <DNS1> <DNS2>\n\t'
                            'ethernet --nameservers 8.8.8.8,1.1.1.1 OR ethernet --nameservers '
                            'dns_resolver1.aws.com, dns_resolver2.aws.com'
@@ -82,7 +86,7 @@ class EthernetCommand():
             'summary': "Command for configuring Ethernet Management Controller Interfaces and "
                        "associated properties",
             'aliases': [],
-            'auxcommands': []
+            'auxcommands': ["IloResetCommand"]
         }
         self.cmdbase = None
         self.rdmc = None
@@ -97,6 +101,8 @@ class EthernetCommand():
         """ Main Ethernet Management Controller Interfaces Run
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -112,7 +118,6 @@ class EthernetCommand():
                 (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
         except:
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -120,27 +125,50 @@ class EthernetCommand():
         self.ethernetvalidation(options)
 
         if 'default' in options.command.lower():
-            data = self.get_data(options)
-            get_data = True
-            for inst in data:
-                if 'ethernetinterface' in inst.lower() or 'ethernetnetworkinterface' in inst.lower():
-                    for path in data[inst]:
-                        if 'managers/1/ethernetinterfaces/1' in path.lower() or 'managers/1/ethernetnetworkinterfaces/1' in path.lower():  # only process managers interfaces
-                            if options.enable_nic or options.disable_nic:
-                                get_data = False
-                                self.enable_disable_nics(data[inst][path], options)
-
-                            if (options.network_ipv4 or options.network_ipv6 or
-                                options.nameservers or options.proxy) and 'virtual' not in \
-                                    data[inst][path]['Name'].lower():
-                                get_data = False
-                                self.configure_static_settings(data[inst][path], options)
-                                if options.proxy:
-                                    return ReturnCodes.SUCCESS
-            if get_data:
-                self.output_data(data, options, get_data)
+            if options.enable_vnic or options.disable_vnic:
+                results = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.managerpath, service=True,
+                                                    silent=True).dict
+                body = dict()
+                body['Oem'] = {}
+                body['Oem']['Hpe'] = {}
+                if options.enable_vnic:
+                    if results['Oem']['Hpe']['VirtualNICEnabled']:
+                        self.rdmc.ui.printer("Virtual NIC already enabled!!\n", verbose_override=True)
+                        return ReturnCodes.SUCCESS
+                    self.rdmc.ui.printer("Enabling Virtual NIC...\n", verbose_override=True)
+                    body['Oem']['Hpe']['VirtualNICEnabled'] = True
+                else:
+                    if not results['Oem']['Hpe']['VirtualNICEnabled']:
+                        self.rdmc.ui.printer("Virtual NIC already disabled!!\n", verbose_override=True)
+                        return ReturnCodes.SUCCESS
+                    self.rdmc.ui.printer("Disabling Virtual NIC...\n", verbose_override=True)
+                    body['Oem']['Hpe']['VirtualNICEnabled'] = False
+                self.rdmc.app.patch_handler(self.rdmc.app.typepath.defs.managerpath, body, service=False, silent=False)
+                self.rdmc.ui.printer("Warning: Resetting iLO...\n")
+                self.auxcommands['iloreset'].run("")
+                self.rdmc.ui.printer("You will need to re-login to access this system...\n")
             else:
-                self.load_main_function(options, data)
+                data = self.get_data(options)
+                get_data = True
+                for inst in data:
+                    if 'ethernetinterface' in inst.lower() or 'ethernetnetworkinterface' in inst.lower():
+                        for path in data[inst]:
+                            if 'managers/1/ethernetinterfaces/1' in path.lower() or 'managers/1/ethernetnetworkinterfaces/1' in path.lower():  # only process managers interfaces
+                                if options.enable_nic or options.disable_nic:
+                                    get_data = False
+                                    self.enable_disable_nics(data[inst][path], options)
+
+                                if (options.network_ipv4 or options.network_ipv6 or
+                                    options.nameservers or options.proxy) and 'virtual' not in \
+                                        data[inst][path]['Name'].lower():
+                                    get_data = False
+                                    self.configure_static_settings(data[inst][path], options)
+                                    if options.proxy:
+                                        return ReturnCodes.SUCCESS
+                if get_data:
+                    self.output_data(data, options, get_data)
+                else:
+                    self.load_main_function(options, data)
 
         if 'save' in options.command.lower():
             self.save = True
@@ -187,8 +215,11 @@ class EthernetCommand():
             except AttributeError:
                 self.rdmc.ui.printer("Missing instance data for type \'%s\' : \'%s\'" % \
                                      (inst.type, inst.path))
-
-        for inst in self.rdmc.app.select(selector='networkprotocol.'):
+        if self.rdmc.app.typepath.defs.isgen9:
+            selector_content = self.rdmc.app.select(selector='ManagerNetworkService.0.11.1.networkprotocol')
+        else:
+            selector_content = self.rdmc.app.select(selector='networkprotocol.')
+        for inst in selector_content:
             try:
                 manager_network_services[inst.type].update({inst.path: inst.dict})
             except KeyError:
@@ -923,7 +954,7 @@ class EthernetCommand():
             '--enable_nic',
             dest='enable_nic',
             help="Enable network interfaces. List each interface to be enabled by ID: "
-            "ethernet --enable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
+            "Ex: ethernet --enable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
             "configuration.",
             type=str,
             default=None,
@@ -932,10 +963,26 @@ class EthernetCommand():
             '--disable_nic',
             dest='disable_nic',
             help="Disable network interfaces. List each interface to be disabled by ID: "
-            "ethernet --disable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
+            "Ex: ethernet --disable_nic 1,2,3. **Note**: Non-existent interfaces will be omitted from "
             "configuration.",
             type=str,
             default=None,
+        )
+        default_parser.add_argument(
+            '--enable_vnic',
+            dest='enable_vnic',
+            help="""Enable virtual network interfaces of management network.
+                Ex: ethernet --enable_vnic""",
+            action="store_true",
+            default=False,
+        )
+        default_parser.add_argument(
+            '--disable_vnic',
+            dest='disable_vnic',
+            help="""Disable virtual network interfaces of management network.
+                Ex: ethernet --disable_vnic""",
+            action="store_true",
+            default=False,
         )
         default_parser.add_argument(
             '--nameservers',
@@ -980,9 +1027,8 @@ class EthernetCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"
-                 " displayed output to JSON format. Preserving the JSON data"
-                 " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the "
+                 "displayed output to JSON format.",
             default=False
         )
         self.cmdbase.add_login_arguments_group(default_parser)

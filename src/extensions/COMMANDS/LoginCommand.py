@@ -27,7 +27,8 @@ from argparse import ArgumentParser, SUPPRESS, REMAINDER
 import redfish.ris
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, FallbackChifUse, \
-    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, PathUnavailableError, Encryption
+    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError, PathUnavailableError, Encryption, \
+    UsernamePasswordRequiredError
 
 from redfish.ris.rmc_helper import IloResponseError
 from redfish.rest.v1 import ServerDownOrUnreachableError
@@ -42,10 +43,14 @@ class LoginCommand():
             'name': 'login',
             'usage': None,
             'description': 'To login remotely run using iLO url and iLO credentials'
-                     '\n\texample: login <iLO url/hostname> -u <iLO username> '
-                     '-p <iLO password>\n\n\tTo login on a local server run without '
-                     'arguments\n\texample: login\n\n\tNOTE: A [URL] can be specified with '
-                     'an IPv4, IPv6, or hostname address.',
+                           '\n\texample: login <iLO url/hostname> -u <iLO username> '
+                           '-p <iLO password>\n\n\tTo login on a local server run without '
+                           'arguments\n\texample: login'
+                           '\n\n\tTo login through VNIC run using --force_vnic and iLO credentials '
+                           '\n\texample: login --force_vnic -u <iLO username> -p <iLO password>'
+                           '\n\n\tNOTE: A [URL] can be specified with '
+                           'an IPv4, IPv6, or hostname address.'
+            ,
             'summary': 'Connects to a server, establishes a secure session,'
                        ' and discovers data from iLO.',
             'aliases': [],
@@ -66,6 +71,8 @@ class LoginCommand():
 
         :param line: command line input
         :type line: string.
+        :param help_disp: flag to determine to display or not
+        :type help_disp: boolean
         """
         if help_disp:
             self.parser.print_help()
@@ -74,7 +81,6 @@ class LoginCommand():
             self.loginfunction(line)
 
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
 
             if not self.rdmc.app.monolith._visited_urls:
@@ -93,6 +99,8 @@ class LoginCommand():
         :type line: list.
         :param skipbuild: flag to determine if monolith should be build
         :type skipbuild: boolean.
+        :param json_out: flag to determine if json output neededd
+        :type skipbuild: boolean.
         """
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
@@ -100,17 +108,10 @@ class LoginCommand():
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
-                raise InvalidCommandLineErrorOPTS("")
-
-        #ilo_version = self.rdmc.app.getiloversion()
-        # Check mininum iLO Version for certificate login
-        # if hasattr(options, 'user_certificate') or hasattr(options, 'user_root_ca_key') or hasattr(options,'user_root_ca_password') or \
-        #        getattr(options,'ca_cert_bundle', False) and ilo_version < 5.23:
-        #    raise IncompatibleiLOVersionError
+                raise InvalidCommandLineError("Invalid command line arguments")
 
         self.loginvalidation(options, args)
-
-        #proxy = self.rdmc.opts.proxy if self.rdmc.opts.proxy else self.rdmc.config.proxy
+       
         proxy = self.rdmc.config.proxy
 
         no_bundle = False
@@ -119,13 +120,13 @@ class LoginCommand():
             user_ca_cert_data = {"ca_certs": options.ca_cert_bundle}
         else:
             user_ca_cert_data = {}
-        if hasattr(options, 'user_certificate'):
+        if getattr(options, 'user_certificate', False):
             no_bundle = True
             user_ca_cert_data.update({"cert_file": options.user_certificate})
-        if hasattr(options, 'user_root_ca_key'):
+        if getattr(options, 'user_root_ca_key', False):
             no_bundle = True
             user_ca_cert_data.update({"key_file": options.user_root_ca_key})
-        if hasattr(options, 'user_root_ca_password'):
+        if getattr(options, 'user_root_ca_password', False):
             no_bundle = True
             user_ca_cert_data.update({"key_password": options.user_root_ca_password})
 
@@ -140,7 +141,7 @@ class LoginCommand():
             self.rdmc.app.login(username=self.username, password=self.password, base_url=self.url,
                                 path=options.path, skipbuild=skipbuild, includelogs=options.includelogs,
                                 biospassword=self.biospassword, is_redfish=self.rdmc.opts.is_redfish,
-                                proxy=proxy, user_ca_cert_data=user_ca_cert_data)
+                                proxy=proxy, user_ca_cert_data=user_ca_cert_data, json_out=self.rdmc.json)
             # else:
             #    if not options.force_url:
             #        self.rdmc.ui.printer("\nAttempt to login with Chif...\n")
@@ -217,7 +218,10 @@ class LoginCommand():
 
         # Assignment of url in case no url is entered
         if getattr(options, 'force_vnic', False):
-            self.url = '16.1.15.1'
+            if not (getattr(options, 'ca_cert_bundle', False) or getattr(options, 'user_certificate', False)):
+                if not (self.username and self.password):
+                    raise UsernamePasswordRequiredError("Please provide credentials to login with VNIC")
+            self.url = 'https://16.1.15.1'
         else:
             self.url = 'blobstore://.'
 
@@ -230,7 +234,7 @@ class LoginCommand():
                 self.url = "https://" + self.url
 
             if not (hasattr(options, 'user_certificate') or hasattr(options, 'user_root_ca_key') or hasattr(options,
-                                                                                                           'user_root_ca_password')):
+                                                                                                            'user_root_ca_password')):
                 if not (options.username and options.password):
                     raise InvalidCommandLineError("Empty username or password was entered.")
         else:

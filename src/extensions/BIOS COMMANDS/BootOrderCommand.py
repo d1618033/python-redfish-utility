@@ -84,7 +84,6 @@ class BootOrderCommand():
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -152,7 +151,7 @@ class BootOrderCommand():
             uefionetimebootsettings = next(iter(self.auxcommands['get'].getworkerfunction(
                 ['Boot/UefiTargetBootSourceOverrideSupported'], options,
                 results=True, uselist=True)), None)
-            if not uefionetimebootsettings:
+            if not uefionetimebootsettings and not self.rdmc.app.typepath.defs.isgen9:
                 #Gen 10
                 uefionetimebootsettings = next(iter(self.auxcommands['get'].getworkerfunction(
                     ['Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues'], options,
@@ -244,7 +243,7 @@ class BootOrderCommand():
                                                   "greater than the current boot order length.")
                 newlist = []
                 for arg in args:
-                    argmatch = [val for val in remlist if fnmatch.fnmatch(val, arg)]
+                    argmatch = [val for val in remlist if fnmatch.fnmatch(val.lower(), arg.lower())]
                     if not argmatch and not options.ime:
                         raise InvalidCommandLineError("Invalid entry passed: "\
                             "{0}. Please run bootorder to check for possible "\

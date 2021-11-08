@@ -49,6 +49,8 @@ class RawGetCommand():
 
         :param line: command line input
         :type line: string.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -60,7 +62,6 @@ class RawGetCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -68,7 +69,10 @@ class RawGetCommand():
         url = None
         headers = {}
 
-        self.getvalidation(options)
+        if hasattr(options, 'sessionid') and options.sessionid:
+            url = self.sessionvalidation(options)
+        else:
+            self.getvalidation(options)
 
         if options.path.startswith('"') and options.path.endswith('"'):
             options.path = options.path[1:-1]
@@ -91,8 +95,9 @@ class RawGetCommand():
         if options.response or options.getheaders:
             returnresponse = True
 
-        results = self.rdmc.app.get_handler(options.path, headers=headers,
-                                            silent=options.silent, service=options.service)
+        results = self.rdmc.app.get_handler(options.path, sessionid=options.sessionid, headers=headers,
+                                            silent=options.silent, service=options.service, username=options.user,
+                                            password=options.password, base_url=options.url)
 
         if results and results.status == 200 and options.binfile:
             output = results.read
@@ -137,6 +142,25 @@ class RawGetCommand():
         :type options: list.
         """
         self.rdmc.login_select_validation(self, options, skipbuild=True)
+
+    def sessionvalidation(self, options):
+        """ Raw patch session validation function
+
+        :param options: command line options
+        :type options: list.
+        """
+
+        url = None
+        if options.user or options.password or options.url:
+            if options.url:
+                url = options.url
+        else:
+            if self.rdmc.app.redfishinst.base_url:
+                url = self.rdmc.app.redfishinst.base_url
+        if url and not "https://" in url:
+            url = "https://" + url
+
+        return url
 
     def definearguments(self, customparser):
         """ Wrapper function for new command main function

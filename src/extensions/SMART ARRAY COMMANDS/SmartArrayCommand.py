@@ -24,42 +24,45 @@ import redfish
 from argparse import ArgumentParser, SUPPRESS, RawDescriptionHelpFormatter
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                    IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
+    IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
 from redfish.ris.resp_handler import ResponseHandler
 from redfish.ris.utils import iterateandclear
 
 __config_file__ = "smartarray_config.json"
+
 from rdmc_base_classes import HARDCODEDLIST
 
 __subparsers__ = ['load', 'save', 'state']
 
+
 class SmartArrayCommand():
     """ Smart array command """
+
     def __init__(self):
         self.ident = {
             'name': 'smartarray',
             'usage': None,
             'description': '\tRun without arguments for the '
-                    'current list of smart array controllers.\n\texample: '
-                    'smartarray\n\n\tTo get more details on a specific controller '
-                    'select it by index.\n\texample: smartarray --controller=2'
-                    '\n\n\tTo get more details on a specific controller select '
-                    'it by location.\n\texample: smartarray --controller "Slot 0"'
-                    '\n\n\tIn order to get a list of all physical drives for '
-                    'each controller.\n\texample: smartarray --physicaldrives'
-                    '\n\n\tTo obtain details about physical drives for a '
-                    'specific controller.\n\texample: smartarray --controller=3 '
-                    '--physicaldrives\n\n\tTo obtain details about a specific '
-                    'physical drive for a specific controller.\n\texample: smartarray '
-                    '--controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of '
-                    'all logical drives for the each controller.\n\texample: '
-                    'smartarray --logicaldrives\n\n\tTo obtain details about '
-                    'logical drives for a specific controller.\n\texample: '
-                    'smartarray --controller=3 --logicaldrives\n\n\tTo obtain '
-                    'details about a specific logical drive for a specific '
-                    'controller.\n\texample: smartarray --controller=3 --ldrive=1\n',
+                           'current list of smart array controllers.\n\texample: '
+                           'smartarray\n\n\tTo get more details on a specific controller '
+                           'select it by index.\n\texample: smartarray --controller=2'
+                           '\n\n\tTo get more details on a specific controller select '
+                           'it by location.\n\texample: smartarray --controller "Slot 0"'
+                           '\n\n\tIn order to get a list of all physical drives for '
+                           'each controller.\n\texample: smartarray --physicaldrives'
+                           '\n\n\tTo obtain details about physical drives for a '
+                           'specific controller.\n\texample: smartarray --controller=3 '
+                           '--physicaldrives\n\n\tTo obtain details about a specific '
+                           'physical drive for a specific controller.\n\texample: smartarray '
+                           '--controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of '
+                           'all logical drives for the each controller.\n\texample: '
+                           'smartarray --logicaldrives\n\n\tTo obtain details about '
+                           'logical drives for a specific controller.\n\texample: '
+                           'smartarray --controller=3 --logicaldrives\n\n\tTo obtain '
+                           'details about a specific logical drive for a specific '
+                           'controller.\n\texample: smartarray --controller=3 --ldrive=1\n',
             'summary': 'Discovers all storage controllers installed in the '
-                      'server and managed by the SmartStorage.',
+                       'server and managed by the SmartStorage.',
             'aliases': [],
             'auxcommands': ["SelectCommand"]
         }
@@ -127,6 +130,9 @@ class SmartArrayCommand():
             for cmnd in __subparsers__:
                 if cmnd in line:
                     (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+                    if not line or line[0] == "help":
+                        self.parser.print_help()
+                        return ReturnCodes.SUCCESS
                     ident_subparser = True
                     break
             if not ident_subparser:
@@ -150,10 +156,11 @@ class SmartArrayCommand():
                                         self.rdmc.app.typepath.defs.messageregistrytype).message_handler(message,
                                                                                                          2, warn=False)
                 else:
-                    sys.stdout.write("Previous smart array configuration status messages are "\
-                        "not available for controller '%s - %s - %s' (@Redfish.Settings not "\
-                        "available).\n" % (controller, controllers[controller].get('Location',
-                                                                                   'Unknown'), controllers[controller].get('Model', 'Unknown')))
+                    sys.stdout.write("Previous smart array configuration status messages are " \
+                                     "not available for controller '%s - %s - %s' (@Redfish.Settings not " \
+                                     "available).\n" % (controller, controllers[controller].get('Location',
+                                                                                                'Unknown'),
+                                                        controllers[controller].get('Model', 'Unknown')))
 
         if options.command == 'save':
             controllers = self.controllers(options, print_ctrl=False, single_use=True)
@@ -166,14 +173,14 @@ class SmartArrayCommand():
                     for drivec_idx, drivec in enumerate(controller.get('PhysicalDrives', [])):
                         for drive in physical_drives:
                             if drivec['Location'] == physical_drives[drive]['Location']:
-                                controller['PhysicalDrives'][drivec_idx].\
-                                                                    update(physical_drives[drive])
+                                controller['PhysicalDrives'][drivec_idx]. \
+                                    update(physical_drives[drive])
                                 break
                     for drivec_idx, drivec in enumerate(controller.get('LogicalDrives', [])):
                         for drive in logical_drives:
                             if drivec['LogicalDriveNumber'] == logical_drives[drive]['Id']:
-                                controller['LogicalDrives'][drivec_idx].\
-                                                                    update(logical_drives[drive])
+                                controller['LogicalDrives'][drivec_idx]. \
+                                    update(logical_drives[drive])
                                 break
                 if controller.get('Links'):
                     controller['Links']['LogicalDrives'] = logical_drives
@@ -204,7 +211,7 @@ class SmartArrayCommand():
                 self.controllers(options, print_ctrl=True, single_use=False)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def controllers(self, options, print_ctrl=False, single_use=False):
@@ -223,8 +230,8 @@ class SmartArrayCommand():
 
         if getattr(options, "controller", False):
             controller_ident = False
-        if not getattr(options, "json", False) and not getattr(options, "controller", False) \
-                                                                                    and print_ctrl:
+        if not (getattr(options, "json", False)) and not (getattr(options, "controller", False)) \
+                and print_ctrl:
             sys.stdout.write("Controllers:\n")
 
         controller_data = {}
@@ -234,7 +241,7 @@ class SmartArrayCommand():
                 controller = sel.dict
                 if getattr(options, "controller", False):
                     if getattr(options, "controller", False) == controller["Id"] or \
-                                getattr(options, "controller", False) == controller["Location"]:
+                            getattr(options, "controller", False) == controller["Location"]:
                         controller_ident = True
                     else:
                         continue
@@ -245,22 +252,30 @@ class SmartArrayCommand():
                         if g10controller.dict.get('Location') == controller.get('Location'):
                             id = controller.get('Id')
                             controller.update(g10controller.dict)
-                            if id: #iLO Bug - overwrite the Id from collection
+                            if id:  # iLO Bug - overwrite the Id from collection
                                 controller['Id'] = id
                             break
 
                 if print_ctrl:
                     sys.stdout.write("[%s]: %s - %s\n" % (controller["Id"],
                                                           controller["Location"], controller["Model"]))
+
+                    # self.tranverse_func(controller)
+
                 elif getattr(options, "json", False):
-                    UI().print_out_json(sel.dict)
+                    outjson = dict()
+                    outjson['Controllers'] = dict()
+                    outjson['Controllers'][controller["Id"]] = dict()
+                    outjson['Controllers'][controller["Id"]]['Location'] = controller["Location"]
+                    outjson['Controllers'][controller["Id"]]['Model'] = controller["Model"]
+                    UI().print_out_json(outjson)
 
                 if getattr(options, "logicaldrives", False) or \
-                    getattr(options, "ldrive", False) or single_use:
+                        getattr(options, "ldrive", False) or single_use:
                     self.logical_drives(options, controller, print_ctrl)
 
                 if getattr(options, "physicaldrives", False) or \
-                    getattr(options, "pdrive", False) or single_use:
+                        getattr(options, "pdrive", False) or single_use:
                     self.physical_drives(options, controller, print_ctrl)
 
                 if single_use:
@@ -268,10 +283,18 @@ class SmartArrayCommand():
 
         if getattr(options, "controller", False) and not controller_ident and print_ctrl:
             sys.stdout.write("Controller in position '%s' was not found\n" % \
-                                                        getattr(options, "controller", False))
+                             (getattr(options, "controller", False)))
 
         if single_use:
             return controller_data
+
+    def tranverse_func(self, data, indent=0):
+        for key, value in data.items():
+            sys.stdout.write("\t %s :" % str(key))
+            if isinstance(value, dict):
+                self.tranverse_func(value, indent + 1)
+            else:
+                sys.stdout.write("%s \n" % str(value))
 
     def physical_drives(self, options, content, print_ctrl=False, single_use=False):
         """
@@ -326,10 +349,22 @@ class SmartArrayCommand():
                 if single_use:
                     physicaldrives[tmp['Id']] = tmp
                 if print_ctrl and pdrive_ident:
-                    sys.stdout.write("\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s MiB\n" % (tmp['Location'],
-                                                                                                       tmp['Model'], tmp['Location'], tmp['MediaType'], tmp['SerialNumber'], tmp['CapacityMiB']))
+                    sys.stdout.write("\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s MiB\n" %
+                                     (tmp['Location'], tmp['Model'], tmp['Location'], tmp['MediaType'],
+                                      tmp['SerialNumber']
+                                      , tmp['CapacityMiB']))
+                    # self.tranverse_func(tmp)
+                    # sys.stdout.write("\n")
                 elif getattr(options, "json", False) and pdrive_ident:
-                    UI().print_out_json(tmp)
+                    outjson = dict()
+                    outjson['PhysicalDrives'] = dict()
+                    outjson['PhysicalDrives'][tmp['Location']] = dict()
+                    outjson['PhysicalDrives'][tmp['Location']]['Model'] = tmp['Model']
+                    outjson['PhysicalDrives'][tmp['Location']]['Location'] = tmp['Location']
+                    outjson['PhysicalDrives'][tmp['Location']]['MediaType'] = tmp['MediaType']
+                    outjson['PhysicalDrives'][tmp['Location']]['SerialNumber'] = tmp['SerialNumber']
+                    outjson['PhysicalDrives'][tmp['Location']]['CapacityMiB'] = tmp['CapacityMiB']
+                    UI().print_out_json(outjson)
                 if getattr(options, "pdrive", False) and pdrive_ident:
                     break
             if getattr(options, "pdrive", False) and not pdrive_ident and print_ctrl:
@@ -339,7 +374,6 @@ class SmartArrayCommand():
 
             if single_use:
                 return physicaldrives
-
 
     def logical_drives(self, options, content, print_ctrl=False, single_use=False):
         """
@@ -392,8 +426,18 @@ class SmartArrayCommand():
                     else:
                         ldrive_ident = True
                 if print_ctrl and ldrive_ident:
-                    sys.stdout.write("\t[%s]: Name %s VUID %s - %s MiB\n" % (tmp['Id'],
-                                                                             tmp['LogicalDriveName'], tmp['VolumeUniqueIdentifier'], tmp['CapacityMiB']))
+                    sys.stdout.write("\t[%s]: Name %s VUID %s - %s MiB\n" %
+                                     (tmp['Id'], tmp['LogicalDriveName'], tmp['VolumeUniqueIdentifier'],
+                                      tmp['CapacityMiB']))
+                elif getattr(options, "json", False) and ldrive_ident:
+                    outjson = dict()
+                    outjson['LogicalDrives'] = dict()
+                    outjson['LogicalDrives'][tmp['Id']] = dict()
+                    outjson['LogicalDrives'][tmp['Id']]['LogicalDriveName'] = tmp['LogicalDriveName']
+                    outjson['LogicalDrives'][tmp['Id']]['VolumeUniqueIdentifier'] = tmp['VolumeUniqueIdentifier']
+                    outjson['LogicalDrives'][tmp['Id']]['CapacityMiB'] = tmp['CapacityMiB']
+                    #self.tranverse_func(tmp)
+                    #sys.stdout.write("\n")
                 elif getattr(options, "json", False) and ldrive_ident:
                     UI().print_out_json(tmp)
                 try:
@@ -441,7 +485,7 @@ class SmartArrayCommand():
         """
 
         if not (getattr(options, "json", False)) and print_ctrl:
-                sys.stdout.write("\t\tData Drives:\n")
+            sys.stdout.write("\tData Drives:\n\n")
         if single_use:
             subsetdrives = {}
         found_entries = False
@@ -456,9 +500,7 @@ class SmartArrayCommand():
             if single_use:
                 subsetdrives[tmp['Id']] = tmp
             if print_ctrl:
-                sys.stdout.write("\t\t[%s]: Model %s, Serial %s - %s MiB\n" % (tmp['Location'],
-                                                                               tmp['Model'], tmp['SerialNumber'], tmp['CapacityMiB']))
-                sys.stdout.write("\t\t\tLocation: %s\n" % (tmp['Location']))
+                self.tranverse_func(tmp)
             elif getattr(options, "json", False):
                 UI().print_out_json(tmp)
         if not found_entries and print_ctrl:
@@ -499,17 +541,17 @@ class SmartArrayCommand():
         default_parser = subcommand_parser.add_parser(
             'default',
             help="Running without any sub-command will return smart array configuration data\n"
-            "on the currently logged in server. Additional optional arguments will narrow the\n"
-            "scope of returned data to individual controllers, physical or logical drives"
+                 "on the currently logged in server. Additional optional arguments will narrow the\n"
+                 "scope of returned data to individual controllers, physical or logical drives"
         )
         default_parser.add_argument(
             '--controller',
             dest='controller',
             help="Use this flag to select the corresponding controller using either the slot "
-                "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-                "controller, select it by index.\tsmartarray --controller=2"
-                "\n\t2. To get more details on a specific controller select "
-                "it by location.\tsmartarray --controller=\'Slot 0\'",
+                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+                 "controller, select it by index.\tsmartarray --controller=2"
+                 "\n\t2. To get more details on a specific controller select "
+                 "it by location.\tsmartarray --controller=\'Slot 0\'",
             default=None
         )
         default_parser.add_argument(
@@ -517,9 +559,9 @@ class SmartArrayCommand():
             dest='physicaldrives',
             action="store_true",
             help="Use this flag to return the physical drives for the controller selected."
-                "\n\tExamples:\n\t1. smartarray --physicaldrives\n\t2. To obtain details about "
-                "physical drives for a specific controller.\tsmartarray --controller=3 "
-                "--physicaldrives",
+                 "\n\tExamples:\n\t1. smartarray --physicaldrives\n\t2. To obtain details about "
+                 "physical drives for a specific controller.\tsmartarray --controller=3 "
+                 "--physicaldrives",
             default=None
         )
         default_parser.add_argument(
@@ -557,7 +599,7 @@ class SmartArrayCommand():
             default=None
         )
         self.cmdbase.add_login_arguments_group(default_parser)
-        state_help='Print state/event information from @Redfish.Settings (if available)'
+        state_help = 'Print state/event information from @Redfish.Settings (if available)'
         state_parser = subcommand_parser.add_parser(
             'state',
             help=state_help,
@@ -568,15 +610,15 @@ class SmartArrayCommand():
             '--controller',
             dest='controller',
             help="Use this flag to select the corresponding controller using either the slot "
-                "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-                "controller, select it by index.\tsmartarray state --controller=2"
-                "\n\t2. To get more details on a specific controller select "
-                "it by location.\tsmartarray state --controller=\'Slot 0\'",
+                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+                 "controller, select it by index.\tsmartarray state --controller=2"
+                 "\n\t2. To get more details on a specific controller select "
+                 "it by location.\tsmartarray state --controller=\'Slot 0\'",
             default=None
         )
         self.cmdbase.add_login_arguments_group(state_parser)
-        json_save_help='Save a JSON file with all current configurations (all controllers, logical and \nphysical drives).'
-        #json save sub-parser
+        json_save_help = 'Save a JSON file with all current configurations (all controllers, logical and \nphysical drives).'
+        # json save sub-parser
         json_save_parser = subcommand_parser.add_parser(
             'save',
             help=json_save_help,
@@ -591,9 +633,9 @@ class SmartArrayCommand():
             default=None
         )
         self.cmdbase.add_login_arguments_group(json_save_parser)
-        json_load_help="Load a JSON file with modified smartarray configurations (All read-only "\
-            "properties\nare discarded)."
-        #json load sub-parser
+        json_load_help = "Load a JSON file with modified smartarray configurations (All read-only " \
+                         "properties\nare discarded)."
+        # json load sub-parser
         json_load_parser = subcommand_parser.add_parser(
             'load',
             help=json_load_help,

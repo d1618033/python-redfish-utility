@@ -21,22 +21,23 @@ from argparse import SUPPRESS
 
 from redfish.ris.rmc_helper import NothingSelectedError
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError,\
-                        NoChangesFoundOrMadeError, NoCurrentSessionEstablished
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError, \
+    NoChangesFoundOrMadeError, NoCurrentSessionEstablished
+
 
 class CommitCommand():
     """ Constructor """
+
     def __init__(self):
         self.ident = {
-            'name':'commit',
+            'name': 'commit',
             'usage': None,
-            'description':'commit [OPTIONS]\n\n\tRun to apply all changes made during'
-                    ' the current session\n\texample: commit',
-            'summary':'Applies all the changes made during the current session.',
+            'description': 'commit [OPTIONS]\n\n\tRun to apply all changes made during'
+                           ' the current session\n\texample: commit',
+            'summary': 'Applies all the changes made during the current session.',
             'aliases': [],
             'auxcommands': ["LogoutCommand", "RebootCommand"]
         }
-
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
@@ -88,14 +89,13 @@ class CommitCommand():
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
         self.commitfunction(options)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def commitvalidation(self):
@@ -120,8 +120,8 @@ class CommitCommand():
         customparser.add_argument(
             '--reboot',
             dest='reboot',
-            help="Use this flag to perform a reboot command function after"\
-            " completion of operations.  For help with parameters and"\
-            " descriptions regarding the reboot flag, run help reboot.",
+            help="Use this flag to perform a reboot command function after" \
+                 " completion of operations.  For help with parameters and" \
+                 " descriptions regarding the reboot flag, run help reboot.",
             default=None
         )

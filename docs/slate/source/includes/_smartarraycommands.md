@@ -1,4 +1,4 @@
-## Smart Arrary Commands
+## Smart Array Commands
 
 The Smart Array commands are designed for use with HPE Gen10 servers.
 
@@ -16,18 +16,18 @@ The Smart Array commands are designed for use with HPE Gen10 servers.
 > To clear a controller configuration run the command including the `--controller` option specifying the controller to clear.
 
 <pre>
-ilorest > <font color="#01a982">clearcontrollerconfig --controller=1</font>
+ilorest > <span style="color: #01a982; ">clearcontrollerconfig --controller=1</span>
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 clearcontrollerconfig *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 Clears smart array controller configuration.
 
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -41,7 +41,7 @@ Use this flag to select the corresponding controller.
 
 Use this flag to sanitize all physical drives on a controller.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -57,38 +57,15 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
 
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Createlogicaldrive Command
@@ -98,7 +75,9 @@ None
 > To create a quick logical drive run the command with the following arguments: The type of creation as quickdrive, the raid level, the number of drives to use, the type of drive to use, the drive interface type, and the drive location. Also include the `--controller` option selecting the controller the drive will be created on. See the options list for possible values of these and more.
 
 <pre>
-ilorest > <font color="#01a982">createlogicaldrive quickdrive Raid0 1E:1:2 HDD SATA Internal --controller=1</font>
+
+ilorest > <span style="color: #01a982; ">createlogicaldrive quickdrive Raid0 1E:1:2 HDD SATA Internal --controller=1</span>
+
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -107,7 +86,9 @@ One or more properties were changed an will not take effect until system is rese
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">createlogicaldrive customdrive Raid5 1E:1:2 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</font>
+
+ilorest > <span style="color: #01a982; ">createlogicaldrive customdrive Raid5 1E:1:2 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</span>
+
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
@@ -115,24 +96,24 @@ One or more properties were changed an will not take effect until system is rese
 The createlogicaldrive command requires a reboot before creating the logical drives. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
 </aside>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 createlogicaldrive *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 Creates a new logical drive on the selected controller.
 
 Options:
 - raid-level:             Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, Raid6, Raid60
 - media-type:             SSD,HDD
-- interface-type:         SAS, SATA
+- interface-type:         SAS, SATA, NVMe
 - drive-location:         Internal, External
 - --spare-type:           Dedicated, Roaming
 - --accelerator-type:     ControllerCache, IOBypass, None
 - --paritytype:           Default, Rapid
 
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -190,7 +171,7 @@ Optionally include to choose the strip size in bytes (usable in custom creation 
 
 Optionally include to choose the stripe size in bytes (usable in custom creation only).
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -206,39 +187,15 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Deletelogicaldrive Command
@@ -252,7 +209,7 @@ A Volume Unique Identifier must be available to delete a logical drive. Pending 
 </aside>
 
 <pre>
-ilorest > <font color="#01a982">deletelogicaldrive --controller=1 1</font>
+ilorest > <span style="color: #01a982; ">deletelogicaldrive --controller=1 1</span>
 Are you sure you would like to continue deleting drive 004D56ABPEYHC0ARH951TK A39C? (y/n)
 Setting logical drive 004D56ABPEYHC0ARH951TK A39C for deletion
 One or more properties were changed and will not take effect until system is reset.
@@ -264,18 +221,18 @@ One or more properties were changed and will not take effect until system is res
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > deletelogicaldrive --controller=1 <font color="#01a982">--all</font>
+ilorest > deletelogicaldrive --controller=1 <span style="color: #01a982; ">--all</span>
 [200] The operation completed successfully.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 deletelogicaldrive *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 Deletes logical drives from the selected controller.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -293,7 +250,7 @@ Use this flag to delete all logical drives on a controller.
 
 Use this flag to override the "are you sure?" text when deleting a logical drive.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -309,38 +266,14 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Drivesanitize Command
@@ -350,7 +283,7 @@ None
 > To sanitize a physical drive pass its drive location along with the `--controller` option to specify which controller to perform the operation on.
 
 <pre>
-ilorest > drivesanitize --controller=1 <font color="#01a982">1</font>
+ilorest > drivesanitize --controller=1 1I:3:4
 Setting physical drive 1I:3:4 for sanitization
 One or more properties were changed and will not take effect until system is reset.
 Sanitization will occur on the next system reboot.
@@ -359,7 +292,7 @@ Sanitization will occur on the next system reboot.
 > To sanitize multiple physical drives pass the location as a comma separated list along with the `--controller` option to dpecify which controller to perform the operation on.
 
 <pre>
-ilorest > drivesanitize --controller=<font color="#01a982">1E:1:2</font>
+ilorest > drivesanitize --controller=<span style="color: #01a982; ">1 1I:3:3,1I:3:2,1I:3:1</span>
 Setting physical drive 1I:3:3 for sanitization
 Setting physical drive 1I:3:2 for sanitization
 Setting physical drive 1I:3:1 for sanitization
@@ -367,14 +300,14 @@ One or more properties were changed and will not take effect until system is res
 Sanitization will occur on the next system reboot.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 drivesanitize *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 Erase/Sanitizes physical drives.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -392,7 +325,7 @@ Include this flag to perform a coldboot command function after completion of ope
 
 Use this flag to sanitize all physical drives on a controller.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -408,38 +341,14 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Factoryresetcontroller Command
@@ -449,25 +358,25 @@ None
 > To factory reset a controller run this command and specify it's index with the `--controller` option.
 
 <pre>
-ilorest > <font color="#01a982">factoryresetcontroller --controller=1</font>
+ilorest > <span style="color: #01a982; ">factoryresetcontroller --controller=1</span>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
 > To factory reset all controllers run this command and include the `--all` option.
 
 <pre>
-ilorest > factoryresetcontroller <font color="#01a982">--all</font>
+ilorest > factoryresetcontroller <span style="color: #01a982; ">--all</span>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 factoryresetcontroller *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 Restores a controller to factory defaults.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -477,7 +386,7 @@ Including the help flag will display help for the command.
 
 Use this flag to select the corresponding controller.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -493,39 +402,15 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### SmartArray Command
@@ -533,7 +418,7 @@ None
 > To list all available smart array controllers run the command without arguments.
 
 <pre>
-ilorest > <font color="#01a982">smartarray</font>
+ilorest > <span style="color: #01a982; ">smartarray</span>
 [1]&#58; Slot 0
 </pre>
 
@@ -542,7 +427,7 @@ ilorest > <font color="#01a982">smartarray</font>
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">smartarray --logicaldrives</font>
+ilorest > <span style="color: #01a982; ">smartarray --logicaldrives</span>
 [1]&#58; Slot 0
 Logical Drives&#58;
 [1]&#58; 600508B1001C599DE361257397F69972
@@ -555,7 +440,7 @@ Logical Drives&#58;
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <font color="#01a982">smartarray --physicaldrives</font>
+ilorest > <span style="color: #01a982; ">smartarray --physicaldrives</span>
 [1]&#58; Slot 0
 Physical Drives&#58;
 [1]&#58; 1I:3:4
@@ -569,7 +454,7 @@ Physical Drives&#58;
 > To return a JSON formatted response including controller settings, as well as physical and logical drives information on the selected controller, include the `--controller` option followed by the number in brackets associated to the controller.
 
 <pre>
-ilorest > <font color="#01a982">smartarray --controller=1</font>
+ilorest > <span style="color: #01a982; ">smartarray --controller=1</span>
 {
   "CurrentParallelSurfaceScanCount": 1,
   "DataGuard": "Disabled",
@@ -608,7 +493,7 @@ ilorest > <font color="#01a982">smartarray --controller=1</font>
 > To return a JSON formatted response regarding the settings and attributes of the selected physical drive on the selected controller include the `--controller` option specifying the controller and the `--pdrive` option specifying the physical drive number in brackets.
 
 <pre>
-ilorest > <font color="#01a982">smartarray --controller=1 --pdrive=1</font>
+ilorest > <span style="color: #01a982; ">smartarray --controller=1 --pdrive=1I:3:4</span>
 {
   "BlockSizeBytes": 512,
   "CapacityGB": 400,
@@ -650,7 +535,7 @@ ilorest > <font color="#01a982">smartarray --controller=1 --pdrive=1</font>
 > To return a JSON formatted response regarding the settings and attributes of the selected logical drive on the selected controller include the `--controller` option specifying the controller and the `--ldrive` option specifying the logical drive number in brackets.
 
 <pre>
-iLOrest > <font color="#01a982">smartarray --controller=1 --ldrive=1</font>
+iLOrest > <span style="color: #01a982; ">smartarray --controller=1 --ldrive=1</span>
 {
   "Accelerator": "ControllerCache",
   "BlockSizeBytes": 512,
@@ -675,15 +560,15 @@ iLOrest > <font color="#01a982">smartarray --controller=1 --ldrive=1</font>
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 Smartarray *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Discovers all storage controllers installed in the server and managed by the SmartStorage.  
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -701,7 +586,7 @@ Use this flag to return the physical drives for the controller selected.
 
 Use this flag to return the logical drives for the controller selected.
 
-- **--pdrive=PDRIVE**
+- **--pdrive=PDRIVE_LOCATION**
 
 Use this flag to select the corresponding physical disk.
 
@@ -709,7 +594,7 @@ Use this flag to select the corresponding physical disk.
 
 Use this flag to select the corresponding logical disk.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -725,36 +610,12 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None

@@ -23,6 +23,7 @@ includes:
   - rawcommands
   - advancedusage
   - examplecommandsscripts
+  - gowrong
   - support
   - knownissues
   - errors

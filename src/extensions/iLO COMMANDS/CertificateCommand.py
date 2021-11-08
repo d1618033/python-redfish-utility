@@ -20,13 +20,15 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-            InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, \
-            InvalidFileInputError, IncompatibleiLOVersionError, Encryption
+    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, \
+    InvalidFileInputError, IncompatibleiLOVersionError, Encryption
 
 __filename__ = 'certificate.txt'
 
+
 class CertificateCommand():
     """ Commands Certificates actions to the server """
+
     def __init__(self):
         self.ident = {
             'name':'certificate',
@@ -52,6 +54,8 @@ class CertificateCommand():
 
         :param options: list of options
         :type options: list.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -63,7 +67,6 @@ class CertificateCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -82,7 +85,7 @@ class CertificateCommand():
             self.importtlshelper(options)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def generatecerthelper(self, options):
@@ -120,7 +123,7 @@ class CertificateCommand():
         except:
             action = "GenerateCSR"
 
-        body = {"Action": action, "OrgName" :options.csr_orgname.strip('\"'), "OrgUnit":
+        body = {"Action": action, "OrgName": options.csr_orgname.strip('\"'), "OrgUnit":
             options.csr_orgunit.strip('\"'), "CommonName": options.csr_commonname.strip('\"'),
                 "Country": options.csr_country.strip('\"'), "State":
                     options.csr_state.strip('\"'), "City": options.csr_city.strip('\"')}
@@ -138,7 +141,7 @@ class CertificateCommand():
         """
 
         select = self.rdmc.app.typepath.defs.hphttpscerttype
-        results = self.rdmc.app.select(selector=select)
+        results = self.rdmc.app.select(selector=select, path_refresh=True)
 
         try:
             results = results[0]
@@ -308,16 +311,16 @@ class CertificateCommand():
 
         subcommand_parser = customparser.add_subparsers(dest='command')
 
-        #gen csr sub-parser
-        gen_csr_help='Generate a certificate signing request (CSR) for iLO SSL certificate '\
-                     'authentication.\nNote: iLO will create a Base64 encoded CSR in PKCS '\
-                     '#10 Format.'
+        # gen csr sub-parser
+        gen_csr_help = 'Generate a certificate signing request (CSR) for iLO SSL certificate ' \
+                       'authentication.\nNote: iLO will create a Base64 encoded CSR in PKCS ' \
+                       '#10 Format.'
         gen_csr_parser = subcommand_parser.add_parser(
             'csr',
             help=gen_csr_help,
-            description=gen_csr_help+'\nexample: certificate csr [ORG_NAME] [ORG_UNIT]'\
-                        ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\nNOTE: please make ' \
-                        'certain the order of arguments is correct.',
+            description=gen_csr_help + '\nexample: certificate csr [ORG_NAME] [ORG_UNIT]' \
+                                       ' [COMMON_NAME] [COUNTRY] [STATE] [CITY]\n\nNOTE: please make ' \
+                                       'certain the order of arguments is correct.',
             formatter_class=RawDescriptionHelpFormatter
         )
         gen_csr_parser.add_argument(
@@ -352,35 +355,35 @@ class CertificateCommand():
         )
         self.cmdbase.add_login_arguments_group(gen_csr_parser)
 
-        #get csr
-        get_csr_help='Retrieve the generated certificate signing request (CSR) printed to the '\
-                     'console or to a json file.'
+        # get csr
+        get_csr_help = 'Retrieve the generated certificate signing request (CSR) printed to the ' \
+                       'console or to a json file.'
         get_csr_parser = subcommand_parser.add_parser(
             'getcsr',
             help=get_csr_help,
-            description=get_csr_help+'\nexample: certificate getcsr\nexample: certificate getcsr '\
-                        '-f mycsrfile.json',
+            description=get_csr_help + '\nexample: certificate getcsr\nexample: certificate getcsr ' \
+                                       '-f mycsrfile.json',
             formatter_class=RawDescriptionHelpFormatter
         )
         get_csr_parser.add_argument(
             '-f',
             '--filename',
             dest='filename',
-            help="Use this flag if you wish to use a different"\
-            " filename for the certificate signing request. The default" \
-            " filename is %s." % __filename__,
+            help="Use this flag if you wish to use a different" \
+                 " filename for the certificate signing request. The default" \
+                 " filename is %s." % __filename__,
             action="append",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(get_csr_parser)
 
-        #ca certificate
-        ca_help='Upload a X.509 formatted CA certificate to iLO.'
+        # ca certificate
+        ca_help = 'Upload a X.509 formatted CA certificate to iLO.'
         ca_parser = subcommand_parser.add_parser(
             'ca',
             help=ca_help,
-            description=ca_help+'\nexample: certificate ca mycertfile.txt\nNote: The '
-                        'certificate must be in X.509 format',
+            description=ca_help + '\nexample: certificate ca mycertfile.txt\nNote: The '
+                                  'certificate must be in X.509 format',
             formatter_class=RawDescriptionHelpFormatter
         )
         ca_parser.add_argument(
@@ -390,13 +393,13 @@ class CertificateCommand():
         )
         self.cmdbase.add_login_arguments_group(ca_parser)
 
-        #crl certificate
-        crl_help='Provide iLO with a URL to retrieve the X.509 formatted CA certificate.'
+        # crl certificate
+        crl_help = 'Provide iLO with a URL to retrieve the X.509 formatted CA certificate.'
         crl_parser = subcommand_parser.add_parser(
             'crl',
             help=crl_help,
-            description=crl_help+'\nexample: certificate crl https://mycertfileurl/mycertfile.txt' \
-                        '\nNote: The certificate must be in X.509 format',
+            description=crl_help + '\nexample: certificate crl https://mycertfileurl/mycertfile.txt' \
+                                   '\nNote: The certificate must be in X.509 format',
             formatter_class=RawDescriptionHelpFormatter
         )
         crl_parser.add_argument(
@@ -406,13 +409,13 @@ class CertificateCommand():
         )
         self.cmdbase.add_login_arguments_group(crl_parser)
 
-        #tls certificate
-        tls_help='Upload a X.509 TLS certificate to iLO.'
+        # tls certificate
+        tls_help = 'Upload a X.509 TLS certificate to iLO.'
         tls_parser = subcommand_parser.add_parser(
             'tls',
             help=tls_help,
-            description=tls_help+'\nexample: certificate tls mycertfile.txt\nNote: The '
-                        'certificate must be in TLS X.509 format',
+            description=tls_help + '\nexample: certificate tls mycertfile.txt\nNote: The '
+                                   'certificate must be in TLS X.509 format',
             formatter_class=RawDescriptionHelpFormatter
         )
         tls_parser.add_argument(

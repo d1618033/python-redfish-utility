@@ -46,6 +46,8 @@ class DeleteComponentCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -57,7 +59,6 @@ class DeleteComponentCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -132,6 +133,8 @@ class DeleteComponentCommand():
 
                 if deleted:
                     self.rdmc.ui.printer('Deleted %s\n' % opt)
+                    self.rdmc.ui.printer("Component " + opt + " deleted successfully.\n")
+                    #self.rdmc.ui.printer("[200] The operation completed successfully.\n")
                 else:
                     raise InvalidCommandLineError('Cannot find or unable to delete component %s' \
                                                                                             % opt)

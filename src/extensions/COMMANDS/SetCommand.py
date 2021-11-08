@@ -20,22 +20,26 @@
 import redfish.ris
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-        InvalidCommandLineErrorOPTS, InvalidOrNothingChangedSettingsError
+    InvalidCommandLineErrorOPTS, InvalidOrNothingChangedSettingsError, \
+    UsernamePasswordRequiredError
 
-class SetCommand():
+from redfish.ris.rmc_helper import NothingSelectedError
+
+class SetCommand:
     """ Constructor """
+
     def __init__(self):
         self.ident = {
-            'name':'set',
+            'name': 'set',
             'usage': None,
-            'description':'Setting a '
-                    'single level property example:\n\tset property=value\n\n\t'
-                    'Setting multiple single level properties example:\n\tset '
-                    'property=value property=value property=value\n\n\t'
-                    'Setting a multi level property example:\n\tset property/'
-                    'subproperty=value',
-            'summary':'Changes the value of a property within the'
-                      ' currently selected type.',
+            'description': 'Setting a '
+                           'single level property example:\n\tset property=value\n\n\t'
+                           'Setting multiple single level properties example:\n\tset '
+                           'property=value property=value property=value\n\n\t'
+                           'Setting a multi level property example:\n\tset property/'
+                           'subproperty=value',
+            'summary': 'Changes the value of a property within the'
+                       ' currently selected type.',
             'aliases': [],
             'auxcommands': ["CommitCommand", "RebootCommand"]
         }
@@ -59,7 +63,6 @@ class SetCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -69,6 +72,10 @@ class SetCommand():
                                           "non-interactive and non-cache modes.")
 
         self.setvalidation(options)
+        res = args[0].find("HighSecurity")
+        # if res != -1 and not (options.user or options.password):
+        # raise UsernamePasswordRequiredError("Please provide credential to set HighSecurity state")
+
         fsel = None
         fval = None
         if args:
@@ -96,6 +103,8 @@ class SetCommand():
                         if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
                             args[count] = None
                 count += 1
+                if not self.rdmc.app.selector:
+                    raise NothingSelectedError
                 if not '.' in self.rdmc.app.selector:
                     self.rdmc.app.selector = self.rdmc.app.selector + '.'
                 if self.rdmc.app.selector:
@@ -126,10 +135,10 @@ class SetCommand():
                         if val[0] == "[" and val[-1] == "]":
                             val = val[1:-1].split(',')
 
-                payload = {newargs[-1]:val} if newargs else {sel:val}
+                payload = {newargs[-1]: val} if newargs else {sel: val}
                 if newargs:
                     for key in newargs[:-1][::-1]:
-                        payload = {key:payload}
+                        payload = {key: payload}
 
                 try:
                     contents = self.rdmc.app.loadset(seldict=payload,
@@ -138,19 +147,19 @@ class SetCommand():
                     if not contents:
                         if not sel.lower() == 'oldadminpassword':
                             raise InvalidOrNothingChangedSettingsError("Nothing changed " \
-                                                "for attribute '%s'. Please check if it is READONLY or the " \
-                                                "value trying to set is same or invalid" % sel)
+                                                                       "for attribute '%s'.\nPlease check if the attribute exists or Read-only or System Unique property or the " \
+                                                                       "value trying to set is same or invalid" % sel)
                     elif contents == "No entries found":
                         raise InvalidOrNothingChangedSettingsError("No " \
-                                       "entries found in the current " \
-                                       "selection for the setting '%s'." % sel)
+                                                                   "entries found in the current " \
+                                                                   "selection for the setting '%s'." % sel)
                     elif contents == "reverting":
                         self.rdmc.ui.error("Removing previous patch and returning to the "
                                            "original value.\n")
                     else:
                         for content in contents:
-                                self.rdmc.ui.printer("Added the following patch:\n")
-                                self.rdmc.ui.print_out_json(content)
+                            self.rdmc.ui.printer("Added the following patch:\n")
+                            self.rdmc.ui.print_out_json(content)
 
                 except redfish.ris.ValidationError as excp:
                     errs = excp.get_errors()
@@ -163,8 +172,8 @@ class SetCommand():
                                 for instance in types[item]["Instances"]:
                                     if 'hpbios.' in instance.maj_type.lower():
                                         _ = [instance.patches.remove(patch) for \
-                                         patch in instance.patches if \
-                                         patch.patch[0]['path'] == '/OldAdminPassword']
+                                             patch in instance.patches if \
+                                             patch.patch[0]['path'] == '/OldAdminPassword']
 
                         if isinstance(err, redfish.ris.RegistryValidationError):
                             self.rdmc.ui.printer(err.message)
@@ -177,7 +186,7 @@ class SetCommand():
             if options.reboot and not options.commit:
                 self.auxcommands['reboot'].run(options.reboot)
 
-            #if options.logout:
+            # if options.logout:
             #    self.logoutobj.run("")
 
         else:
@@ -196,7 +205,7 @@ class SetCommand():
             return ReturnCodes.SUCCESS
         self.setfunction(line, skipprint=skipprint)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def setvalidation(self, options):
@@ -225,11 +234,11 @@ class SetCommand():
         customparser.add_argument(
             '--selector',
             dest='selector',
-            help="Optionally include this flag to select a type to run"\
-             " the current command on. Use this flag when you wish to"\
-             " select a type without entering another command, or if you"\
-              " wish to work with a type that is different from the one"\
-              " you currently have selected.",
+            help="Optionally include this flag to select a type to run" \
+                 " the current command on. Use this flag when you wish to" \
+                 " select a type without entering another command, or if you" \
+                 " wish to work with a type that is different from the one" \
+                 " you currently have selected.",
             default=None,
         )
 
@@ -274,7 +283,7 @@ class SetCommand():
             default=None
         )
         customparser.add_argument(
-            '--uniqueitemoverride',
+            '--uniqueoverride',
             dest='uniqueoverride',
             action='store_true',
             help="Override the measures stopping the tool from writing "

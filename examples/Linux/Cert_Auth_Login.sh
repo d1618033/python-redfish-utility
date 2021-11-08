@@ -23,7 +23,7 @@
 #           openssl genrsa -out testCA.key 4096                   #
 #        2. Configure and set X509 SSL certificate by generating  #
 #           a CSR from iLO and signing with private root CA key.  #
-#           openssl req -x509 -new -nodes -key testCA.key         #
+#           openssl req -x509 -new –nodes -key testCA.key         #
 #           -sha256 -days 1024 -subj "/O=HPE/OU=R&D/CN=CA for     #
 #           testing iLO authentication" -out testCA.crt
 #        3. Add SSL certificate to iLO                            #
@@ -49,16 +49,16 @@
 #            iLO 5 v2.40 (and above)                              #
 
 runRemote(){
-  ilorest login -v --url=$1 --user=$2 --privatecert=$3 --userrootcakey=$4 --usercacert=$5
+  ilorest login -v --url=$1 --usercert %2 --userkey %3 --userpassphrase %4
   ilorest logout
 }
 
 error(){
   echo "Usage:"
-  echo        "remote: Cert_Auth_Login.sh ^<iLO url^> ^<iLO username^> ^<User Root CA Key^> ^<Root CA Certificate^> ^<User Certificate^>"
+  echo        "remote: Cert_Auth_Login.sh ^<iLO url^> ^<user cert^> ^<user key^> ^<user passphrase^>"
 }
 
-if [ "$#" -eq "5" ]
+if [ "$#" -eq "4" ]
   runRemote
 else
   error

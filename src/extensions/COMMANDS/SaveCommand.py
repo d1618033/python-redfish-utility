@@ -38,10 +38,10 @@ class SaveCommand():
             'name': 'save',
             'usage': None,
             'description': 'Run to save a selected type to a file'
-                     '\n\texample: save --selector HpBios.\n\n\tChange the default '
-                     'output filename\n\texample: save --selector HpBios. -f '
-                     'output.json\n\n\tTo save multiple types in one file\n\texample: '
-                     'save --multisave Bios.,ComputerSystem.',
+                           '\n\texample: save --selector HpBios.\n\n\tChange the default '
+                           'output filename\n\texample: save --selector HpBios. -f '
+                           'output.json\n\n\tTo save multiple types in one file\n\texample: '
+                           'save --multisave Bios.,ComputerSystem.',
             'summary': "Saves the selected type's settings to a file.",
             'aliases': [],
             'auxcommands': ["SelectCommand"]
@@ -67,7 +67,6 @@ class SaveCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -137,7 +136,7 @@ class SaveCommand():
         except KeyError:
             try:
                 contents = [{val['links']['self'][self.rdmc.app.typepath.defs.hrefstring]: val} \
-                        for val in content]
+                            for val in content]
             except KeyError:
                 raise iLORisCorruptionError("iLO Database seems to be corrupted. Please check. Reboot the server to "
                                             "restore\n")
@@ -150,12 +149,25 @@ class SaveCommand():
             pathselector = None
 
             for path, values in content.items():
-
+                #if "Managers/1/EthernetInterfaces/1" not in path:
                 for dictentry in list(values.keys()):
                     if dictentry == type_string:
                         typeselector = values[dictentry]
                         pathselector = path
                         del values[dictentry]
+                    if dictentry in ["IPv4Addresses", "IPv6Addresses", "IPv6AddressPolicyTable", "MACAddress",
+                                     "StaticNameServers", "AutoNeg", "FullDuplex", "SpeedMbps"]:
+                        del values[dictentry]
+                    if dictentry in ["IPv6StaticAddresses", "IPv6StaticDefaultGateways", "IPv4StaticAddresses"]:
+                        if values[dictentry]:
+                            del values[dictentry]
+                    if dictentry in ["IPv4", "IPv6", "DHCPv6", "DHCPv4"]:
+                        if "DNSServers" in values[dictentry]:
+                            del values[dictentry]["DNSServers"]
+                            del values["Oem"]["Hpe"][dictentry]["DNSServers"]
+                        if "UseDNSServers" in values[dictentry]:
+                            del values[dictentry]["UseDNSServers"]
+                            del values["Oem"]["Hpe"][dictentry]["UseDNSServers"]
 
                 if values:
                     tempcontents = dict()

@@ -37,7 +37,7 @@ class RawHeadCommand():
             'usage': None,
             'description': 'Run to to retrieve data from the '
                      'passed in path\n\texample: rawhead "/redfish/v1/systems/'
-                     '(system ID)"',
+                     '(system ID)"\n',
             'summary': 'Raw form of the HEAD command.',
             'aliases': [],
             'auxcommands': []
@@ -51,6 +51,8 @@ class RawHeadCommand():
 
         :param line: command line input
         :type line: string.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -62,7 +64,6 @@ class RawHeadCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")

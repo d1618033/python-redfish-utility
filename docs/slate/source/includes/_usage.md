@@ -6,7 +6,7 @@ The RESTful Interface Tool has three modes of operation. By default, the interac
 
 ### Interactive Mode
 
-Interactive mode is started when you run the RESTful Interface Tool without any command-line parameters. The `ilorest >` prompt is displayed and you can enter commands one at a time. Interactive mode provides immediate feedback for an entered command. You can also use this mode to validate a script.   
+Interactive mode is started when you run the RESTful Interface Tool without any command-line parameters. The `ilorest >` prompt is displayed and you can enter commands one at a time. Interactive mode provides immediate feedback for an entered command. You can also use this mode to validate a script.
 
 To start an interactive session:
 <ul><li>On Windows systems, double-click `ilorest.exe`. You must be an administrator to run `ilorest.exe`.</li>
@@ -27,6 +27,9 @@ Tab complete is available for viewing and completing commands.
 ![Tab complete commands](images/tab_command.gif "Tab complete commands")
 
 ##### Types
+
+Each Redfish resource is associated to a data type. To view or modify a resource, you must first select its type.
+NOTE: Types descriptions are available in the [iLO5 API reference](https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5)
 
 Tab complete is available for viewing and completing types.
 
@@ -169,13 +172,13 @@ The properties of `Bios` can be edited here, and then loaded on the server. When
 
 ## Executing commands in parallel
 
-> Run the following command to start an iLOREST session in 10 different iLO servers:
+> Run the following command to start iLOREST sessions in 10 different iLO based servers:
 
 ```
-pdsh -R exec -w server[1-10] ilorest --cache-dir=%h login ilo-%h -u username -p password.
+clush -R exec -w 'server[1-10]' ilorest --cache-dir=%h login ilo-%h -u username -p password
 ```
 
-> When you run the example command, PDSH issues the following 10 commands in batch and background mode. For each command, iLOREST saves the data in a different location. For example, for server1, the data is cached in directory server1, for server2, the data is cached in directory server2.
+> When you run the example command, `clush` issues the following 10 commands in batch and background mode. For each command, iLOREST saves cached data in a different location:  server1 data is cached in directory `server1`, server2 data is cached in directory `server2`....
 
 ```
 ilorest --cache-dir=server1 login ilo-server1 -u username -p password
@@ -204,12 +207,12 @@ ilorest --cache-dir=server10 login ilo-server10 -u username -p password
 > The **-R exec** part of the example finds and locally executes the iLOREST executable. **The -w server[1-10]** part of the example replaces the string `%h` in the rest of the command with `1, 2, &#8230; 10`.
 
 ```
-pdsh -R exec --cache-dir=server[1-10] ilorest <select, list, get or set> <Type or property>.
+clush -R exec --cache-dir=server[1-10] ilorest <select, list, get or set> <Type or property>.
 ```
 
-iLOREST uses a caching method to locally save servers' data. To send iLOREST commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses `PDSH`, but any method of parallel scripting will work as long as you are specifying different cache directories.
+iLOREST uses a caching method to locally save servers' data. To send iLOREST commands to many different systems at once remotely, you will need to specify a different cache directory for each of them. The following example uses the [ClusterShell](https://pypi.org/project/ClusterShell/)(`clush`), but any method of parallel scripting will work as long as you are specifying different cache directories.
 
-Running iLOREST on multiple systems locally can be done using automation tools such as Ansible, Chef, and Puppet.
+Running iLOREST against multiple managed systems can also be done using automation tools such as Ansible, Chef, and Puppet.
 
 ## Configuration file (Redfish.conf)
 

@@ -90,6 +90,8 @@ class IloAccountsCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -145,6 +147,8 @@ class IloAccountsCommand():
                 if mod_acct:
                     acct = mod_acct
                     break
+                else:
+                    acct = None
 
         if not results:
             raise NoContentsFoundForOperationError("No iLO Management Accounts were found.")
@@ -217,6 +221,7 @@ class IloAccountsCommand():
                                                       " 1.40 or greater.")
             if path and body:
                 self.rdmc.app.post_handler(path, body)
+            self.rdmc.ui.printer('New iLO account %s is added successfully\n' % options.identifier)
         elif options.command.lower() == 'modify':
             if not mod_acct:
                 raise InvalidCommandLineError("Unable to find the specified account.")
@@ -389,9 +394,10 @@ class IloAccountsCommand():
                     'length. Use at most %s characters.' % loginname_max_chars)
 
             try:
-                if acct['UserName'] == username or acct['Oem'][self.rdmc.app.typepath.defs.oemhp]\
+                if acct:
+                    if acct['UserName'] == username or acct['Oem'][self.rdmc.app.typepath.defs.oemhp]\
                                                                     ['LoginName'] == loginname:
-                    raise ResourceExists('Username or login name is already in use.')
+                        raise ResourceExists('Username or login name is already in use.')
             except KeyError:
                 pass
 

@@ -57,7 +57,6 @@ class CreateLogicalDriveCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -108,7 +107,7 @@ class CreateLogicalDriveCommand():
         """ Create logical drive """
         raidlvllist = ['Raid0', 'Raid1', 'Raid1ADM', 'Raid10', 'Raid10ADM',
                        'Raid5', 'Raid50', 'Raid6', 'Raid60']
-        interfacetypelist = ['SAS', 'SATA']
+        interfacetypelist = ['SAS', 'SATA', 'NVMe']
         mediatypelist = ['SSD', 'HDD']
         sparetypelist = ['Dedicated', 'Roaming']
         acceltypelist = ['ControllerCache', 'IOBypass', 'None']
@@ -488,7 +487,7 @@ class CreateLogicalDriveCommand():
         )
         qd_parser.add_argument(
             'interfacetype',
-            help='Specify the interface type of the physical disk(s) (i.e. SATA or SAS)',
+            help='Specify the interface type of the physical disk(s) (i.e. SATA or SAS or NVMe)',
             metavar='Drive_Interface_Type'
         )
         qd_parser.add_argument(
@@ -520,7 +519,7 @@ class CreateLogicalDriveCommand():
                                   'Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, '
                                   'Raid6, Raid60\n\tphysicaldrivelocation(s):\tLocation, Drive-name\n\t'
                                   'media-type:\t\tSSD,HDD\n\tinterface-type:'
-                                  '\t\tSAS, SATA\n\tdrive-location:\t\tInternal, External\n\t'
+                                  '\t\tSAS, SATA, NVMe\n\tdrive-location:\t\tInternal, External\n\t'
                                   '--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t'
                                   'ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid'
                                   '\n\t--capacitygib:\t\t-1 (for Max Size)\n\t--capacityblocks:\t'

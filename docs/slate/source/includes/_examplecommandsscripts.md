@@ -127,7 +127,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">ServerAssetTag="MySystem"</font>
+<span style="color: #01a982; ">ServerAssetTag="MySystem"</span>
 Logging session out.
 </pre>
 
@@ -144,8 +144,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...
-One or more properties were changed and will not take effect until system is reset.</font>
+<span style="color: #01a982; ">Committing changes...
+One or more properties were changed and will not take effect until system is reset.</span>
 Logging session out.
 </pre>
 Configure a system's asset tag.
@@ -161,8 +161,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...
-One or more properties were changed and will not take effect until system is reset.</font>
+<span style="color: #01a982; ">Committing changes...
+One or more properties were changed and will not take effect until system is reset.</span>
 Logging session out.
 </pre>
 Configure server name.
@@ -185,7 +185,7 @@ If you perform a `get` command to find the current `AdminPassword` and `OldAdmin
 
 ![BIOS Password Example 2](images/BIOSPassword_2.png "BIOS Password Example 2")
 
-In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `-biospassword` flag if the system is iLO 4.
+In order to change the administrator password, you need to set the `AdminPassword` (the new value you want) and the `OldAdminPassword` (what the admin password was before), as well as include the `–biospassword` flag if the system is iLO 4.
 
 <aside class="notice">The <b>biospassword</b> value is the same as the <b>OldAdminPassword</b> value.</aside>
 
@@ -212,7 +212,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">BootMode=Uefi</font>
+<span style="color: #01a982; ">BootMode=Uefi</span>
 Logging session out.
 </pre>
 Obtain current boot mode setting.
@@ -253,8 +253,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...
-One or more properties were changed and will not take effect until system is reset.</font>
+<span style="color: #01a982; ">Committing changes...
+One or more properties were changed and will not take effect until system is reset.</span>
 Logging session out.
 </pre>
 Configure persistent boot selection.
@@ -270,8 +270,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...</font>
-<font color="#01a982">The operation completed successfully.</font>
+<span style="color: #01a982; ">Committing changes...</span>
+<span style="color: #01a982; ">The operation completed successfully.</span>
 Logging session out.
 </pre>
 Configure one time boot selection. A subsequent system reboot will return the boot settings to normal (property is automatically altered following POST by the BIOS provider)
@@ -352,7 +352,7 @@ Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
 Committing changes...
-<font color="#01a982">One or more properties were changed and will not take effect until system is reset.</font>
+<span style="color: #01a982; ">One or more properties were changed and will not take effect until system is reset.</span>
 Logging session out.
 </pre>
 Configure system boot mode.
@@ -405,7 +405,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">The resource has been created successfully.</font>
+<span style="color: #01a982; ">The resource has been created successfully.</span>
 Logging session out.
 </pre>
 Configure iLO's licensing key.
@@ -421,15 +421,15 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...</font>
-<font color="#01a982">The operation completed successfully.</font>
+<span style="color: #01a982; ">Committing changes...</span>
+<span style="color: #01a982; ">The operation completed successfully.</span>
 Logging session out.
 
 >ilorest get IndicatorLED --selector=ComputerSystem.
 iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
-<font color="#01a982">IndicatorLED=Lit</font>
+<span style="color: #01a982; ">IndicatorLED=Lit</span>
 </pre>
 iLO 4 and iLO 5 systems utilize a unit identification lamp which can be controlled to easily and uniquely identify a physical device. This script will
 alter the UID light state.
@@ -492,9 +492,9 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">After iLO resets the session will be terminated.
+<span style="color: #01a982; ">After iLO resets the session will be terminated.
 Please wait for iLO to initialize completely before logging in again.
-This process may take up to 3 minutes.</font>
+This process may take up to 3 minutes.</span>
 
 A management processor reset is in progress.
 </pre>
@@ -511,10 +511,10 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">After the server is rebooted the session will be terminated.
+<span style="color: #01a982; ">After the server is rebooted the session will be terminated.
 Please wait for the server to boot completely to login again.
 Rebooting server in 3 seconds...
-The operation completed successfully.</font>
+The operation completed successfully.</span>
 Logging session out.
 </pre>
 Initiate a server reboot.
@@ -534,7 +534,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">One or more properties were changed and will not take effect until system is reset.</font>
+<span style="color: #01a982; ">One or more properties were changed and will not take effect until system is reset.</span>
 Logging session out.
 
 </pre>
@@ -553,7 +553,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">One or more properties were changed and will not take effect until the device is reset and system is rebooted</font>
+<span style="color: #01a982; ">One or more properties were changed and will not take effect until the device is reset and system is rebooted</span>
 Logging session out.
 </pre>
 Clear Active Health System log.
@@ -569,7 +569,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Event log cleared successfully.</font>
+<span style="color: #01a982; ">Event log cleared successfully.</span>
 Logging session out.
 </pre>
 Clear iLO's Integrated Management Log
@@ -586,7 +586,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Event log cleared successfully.</font>
+<span style="color: #01a982; ">Event log cleared successfully.</span>
 Logging session out.
 
 </pre>
@@ -607,10 +607,10 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Oem=
+<span style="color: #01a982; ">Oem=
      Hpe=
           Sessions=
-                    LDAPAuthLicenced=True</font>
+                    LDAPAuthLicenced=True</span>
 Logging session out.
 
 </pre>
@@ -624,7 +624,7 @@ Copyright (c) 2014, 2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
 The operation completed successfully.
-<font color="#01a982">Starting the directory test. Monitor results with command: directory viewresults</font>
+<span style="color: #01a982; ">Starting the directory test. Monitor results with command: directory viewresults</span>
 The operation completed successfully.
 Logging session out.
 </pre>
@@ -644,7 +644,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Stopping the directory test.</font>
+<span style="color: #01a982; ">Stopping the directory test.</span>
 The operation completed successfully.
 Logging session out.
 </pre>
@@ -834,7 +834,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">The account was modified successfully.</font>
+<span style="color: #01a982; ">The account was modified successfully.</span>
 Logging session out.
 </pre>
 
@@ -887,7 +887,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">The account was removed successfully.</font>
+<span style="color: #01a982; ">The account was removed successfully.</span>
 Logging session out.
 </pre>
 
@@ -910,12 +910,12 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">[200] The operation completed successfully.</font>
-<font color="#01a982">The resource has been created successfully.</font>
+<span style="color: #01a982; ">[200] The operation completed successfully.</span>
+<span style="color: #01a982; ">The resource has been created successfully.</span>
 Logging session out.
 
 iLOrest > ilofederation default
-<font color="#01a982">[200] The operation completed successfully.</font>
+<span style="color: #01a982; ">[200] The operation completed successfully.</span>
 iLO Federation Id list with Privileges:
 
 Name=DEFAULT:
@@ -1006,8 +1006,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">[200] The operation completed successfully.
-The operation completed successfully.</font>
+<span style="color: #01a982; ">[200] The operation completed successfully.
+The operation completed successfully.</span>
 Logging session out.
 
 </pre>
@@ -1036,7 +1036,7 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014, 2019 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">The operation completed successfully.</font>
+<span style="color: #01a982; ">The operation completed successfully.</span>
 Logging session out.
 </pre>
 Eject virtual media from the system.
@@ -1123,8 +1123,8 @@ iLOrest : RESTful Interface Tool version 3.1
 Copyright (c) 2014-2020 Hewlett Packard Enterprise Development LP
 --------------------------------------------------------------------------------
 Discovering data...Done
-<font color="#01a982">Committing changes...</font>
-<font color="#01a982">One or more properties were changed, but these changes will not take effect until the management processor is reset.</font>
+<span style="color: #01a982; ">Committing changes...</span>
+<span style="color: #01a982; ">One or more properties were changed, but these changes will not take effect until the management processor is reset.</span>
 Logging session out.
 </pre>
 Configure iLO shared networking port.
@@ -1258,7 +1258,7 @@ To delete an iLO license, use the `rawdelete` command. For more information, see
     "body": {
         "Action": "InsertVirtualMedia",
         "Target": "/OEM/Hp",
-        "Image": "http://xx.xxx.xxx.xxx:xx/spp.iso
+        "Image": "https://xx.xxx.xxx.xxx:xx/spp.iso"
     }
 }
 ```

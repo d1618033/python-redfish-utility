@@ -36,57 +36,59 @@ import redfish.hpilo.risblobstore2 as risblobstore2
 from redfish.ris.utils import filter_output
 from redfish.rest.connections import SecurityStateError
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, InvalidKeyError,\
-                InvalidMSCfileInputError, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
-                LOGGER, InvalidCListFileError, NoContentsFoundForOperationError, \
-                IncompatibleiLOVersionError, Encryption, PartitionMoutingError, \
-                MultipleServerConfigError, UnabletoFindDriveError
+from rdmc_helper import ReturnCodes, InvalidCommandLineError, UI, InvalidKeyError, \
+    InvalidMSCfileInputError, InvalidCommandLineErrorOPTS, InvalidFileInputError, \
+    LOGGER, InvalidCListFileError, NoContentsFoundForOperationError, \
+    IncompatibleiLOVersionError, Encryption, PartitionMoutingError, \
+    MultipleServerConfigError, UnabletoFindDriveError
 
 if os.name == 'nt':
     import win32api
 elif sys.platform != 'darwin' and not 'VMkernel' in platform.uname():
     import pyudev
 
+
 class ServerlogsCommand():
     """ Download logs from the server that is currently logged in """
+
     def __init__(self):
         self.ident = {
-            'name':'serverlogs',
+            'name': 'serverlogs',
             'usage': None,
-            'description':'Download the AHS'
-                    ' logs from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=AHS \n\n\tClear the AHS logs '
-                    'from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=AHS --clearlog\n\n\tDownload the IEL'
-                    ' logs from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs '
-                    'from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=IEL --clearlog\n\n\tDownload the IML'
-                    ' logs from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs '
-                    'from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)'
-                    '\n\tInsert entry in the IML logs from the logged in '
-                    'server.\n\texample: serverlogs --selectlog=IML -m "Text'
-                    ' message for maintenance"\n\n\tDownload the iLO Security'
-                    ' logs from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=SL -f SLlog.txt\n\n\tClear the iLO Security logs '
-                    'from the logged in server.\n\texample: serverlogs '
-                    '--selectlog=SL --clearlog\n\n\tDownload logs from multiple servers'
-                    '\n\texample: serverlogs --mpfile mpfilename.txt -o output'
-                    'directorypath --mplog=IEL,IML\n\n\tNote: multiple server file '
-                    'format (1 server per new line)\n\t--url <iLO url/hostname> '
-                    '-u admin -p password\n\t--url <iLO url/hostname> -u admin -'
-                    'p password\n\t--url <iLO url/hostname> -u admin -p password'
-                    '\n\n\tInsert customized string '
-                    'if required for AHS\n\texample: serverlogs --selectlog='
-                    'AHS --customiseAHS "from=2014-03-01&&to=2014'
-                    '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/'
-                    'path of directory where AHS log needs to be saved.'
-                    ' \n\texample: serverlogs --selectlog=AHS '
-                    '--directorypath=C:\\Python38\\DataFiles\n\n\tRepair IML log.'
-                    '\n\texample: serverlogs --selectlog=IML --repair IMLlogID',
-            'summary':'Download and perform log operations.',
+            'description': 'Download the AHS'
+                           ' logs from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=AHS \n\n\tClear the AHS logs '
+                           'from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=AHS --clearlog\n\n\tDownload the IEL'
+                           ' logs from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=IEL -f IELlog.txt\n\n\tClear the IEL logs '
+                           'from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=IEL --clearlog\n\n\tDownload the IML'
+                           ' logs from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=IML -f IMLlog.txt\n\n\tClear the IML logs '
+                           'from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=IML --clearlog\n\n\t(IML LOGS ONLY FEATURE)'
+                           '\n\tInsert entry in the IML logs from the logged in '
+                           'server.\n\texample: serverlogs --selectlog=IML -m "Text'
+                           ' message for maintenance"\n\n\tDownload the iLO Security'
+                           ' logs from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=SL -f SLlog.txt\n\n\tClear the iLO Security logs '
+                           'from the logged in server.\n\texample: serverlogs '
+                           '--selectlog=SL --clearlog\n\n\tDownload logs from multiple servers'
+                           '\n\texample: serverlogs --mpfile mpfilename.txt -o output'
+                           'directorypath --mplog=IEL,IML\n\n\tNote: multiple server file '
+                           'format (1 server per new line)\n\t--url <iLO url/hostname> '
+                           '-u admin -p password\n\t--url <iLO url/hostname> -u admin -'
+                           'p password\n\t--url <iLO url/hostname> -u admin -p password'
+                           '\n\n\tInsert customized string '
+                           'if required for AHS\n\texample: serverlogs --selectlog='
+                           'AHS --customiseAHS "from=2014-03-01&&to=2014'
+                           '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/'
+                           'path of directory where AHS log needs to be saved.'
+                           ' \n\texample: serverlogs --selectlog=AHS '
+                           '--directorypath=C:\\Python38\\DataFiles\n\n\tRepair IML log.'
+                           '\n\texample: serverlogs --selectlog=IML --repair IMLlogID',
+            'summary': 'Download and perform log operations.',
             'aliases': ['logservices'],
             'auxcommands': []
         }
@@ -103,6 +105,8 @@ class ServerlogsCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -114,12 +118,12 @@ class ServerlogsCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        self.serverlogsvalidation(options)
+        if not getattr(options, 'sessionid', False):
+            self.serverlogsvalidation(options)
 
         if options.mpfilename:
             self.rdmc.ui.printer("Downloading logs for multiple servers...\n")
@@ -128,7 +132,7 @@ class ServerlogsCommand():
         self.serverlogsworkerfunction(options)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def serverlogsworkerfunction(self, options):
@@ -148,8 +152,16 @@ class ServerlogsCommand():
             path = self.returnslpath(options=options)
         elif options.service.lower() == 'ahs' and options.filter:
             raise InvalidCommandLineError("Cannot filter AHS logs.")
-        elif options.service.lower() == 'ahs' and self.rdmc.app.typepath.url.\
-                startswith("blobstore") and not options.clearlog:
+        elif options.service.lower() == 'ahs' and (not self.rdmc.app.typepath.url or
+                                                   self.rdmc.app.typepath.url.startswith("blobstore")) \
+                and not options.clearlog:
+            if options.customiseAHS is not None:
+                current_date = (str(datetime.datetime.now()).split()[0])
+                date_check = options.customiseAHS
+                from_date = date_check.split('&')[0].split('=')[1]
+                to_date = date_check.split('to')[-1].split('=')[-1]
+                if to_date < from_date or from_date > current_date:
+                    raise InvalidCommandLineError("Please provide valid date to custmiseAHS")
             self.downloadahslocally(options=options)
             return
         elif options.service.lower() == 'ahs':
@@ -232,13 +244,13 @@ class ServerlogsCommand():
             else:
                 break
 
-            finput = '\n'+ 'Output for '+ line[line.index('--url')+1]+': \n\n'
-            urlvar = line[line.index('--url')+1]
+            finput = '\n' + 'Output for ' + line[line.index('--url') + 1] + ': \n\n'
+            urlvar = line[line.index('--url') + 1]
             urlfilename = urlvar.split('//')[-1]
-            line[line.index('-f')+1] = str(line[line.index('-f')+1]) + urlfilename
+            line[line.index('-f') + 1] = str(line[line.index('-f') + 1]) + urlfilename
 
             if 'python' in os.path.basename(sys.executable.lower()):
-                #If we are running from source we have to add the python file to the command
+                # If we are running from source we have to add the python file to the command
                 listargforsubprocess = [sys.executable, sys.argv[0]] + line
             else:
                 listargforsubprocess = [sys.executable] + line
@@ -246,7 +258,7 @@ class ServerlogsCommand():
             if os.name != 'nt':
                 listargforsubprocess = " ".join(listargforsubprocess)
 
-            logfile = open(os.path.join(createdir, urlfilename+".txt"), "w+")
+            logfile = open(os.path.join(createdir, urlfilename + ".txt"), "w+")
             pinput = subprocess.Popen(listargforsubprocess, shell=True,
                                       stdout=logfile, stderr=logfile)
 
@@ -258,17 +270,17 @@ class ServerlogsCommand():
             finalreturncode = finalreturncode and not returncode
 
             logfile.close()
-            logfile = open(os.path.join(createdir, urlvar+".txt"), "r+")
+            logfile = open(os.path.join(createdir, urlvar + ".txt"), "r+")
             oofile.write(finput + str(logfile.read()))
-            oofile.write('-x+x-'*16)
+            oofile.write('-x+x-' * 16)
             logfile.close()
 
             if returncode == 0:
                 self.rdmc.ui.printer('Loading Configuration for {} : SUCCESS\n'.format(urlvar))
             else:
                 self.rdmc.ui.error('Loading Configuration for {} : FAILED\n'.format(urlvar))
-                self.rdmc.ui.error('ILOREST return code : {}.\nFor more details please check {}'\
-                    '.txt under {} directory.\n'.format(returncode, urlvar, createdir))
+                self.rdmc.ui.error('ILOREST return code : {}.\nFor more details please check {}' \
+                                   '.txt under {} directory.\n'.format(returncode, urlvar, createdir))
 
         oofile.close()
 
@@ -294,7 +306,7 @@ class ServerlogsCommand():
 
         if not os.path.isfile(mpfile) or not options.mplog:
             raise InvalidFileInputError("File '%s' doesn't exist, please " \
-                            "create file by running save command." % mpfile)
+                                        "create file by running save command." % mpfile)
 
         logs = self.checkmplog(options)
 
@@ -310,7 +322,7 @@ class ServerlogsCommand():
                         break
 
                     for logval in logs:
-                        cmdargs = ['--selectlog='+ str(logval), '-f', str(logval)]
+                        cmdargs = ['--selectlog=' + str(logval), '-f', str(logval)]
                         if line.endswith(os.linesep):
                             line.rstrip(os.linesep)
 
@@ -318,8 +330,8 @@ class ServerlogsCommand():
 
                         if len(args) < 5:
                             self.rdmc.ui.error('Incomplete data in input file: {}\n'.format(line))
-                            raise InvalidMSCfileInputError('Please verify the '\
-                                                'contents of the %s file' %mpfile)
+                            raise InvalidMSCfileInputError('Please verify the ' \
+                                                           'contents of the %s file' % mpfile)
                         else:
                             linelist = globalargs + cmdtorun + args + cmdargs
                             line = str(line).replace("\n", "")
@@ -376,7 +388,7 @@ class ServerlogsCommand():
         if path:
             bodydict = dict()
             bodydict["path"] = path
-            bodydict["body"] = {"EntryCode": "Maintenance", "Message":message}
+            bodydict["body"] = {"EntryCode": "Maintenance", "Message": message}
 
             LOGGER.info("Writing maintenance post to %s with %s", str(path), str(bodydict["body"]))
 
@@ -402,7 +414,7 @@ class ServerlogsCommand():
             imlid = imlid[1:-1]
 
         if path:
-            imlidpath = [path if path[-1] == '/' else path+'/'][0] + str(imlid) + '/'
+            imlidpath = [path if path[-1] == '/' else path + '/'][0] + str(imlid) + '/'
             bodydict = dict()
             bodydict["path"] = imlidpath
             bodydict["body"] = {"Oem": {"Hpe": {"Repaired": True}}}
@@ -427,13 +439,13 @@ class ServerlogsCommand():
 
             bodydict = dict()
             bodydict["path"] = path
-            bodydict["body"] = {"Action":"ClearLog"}
+            bodydict["body"] = {"Action": "ClearLog"}
             self.rdmc.app.post_handler(path, bodydict["body"])
         elif path:
             action = path.split('/')[-2]
             bodydict = dict()
             bodydict["path"] = path
-            bodydict["body"] = {"Action":action}
+            bodydict["body"] = {"Action": action}
             self.rdmc.app.post_handler(path, bodydict["body"])
 
     def downloaddata(self, path=None, options=None):
@@ -458,8 +470,8 @@ class ServerlogsCommand():
             datadict = data.dict
 
             try:
-                completedatadictlist = datadict['Items'] if 'Items' in\
-                                            datadict else datadict['Members']
+                completedatadictlist = datadict['Items'] if 'Items' in \
+                                                            datadict else datadict['Members']
             except:
                 self.rdmc.ui.error('No data available within log.\n')
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
@@ -470,7 +482,7 @@ class ServerlogsCommand():
                 while morepages:
                     if 'links' in datadict and 'NextPage' in datadict['links']:
                         next_link_uri = path + '?page=' + \
-                                    str(datadict['links']['NextPage']['page'])
+                                        str(datadict['links']['NextPage']['page'])
 
                         href = '%s' % next_link_uri
                         data = self.rdmc.app.get_handler(href, silent=True)
@@ -490,7 +502,7 @@ class ServerlogsCommand():
                     if len(list(members.keys())) == 1:
                         memberpath = members[self.rdmc.app.typepath.defs.hrefstring]
                         data = self.rdmc.app.get_handler(memberpath, silent=True)
-                        datadict = datadict+[data.dict]
+                        datadict = datadict + [data.dict]
                     else:
                         datadict = datadict + [members]
                 completedatadictlist = datadict
@@ -538,7 +550,7 @@ class ServerlogsCommand():
                             path = actiondict[clearkey[0]]["target"]
                     else:
                         linkpath = filtereddict['links'] if "links" in \
-                                                filtereddict else filtereddict
+                                                            filtereddict else filtereddict
                         dictpath = linkpath['Entries']
                         dictpath = dictpath[0] if isinstance(dictpath, list) else dictpath
                         path = dictpath[self.rdmc.app.typepath.defs.hrefstring]
@@ -551,7 +563,7 @@ class ServerlogsCommand():
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
         if self.rdmc.opts.verbose:
-            self.rdmc.ui.printer(str(path)+'\n')
+            self.rdmc.ui.printer(str(path) + '\n')
 
         return path
 
@@ -585,7 +597,7 @@ class ServerlogsCommand():
                             path = actiondict[clearkey[0]]["target"]
                     else:
                         linkpath = filtereddict['links'] if "links" in \
-                                                filtereddict else filtereddict
+                                                            filtereddict else filtereddict
                         dictpath = linkpath['Entries']
                         dictpath = dictpath[0] if isinstance(dictpath, list) else dictpath
                         path = dictpath[self.rdmc.app.typepath.defs.hrefstring]
@@ -599,7 +611,7 @@ class ServerlogsCommand():
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
         if self.rdmc.opts.verbose:
-            self.rdmc.ui.printer(str(path)+'\n')
+            self.rdmc.ui.printer(str(path) + '\n')
 
         return path
 
@@ -642,7 +654,7 @@ class ServerlogsCommand():
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
         if self.rdmc.opts.verbose:
-            self.rdmc.ui.printer(str(path)+'\n')
+            self.rdmc.ui.printer(str(path) + '\n')
 
         return path
 
@@ -682,7 +694,7 @@ class ServerlogsCommand():
                         path = actiondict[clearkey[0]]["target"]
                 else:
                     linkpath = filtereddict['links'] if 'links' in \
-                                        filtereddict else filtereddict["Links"]
+                                                        filtereddict else filtereddict["Links"]
 
                     ahslocpath = linkpath['AHSLocation']
                     path = ahslocpath['extref']
@@ -698,35 +710,36 @@ class ServerlogsCommand():
                         if custr.startswith("from="):
                             path = path.split("downloadAll=1")[0]
 
-                        path = path+custr
+                        path = path + custr
                     else:
                         if 'RecentWeek' in list(linkpath.keys()):
                             weekpath = linkpath["RecentWeek"]['extref']
                         elif "AHSFileStart" in list(filtereddict.keys()):
                             enddate = filtereddict["AHSFileEnd"].split("T")[0]
-                            startdate = filtereddict["AHSFileStart"].\
-                                                                split("T")[0]
+                            startdate = filtereddict["AHSFileStart"]. \
+                                split("T")[0]
 
                             enddat = list(map(int, enddate.split('-')))
                             startdat = list(map(int, startdate.split('-')))
 
                             weekago = datetime.datetime.now() - datetime.timedelta(days=6)
-                            weekagostr = list(map(int, (str(weekago).split()[0]).\
-                                                                    split('-')))
+                            weekagostr = list(map(int, (str(weekago).split()[0]). \
+                                                  split('-')))
 
                             strdate = min(max(datetime.date(weekagostr[0],
                                                             weekagostr[1], weekagostr[2]),
                                               datetime.date(startdat[0], startdat[1],
-                                                            startdat[2])), datetime.date(enddat[0], enddat[1], enddat[2]))
+                                                            startdat[2])),
+                                          datetime.date(enddat[0], enddat[1], enddat[2]))
 
                             aweekstr = "from=" + str(strdate) + "&&to=" + enddate
                         else:
                             week_ago = datetime.datetime.now() - datetime.timedelta(days=6)
                             aweekstr = "from=" + str(week_ago).split()[0] + \
-                                        "&&to=" + str(datetime.datetime.now()).split()[0]
+                                       "&&to=" + str(datetime.datetime.now()).split()[0]
 
                         path = path.split("downloadAll=1")[0]
-                        path = weekpath if weekpath else path+aweekstr
+                        path = weekpath if weekpath else path + aweekstr
 
             if not path:
                 raise NoContentsFoundForOperationError("Unable to retrieve logs.")
@@ -737,7 +750,7 @@ class ServerlogsCommand():
             raise NoContentsFoundForOperationError("Unable to retrieve logs.")
 
         if self.rdmc.opts.verbose:
-            self.rdmc.ui.printer(str(path)+'\n')
+            self.rdmc.ui.printer(str(path) + '\n')
 
         return path
 
@@ -791,20 +804,20 @@ class ServerlogsCommand():
         LOGGER.info("Entering AHS local download functions...")
         self.dontunmount = True
 
-        if self.rdmc.app.typepath.ilogen < 4:
+        if self.rdmc.app.typepath.ilogen and self.rdmc.app.typepath.ilogen < 4:
             raise IncompatibleiLOVersionError("Need at least iLO 4 for this program to run!\n")
 
         if sys.platform == 'darwin':
-                raise InvalidCommandLineError("AHS loacal download is not supported on MacOS")
+            raise InvalidCommandLineError("AHS loacal download is not supported on MacOS")
         elif 'VMkernel' in platform.uname():
-                raise InvalidCommandLineError("AHS loacal download is not supported on VMWare")
+            raise InvalidCommandLineError("AHS loacal download is not supported on VMWare")
 
         if options.filename:
             raise InvalidCommandLineError("AHS logs must be downloaded with "
                                           "default name! Re-run command without filename!")
 
         secstate = risblobstore2.BlobStore2().get_security_state()
-        #self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
+        # self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
 
         if isinstance(secstate, bytes):
             secstate = secstate.decode('utf-8')
@@ -829,11 +842,12 @@ class ServerlogsCommand():
             self.dontunmount = False
 
         LOGGER.info("Blackbox folder path:%s", ','.join(next(os.walk(abspath))[2]))
-        if not 'data' in abspath:
+        if 'data' not in abspath:
             self.abspath = os.path.join(abspath, 'data')
         LOGGER.info("Blackbox data files path:%s", self.abspath)
 
-        self.updateiloversion()
+        if self.rdmc.app.typepath.ilogen:
+            self.updateiloversion()
         try:
             cfilelist = self.getclistfilelisting()
             allfiles = self.getfilenames(options=options, cfilelist=cfilelist)
@@ -853,7 +867,7 @@ class ServerlogsCommand():
         """Update iloversion to create appropriate headers."""
         LOGGER.info("Updating iloversion to format data appropriately")
         self.lib.updateiloversion.argtypes = [ctypes.c_float]
-        self.lib.updateiloversion(float('2.'+str(self.rdmc.app.typepath.ilogen)))
+        self.lib.updateiloversion(float('2.' + str(self.rdmc.app.typepath.ilogen)))
 
     def createahsfile(self, ahsfile=None):
         """Create the AHS file
@@ -890,7 +904,7 @@ class ServerlogsCommand():
         :type allfile: list
         """
         LOGGER.info("Reading Blackbox to determine data files.")
-        allfile = list(set(allfile)|set(cfilelist))
+        allfile = list(set(allfile) | set(cfilelist))
         LOGGER.info("Final filelist %s", str(allfile))
         for files in allfile:
             if files.startswith((".", "..")):
@@ -939,7 +953,7 @@ class ServerlogsCommand():
         atleastonefile = False
         for files in list(filenames):
             if not files.endswith("bb"):
-                #Check the logic for the non bb files
+                # Check the logic for the non bb files
                 allfiles.append(files)
                 continue
 
@@ -971,7 +985,7 @@ class ServerlogsCommand():
                     filenoext = files.rsplit(".", 1)[0]
                     filesplit = filenoext.split("-")
                     newdate = datetime.date(int(filesplit[1]), int(filesplit[2]), int(filesplit[3]))
-                    if not ( (strdate <= newdate) and (newdate <= enddate)):
+                    if not ((strdate <= newdate) and (newdate <= enddate)):
                         cfilelist.remove(files)
                 except:
                     pass
@@ -1019,11 +1033,11 @@ class ServerlogsCommand():
 
             sizeofcfile = len(str(data))
             sizeofrecord = self.lib.sizeofchifbbfilecfgrecord()
-            count = sizeofcfile/sizeofrecord
+            count = sizeofcfile / sizeofrecord
             revcount = 0
 
             while count >= 1:
-                dat = data[revcount*sizeofrecord:(revcount+1)*sizeofrecord]
+                dat = data[revcount * sizeofrecord:(revcount + 1) * sizeofrecord]
                 dat = ctypes.create_string_buffer(dat)
                 self.lib.getbbfilecfgrecordname.argtypes = [ctypes.c_char_p]
                 self.lib.getbbfilecfgrecordname.restype = ctypes.c_char_p
@@ -1033,8 +1047,8 @@ class ServerlogsCommand():
                 if name not in cfilelist:
                     cfilelist.append(name)
 
-                count = count-1
-                revcount = revcount+1
+                count = count - 1
+                revcount = revcount + 1
         else:
             cfilelist = [f for f in os.listdir(self.abspath) if f.endswith('.zbb')]
 
@@ -1052,17 +1066,17 @@ class ServerlogsCommand():
 
                 for i in drives:
                     try:
-                        label = win32api.GetVolumeInformation(i+':')[0]
+                        label = win32api.GetVolumeInformation(i + ':')[0]
 
                         if label == 'BLACKBOX':
-                            abspathbb = i+':\\data\\'
+                            abspathbb = i + ':\\data\\'
                             self.abspath = abspathbb
                             cfilelist = self.getclistfilelisting()
                             if not cfilelist:
                                 self.unmountbb()
                                 self.manualmountbb()
                             else:
-                                return (False, abspathbb)
+                                return False, abspathbb
                     except:
                         pass
             else:
@@ -1081,14 +1095,14 @@ class ServerlogsCommand():
                                 self.unmountbb()
                                 self.manualmountbb()
                             else:
-                                return (False, abspathbb)
+                                return False, abspathbb
 
                 if count > 3:
                     found, path = self.manualmountbb()
                     if found:
-                        return (True, path)
+                        return True, path
 
-            count = count+1
+            count = count + 1
             time.sleep(3)
 
         raise PartitionMoutingError("iLO not responding to request "
@@ -1114,12 +1128,12 @@ class ServerlogsCommand():
                                                dirpath], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     _, _ = pmount.communicate()
 
-                    return (True, dirpath)
+                    return True, dirpath
         except UnicodeDecodeError as excp:
             self.unmountbb()
             raise UnabletoFindDriveError(excp)
 
-        return (False, None)
+        return False, None
 
     def manualunmountbb(self, dirpath):
         """Manually unmount blackbox when after fixed time
@@ -1168,8 +1182,8 @@ class ServerlogsCommand():
         LOGGER.info("Filtering logs based on requsted options.")
         if tofilter and data:
             try:
-                if (str(tofilter)[0] == str(tofilter)[-1])\
-                                    and str(tofilter).startswith(("'", '"')):
+                if (str(tofilter)[0] == str(tofilter)[-1]) \
+                        and str(tofilter).startswith(("'", '"')):
                     tofilter = tofilter[1:-1]
 
                 (sel, val) = tofilter.split('=')
@@ -1184,7 +1198,7 @@ class ServerlogsCommand():
 
             # Severity inside Oem/Hpe should be filtered
             if sel == 'Severity':
-                sel = 'Oem/Hpe/'+sel
+                sel = 'Oem/Hpe/' + sel
             data = filter_output(data, sel, val)
             if not data:
                 raise NoContentsFoundForOperationError("Filter returned no matches.")
@@ -1199,31 +1213,38 @@ class ServerlogsCommand():
         """
         LOGGER.info("Obtaining Serialnumber from iLO for AHS filename.")
 
-        val = "ComputerSystem."
-        filtereddatainstance = self.rdmc.app.select(selector=val)
-        snum = None
+        if not options.sessionid:
+            val = "ComputerSystem."
+            filtereddatainstance = self.rdmc.app.select(selector=val)
+            snum = None
 
-        try:
-            filtereddictslists = [x.resp.dict for x in filtereddatainstance]
-
-            if not filtereddictslists:
-                raise NoContentsFoundForOperationError("")
-        except Exception:
             try:
-                resp = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath,
-                                                 silent=True, service=True, uncache=True)
-                snum = resp.dict["SerialNumber"] if resp else snum
-            except KeyError:
-                raise InvalidKeyError("Unable to find key SerialNumber, please check path %s" % self.rdmc.app.typepath.defs.systempath)
-            except:
-                raise NoContentsFoundForOperationError("Unable to retrieve log instance.")
+                filtereddictslists = [x.resp.dict for x in filtereddatainstance]
 
-        snum = filtereddictslists[0]["SerialNumber"] if not snum else snum
+                if not filtereddictslists:
+                    raise NoContentsFoundForOperationError("")
+            except Exception:
+                try:
+                    resp = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.systempath,
+                                                     silent=True, service=True, uncache=True)
+                    snum = resp.dict["SerialNumber"] if resp else snum
+                except KeyError:
+                    raise InvalidKeyError(
+                        "Unable to find key SerialNumber, please check path %s" % self.rdmc.app.typepath.defs.systempath)
+                except:
+                    raise NoContentsFoundForOperationError("Unable to retrieve log instance.")
+
+            snum = filtereddictslists[0]["SerialNumber"] if not snum else snum
+        else:
+            resp = self.rdmc.app.get_handler('/redfish/v1/systems/1', sessionid=options.sessionid,
+                                             silent=True, service=True, uncache=True)
+            if 'SerialNumber' in resp.dict:
+                snum = resp.dict["SerialNumber"] if resp else snum
         snum = 'UNKNOWN' if snum.isspace() else snum
         timenow = (str(datetime.datetime.now()).split()[0]).split('-')
         todaysdate = ''.join(timenow)
 
-        ahsdefaultfilename = 'HPE_'+snum+'_'+todaysdate+'.ahs'
+        ahsdefaultfilename = 'HPE_' + snum + '_' + todaysdate + '.ahs'
 
         if options.directorypath:
             if not os.path.exists(options.directorypath):
@@ -1255,30 +1276,30 @@ class ServerlogsCommand():
             '-f',
             '--filename',
             dest='filename',
-            help="Use this flag if you wish to use a different"\
-            " filename than the default one. The default filename is" \
-            " ilorest.json.",
+            help="Use this flag if you wish to use a different" \
+                 " filename than the default one. The default filename is" \
+                 " ilorest.json.",
             action="append",
             default=None,
         )
         customparser.add_argument(
             '--filter',
             dest='filter',
-            help="Optionally set a filter value for a filter attribute."\
-            " This uses the provided filter for the currently selected"\
-            " type. Note: Use this flag to narrow down your results. For"\
-            " example, selecting a common type might return multiple"\
-            " objects that are all of that type. If you want to modify"\
-            " the properties of only one of those objects, use the filter"\
-            " flag to narrow down results based on properties."\
-            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            help="Optionally set a filter value for a filter attribute." \
+                 " This uses the provided filter for the currently selected" \
+                 " type. Note: Use this flag to narrow down your results. For" \
+                 " example, selecting a common type might return multiple" \
+                 " objects that are all of that type. If you want to modify" \
+                 " the properties of only one of those objects, use the filter" \
+                 " flag to narrow down results based on properties." \
+                 "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None,
         )
         customparser.add_argument(
             '--selectlog',
             dest='service',
-            help="""Read log from the given log service. Options: IML, """\
-                    """IEL or AHS.""",
+            help="""Read log from the given log service. Options: IML, """ \
+                 """IEL or AHS.""",
             default=None,
         )
         customparser.add_argument(
@@ -1293,8 +1314,8 @@ class ServerlogsCommand():
             '--maintenancemessage',
             '-m',
             dest='mainmes',
-            help="""Maintenance message to be inserted into the log. """\
-                    """(IML LOGS ONLY FEATURE)""",
+            help="""Maintenance message to be inserted into the log. """ \
+                 """(IML LOGS ONLY FEATURE)""",
             default=None,
         )
         customparser.add_argument(
@@ -1332,8 +1353,8 @@ class ServerlogsCommand():
         customparser.add_argument(
             '--mplog',
             dest='mplog',
-            help="""used to indicate the logs to be downloaded on multiple servers. """\
-            """Allowable values: IEL, IML, AHS, all or combination of any two.""",
+            help="""used to indicate the logs to be downloaded on multiple servers. """ \
+                 """Allowable values: IEL, IML, AHS, all or combination of any two.""",
             default=None,
         )
         customparser.add_argument(
@@ -1348,8 +1369,8 @@ class ServerlogsCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
             default=False
         )

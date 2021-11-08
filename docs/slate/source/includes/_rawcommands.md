@@ -9,21 +9,19 @@ This section lists the raw HTTP RESTful operations that can be used through the 
 > To directly delete a URI run the command specifying a URI to delete.
 
 <pre>
-iLOrest > <font color="#01a982">rawdelete /redfish/v1/AccountService/Accounts/3/</font>
+iLOrest > <span style="color: #01a982; ">rawdelete /redfish/v1/AccountService/Accounts/3/</span>
 The account was removed successfully.
 </pre>
 
-
-
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawdelete *[Path] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful DELETE command. Run to delete data from the passed in path.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **Path**
 
@@ -37,7 +35,7 @@ Including the help flag will display help for the command.
 
 Use this flag to enable service mode and increase the function speed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -53,50 +51,25 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
 ### RawGet Command
 
 > RawGet example commands:
-
 > To get the complete JSON response directly from the URI requested run the command specifying a URI to retrieve.
 
 <pre>
-iLOrest > <font color="#01a982">rawget /redfish/v1/systems/1</font>
+iLOrest > <span style="color: #01a982; ">rawget /redfish/v1/systems/1</span>
 [200] The operation completed successfully.
 {
   "BiosVersion": "U32 v2.10 (12/14/2018)",
@@ -127,7 +100,7 @@ iLOrest > <font color="#01a982">rawget /redfish/v1/systems/1</font>
 > Specify a file to save the response to by including the `-f, --filename` option.
 
 <pre>
-LOrest > rawget /redfish/v1/systems/1 <font color="#01a982">-f system.json</font>
+LOrest > rawget /redfish/v1/systems/1 <span style="color: #01a982; ">-f system.json</span>
 [200] The operation completed successfully.
 Results written out to 'system.json'.
 </pre>
@@ -154,7 +127,7 @@ iLOrest > rawget /redfish/v1/systems/
   "@odata.etag": "W/\"AA6D42B0\"",
   "Name": "Computer Systems"
 }
-iLOrest > rawget /redfish/v1/systems/ <font color="#01a982">--expand</font>
+iLOrest > rawget /redfish/v1/systems/ <span style="color: #01a982; ">--expand</span>
 [200] The operation completed successfully.
 {
   "@odata.type": "#ComputerSystemCollection.ComputerSystemCollection",
@@ -189,17 +162,15 @@ iLOrest > rawget /redfish/v1/systems/ <font color="#01a982">--expand</font>
         ],
 </pre>
 
-
-
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawget *[Path] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful GET command. Run to retrieve data from the passed in path.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **Path**
 
@@ -243,7 +214,7 @@ Use this flag to enable service mode and increase the function speed.
 
 Use this flag to expand the path specified using the expand notation '?$expand=.'
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -259,39 +230,15 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 File
 
@@ -304,13 +251,13 @@ If you include the `filename` flag, this command will return an output file of t
 > To directly read the head values of a URI run the command specifying a URI query.
 
 <pre>
-iLOrest > <font color="#01a982">rawhead /redfish/v1/Systems/1/</font>
+iLOrest > <span style="color: #01a982; ">rawhead /redfish/v1/Systems/1/</span>
 [200] The operation completed successfully.
 {
   "Content-Length": "0",
   "X_HP-CHRP-Service-Version": "1.0.3",
   "ETag": "W/\"F24B9154\"",
-  "Link": "</redfish/v1/SchemaStore/en/ComputerSystem.json/>; rel=describedby",
+  "Link": "&lt;/redfish/v1/SchemaStore/en/ComputerSystem.json/&gt;; rel=describedby",
   "Allow": "GET, HEAD, POST, PATCH",
   "Date": "Sun, 03 Feb 2019 22:33:10 GMT",
   "OData-Version": "4.0",
@@ -318,16 +265,15 @@ iLOrest > <font color="#01a982">rawhead /redfish/v1/Systems/1/</font>
 }
 </pre>
 
-
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawhead [Path] [Optional Parameters]
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful HEAD command. Run to retrieve header data from the passed in path.
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 - **Path**
 
@@ -353,7 +299,7 @@ Use this flag to silence responses.
 
 Use this flag to enable service mode and increase the function speed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -369,39 +315,15 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 File
 
@@ -414,7 +336,7 @@ If you specify the `filename` flag, the `rawhead` command will output a file con
 > To directly patch to a URI with JSON data run the command supplying a filename with a json payload.
 
 <pre>
-iLOrest > <font color="#01a982">rawpatch rawpatch.json</font>
+iLOrest > <span style="color: #01a982; ">rawpatch rawpatch.json</span>
 The operation completed successfully.
 </pre>
 
@@ -430,23 +352,23 @@ The operation completed successfully.
 
 ```
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawpatch *[Filename] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful Patch command. Run to send a patch from the data in the input file.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 > Filename parameter example:
 
 ```json
 {
 	"path":{"json":"body"},
-  "path2": {"json": "body2"},
-  ...
+    "path2": {"json": "body2"},
+    "...": "..."
 }
 ```
 
@@ -487,7 +409,7 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 Use this flag to enable service mode and increase the function speed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -503,41 +425,17 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 File
 
 Input the file containing the JSON information you wish to use for the HTTP RESTful PATCH command.
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
@@ -553,7 +451,7 @@ If a full path is not given, the tool searches for the file where the RESTful In
 </aside>
 
 <pre>
-iLOrest > <font color="#01a982">rawpost rawpost.json</font>
+iLOrest > <span style="color: #01a982; ">rawpost rawpost.json</span>
 The operation completed successfully.
 </pre>
 
@@ -572,23 +470,23 @@ The operation completed successfully.
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawpost *[Filename] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful POST command. Run to post the data from the passed in path.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 > Example Filename parameter JSON file below:
 
 ```json
 {
 	"path":{"json":"body"},
-  "path2": {"json": "body2"},
-  ...
+    "path2": {"json": "body2"},
+    "...": "..."
 }
 ```
 
@@ -623,7 +521,7 @@ Use this flag to silence responses.
 
 Use this flag to enable service mode and increase the function speed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -639,41 +537,17 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 File
 
 Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None
 
@@ -684,7 +558,7 @@ None
 > To directly put to a URI with JSON data run the command supplying a filename with a json payload.
 
 <pre>
-iLOrest > <font color="#01a982">rawput put.json</font>
+iLOrest > <span style="color: #01a982; ">rawput put.json</span>
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
@@ -703,23 +577,23 @@ One or more properties were changed and will not take effect until system is res
 
 ```
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 rawput *[Filename] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Use this command to perform an HTTP RESTful PUT command. Run to retrieve data from the passed in path.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 > Example input file below:
 
 ```json
 {
 	"path":{"json":"body"},
-  "path2": {"json": "body2"},
-  ...
+    "path2": {"json": "body2"},
+    "...": "..."
 }
 ```
 
@@ -760,7 +634,7 @@ Select this flag to input a BIOS password. Include this flag if second-level BIO
 
 Use this flag to enable service mode and increase the function speed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -776,40 +650,16 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO. 
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 
 File
 
 Input the file containing the JSON information you wish to use for the HTTP RESTful PUT command.
 
-#### Outputs
+<p class="fake_header">Output</p>
 
 None

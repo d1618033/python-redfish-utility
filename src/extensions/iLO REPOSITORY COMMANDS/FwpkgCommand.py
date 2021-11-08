@@ -87,6 +87,8 @@ class FwpkgCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -98,7 +100,6 @@ class FwpkgCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -231,8 +232,8 @@ class FwpkgCommand():
                     if firmwareimage['FileName'] not in imagefiles:
                         imagefiles.append(firmwareimage['FileName'])
 
-        if comptype in ['A','B'] and results and 'UpdateFWPKG' in results[0]['Oem']['Hpe']\
-                                                                                ['Capabilities']:
+        if "blobstore" in self.rdmc.app.redfishinst.base_url and comptype in ['A','B'] and results and \
+                                                        'UpdateFWPKG' in results[0]['Oem']['Hpe']['Capabilities']:
             dll = BlobStore2.gethprestchifhandle()
             dll.isFwpkg20.argtypes = [c_char_p, c_int]
             dll.isFwpkg20.restype = c_bool

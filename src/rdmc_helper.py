@@ -18,7 +18,7 @@
 # -*- coding: utf-8 -*-
 """This is the helper module for RDMC"""
 
-#---------Imports---------
+# ---------Imports---------
 from __future__ import unicode_literals
 import os
 import sys
@@ -38,16 +38,17 @@ import redfish.ris
 import redfish.hpilo.risblobstore2 as risblobstore2
 
 import versioning
-#from rdmc_base_classes import HARDCODEDLIST
+
+# from rdmc_base_classes import HARDCODEDLIST
 
 if os.name == 'nt':
     from six.moves import winreg
     from win32con import HKEY_LOCAL_MACHINE
 
-#---------End of imports---------
+# ---------End of imports---------
 
 
-#---------Debug logger---------
+# ---------Debug logger---------
 
 LOGGER = logging.getLogger()
 
@@ -65,7 +66,8 @@ LERR.setLevel(logging.WARN)
 # logger handle
 LOGGER.addHandler(LERR)
 
-#---------End of debug logger---------
+
+# ---------End of debug logger---------
 
 class ReturnCodes(object):
     """ Return code class to be used by all functions """
@@ -119,6 +121,7 @@ class ReturnCodes(object):
     NO_CURRENT_SESSION_ESTABLISHED = 44
     FAILURE_DURING_COMMIT_OPERATION = 45
     USERNAME_PASSWORD_REQUIRED_ERROR = 46
+    VNIC_NOT_ENABLED_ERROR = 47
     MULTIPLE_SERVER_CONFIG_FAIL = 51
     MULTIPLE_SERVER_INPUT_FILE_ERROR = 52
     LOAD_SKIP_SETTING_ERROR = 53
@@ -136,10 +139,15 @@ class ReturnCodes(object):
     RIS_ILO_RESPONSE_ERROR = 63
     RIS_ILO_INIT_ERROR = 64
     RIS_SCHEMA_PARSE_ERROR = 65
+    RIS_ILO_CHIF_ACCESS_DENIED_ERROR = 66
+    RIS_CREATE_AND_PREPARE_CHANNEL_ERROR = 67
+    RIS_ILO_CHIF_PACKET_EXCHANGE_ERROR = 71
+    RIS_ILO_CHIF_NO_DRIVER_ERROR = 69
+
 
     # ****** REST V1 ERRORS ******
     REST_ILOREST_WRITE_BLOB_ERROR = 70
-    REST_ILOREST_BLOB_DELETE_ERROR = 71
+    REST_ILOREST_BLOB_DELETE_ERROR = 68
     REST_ILOREST_BLOB_FINALIZE_ERROR = 72
     REST_ILOREST_BLOB_NOT_FOUND_ERROR = 73
     JSON_DECODE_ERROR = 74
@@ -163,189 +171,257 @@ class ReturnCodes(object):
     FAILED_TO_UPLOAD_COMPONENT = 103
     TASKQUEUE_ERROR = 104
 
+    # **** Compute Cloud Console Errors****
+    CLOUD_CONNECT_TIMEOUT = 111
+    CLOUD_CONNECT_FAILED = 112
+    CLOUD_ALREADY_CONNECTED = 113
+    PROXY_CONFIG_FAILED = 114
+
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
+
 
 class RdmcError(Exception):
     """ Baseclass for all rdmc exceptions """
     errcode = 1
+
     def __init__(self, message=None):
         Exception.__init__(self, message)
+
 
 class ConfigurationFileError(RdmcError):
     """Raised when something is wrong in the config file"""
     errcode = 3
 
+
+class ProxyConfigFailedError(RdmcError):
+    """ Raised when compute cloud console connection fails """
+    pass
+
+
+class CloudConnectTimeoutError(RdmcError):
+    """ Raised when compute cloud console connection times out """
+    pass
+
+class CloudConnectFailedError(RdmcError):
+    """ Raised when compute cloud console connection fails """
+    pass
+
+class AlreadyCloudConnectedError(RdmcError):
+    """ Raised when compute cloud console is already connected """
+    pass
+
 class CommandNotEnabledError(RdmcError):
     """ Raised when user tries to invoke a command that isn't enabled """
     pass
+
 
 class iLORisCorruptionError(RdmcError):
     """ Raised when user tries to invoke a command that isn't enabled """
     pass
 
+
 class UsernamePasswordRequiredError(RdmcError):
     """Raised when username and password are required for local chif login"""
     pass
+
 
 class PathUnavailableError(Exception):
     """Raised when the requested path is unavailable"""
     pass
 
+
 class InvalidCommandLineError(RdmcError):
     """ Raised when user enter incorrect command line arguments """
     pass
+
 
 class NoCurrentSessionEstablished(RdmcError):
     """ Raised when user enter incorrect command line arguments """
     pass
 
+
 class NoChangesFoundOrMadeError(RdmcError):
     """ Raised when no changes were found or made on the commit function """
     pass
+
 
 class StandardBlobErrorHandler(RdmcError):
     """ Raised when error occured for blob operations """
     pass
 
+
 class InvalidCommandLineErrorOPTS(RdmcError):
     """ Raised when user enter incorrect command line arguments """
     pass
+
 
 class InvalidFileInputError(RdmcError):
     """ Raised when user enter an invalid file input """
     pass
 
+
 class InvalidFileFormattingError(RdmcError):
     """ Raised when user enter incorrect load file formatting """
     pass
+
 
 class WindowsUserNotAdmin(RdmcError):
     """ Raised when user is not running as admin """
     pass
 
+
 class NoContentsFoundForOperationError(RdmcError):
     """ Raised when no contents were found for the current operation """
     pass
+
 
 class InfoMissingEntriesError(RdmcError):
     """ Raised when no valid entries for info were found in the current
         instance"""
     pass
 
+
 class InvalidOrNothingChangedSettingsError(RdmcError):
     """ Raised when something is wrong with the settings """
     pass
+
 
 class NoDifferencesFoundError(RdmcError):
     """ Raised when no differences are found in the current configuration """
     pass
 
+
 class NothingSelectedError(RdmcError):
     """ Raised when type selection is reference but none have been provided """
     pass
+
 
 class InvalidPropertyError(RdmcError):
     """ Raised when one or more properties or attributes are in conflict with current or
         specified configuration"""
     pass
 
+
 class MultipleServerConfigError(RdmcError):
     """ Raised when one or more servers failed to load given configuration """
     pass
+
 
 class InvalidMSCfileInputError(RdmcError):
     """ Raised when servers input file for load has incorrect parameters"""
     pass
 
+
 class FirmwareUpdateError(RdmcError):
     """ Raised when there is an error while updating firmware """
     pass
+
 
 class FailureDuringCommitError(RdmcError):
     """ Raised when there is an error during commit """
     pass
 
+
 class BootOrderMissingEntriesError(RdmcError):
     """ Raised when no entries were found for bios tools """
     pass
+
 
 class NicMissingOrConfigurationError(RdmcError):
     """ Raised when no entries are found for given NIC or all NICs are \
      configured or when wrong inputs are presented for NIC entries"""
     pass
 
+
 class IncompatibleiLOVersionError(RdmcError):
     """Raised when the iLO version is above or below the required \
     version"""
     pass
+
 
 class IncompatableServerTypeError(RdmcError):
     """Raised when the server type is incompatable with the requested\
     command"""
     pass
 
+
 class IloLicenseError(RdmcError):
     """Raised when the proper iLO license is not available for a command"""
     pass
 
+
 class ResourceExists(RdmcError):
     """Raised when the account to be added already exists"""
     pass
+
 
 class InvalidCListFileError(RdmcError):
     """Raised when an error occurs while reading the cfilelist \
     within AHS logs"""
     pass
 
+
 class PartitionMoutingError(RdmcError):
     """Raised when there is error or iLO fails to respond to \
     partition mounting request"""
     pass
 
+
 class DownloadError(RdmcError):
     """Raised when the component fails to download"""
     pass
+
 
 class UploadError(RdmcError):
     """Raised when the component fails to download"""
     pass
 
+
 class TimeOutError(RdmcError):
     """Raised when the update service times out"""
     pass
+
 
 class LibHPsrvMissingError(RdmcError):
     """ Raised when unable to obtain the libhpsrv handle"""
     pass
 
+
 class BirthcertParseError(RdmcError):
     """ Raised when unable to parse the birthcert"""
     pass
+
 
 class InvalidKeyError(RdmcError):
     """ Raised when an invalid encryption key is used"""
     pass
 
+
 class UnableToDecodeError(RdmcError):
     """ Raised when the file is unable to be decoded using the given key"""
     pass
+
 
 class UnabletoFindDriveError(RdmcError):
     """Raised when there is an issue finding required label"""
     pass
 
+
 class TaskQueueError(RdmcError):
     """ Raised when there is an issue with the current order of taskqueue """
     pass
+
 
 class InvalidSmartArrayConfigurationError(RdmcError):
     """ Raised for an invalid configuration of a smart array controller and/or disk configuration"""
     pass
 
+
 class FallbackChifUse(RdmcError):
     """ Fallback Chif Use """
     pass
+
 
 class UI(object):
     """ UI class handles all of our printing etc so we have
@@ -436,7 +512,7 @@ class UI(object):
         """
         self.printer("Validating...", excp=True)
 
-        for _ in range(0, (int(str(timeout))+10)):
+        for _ in range(0, (int(str(timeout)) + 10)):
             time.sleep(1)
             self.printer(".", excp=True)
 
@@ -458,8 +534,8 @@ class UI(object):
         LOGGER.error(msg)
         if inner_except is not None:
             LOGGER.error(inner_except)
-            self.printer("\nError: %s, %s\n" % (msg, inner_except))
-        if self.verbosity > 0:
+            self.printer("Error: %s, %s\n" % (msg, inner_except))
+        else:
             self.printer("Error: %s\n" % msg)
 
     def warn(self, msg, inner_except=None):
@@ -472,20 +548,24 @@ class UI(object):
         LOGGER.warning(msg)
         if inner_except is not None:
             LOGGER.warning(inner_except)
-            self.printer("\nWarning: %s, %s\n" % (msg, inner_except))
-        if self.verbosity > 1:
+            self.printer("Warning: %s, %s\n" % (msg, inner_except))
+        else:
             self.printer("Warning: %s\n" % msg)
 
     def retries_exhausted_attemps(self):
         """ Called when url retries have been exhausted """
         self.printer("\nError: Could not reach URL. Retries have been exhausted.\n", excp=True)
 
+    def retries_exhausted_vnic_not_enabled(self):
+        """ Called when there is no VNIC is Enabled"""
+        self.printer("\nError: Could not reach URL, VNIC is not enabled. \n", excp=True)
+
     def print_out_json(self, content):
         """ Print out json content to std.out with sorted keys
         :param content: content to be printed out
         :type content: str.
         """
-        #stringify
+        # stringify
         content = json.dumps(content, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True)
         self.printer(content, verbose_override=True)
         self.printer('\n')
@@ -539,12 +619,14 @@ class UI(object):
             content = content if isinstance(content, six.string_types) else str(content)
 
             content = '""' if not content else content
-            #Changed to support py3, verify if there is a unicode prit issue.
+            # Changed to support py3, verify if there is a unicode prit issue.
 
             self.printer(content)
 
+
 class Encryption(object):
     """ Encryption/Decryption object """
+
     @staticmethod
     def check_fips_mode_os():
         """ Function to check for the OS fips mode
@@ -600,11 +682,11 @@ class Encryption(object):
         try:
             filetxt = filetxt.encode()
         except (UnicodeDecodeError, AttributeError):
-            pass #must be encoded already
+            pass  # must be encoded already
         try:
             key = key.encode()
         except (UnicodeDecodeError, AttributeError):
-            pass #must be encoded already
+            pass  # must be encoded already
         if Encryption.check_fips_mode_os():
             raise CommandNotEnabledError("Encrypting of files is not available"
                                          " in FIPS mode.")
@@ -626,11 +708,11 @@ class Encryption(object):
         try:
             filetxt = filetxt.encode()
         except (UnicodeDecodeError, AttributeError):
-            pass #must be encoded already
+            pass  # must be encoded already
         try:
             key = key.encode()
         except (UnicodeDecodeError, AttributeError):
-            pass #must be encoded already
+            pass  # must be encoded already
         if len(key) not in [16, 24, 32]:
             raise InvalidKeyError("")
         else:
@@ -660,12 +742,13 @@ class Encryption(object):
         lib.decode_credentials(credbuff, byref(retbuff))
 
         risblobstore2.BlobStore2.unloadchifhandle(lib)
-        try:
-            retbuff.value.decode('utf-8')
-            if not retbuff.value:
-                raise UnableToDecodeError("")
-        except:
-            raise UnableToDecodeError("Unable to decode credential %s." % credential)
+        # try:
+        #    if isinstance(retbuff.value, bytes):
+        #        retbuff.value = retbuff.value.decode('utf-8', 'ignore')
+        #    if not retbuff.value:
+        #        raise UnableToDecodeError("")
+        # except:
+        #    raise UnableToDecodeError("Unable to decode credential %s." % credential)
 
         return retbuff.value
 
@@ -693,7 +776,7 @@ class Encryption(object):
             if six.PY2:
                 enc_val = retbuff.value.encode('utf-8')
             elif six.PY3:
-                enc_val = retbuff.value.decode('utf-8')#.encode('utf-8')
+                enc_val = retbuff.value.decode('utf-8')  # .encode('utf-8')
             if not retbuff.value:
                 raise UnableToDecodeError("")
         except Exception as exp:
@@ -701,8 +784,10 @@ class Encryption(object):
 
         return enc_val
 
+
 class TabAndHistoryCompletionClass(Completer):
     """ Tab and History Class used by interactive mode """
+
     def __init__(self, options):
         self.options = options
         self.toolbar_text = None
@@ -715,7 +800,7 @@ class TabAndHistoryCompletionClass(Completer):
         lstoption = self.options
         if document.text:
             tokens = document.text.split()
-            #We aren't completing options yet
+            # We aren't completing options yet
             tokens = [token for token in tokens if not token.startswith('-')]
 
             self.last_complete = tokens[-1]
@@ -731,13 +816,13 @@ class TabAndHistoryCompletionClass(Completer):
 
             if len(tokens) >= 1:
                 if tokens[0] == 'select':
-                    #only first type
+                    # only first type
                     if len(tokens) >= 2:
                         lstoption = []
                     else:
                         lstoption = self.options.get(tokens[0], {})
                 elif tokens[0] in ['get', 'list', 'info', 'set']:
-                    #Match properties
+                    # Match properties
                     nested_data = self.options.get('nestedprop', {})
                     nested_info = self.options.get('nestedinfo', {})
                     for token in nestedtokens:
@@ -746,14 +831,15 @@ class TabAndHistoryCompletionClass(Completer):
                             if tokens[0] == 'get' and isinstance(nested_data, dict):
                                 for k in list(nested_data.keys()):
                                     if k.lower() in HARDCODEDLIST or '@odata' in k.lower() or \
-                                                            '@redfish.allowablevalues' in k.lower():
+                                            '@redfish.allowablevalues' in k.lower():
                                         del nested_data[k]
                             if nested_info:
                                 if 'properties' in nested_info:
                                     nested_info = nested_info['properties']
                                 if not 'AttributeName' in nested_info[token]:
                                     nested_info = nested_info['properties'][token] if 'properties' \
-                                                        in nested_info else nested_info[token]
+                                                                                      in nested_info else nested_info[
+                                        token]
                                 else:
                                     nested_info = nested_info[token]
                         except Exception:
@@ -761,7 +847,7 @@ class TabAndHistoryCompletionClass(Completer):
                     nested_data = list(nested_data.keys()) if isinstance(nested_data, dict) else []
                     lstoption = nested_data
 
-                    #Try to get info for help bar
+                    # Try to get info for help bar
                     help_text = nested_info.get('HelpText', '')
                     enum_tab = []
                     if 'Type' in nested_info and nested_info['Type'].lower() == "enumeration":
@@ -784,11 +870,13 @@ class TabAndHistoryCompletionClass(Completer):
                     if isinstance(help_text, str):
                         help_text = help_text.replace('. ', '.\n')
                     self.toolbar_text = help_text
+                    if tokens[0] in ['set']:
+                        lstoption = self.options.get('set')
                 else:
                     lstoption = {}
             else:
                 for token in tokens:
-                    #just match commands
+                    # just match commands
                     lstoption = self.options.get(token, {})
 
         for opt in lstoption:

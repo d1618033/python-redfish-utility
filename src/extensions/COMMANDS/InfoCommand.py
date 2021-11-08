@@ -22,20 +22,22 @@ from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InfoMissingEnt
 from rdmc_base_classes import HARDCODEDLIST
 from argparse import ArgumentParser, SUPPRESS
 
+
 class InfoCommand():
     """ Constructor """
+
     def __init__(self):
         self.ident = {
-            'name':'info',
+            'name': 'info',
             'usage': None,
-            'description':'Displays detailed '
-                    'information about a property within a selected type'
-                    '\n\texample: info property\n\n\tDisplays detailed '
-                    'information for several properties\n\twithin a selected '
-                    'type\n\texample: info property property/sub-property property\n\n\t'
-                    'Run without arguments to display properties \n\tthat '
-                    'are available for info command\n\texample: info',
-            'summary':'Displays detailed information about a property within a selected type.',
+            'description': 'Displays detailed '
+                           'information about a property within a selected type'
+                           '\n\texample: info property\n\n\tDisplays detailed '
+                           'information for several properties\n\twithin a selected '
+                           'type\n\texample: info property property/sub-property property\n\n\t'
+                           'Run without arguments to display properties \n\tthat '
+                           'are available for info command\n\texample: info',
+            'summary': 'Displays detailed information about a property within a selected type.',
             'aliases': [],
             'auxcommands': []
         }
@@ -59,7 +61,6 @@ class InfoCommand():
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -69,7 +70,7 @@ class InfoCommand():
         if args:
             for item in args:
                 if self.rdmc.app.selector.lower().startswith('bios.') \
-                                        and not 'attributes' in item.lower():
+                        and 'attributes' not in item.lower():
                     if not (item.lower() in HARDCODEDLIST or '@odata' in item.lower()):
                         item = "Attributes/" + item
 
@@ -95,11 +96,10 @@ class InfoCommand():
             instances = self.rdmc.app.select()
             for instance in instances:
                 currdict = instance.resp.dict
-                currdict = currdict['Attributes'] if instance.maj_type.\
-                    startswith(self.rdmc.app.typepath.defs.biostype) and currdict.get('Attributes'
-                                                                                      , None) else currdict
+                currdict = currdict['Attributes'] if instance.maj_type.startswith(self.rdmc.app.typepath.defs.biostype) \
+                                                     and currdict.get('Attributes', None) else currdict
                 results.update([key for key in currdict if key not in \
-                                HARDCODEDLIST and not '@odata' in key.lower()])
+                                HARDCODEDLIST and '@odata' not in key.lower()])
 
             if results and autotest:
                 return results
@@ -112,7 +112,7 @@ class InfoCommand():
                                               ' Try running with the --latestschema flag.')
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def infovalidation(self, options):
@@ -141,11 +141,11 @@ class InfoCommand():
         customparser.add_argument(
             '--selector',
             dest='selector',
-            help="Optionally include this flag to select a type to run"\
-             " the current command on. Use this flag when you wish to"\
-             " select a type without entering another command, or if you"\
-              " wish to work with a type that is different from the one"\
-              " you currently have selected.",
+            help="Optionally include this flag to select a type to run" \
+                 " the current command on. Use this flag when you wish to" \
+                 " select a type without entering another command, or if you" \
+                 " wish to work with a type that is different from the one" \
+                 " you currently have selected.",
             default=None,
         )
 
@@ -154,17 +154,17 @@ class InfoCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
             default=False
         )
         customparser.add_argument(
             '--latestschema',
             dest='latestschema',
             action='store_true',
-            help="Optionally use the latest schema instead of the one "\
-            "requested by the file. Note: May cause errors in some data "\
-            "retrieval due to difference in schema versions.",
+            help="Optionally use the latest schema instead of the one " \
+                 "requested by the file. Note: May cause errors in some data " \
+                 "retrieval due to difference in schema versions.",
             default=None
         )

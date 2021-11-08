@@ -53,7 +53,6 @@ class StatusCommand():
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -145,7 +144,7 @@ class StatusCommand():
                         if isinstance(content["value"], int):
                             self.rdmc.ui.printer('\t%s=%s' % (content["path"][1:],
                                                               content["value"]))
-                        elif not isinstance(content["value"], bool) and \
+                        elif content["value"] and not isinstance(content["value"], bool) and \
                                                 not len(content["value"]) == 0:
                             if content["value"][0] == '"' and \
                                                     content["value"][-1] == '"':
@@ -157,7 +156,7 @@ class StatusCommand():
                         else:
                             output = content["value"]
 
-                            if not isinstance(output, bool):
+                            if output and not isinstance(output, bool):
                                 if len(output) == 0:
                                     output = '""'
 

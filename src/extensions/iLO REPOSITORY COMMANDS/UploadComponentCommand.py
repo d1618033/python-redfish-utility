@@ -26,14 +26,15 @@ from string import ascii_lowercase
 import ctypes
 from six.moves import input
 from ctypes import c_char_p, c_void_p, byref, c_ubyte, c_int, c_uint32, POINTER, \
-            create_string_buffer
-from redfish.hpilo.rishpilo import HpIlo, HpIloInitialError
+    create_string_buffer
+from redfish.hpilo.rishpilo import HpIlo, HpIloInitialError, HpIloChifAccessDeniedError, HpIloNoChifDriverError
 from redfish.hpilo.rishpilo import BlobReturnCodes
 from redfish.hpilo.risblobstore2 import BlobStore2, Blob2SecurityError
 from redfish.rest.connections import Blobstore2Connection
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, Encryption, UploadError, \
-            InvalidCommandLineError, IncompatibleiLOVersionError, TimeOutError, \
-            InvalidFileInputError
+    InvalidCommandLineError, IncompatibleiLOVersionError, TimeOutError, \
+    InvalidFileInputError
+
 
 def human_readable_time(seconds):
     """ Returns human readable time
@@ -49,21 +50,22 @@ def human_readable_time(seconds):
 
     return "{:02.0f} hour(s) {:02.0f} minute(s) {:02.0f} second(s) ".format(hours, minutes, seconds)
 
+
 class UploadComponentCommand():
     """ Constructor """
 
     def __init__(self):
         self.ident = {
-            'name':'uploadcomp',
+            'name': 'uploadcomp',
             'usage': None,
-            'description':'Run to upload the component on '
-                    'to iLO Repository\n\n\tUpload component to the iLO '
-                    'repository.\n\texample: uploadcomp --component <path> '
-                    '--compsig <path_to_signature>\n\n\tFlash the component '
-                    'instead of add to the iLO repository.\n\texample: '
-                    'uploadcomp --component <binary_path> --update_target '
-                    '--update_repository',
-            'summary':'Upload components/binary to the iLO Repository.',
+            'description': 'Run to upload the component on '
+                           'to iLO Repository\n\n\tUpload component to the iLO '
+                           'repository.\n\texample: uploadcomp --component <path> '
+                           '--compsig <path_to_signature>\n\n\tFlash the component '
+                           'instead of add to the iLO repository.\n\texample: '
+                           'uploadcomp --component <binary_path> --update_target '
+                           '--update_repository',
+            'summary': 'Upload components/binary to the iLO Repository.',
             'aliases': [],
             'auxcommands': ["FwpkgCommand"]
         }
@@ -77,6 +79,8 @@ class UploadComponentCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -88,7 +92,6 @@ class UploadComponentCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -100,8 +103,8 @@ class UploadComponentCommand():
             comp, loc, ctype = self.auxcommands['flashfwpkg'].preparefwpkg(self, options.component)
             if ctype == 'C':
                 options.component = comp[0]
-            else:
-                options.component = os.path.join(loc, comp[0])
+            # else:
+            #    options.component = os.path.join(loc, comp[0])
 
         if self.rdmc.app.typepath.defs.isgen9:
             raise IncompatibleiLOVersionError(
@@ -113,13 +116,13 @@ class UploadComponentCommand():
             start_time = time.time()
             ret = ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
 
-            #ret = self.uploadfunction(filestoupload, options)
+            # ret = self.uploadfunction(filestoupload, options)
             if 'blobstore' in self.rdmc.app.current_client.base_url:
                 ret = self.uploadlocally(filestoupload, options)
             else:
                 ret = self.uploadfunction(filestoupload, options)
 
-            if ret ==  ReturnCodes.SUCCESS:
+            if ret == ReturnCodes.SUCCESS:
                 self.rdmc.ui.printer("%s\n" % human_readable_time(time.time() - start_time))
 
             if len(filestoupload) > 1:
@@ -132,7 +135,7 @@ class UploadComponentCommand():
             ret = ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ret
 
     def componentvalidation(self, options, filelist):
@@ -155,26 +158,27 @@ class UploadComponentCommand():
         if 'Members' in results and results['Members']:
             for comp in results['Members']:
                 for filehndl in filelist:
-                    if comp['Filename'].upper() == str(filehndl[0]).upper()\
-                        and not options.forceupload and prevfile != filehndl[0].upper():
+                    if comp['Filename'].upper() == str(filehndl[0]).upper() \
+                            and not options.forceupload and prevfile != filehndl[0].upper():
                         ans = input("A component with the same name (%s) has " \
-                                    "been found. Would you like to upload and "\
+                                    "been found. Would you like to upload and " \
                                     "overwrite this file? (y/n)" % comp['Filename'])
 
                         if ans.lower() == 'n':
                             self.rdmc.ui.printer('Error: Upload stopped by user due to filename conflict.'
-                                              ' If you would like to bypass this check include the'
-                                              ' "--forceupload" flag.\n')
+                                                 ' If you would like to bypass this check include the'
+                                                 ' "--forceupload" flag.\n')
                             validation = False
                             break
-                    if comp['Filename'].upper() == str(filehndl[0]).upper()\
-                        and prevfile != filehndl[0].upper() and comp['Locked']:
-                        self.rdmc.ui.printer('Error: Component is currently locked by a taskqueue task or '
-                                          'installset. Remove any installsets or taskqueue tasks '
-                                          'containing the file and try again OR use taskqueue command '
-                                          'to put the component to installation queue\n')
-                        validation = False
-                        break
+                    if options.update_repository:
+                        if comp['Filename'].upper() == str(filehndl[0]).upper() \
+                                and prevfile != filehndl[0].upper() and comp['Locked']:
+                            self.rdmc.ui.printer('Error: Component is currently locked by a taskqueue task or '
+                                                 'installset. Remove any installsets or taskqueue tasks '
+                                                 'containing the file and try again OR use taskqueue command '
+                                                 'to put the component to installation queue\n')
+                            validation = False
+                            break
                     prevfile = str(comp['Filename'].upper())
         return validation
 
@@ -223,7 +227,7 @@ class UploadComponentCommand():
                 tempdir = os.path.join(sys.executable, tempfoldername)
 
             self.rdmc.ui.printer("Spliting component. Temporary " \
-                                            "cache directory at %s\n" % tempdir)
+                                 "cache directory at %s\n" % tempdir)
 
             if not os.path.exists(tempdir):
                 os.makedirs(tempdir)
@@ -291,8 +295,8 @@ class UploadComponentCommand():
         for item in filelist:
             ilo_upload_filename = item[0]
 
-            ilo_upload_compsig_filename = ilo_upload_filename[\
-                                  :ilo_upload_filename.rfind('.')] + ".compsig"
+            ilo_upload_compsig_filename = ilo_upload_filename[ \
+                                          :ilo_upload_filename.rfind('.')] + ".compsig"
 
             componentpath = item[1]
             compsigpath = item[2]
@@ -330,7 +334,8 @@ class UploadComponentCommand():
 
             self.rdmc.ui.printer("Uploading component " + filename + ".\n")
             res = self.rdmc.app.post_handler(str(urltosend), data,
-                                             headers={'Cookie': 'sessionKey=' + sessionkey}, silent=False, service=False)
+                                             headers={'Cookie': 'sessionKey=' + sessionkey}, silent=False,
+                                             service=False)
 
             if res.status != 200:
                 return ReturnCodes.FAILED_TO_UPLOAD_COMPONENT
@@ -393,7 +398,7 @@ class UploadComponentCommand():
 
             if self.rdmc.opts.verbose:
                 self.rdmc.ui.printer("UpdateService state = " + \
-                                                (output['Oem']['Hpe']['State']).upper() + "\n")
+                                     (output['Oem']['Hpe']['State']).upper() + "\n")
 
             return (output['Oem']['Hpe']['State']).upper(), results.dict
         else:
@@ -464,7 +469,7 @@ class UploadComponentCommand():
                 dll = None
                 user = options.user
                 passwrd = options.password
-                dll,fhandle = self.create_new_chif_for_upload(user,passwrd)
+                dll, fhandle = self.create_new_chif_for_upload(user, passwrd)
 
             dll.uploadComponent.argtypes = [c_char_p, c_char_p, c_char_p, c_uint32]
             dll.uploadComponent.restype = c_int
@@ -505,7 +510,7 @@ class UploadComponentCommand():
                         else:
                             dispatchflag = ctypes.c_uint32(0x00000000 | 0x00000001)
                 elif not compsigpath and not options.update_target and \
-                                                    options.update_repository:
+                        options.update_repository:
                     # uploading a secuare flash binary image onto the NAND
                     if options.update_srs:
                         dispatchflag = ctypes.c_uint32(0x00000001 | 0x00000004 | 0x40)
@@ -531,15 +536,16 @@ class UploadComponentCommand():
 
                 ret = dll.uploadComponent(
                     ctypes.create_string_buffer(compsigpath.encode('utf-8')),
-                  ctypes.create_string_buffer(componentpath.encode('utf-8')),
-                  ctypes.create_string_buffer(ilo_upload_filename.encode('utf-8')), dispatchflag)
+                    ctypes.create_string_buffer(componentpath.encode('utf-8')),
+                    ctypes.create_string_buffer(ilo_upload_filename.encode('utf-8')), dispatchflag)
 
-                upload_failed=False
+                upload_failed = False
                 if ret != 0:
-                    self.rdmc.ui.error("Component " + filename + " upload failed\n")
+                    self.rdmc.ui.error("Component " + filename + " upload failed.\n")
                     upload_failed = True
                 else:
-                    self.rdmc.ui.printer("Component " + filename + " uploaded successfully\n")
+                    self.rdmc.ui.printer("Component " + filename + " uploaded successfully.\n")
+                    self.rdmc.ui.printer("[200] The operation completed successfully.\n")
 
                 multiupload = True
 
@@ -549,7 +555,7 @@ class UploadComponentCommand():
                     fhandle = None
                     BlobStore2.unloadchifhandle(dll)
                     # Restore old chif channel
-                    dll=dll_bk
+                    dll = dll_bk
 
         except Exception as excep:
             raise excep
@@ -559,7 +565,7 @@ class UploadComponentCommand():
         else:
             return ReturnCodes.SUCCESS
 
-    def create_new_chif_for_upload(self, user,passwrd):
+    def create_new_chif_for_upload(self, user, passwrd):
 
         dll = BlobStore2.gethprestchifhandle()
         dll.ChifInitialize(None)
@@ -570,7 +576,11 @@ class UploadComponentCommand():
         dll.ChifCreate.restype = c_uint32
         status = dll.ChifCreate(byref(fhandle))
         if status != BlobReturnCodes.SUCCESS:
-            raise HpIloInitialError("Error %s occurred while trying to create a channel." % status)
+            if status == BlobReturnCodes.CHIFERR_NoDriver:
+                raise HpIloNoChifDriverError(
+                    "Error %s - No Chif Driver occurred while trying to create a channel." % status)
+            else:
+                raise HpIloInitialError("Error %s occurred while trying to create a channel." % status)
         dll.initiate_credentials.argtypes = [c_char_p, c_char_p]
         dll.initiate_credentials.restype = POINTER(c_ubyte)
         usernew = create_string_buffer(user.encode('utf-8'))
@@ -583,11 +593,12 @@ class UploadComponentCommand():
         credreturn = dll.ChifVerifyCredentials()
         if not credreturn == BlobReturnCodes.SUCCESS:
             if credreturn == BlobReturnCodes.CHIFERR_AccessDenied:
-                raise Blob2SecurityError()
+                raise HpIloChifAccessDeniedError("Error %s - Chif Access Denied occurred while trying " \
+                                                 "to open a channel to iLO. Verify iLO Credetials passed." % credreturn)
             else:
                 raise HpIloInitialError("Error %s occurred while trying " \
                                         "to open a channel to iLO" % credreturn)
-        return dll,fhandle
+        return dll, fhandle
 
     def uploadcommandvalidation(self, options):
         """ upload command method validation function
@@ -613,31 +624,32 @@ class UploadComponentCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
             default=False
         )
         customparser.add_argument(
             '--component',
             dest='component',
             help="""Component or binary file path to upload to the update service.""",
-            default=""
+            default="",
+            required=True
         )
         customparser.add_argument(
             '--compsig',
             dest='componentsig',
-            help='Component signature file path needed by iLO to authenticate the '\
-            'component file. If not provided will try to find the ' \
-            'signature file from component file path.',
+            help='Component signature file path needed by iLO to authenticate the ' \
+                 'component file. If not provided will try to find the ' \
+                 'signature file from component file path.',
             default=""
         )
         customparser.add_argument(
             '--forceupload',
             dest='forceupload',
             action="store_true",
-            help='Add this flag to force upload components with the same name '\
-                    'already on the repository.',
+            help='Add this flag to force upload components with the same name ' \
+                 'already on the repository.',
             default=False
         )
         customparser.add_argument(

@@ -51,15 +51,15 @@ class LoadCommand():
             'name': 'load',
             'usage': None,
             'description': 'Run to load the default configuration'
-                     ' file\n\texample: load\n\n\tLoad configuration file from a '
-                     'different file\n\tif any property values have changed, the '
-                     'changes are committed and the user is logged out of the server'
-                     '\n\n\texample: load -f output.json\n\n\tLoad configurations to '
-                     'multiple servers\n\texample: load -m mpfilename.txt -f output.'
-                     'json\n\n\tNote: multiple server file format (1 server per new '
-                     'line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url'
-                     ' <iLO url/hostname> -u admin -p password\n\t--url <iLO url/'
-                     'hostname> -u admin -p password',
+                           ' file\n\texample: load\n\n\tLoad configuration file from a '
+                           'different file\n\tif any property values have changed, the '
+                           'changes are committed and the user is logged out of the server'
+                           '\n\n\texample: load -f output.json\n\n\tLoad configurations to '
+                           'multiple servers\n\texample: load -m mpfilename.txt -f output.'
+                           'json\n\n\tNote: multiple server file format (1 server per new '
+                           'line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url'
+                           ' <iLO url/hostname> -u admin -p password\n\t--url <iLO url/'
+                           'hostname> -u admin -p password',
             'summary': 'Loads the server configuration settings from a file.',
             'aliases': [],
             'auxcommands': ["CommitCommand", "SelectCommand"]
@@ -84,7 +84,6 @@ class LoadCommand():
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -110,22 +109,22 @@ class LoadCommand():
                 try:
                     with open(files, "r") as myfile:
                         loadcontents = json.load(myfile)
-                    for loadcontent in loadcontents:
-                        if 'Comments' in loadcontent:
-                            if "SerialNumber" in loadcontent["Comments"]:
-                                del (loadcontent["Comments"]["SerialNumber"])
-                        for _, v in loadcontent.items():
-                            for _, v in v.items():
-                                if "Attributes" in v:
-                                    if 'SerialNumber' in v['Attributes']:
-                                        del (v["Attributes"]["SerialNumber"])
-                                    if 'ProductId' in v['Attributes']:
-                                        del (v["Attributes"]["ProductId"])
-                                else:
-                                    if 'SerialNumber' in v:
-                                        del (v["SerialNumber"])
-                                    if 'ProductId' in v:
-                                        del (v["ProductId"])
+            #        for loadcontent in loadcontents:
+            #            if 'Comments' in loadcontent:
+            #                if "SerialNumber" in loadcontent["Comments"]:
+            #                    del (loadcontent["Comments"]["SerialNumber"])
+            #            for _, v in loadcontent.items():
+            #                for _, v in v.items():
+            #                    if "Attributes" in v:
+            #                        if 'SerialNumber' in v['Attributes']:
+            #                            del (v["Attributes"]["SerialNumber"])
+            #                        if 'ProductId' in v['Attributes']:
+            #                            del (v["Attributes"]["ProductId"])
+            #                    else:
+            #                        if 'SerialNumber' in v:
+            #                            del (v["SerialNumber"])
+            #                        if 'ProductId' in v:
+            #                            del (v["ProductId"])
                 except:
                     raise InvalidFileFormattingError("Invalid file formatting " \
                                                      "found in file %s" % files)
@@ -459,12 +458,12 @@ class LoadCommand():
             default=None
         )
         customparser.add_argument(
-            '--uniqueitemoverride',
+            '--uniqueoverride',
             dest='uniqueoverride',
             action='store_true',
             help="Override the measures stopping the tool from writing " \
                  "over items that are system unique.",
-            default=None
+            default=False
         )
         customparser.add_argument(
             '--encryption',

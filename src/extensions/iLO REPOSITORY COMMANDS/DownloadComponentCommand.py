@@ -64,6 +64,8 @@ class DownloadComponentCommand():
 
         :param line: command line input
         :type line: string.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -75,7 +77,6 @@ class DownloadComponentCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -125,7 +126,14 @@ class DownloadComponentCommand():
         if options.component[0] != '/':
             options.component = '/' + options.component
 
+        if 'fwrepo' not in options.component:
+            options.component = '/fwrepo/' + options.component
+
         results = self.rdmc.app.get_handler(options.component, uncache=True)
+
+        if results.status == 404:
+            raise DownloadError("Downloading of component %s failed, please check the component name and check if the "
+                                "component exists in the repository\n" % options.component)
 
         with open(destination, "wb") as local_file:
             local_file.write(results.ori)
@@ -164,10 +172,12 @@ class DownloadComponentCommand():
                 destination.encode('utf-8')))
 
             if ret != 0:
-                self.rdmc.ui.error("Component " + filename + " download failed\n")
+                self.rdmc.ui.error("Component " + filename + " download failed, please check the "
+                                "component name and check if the component exists in the respository.\n")
                 return ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
             else:
-                self.rdmc.ui.printer("Component " + filename + " downloaded successfully\n")
+                self.rdmc.ui.printer("Component " + filename + " downloaded successfully.\n")
+                self.rdmc.ui.printer("[200] The operation completed successfully.\n")
 
         except Exception as excep:
             raise DownloadError(str(excep))

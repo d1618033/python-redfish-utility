@@ -25,27 +25,29 @@ import redfish.ris
 from redfish.ris.utils import iterateandclear
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, UI, \
-                    NoContentsFoundForOperationError, InvalidCommandLineError
+    NoContentsFoundForOperationError, InvalidCommandLineError
 from rdmc_base_classes import HARDCODEDLIST
 
-class GetCommand():
+
+class GetCommand:
     """ Constructor """
+
     def __init__(self):
         self.ident = {
-            'name':'get',
+            'name': 'get',
             'usage': None,
-            'description':'To retrieve all'
-                    ' the properties run without arguments. \n\t*Note*: '
-                    'a type will need to be selected or this will return an '
-                    'error.\n\texample: get\n\n\tTo retrieve multiple '
-                    'properties use the following example\n\texample: '
-                    'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.'
-                    '\n\n\tTo change output style format provide'
-                    ' the json flag\n\texample: get --json',
-            'summary':'Displays the current value(s) of a'
-                      ' property(ies) within a selected type.',
-            'aliases':[],
-            'auxcommands':["LogoutCommand"]
+            'description': 'To retrieve all'
+                           ' the properties run without arguments. \n\t*Note*: '
+                           'a type will need to be selected or this will return an '
+                           'error.\n\texample: get\n\n\tTo retrieve multiple '
+                           'properties use the following example\n\texample: '
+                           'get Temperatures/ReadingCelsius Fans/Name --selector=Thermal.'
+                           '\n\n\tTo change output style format provide'
+                           ' the json flag\n\texample: get --json',
+            'summary': 'Displays the current value(s) of a'
+                       ' property(ies) within a selected type.',
+            'aliases': [],
+            'auxcommands': ["LogoutCommand"]
         }
         self.cmdbase = None
         self.rdmc = None
@@ -64,18 +66,18 @@ class GetCommand():
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
+        if getattr(options, 'json'):
+            self.rdmc.json = True
         self.getvalidation(options)
 
         filtr = (None, None)
-
         if options.filter:
             try:
-                if (str(options.filter)[0] == str(options.filter)[-1])\
+                if (str(options.filter)[0] == str(options.filter)[-1]) \
                         and str(options.filter).startswith(("'", '"')):
                     options.filter = options.filter[1:-1]
 
@@ -90,7 +92,7 @@ class GetCommand():
                                readonly=options.noreadonly)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def getworkerfunction(self, args, options, readonly=False, filtervals=(None, None),
@@ -119,16 +121,16 @@ class GetCommand():
 
         # For rest redfish compatibility of bios.
         args = [args] if args and isinstance(args, six.string_types) else args
-        args = ["Attributes/" + arg if self.rdmc.app.selector.lower(). \
-                                           startswith('bios.') and 'attributes' not in arg.lower() else arg \
-                for arg in args] if args else args
+        if self.rdmc.app.selector and '.' not in self.rdmc.app.selector:
+            self.rdmc.app.selector = self.rdmc.app.selector + '.'
+        args = ["Attributes/" + arg if self.rdmc.app.selector.lower().startswith('bios.') and 'attributes'
+                                       not in arg.lower() else arg for arg in args] if args else args
         if filtervals[0]:
-            instances = self.rdmc.app.select(selector=self.rdmc.app.selector, \
-                                              fltrvals=filtervals)
+            instances = self.rdmc.app.select(selector=self.rdmc.app.selector, fltrvals=filtervals)
 
         try:
-            contents = self.rdmc.app.getprops(props=args, remread=readonly, nocontent=nocontent, \
-                                               insts=instances)
+            contents = self.rdmc.app.getprops(props=args, remread=readonly, nocontent=nocontent,
+                                              insts=instances)
             uselist = False if readonly else uselist
         except redfish.ris.rmc_helper.EmptyRaiseForEAFP:
             contents = self.rdmc.app.getprops(props=args, nocontent=nocontent)
@@ -159,7 +161,7 @@ class GetCommand():
                     raise NoContentsFoundForOperationError('No get contents found for entry: %s' \
                                                            % strtoprint)
                 else:
-                    raise NoContentsFoundForOperationError('No get contents found for ' \
+                    raise NoContentsFoundForOperationError('No get contents found for '
                                                            'selected type.')
         if options.logout:
             self.auxcommands['logout'].run("")
@@ -208,8 +210,8 @@ class GetCommand():
                 strtoprint = ', '.join(str(val) for val in nocontent)
                 if not strtoprint and arg:
                     strtoprint = arg
-                    raise NoContentsFoundForOperationError('No get contents '\
-                                           'found for entry: %s' % strtoprint)
+                    raise NoContentsFoundForOperationError('No get contents ' \
+                                                           'found for entry: %s' % strtoprint)
                 else:
                     raise NoContentsFoundForOperationError('No get contents '
                                                            'found for selected type.')
@@ -258,11 +260,11 @@ class GetCommand():
         customparser.add_argument(
             '--selector',
             dest='selector',
-            help="Optionally include this flag to select a type to run"\
-             " the current command on. Use this flag when you wish to"\
-             " select a type without entering another command, or if you"\
-              " wish to work with a type that is different from the one"\
-              " you currently have selected.",
+            help="Optionally include this flag to select a type to run"
+                 " the current command on. Use this flag when you wish to"
+                 " select a type without entering another command, or if you"
+                 " wish to work with a type that is different from the one"
+                 " you currently have selected.",
             default=None,
         )
 

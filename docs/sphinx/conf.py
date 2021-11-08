@@ -224,7 +224,7 @@ man_pages = [
 epub_title = u'HPE RESTful Interface Tool'
 epub_author = u'Hewlett Packard Enterprise'
 epub_publisher = u'Hewlett Packard Enterprise'
-epub_copyright = u'2016-2018, Hewlett Packard Enterprise Development LP'
+epub_copyright = u'2016-2021, Hewlett Packard Enterprise Development LP'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.

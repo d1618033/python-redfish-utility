@@ -137,7 +137,7 @@ class RdmcCommandBase(CommandBase):
         try:
             client = cmdinstance.rdmc.app.current_client
         except:
-            if options.user or options.password or options.url:
+            if options.user or options.password or options.url or options.force_vnic:
                 if options.url:
                     inputline.extend([options.url])
                 if options.user:
@@ -152,14 +152,16 @@ class RdmcCommandBase(CommandBase):
                         if isinstance(options.password, bytes):
                             options.password = options.password.decode('utf-8')
                     inputline.extend(["-p", options.password])
+                if options.force_vnic:
+                    inputline.extend(["--force_vnic"])
                 if getattr(options,'https_cert', False):
                     inputline.extend(["--https", options.https_cert])
                 if getattr(options,'user_certificate', False):
                     inputline.extend(["--usercert", options.user_certificate])
                 if getattr(options,'user_root_ca_key', False):
-                    inputline.extend(["--userrootcakey", options.user_root_ca_key])
+                    inputline.extend(["--userkey", options.user_root_ca_key])
                 if getattr(options,'user_root_ca_password', False):
-                    inputline.extend(["--userrootcapassword", options.user_root_ca_password])
+                    inputline.extend(["--userpassphrase", options.user_root_ca_password])
             else:
                 if cmdinstance.rdmc.config.url:
                     inputline.extend([cmdinstance.rdmc.config.url])
@@ -172,9 +174,9 @@ class RdmcCommandBase(CommandBase):
                 if getattr(options,'user_certificate', False):
                     inputline.extend(["--usercert", options.user_certificate])
                 if getattr(options,'user_root_ca_key', False):
-                    inputline.extend(["--userrootcakey", options.user_root_ca_key])
+                    inputline.extend(["--userkey", options.user_root_ca_key])
                 if getattr(options,'user_root_ca_password', False):
-                    inputline.extend(["--userrootcapassword", options.user_root_ca_password])
+                    inputline.extend(["--userpassphrase", options.user_root_ca_password])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -280,8 +282,7 @@ This option is only used on Gen 9 systems.""",
 connect securely to the system in remote mode. This flag has no effect in local mode.""",
             default=None)
         group.add_argument(
-            '-privatecert',
-            '--privateusercert',
+            '--usercert',
             dest='user_certificate',
             type=str,
             help="""Specify a user certificate file path for certificate based authentication
@@ -289,8 +290,7 @@ with iLO.\n**NOTE**: Inclusion of this argument will force certficate based
 authentication. A root user certificate authority key or bundle will be required.""",
             default=None)
         group.add_argument(
-            '-certkey',
-            '--userrootcakey',
+            '--userkey',
             dest='user_root_ca_key',
             type=str,
             help="""Specify a user root ca key file path for certificate based certificate
@@ -302,8 +302,7 @@ A user certificate will be required.
 is encrypted and \'-certpass/--userrootcapassword\' is omitted.""",
             default=None)
         group.add_argument(
-            '-certpass',
-            '--userrootcapassword',
+            '--userpassphrase',
             dest='user_root_ca_password',
             type=str,
             help="""Optionally specify a user root ca key file password for encrypted
@@ -312,15 +311,14 @@ certficate based authentication. A root user certificate authority key or
 bundle will be required. **NOTE 2**: The user will be prompted for a password
 if the user root certificate authority key requires a password""",
             default=None)
-        group.add_argument(
-            '-cert',
-            '--usercacert',
-            dest='ca_cert_bundle',
-            type=str,
-            help="""Specify a file path for the certificate authority bundle location
-(local repository for certificate collection) **NOTE**: Providing a custom certificate
-or root CA key will override the use of certificate bundles""",
-            default=None)
+        #group.add_argument(
+        #    '--certbundle',
+        #    dest='ca_cert_bundle',
+        #    type=str,
+        #    help="""Specify a file path for the certificate authority bundle location
+#(local repository for certificate collection) **NOTE**: Providing a custom certificate
+#or root CA key will override the use of certificate bundles""",
+#            default=None)
         group.add_argument(
             '-e',
             '--enc',
@@ -343,7 +341,7 @@ Note: The path flag can only be specified at the time of login.
 Warning: Only for advanced users, and generally not needed for normal operations.""",
             default=None)
         group.add_argument(
-            '--force-vnic',
+            '--force_vnic',
             dest='force_vnic',
             action="store_true",
             help="Force login through iLO Virtual NIC. **NOTE** "
@@ -440,6 +438,12 @@ class RdmcOptionParser(ArgumentParser):
             help="""Show toolbar at the bottom.""",
             default=False)
         self.add_argument(
+            '--notab',
+            dest='notab',
+            action="store_true",
+            help="""Disable tab complete.""",
+            default=False)
+        self.add_argument(
             '--redfish',
             dest='is_redfish',
             action='store_true',
@@ -455,12 +459,6 @@ class RdmcOptionParser(ArgumentParser):
                  "requested by the file. Note: May cause errors in some data "
                  "retrieval due to difference in schema versions.",
             default=False)
-        #self.add_argument(
-        #    '--proxy_server',
-        #    dest='proxyserver',
-        #    default=None,
-        #    help="""Use the provided proxy server for communication.""",
-        #    metavar='PROXY URL')
         self.add_argument(
             '--redirectconsole',
             dest='redirect',

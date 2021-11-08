@@ -22,14 +22,16 @@ from argparse import RawDescriptionHelpFormatter
 
 from redfish.ris.rmc_helper import IdTokenError
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError,\
-                        InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption, \
-                        TaskQueueError
+from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, NoContentsFoundForOperationError, \
+    InvalidCommandLineErrorOPTS, InvalidCommandLineError, Encryption, \
+    TaskQueueError
 
 __subparsers__ = ['create']
 
+
 class UpdateTaskQueueCommand():
     """ Main download command class """
+
     def __init__(self):
         self.ident = {
             'name':'taskqueue',
@@ -52,6 +54,8 @@ class UpdateTaskQueueCommand():
 
         :param line: string of arguments passed in
         :type line: str.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -65,9 +69,11 @@ class UpdateTaskQueueCommand():
                     break
             if not ident_subparser:
                 (options, args) = self.rdmc.rdmc_parse_arglist(self, line, default=True)
+                #if not line or line[0] == "help":
+                #    self.parser.print_help()
+                #    return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
@@ -88,7 +94,7 @@ class UpdateTaskQueueCommand():
             self.printqueue(options)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def resetqueue(self):
@@ -100,7 +106,7 @@ class UpdateTaskQueueCommand():
         self.rdmc.ui.printer('Deleting all update tasks...\n')
 
         for task in tasks:
-            self.rdmc.ui.printer('Deleting: %s\n'% task['Name'])
+            self.rdmc.ui.printer('Deleting: %s\n' % task['Name'])
             self.rdmc.app.delete_handler(task['@odata.id'])
 
     def cleanqueue(self):
@@ -113,7 +119,7 @@ class UpdateTaskQueueCommand():
 
         for task in tasks:
             if task['State'] == 'Complete' or task['State'] == 'Exception':
-                self.rdmc.ui.printer('Deleting %s...\n'% task['Name'])
+                self.rdmc.ui.printer('Deleting %s...\n' % task['Name'])
                 self.rdmc.app.delete_handler(task['@odata.id'])
 
     def createtask(self, tasks, options):
@@ -140,7 +146,7 @@ class UpdateTaskQueueCommand():
                 usedcomp = int(task)
                 newtask = {'Name': 'Wait-%s %s seconds' % (str(randint(0,
                                                                        1000000)), str(usedcomp)), 'Command': 'Wait',
-                           'WaitTimeSeconds':usedcomp, 'UpdatableBy':[
+                           'WaitTimeSeconds': usedcomp, 'UpdatableBy': [
                         'Bmc']}
             except ValueError:
                 pass
@@ -155,11 +161,11 @@ class UpdateTaskQueueCommand():
                         tpmflag = True
                     else:
                         tpmflag = False
-                    #TODO: Update to monolith check
+                    # TODO: Update to monolith check
                     results = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath, silent=True)
                     if results.status == 200:
                         contents = results.dict if self.rdmc.app.typepath.defs.isgen9 else \
-                                                                        results.dict["Attributes"]
+                            results.dict["Attributes"]
                         tpmstate = contents["TpmState"]
                         if "Enabled" in tpmstate and not tpmflag:
                             raise IdTokenError('')
@@ -177,10 +183,11 @@ class UpdateTaskQueueCommand():
 
                 if not usedcomp:
                     raise NoContentsFoundForOperationError('Component ' \
-                           'referenced is not present on iLO Drive: %s' % task)
+                                                           'referenced is not present on iLO Drive: %s' % task)
 
                 newtask = {'Name': 'Update-%s %s' % (str(randint(0, 1000000)),
-                                                     usedcomp['Name'].encode("ascii", "ignore")), 'Command': 'ApplyUpdate',
+                                                     usedcomp['Name'].encode("ascii", "ignore")),
+                           'Command': 'ApplyUpdate',
                            'Filename': usedcomp['Filename'], 'UpdatableBy': usedcomp
                     ['UpdatableBy'], 'TPMOverride': tpmflag}
 
@@ -205,23 +212,26 @@ class UpdateTaskQueueCommand():
 
         if not options.json:
             for task in tasks:
-                self.rdmc.ui.printer('Task %s:\n'%task['Name'])
-
+                self.rdmc.ui.printer('Task %s:\n' % task['Name'])
                 if 'Filename' in list(task.keys()):
-                    self.rdmc.ui.printer('\tCommand: %s\n\tFilename: %s\n\t'\
-                        'State:%s\n'% (task['Command'], task['Filename'], task['State']))
+                    self.rdmc.ui.printer('\tCommand: %s\n\tFilename: %s\n\t' \
+                                         'State:%s\n' % (task['Command'], task['Filename'], task['State']))
                 elif 'WaitTimeSeconds' in list(task.keys()):
-                    self.rdmc.ui.printer('\tCommand: %s %s seconds\n\tState:%s\n'%(\
-                                task['Command'], str(task['WaitTimeSeconds']), task['State']))
+                    self.rdmc.ui.printer('\tCommand: %s %s seconds\n\tState:%s\n' % ( \
+                        task['Command'], str(task['WaitTimeSeconds']), task['State']))
                 else:
-                    self.rdmc.ui.printer('\tCommand:%s\n\tState: %s\n'%(task['Command'],
-                                                                        task['State']))
-
-                self.rdmc.ui.printer('\n')
+                    self.rdmc.ui.printer('\tCommand:%s\n\tState: %s\n' % (task['Command'],
+                                                                          task['State']))
         elif options.json:
             outjson = dict()
             for task in tasks:
-                outjson[task['Name']] = task
+                outjson[task['Name']] = dict()
+                outjson[task['Name']]['Command'] = task['Command']
+                if 'Filename' in task:
+                    outjson[task['Name']]['Filename'] = task['Filename']
+                if 'WaitTimeSeconds' in task:
+                    outjson[task['Name']]['WaitTimeSeconds'] = task['WaitTimeSeconds']
+                outjson[task['Name']]['State'] = task['State']
             self.rdmc.ui.print_out_json(outjson)
 
     def updatetaskqueuevalidation(self, options):
@@ -246,8 +256,8 @@ class UpdateTaskQueueCommand():
             '--tpmover',
             dest='tover',
             action="store_true",
-            help="If set then the TPMOverrideFlag is passed in on the "\
-            "associated flash operations",
+            help="If set then the TPMOverrideFlag is passed in on the " \
+                 "associated flash operations",
             default=False
         )
 
@@ -282,7 +292,7 @@ class UpdateTaskQueueCommand():
             '--cleanqueue',
             action='store_true',
             dest='cleanqueue',
-            help='Clean up all finished or errored tasks left pending.\n\texample: taskqueue '\
+            help='Clean up all finished or errored tasks left pending.\n\texample: taskqueue ' \
                  '--cleanqueue',
             default=False,
         )
@@ -291,9 +301,9 @@ class UpdateTaskQueueCommand():
             '--json',
             dest='json',
             action="store_true",
-            help="Optionally include this flag if you wish to change the"\
-            " displayed output to JSON format. Preserving the JSON data"\
-            " structure makes the information easier to parse.",
+            help="Optionally include this flag if you wish to change the" \
+                 " displayed output to JSON format. Preserving the JSON data" \
+                 " structure makes the information easier to parse.",
             default=False
         )
         self.cmdbase.add_login_arguments_group(default_parser)
@@ -304,16 +314,16 @@ class UpdateTaskQueueCommand():
         create_parser = subcommand_parser.add_parser(
             'create',
             help=create_help,
-            description=create_help + '\n\n\tCreate a new task for 30 secs:\n\t\ttaskqueue '\
-                    'create 30\n\n\tCreate a new reboot task.\n\t\ttaskqueue create reboot'\
-                    '\n\n\tCreate a new component task.\n\t\ttaskqueue create compname.exe'\
-                    '\n\n\tCreate multiple tasks at once.\n\t\ttaskqueue create 30 '\
-                    '\"compname.exe compname2.exe reboot\"',
+            description=create_help + '\n\n\tCreate a new task for 30 secs:\n\t\ttaskqueue ' \
+                                      'create 30\n\n\tCreate a new reboot task.\n\t\ttaskqueue create reboot' \
+                                      '\n\n\tCreate a new component task.\n\t\ttaskqueue create compname.exe' \
+                                      '\n\n\tCreate multiple tasks at once.\n\t\ttaskqueue create 30 ' \
+                                      '\"compname.exe compname2.exe reboot\"',
             formatter_class=RawDescriptionHelpFormatter
         )
         create_parser.add_argument(
             'keywords',
-            help='Keyword for a task queue item. *Note*: Multiple tasks can be created by '\
+            help='Keyword for a task queue item. *Note*: Multiple tasks can be created by ' \
                  'using quotations wrapping all tasks, delimited by whitespace.',
             metavar='KEYWORD',
             type=str,

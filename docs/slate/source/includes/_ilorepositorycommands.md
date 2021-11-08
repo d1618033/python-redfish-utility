@@ -11,7 +11,7 @@ The iLO repository commands are designed for use with HPE Gen10 servers.
 > To delete firmware by file name run the command with the file name as an argument. You can also delete multiple files by file name.
 
 <pre>
-iLOrest > <font color="#01a982">deletecomp ilo5_137.bin</font>
+iLOrest > <span style="color: #01a982; ">deletecomp ilo5_137.bin</span>
 The operation completed successfully.
 Deleted ilo5_137.bin
 </pre>
@@ -19,7 +19,7 @@ Deleted ilo5_137.bin
 > To delete firmware by Id run the command with the file Ids as arguments. You can also delete a single file by Id.
 
 <pre>
-iLOrest > <font color="#01a982">deletecomp 30d2d7fa b5a00edc</font>
+iLOrest > <span style="color: #01a982; ">deletecomp 30d2d7fa b5a00edc</span>
 The operation completed successfully.
 Deleted 30d2d7fa
 The operation completed successfully.
@@ -29,15 +29,15 @@ Deleted b5a00edc
 > To delete all firmware on the iLO repository run the command and include the `--all` option.
 
 <pre>
-iLOrest > <font color="#01a982">deletecomp --all</font>
+iLOrest > <span style="color: #01a982; ">deletecomp --all</span>
 The operation completed successfully.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 deletecomp *[ID/Name(s)] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Deletes firmware from the iLO repository.
 
@@ -45,7 +45,7 @@ Deletes firmware from the iLO repository.
 You cannot delete firmware that is part of a task from the task queue or an install set.
 </aside>
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **ID/Name(s)**
 
@@ -59,7 +59,7 @@ Including the help flag will display help for the command.
 
 Delete all firmware.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -75,38 +75,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Downloadcomp Command
@@ -116,7 +92,7 @@ None
 > To download a file run this command specifying the `file path` of the firmware.
 
 <pre>
-iLOrest > <font color="#01a982">downloadcomp /fwrepo/ilo5_137.bin</font>
+iLOrest > <span style="color: #01a982; ">downloadcomp /fwrepo/ilo5_137.bin</span>
 Downloading component, this may take a while...
 [200] The operation completed successfully.
 Download complete
@@ -126,15 +102,15 @@ Download complete
 <aside class="warning">The output directory and files in that directory must be set to writable.</aside>
 <aside class="warning">Any file in the output directory with the same name as the downloading firmware will be overwritten.</aside>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 downloadcomp *[File Path] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Downloads firmware from the iLO repository.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 -**File Path**
 
@@ -148,7 +124,7 @@ Including the help flag will display help for the command.
 
 output directory for saving the file.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 - **--url=URL**
 
@@ -162,30 +138,6 @@ If you are not logged in yet, including this flag along with the password and UR
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--sessionid=SESSIONID**
 
 Optionally include this flag if you would prefer to connect using a session id instead of a normal login.
@@ -198,10 +150,10 @@ Optionally include logs in the data retrieval process.
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Flashfwpkg Command
@@ -211,7 +163,7 @@ None
 > To upload firmware and flash (or stage for a flash) run the command with the `.fwpkg` file.
 
 <pre>
-iLOrest > <font color="#01a982">fwpkg U32_1.46_10_02_2018.fwpkg</font>
+iLOrest > <span style="color: #01a982; ">fwpkg U32_1.46_10_02_2018.fwpkg</span>
 Uploading firmware: U32_1.46_10_02_2018.signed.flash
 [200] The operation completed successfully.
 Component U32_1.46_10_02_2018.signed.flash uploaded successfully
@@ -223,7 +175,7 @@ Firmware has successfully been flashed and a reboot is required for this firmwar
 > To skip checks for something blocking firmware updates also include the `--ignorechecks` option.
 
 <pre>
-iLOrest > fwpkg ilo5_137.fwpkg <font color="#01a982">--ignorechecks</font>
+iLOrest > fwpkg ilo5_137.fwpkg <span style="color: #01a982; ">--ignorechecks</span>
 Uploading firmware: ilo5_137.bin
 [200] The operation completed successfully.
 Component ilo5_137.bin uploaded successfully
@@ -238,15 +190,15 @@ Logging session out.
 Some firmware can be flashed directly without a reboot, may require a reboot to take effect, or may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
 </aside>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 flashfwpkg *[FWPKG PATH] [Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Run to upload and flash fwpkg components using the iLO repository.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **FWPKG PATH**
 
@@ -264,7 +216,7 @@ Include this flag to force upload firmware with the same name already on the rep
 
 Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -280,38 +232,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Installset Command
@@ -321,7 +249,7 @@ None
 > To list current install sets run the command without arguments.
 
 <pre>
-iLOrest > <font color="#01a982">installset</font>
+iLOrest > <span style="color: #01a982; ">installset</span>
 Install Sets:
 
 basic_update:
@@ -331,14 +259,14 @@ basic_update:
 >To add an install set run the command with the `add` argument followed by the install set json file. If using sequence type json file (see below) the `--name` option must be included.
 
 <pre>
-iLOrest > <font color="#01a982">installset add myinstallset.json</font>
+iLOrest > <span style="color: #01a982; ">installset add myinstallset.json</span>
 [201] The operation completed successfully.
 </pre>
 
 > To invoke an install set and have it start performing tasks run the command with the `invoke` argument followed by the `-n, --name` option specifying the name of the install set to invoke.
 
 <pre>
-iLOrest > <font color="#01a982">installset invoke --name basic_update</font>
+iLOrest > <span style="color: #01a982; ">installset invoke --name basic_update</span>
 Invoking install set:basic_update
 The operation completed successfully.
 </pre>
@@ -346,7 +274,7 @@ The operation completed successfully.
 > To delete an install set run the command with the `delete` argument followed by the `--name` specifying the name of the install set to delete.
 
 <pre>
-iLOrest > <font color="#01a982">installset delete --name basic_update</font>
+iLOrest > <span style="color: #01a982; ">installset delete --name basic_update</span>
 Deleting install set: basic_update...
 The operation completed successfully.
 </pre>
@@ -354,7 +282,7 @@ The operation completed successfully.
 > To remove all install sets run the command with the `--removeall` option.
 
 <pre>
-LOrest > installset <font color="#01a982">--removeall</font>
+LOrest > installset <span style="color: #01a982; ">--removeall</span>
 Deleting all install sets...
 Deleting install set: basic_update
 The operation completed successfully.
@@ -428,15 +356,15 @@ The operation completed successfully.
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 installset *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Command to perform operations on install sets.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -474,7 +402,7 @@ If set then the components in the flash operations are used to replace matching 
 
 This option clears previous items in the task queue before the Install Set is invoked.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -490,38 +418,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Listcomp Command
@@ -531,7 +435,7 @@ None
 > To list the firmware on the iLO repository of the currently logged in system run the command without arguments.
 
 <pre>
-iLOrest > <font color="#01a982">listcomp</font>
+iLOrest > <span style="color: #01a982; ">listcomp</span>
 Id: ca3bcc4b
 Name: iLO 5
 Version: 1.30
@@ -549,15 +453,15 @@ File Path: ilo5_137.bin
 SizeBytes: 33556520
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 listcomp *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Command to list the firmware on the iLO repository of the currently logged in system.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -567,7 +471,7 @@ Including the help flag will display help for the command.
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -583,38 +487,16 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
+- **--usercert User Certificate**
 
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Maintenancewindow Command
@@ -624,7 +506,7 @@ None
 > To list the current maintenancewindows on the system run the command without arguments.
 
 <pre>
-iLOrest > <font color="#01a982">maintenancewindow</font>
+iLOrest > <span style="color: #01a982; ">maintenancewindow</span>
 MW-147746:
         Description: No description.
         Start After: 2015-11-21T00:00:00Z
@@ -634,37 +516,37 @@ MW-147746:
 > To Create a new maintenance window run the command with the `add` keyword followed by the time the maintenance window should start. If you do not supply a name for your maintenance window one will be randomly generated for you.
 
 <pre>
-iLOrest > <font color="#01a982">maintenancewindow add 2018-11-21T00:00:00</font>
+iLOrest > <span style="color: #01a982; ">maintenancewindow add 2018-11-21T00:00:00</span>
 [201] The operation completed successfully.
 </pre>
 
-> To optionally specify an expire time (`-e, --expire`), maintenance window name (`-n, --name`), and/or description (`--description`) include their respective options.
+> To optionally specify an expire time (`--expire`), maintenance window name (`--name`), and/or description (`--description`) include their respective options.
 
 <pre>
-iLOrest > maintenancewindow add 2019-11-21T00:00:00 <font color="#01a982">--expire=2019-11-22T00:00:00 --name=MyMaintenanceWindow --description "My maintenance window description."</font>
+iLOrest > maintenancewindow add 2019-11-21T00:00:00 <span style="color: #01a982; ">--expire=2019-11-22T00:00:00 --name=MyMaintenanceWindow --description "My maintenance window description."</span>
 [201] The operation completed successfully.
 </pre>
 
-> To delete a maintenance window run the command with the `delete` keyword followed by the name of the maintenance window you wish to delete.
+> To delete a maintenance window run the command with the `delete` keyword followed by the name or id of the maintenance window you wish to delete.
 
 <pre>
-iLOrest > <font color="#01a982">maintenancewindow delete MyMaintenanceWindow</font>
+iLOrest > <span style="color: #01a982; ">maintenancewindow delete MyMaintenanceWindow</span>
 Deleting MyMaintenanceWindow
 The operation completed successfully.
 </pre>
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 maintenancewindow *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Command to add, remove, or delete maintenance windows from the iLO repository.
 
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -678,15 +560,15 @@ Optionally include this flag to change the displayed output to JSON format. Pres
 
 Optionally include this flag to add a description to the maintenance window created by you.
 
-- **-n NAME, --name=NAME**
+- **--name=NAME**
 
 Optionally include this flag to name the maintenance window created by you. If a name is not specified, system will add a unique name.
 
-- **-e EXPIRE, --expire=EXPIRE**
+- **--expire=EXPIRE**
 
 Optionally include this flag to add the time a maintenance window expires.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -702,38 +584,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Makeinstallset Command
@@ -743,9 +601,9 @@ None
 > Run without logging in for basic guidance on making an install set.
 
 <pre>
-iLOrest > <font color="#01a982">makeinstallset</font>
+iLOrest > <span style="color: #01a982; ">makeinstallset</span>
 Warning: This command will run in interactive mode.
-Entering new shell, type backout to leave!
+Entering new shell, type quit to leave!
 Running in basic guidance mode.
 Enter a name for this command: command1
 
@@ -761,7 +619,7 @@ Uefi: Updatable by Uefi
 RuntimeAgent: Updatable by runtime agent such as SUM/SUT
 Enter UpdatableBy for command1: Bmc
 
-Enter a name for this command: backout
+Enter a name for this command: quit
 Is this a recovery installset? no
 Enter installset name: basic_update
 Enter description for the installset:
@@ -786,9 +644,9 @@ installset saved to myinstallset.json
 > Run while logged into a system for guidance based on the current components on that system.
 
 <pre>
-iLOrest > <font color="#01a982">makeinstallset</font>
+iLOrest > <span style="color: #01a982; ">makeinstallset</span>
 Warning: This command will run in interactive mode.
-Entering new shell, type backout to leave!
+Entering new shell, type quit to leave!
 Running in logged in mode.
 Enter a name for this command: update iLO
 
@@ -813,7 +671,7 @@ Components currently in the repository that have not been added to the installse
 [2] System BIOS - U30
 Select the number of the component you want to add to the install set: 2
 
-Enter a name for this command: backout
+Enter a name for this command: quit
 Is this a recovery installset? no
 Enter installset name: update fw
 Enter description for the installset:
@@ -845,18 +703,18 @@ installset saved to myinstallset.json
 
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 makeinstallset *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Run to make installsets for iLO.
 If not logged into the server, the command will provide basic guidance on making an installset.
 If logged into the server, the command will provide guidance based on the current components on the system.
 <aside class="notice">When using this command on a logged in sever, for best results, upload the components before running this command.</aside>
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -866,7 +724,7 @@ Including the help flag on this command will display help.
 
 Include this flag to use a different filename than the default one. The default filename is myinstallset.json
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -882,38 +740,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Taskqueue Command
@@ -923,7 +757,7 @@ None
 > To create new wait task queue task include the `create` keyword followed by the amount of time to wait.
 
 <pre>
-iLOrest > <font color="#01a982">taskqueue create 60</font>
+iLOrest > <span style="color: #01a982; ">taskqueue create 60</span>
 [200] The operation completed successfully.
 Creating task: "Wait-703879 60 seconds"
 [201] The operation completed successfully.
@@ -932,7 +766,7 @@ Creating task: "Wait-703879 60 seconds"
 > To create a new firmware task queue task include the `create` keyword followed by the name of a firmware file that is already in the iLO repository.
 
 <pre>
-iLOrest > <font color="#01a982">taskqueue create ilo5_137.bin</font>
+iLOrest > <span style="color: #01a982; ">taskqueue create ilo5_137.bin</span>
 [200] The operation completed successfully.
 Creating task: "Update-740856 iLO 5"
 [201] The operation completed successfully.
@@ -941,7 +775,7 @@ Creating task: "Update-740856 iLO 5"
 > To view the current update task queue runt the command with no arguments.
 
 <pre>
-iLOrest > <font color="#01a982">taskqueue</font>
+iLOrest > <span style="color: #01a982; ">taskqueue</span>
 
 Current Update Task Queue:
 
@@ -959,7 +793,7 @@ Task Update-740856 iLO 5:
 > To delete all tasks from the update task queue run the command with the `--resetqueue` option.
 
 <pre>
-iLOrest > <font color="#01a982">taskqueue --resetqueue</font>
+iLOrest > <span style="color: #01a982; ">taskqueue --resetqueue</span>
 Deleting all update tasks...
 Deleting: Wait-703879 60 seconds
 The operation completed successfully.
@@ -967,15 +801,15 @@ Deleting: Update-740856 iLO 5
 The operation completed successfully.
 </pre>
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 taskqueue *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Command to add or remove tasks from the task queue. Added tasks are appended to the end of the queue.
 
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -997,7 +831,7 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 
 Include this flag when updating firmware if you have a TPM installed.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -1013,38 +847,14 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None
 
 ### Uploadcomp Command
@@ -1054,7 +864,7 @@ None
 > To upload firmware to the iLO repository run the command with the `--component` option specifying the firmware file to upload.
 
 <pre>
-iLOrest > <font color="#01a982">uploadcomp --component ilo5_137.bin</font>
+iLOrest > <span style="color: #01a982; ">uploadcomp --component ilo5_137.bin</span>
 [200] The operation completed successfully.
 Component ilo5_137.bin uploaded successfully
 Waiting for iLO UpdateService to finish processing the component
@@ -1066,7 +876,7 @@ To do this you need to include the `--update_repository`  flag to not include th
 flag to trigger iLO to flash.
 
 <pre>
-iLOrest > uploadcomp --component ilo5_140.bin <font color="#01a982">--update_repository --update_target</font>
+iLOrest > uploadcomp --component ilo5_140.bin <span style="color: #01a982; ">--update_repository --update_target</span>
 [200] The operation completed successfully.
 Component ilo5_140.bin uploaded successfully
 Waiting for iLO UpdateService to finish processing the component
@@ -1074,22 +884,21 @@ Waiting for iLO UpdateService to finish processing the component
 </pre>
 
 
-#### Syntax
+<p class="fake_header">Syntax</p>
 
 uploadcomp *[Optional Parameters]*
 
-#### Description
+<p class="fake_header">Description</p>
 
 Command to upload firmware on to iLO repository.
 <aside class="notice">
-The </b>uploadcomp</b> command requires iLO firmware version v1.48(a) or later. Earlier iLO Firmware versions will fail with a return code 103.  
+The uploadcomp command requires iLO firmware version v1.48(a) or later. Earlier iLO Firmware versions will fail with a return code 103.  
 iLO firmware version v1.48(a) or later is required because the <b>uploadcomp</b> command depends on the Bunny Hop feature found in that version of the iLO firmware.  
 Before updating the iLO firmware, see <a href="https://support.hpe.com/hpesc/public/docDisplay?docId=emr_na-a00068199en_us" target="_blank">the customer advisory regarding iLO firmware upgrades</a>.
 To download the latest iLO Firmware, see the <a href="https://support.hpe.com/hpsc/swd/public/detail?swItemId=MTX_912b35cf18cd4b7ea530732822" target="_blank">Drivers & Software page for the Online ROM Flash Firmware Package - HPE iLO 5</a>
 </aside>
 
-
-#### Parameters
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -1125,9 +934,10 @@ If true, the uploaded component/binary will be flashed. The default is set to Fa
 
 - **--update_srs**
 
-The component uploaded will become a part of the system recovery set (srs).
+The component uploaded will become a part of the system recovery set (srs).   
+Note: --update_target also need to passed along with --update_srs for component to be valid for that server.
 
-#### Login Parameters
+<p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
 
@@ -1143,36 +953,12 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **-privatecert User CA Certificate, --privateusercert**
-
-Specify a user CA certificate file path for certificate based authentication with iLO.
-
-<aside class="notice">A root user CA key is required.</aside>
-
-- **-certkey Private User Root CA, --userrootcakey**
-
-Specify a user root ca key file path for certificate based authentication with iLO
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-certpass Private User Root CA Password, --userrootcapassword**
-
-Optionally specify a user root ca key file password for a password protected user root CA.
-
-<aside class="notice">If the root CA key is password protected, but not included with '-certpass/--userrootcapassword', then Urllib3 will automatically request the password on the command line.</aside>
-
-- **-cert CA Certificate Bundle, --usercacert**
-
-Optionally specify a file path for the certificate authority bundle location (local repository for trusted CA collection).
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
 
-#### Inputs
+<p class="fake_header">Input</p>
 None
 
-#### Outputs
+<p class="fake_header">Output</p>
 None

@@ -33,7 +33,7 @@ Authors:
 
 %build
 mv rdmc-pyinstaller-lin.spc rdmc-pyinstaller-lin.spec
-/usr/local/python3.7/bin/pyinstaller rdmc-pyinstaller-lin.spec
+/usr/local/python3.9/bin/pyinstaller rdmc-pyinstaller-lin.spec
 cp dist/ilorest ilorest
 
 %install

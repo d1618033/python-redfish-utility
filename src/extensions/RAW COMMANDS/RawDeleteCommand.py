@@ -33,7 +33,7 @@ class RawDeleteCommand():
             'usage': None,
             'description':'Run to to delete data from'
                     ' the passed in path.\n\texample: rawdelete "/redfish/v1/'
-                    'Sessions/(session ID)"',
+                    'Sessions/(session ID)"\n',
             'summary':'Raw form of the DELETE command.',
             'aliases': [],
             'auxcommands': []
@@ -47,6 +47,8 @@ class RawDeleteCommand():
 
         :param line: command line input
         :type line: string.
+        :param help_disp: display help flag
+        :type line: bool.
         """
         if help_disp:
             self.parser.print_help()
@@ -58,7 +60,6 @@ class RawDeleteCommand():
                 return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
-                # self.rdmc.ui.printer(self.ident['usage'])
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
