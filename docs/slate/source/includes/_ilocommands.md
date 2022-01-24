@@ -236,6 +236,100 @@ None
 <p class="fake_header">Output</p>
 None
 
+### Computeopsmanager Command
+
+> To enable your servers to be discovered, monitored and managed through Compute Ops Manager.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">computeopsmanager connect --activationkey keyvalue</span>
+Connecting computeopsmanager...
+computeopsmanager connection is successful
+</pre>
+
+> To disconnect from Compute Ops Manager
+
+<pre>
+iLOrest > <span style="color: #01a982; ">computeopsmanager disconnect</span>
+The operation completed successfully.
+</pre>
+
+> To check the status of Compute Ops Manager
+
+<pre>
+iLOrest > <span style="color: #01a982; ">computeopsmanager status</span>
+------------------------------------------------
+Compute Ops Manager Status
+------------------------------------------------
+Compute Ops Manager Status : NotEnabled
+</pre>
+
+<p class="fake_header">Syntax</p>
+
+computeopsmanager [connect/disconnect/status] [OPTIONS]
+
+<p class="fake_header">Description</p>
+
+
+This command will enable your servers to be discovered, monitored and managed through Compute Ops Manager .
+
+<p class="fake_header">Parameters</p>
+
+- **connect**
+
+Use this to connect.
+
+- **disconnect**
+
+Use this to disconnect.
+
+- **status**
+
+Use this to check the status of connection.
+
+- **-h, --help**
+
+Including the help flag will display help for the command.
+
+- **--proxy PROXY_SERVER or --proxy None**
+
+Use this to use web-proxy if needed for connecting.
+
+- **--activationkey=ACTIVATION_KEY**
+
+Use this while connecting and providing activation key.
+
+- **-j, --json**
+
+Use this command to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
+<p class="fake_header">Login Parameters</p>
+
+The following parameters can be included to login to a server in the same line as the command is run.
+
+-
+**--url=URL**
+
+If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
+
+- **-u User, --user=USER**
+
+If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
+
+- **-p Password, --password=PASSWORD**
+
+If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
+
+- **--logout**
+
+Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
+<p class="fake_header">Input</p>
+None
+
+<p class="fake_header">Output</p>
+None
+
+
 ### Directory Command
 
 > To view current LDAP or kerberos settings run the command with the `ldap` or `kerberos` arguments.
@@ -763,6 +857,12 @@ Enable virtual network interface of management network.
 
 - **--disable_vnic**  
 Disable virtual network interface of management network.
+
+- **--enable_enhanced_downloads**  
+Enable enhanced download performance in the iLO.
+
+- **--disable_enhanced_downloads**  
+Disable enhanced download performance in the iLO.
 
 - **--proxy http://proxy.company.net:8080**  
 Configure Proxy Settings. Provide a proxy server and port

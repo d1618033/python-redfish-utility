@@ -26,19 +26,25 @@ import jsondiff
 
 from rdmc_base_classes import HARDCODEDLIST
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+)
 
-class PendingChangesCommand():
-    """ PendingChanges class command """
+
+class PendingChangesCommand:
+    """PendingChanges class command"""
+
     def __init__(self):
         self.ident = {
-            'name':'pending',
-            'usage': None,
-            'description':'Run to show pending committed changes '
-                    'that will be applied after a reboot.\n\texample: pending',
-            'summary':'Show the pending changes that will be applied on reboot.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "pending",
+            "usage": None,
+            "description": "Run to show pending committed changes "
+            "that will be applied after a reboot.\n\texample: pending",
+            "summary": "Show the pending changes that will be applied on reboot.",
+            "aliases": [],
+            "auxcommands": [],
         }
 
         self.cmdbase = None
@@ -46,7 +52,7 @@ class PendingChangesCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Show pending changes of settings objects
+        """Show pending changes of settings objects
 
         :param line: string of arguments passed in
         :type line: str.
@@ -63,7 +69,9 @@ class PendingChangesCommand():
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Pending command does not take any arguments.")
+            raise InvalidCommandLineError(
+                "Pending command does not take any arguments."
+            )
         self.pendingvalidation(options)
 
         self.pendingfunction()
@@ -72,44 +80,46 @@ class PendingChangesCommand():
         return ReturnCodes.SUCCESS
 
     def pendingfunction(self):
-        """ Main pending command worker function
-        """
+        """Main pending command worker function"""
         settingsuri = []
-        ignorekeys = ['@odata.id', '@odata.etag', '@redfish.settings', 'oem']
-        ignoreuri = [str('hpsut*')]
+        ignorekeys = ["@odata.id", "@odata.etag", "@redfish.settings", "oem"]
+        ignoreuri = [str("hpsut*")]
         ignorekeys.extend(HARDCODEDLIST)
 
-        resourcedir = self.rdmc.app.get_handler(self.rdmc.app.monolith._resourcedir,
-                                                service=True, silent=True)
+        resourcedir = self.rdmc.app.get_handler(
+            self.rdmc.app.monolith._resourcedir, service=True, silent=True
+        )
 
-        for resource in resourcedir.dict['Instances']:
-            if (resource['@odata.id'].split('/').__len__() - 1) > 4:
-                splitstr = resource['@odata.id'].split('/')[5]
+        for resource in resourcedir.dict["Instances"]:
+            if (resource["@odata.id"].split("/").__len__() - 1) > 4:
+                splitstr = resource["@odata.id"].split("/")[5]
             for element in ignoreuri:
-                if '/settings' in resource['@odata.id'] and not \
-                                                        self.wildcard_str_match(element, splitstr):
-                    settingsuri.append(resource['@odata.id'])
+                if "/settings" in resource["@odata.id"] and not self.wildcard_str_match(
+                    element, splitstr
+                ):
+                    settingsuri.append(resource["@odata.id"])
 
-        self.rdmc.ui.printer('Current Pending Changes:\n')
+        self.rdmc.ui.printer("Current Pending Changes:\n")
 
         for uri in settingsuri:
             diffprint = {}
-            baseuri = uri.split('settings')[0]
+            baseuri = uri.split("settings")[0]
 
             base = self.rdmc.app.get_handler(baseuri, service=True, silent=True)
             settings = self.rdmc.app.get_handler(uri, service=True, silent=True)
 
             typestring = self.rdmc.app.monolith.typepath.defs.typestring
-            currenttype = '.'.join(base.dict[typestring].split('#')[-1].split('.')[:-1])
+            currenttype = ".".join(base.dict[typestring].split("#")[-1].split(".")[:-1])
 
-            differences = json.loads(jsondiff.diff(base.dict, settings.dict,
-                                                   syntax='symmetric', dump=True))
+            differences = json.loads(
+                jsondiff.diff(base.dict, settings.dict, syntax="symmetric", dump=True)
+            )
 
             diffprint = self.recursdict(differences, ignorekeys)
 
-            self.rdmc.ui.printer('\n%s:' % currenttype)
+            self.rdmc.ui.printer("\n%s:" % currenttype)
             if not diffprint:
-                self.rdmc.ui.printer('\nNo pending changes found.\n')
+                self.rdmc.ui.printer("\nNo pending changes found.\n")
             else:
                 self.rdmc.ui.pretty_human_readable(diffprint)
 
@@ -126,18 +136,21 @@ class PendingChangesCommand():
 
         if not first and not second:
             return True
-        if len(first) > 1 and first[0] == '*' and not second:
+        if len(first) > 1 and first[0] == "*" and not second:
             return False
-        if (len(first) > 1 and first[0] == '?') or (first and second and first[0] == second[0]):
+        if (len(first) > 1 and first[0] == "?") or (
+            first and second and first[0] == second[0]
+        ):
             return self.wildcard_str_match(first[1:], second[1:])
-        if first and first[0] == '*':
-            return self.wildcard_str_match(first[1:], second) or \
-                self.wildcard_str_match(first, second[1:])
+        if first and first[0] == "*":
+            return self.wildcard_str_match(
+                first[1:], second
+            ) or self.wildcard_str_match(first, second[1:])
 
         return False
 
     def recursdict(self, diff, ignorekeys):
-        """ Recursively get dict ready for printing
+        """Recursively get dict ready for printing
 
         :param diff: diff dict
         :type options: dict.
@@ -146,7 +159,7 @@ class PendingChangesCommand():
         for item in diff:
             if item.lower() in ignorekeys:
                 diffprint.pop(item)
-            elif item == '$delete':
+            elif item == "$delete":
                 for ditem in diff[item]:
                     if isinstance(diff[item], list):
                         continue
@@ -155,25 +168,27 @@ class PendingChangesCommand():
                         if ditem.lower() in ignorekeys or ditem.isdigit():
                             continue
                         else:
-                            diffprint.update({'removed': ditem})
+                            diffprint.update({"removed": ditem})
                 diffprint.pop(item)
-            elif item == '$insert':
+            elif item == "$insert":
                 for ditem in diff[item]:
                     del diffprint[item][diffprint[item].index(ditem)]
-                    diffprint.update({'changed index position': ditem[1]})
+                    diffprint.update({"changed index position": ditem[1]})
                 diffprint.pop(item)
             elif isinstance(diff[item], dict):
                 diffprint[item] = self.recursdict(diff[item], ignorekeys)
 
             elif isinstance(diff[item], list):
-                diffprint.update({item: {'Current': diff[item][0], 'Pending': diff[item][1]}})
+                diffprint.update(
+                    {item: {"Current": diff[item][0], "Pending": diff[item][1]}}
+                )
             else:
                 continue
 
         return diffprint
 
     def pendingvalidation(self, options):
-        """ Pending method validation function
+        """Pending method validation function
 
         :param options: command line options
         :type options: list.
@@ -181,7 +196,7 @@ class PendingChangesCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

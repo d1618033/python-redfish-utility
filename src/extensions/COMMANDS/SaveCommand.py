@@ -23,28 +23,34 @@ from collections import OrderedDict
 
 import redfish.ris
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-    InvalidCommandLineError, InvalidFileFormattingError, Encryption, iLORisCorruptionError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+    InvalidFileFormattingError,
+    Encryption,
+    iLORisCorruptionError,
+)
 
 # default file name
-__filename__ = 'ilorest.json'
+__filename__ = "ilorest.json"
 
 
-class SaveCommand():
-    """ Constructor """
+class SaveCommand:
+    """Constructor"""
 
     def __init__(self):
         self.ident = {
-            'name': 'save',
-            'usage': None,
-            'description': 'Run to save a selected type to a file'
-                           '\n\texample: save --selector HpBios.\n\n\tChange the default '
-                           'output filename\n\texample: save --selector HpBios. -f '
-                           'output.json\n\n\tTo save multiple types in one file\n\texample: '
-                           'save --multisave Bios.,ComputerSystem.',
-            'summary': "Saves the selected type's settings to a file.",
-            'aliases': [],
-            'auxcommands': ["SelectCommand"]
+            "name": "save",
+            "usage": None,
+            "description": "Run to save a selected type to a file"
+            "\n\texample: save --selector HpBios.\n\n\tChange the default "
+            "output filename\n\texample: save --selector HpBios. -f "
+            "output.json\n\n\tTo save multiple types in one file\n\texample: "
+            "save --multisave Bios.,ComputerSystem.",
+            "summary": "Saves the selected type's settings to a file.",
+            "aliases": [],
+            "auxcommands": ["SelectCommand"],
         }
         self.filename = __filename__
         self.cmdbase = None
@@ -52,7 +58,7 @@ class SaveCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main save worker function
+        """Main save worker function
 
         :param line: command line input
         :type line: string.
@@ -74,31 +80,37 @@ class SaveCommand():
         self.savevalidation(options)
 
         if args:
-            raise InvalidCommandLineError('Save command takes no arguments.')
+            raise InvalidCommandLineError("Save command takes no arguments.")
 
         self.rdmc.ui.printer("Saving configuration...\n")
         if options.filter:
             try:
-                if (str(options.filter)[0] == str(options.filter)[-1]) \
-                        and str(options.filter).startswith(("'", '"')):
+                if (str(options.filter)[0] == str(options.filter)[-1]) and str(
+                    options.filter
+                ).startswith(("'", '"')):
                     options.filter = options.filter[1:-1]
 
-                (sel, val) = options.filter.split('=')
+                (sel, val) = options.filter.split("=")
                 sel = sel.strip()
                 val = val.strip()
             except:
-                raise InvalidCommandLineError("Invalid filter"
-                                              " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError(
+                    "Invalid filter"
+                    " parameter format [filter_attribute]=[filter_value]"
+                )
 
-            instances = self.rdmc.app.select(selector=self.rdmc.app.selector,
-                                             fltrvals=(sel, val), path_refresh=options.ref)
+            instances = self.rdmc.app.select(
+                selector=self.rdmc.app.selector,
+                fltrvals=(sel, val),
+                path_refresh=options.ref,
+            )
             contents = self.saveworkerfunction(instances=instances)
         else:
             contents = self.saveworkerfunction()
 
         if options.multisave:
             for select in options.multisave:
-                self.auxcommands['select'].run(select)
+                self.auxcommands["select"].run(select)
                 contents += self.saveworkerfunction()
 
         if not contents:
@@ -108,14 +120,20 @@ class SaveCommand():
             contents = self.add_save_file_header(contents)
 
         if options.encryption:
-            with open(self.filename, 'wb') as outfile:
-                outfile.write(Encryption().encrypt_file(json.dumps(contents,
-                                                                   indent=2, cls=redfish.ris.JSONEncoder),
-                                                        options.encryption))
+            with open(self.filename, "wb") as outfile:
+                outfile.write(
+                    Encryption().encrypt_file(
+                        json.dumps(contents, indent=2, cls=redfish.ris.JSONEncoder),
+                        options.encryption,
+                    )
+                )
         else:
-            with open(self.filename, 'w') as outfile:
-                outfile.write(json.dumps(contents, indent=2, cls=redfish.ris.JSONEncoder,
-                                         sort_keys=True))
+            with open(self.filename, "w") as outfile:
+                outfile.write(
+                    json.dumps(
+                        contents, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True
+                    )
+                )
         self.rdmc.ui.printer("Configuration saved to: %s\n" % self.filename)
 
         self.cmdbase.logout_routine(self, options)
@@ -124,7 +142,7 @@ class SaveCommand():
         return ReturnCodes.SUCCESS
 
     def saveworkerfunction(self, instances=None):
-        """ Returns the currently selected type for saving
+        """Returns the currently selected type for saving
 
         :param instances: list of instances from select to save
         :type instances: list.
@@ -132,14 +150,20 @@ class SaveCommand():
 
         content = self.rdmc.app.getprops(insts=instances)
         try:
-            contents = [{val[self.rdmc.app.typepath.defs.hrefstring]: val} for val in content]
+            contents = [
+                {val[self.rdmc.app.typepath.defs.hrefstring]: val} for val in content
+            ]
         except KeyError:
             try:
-                contents = [{val['links']['self'][self.rdmc.app.typepath.defs.hrefstring]: val} \
-                            for val in content]
+                contents = [
+                    {val["links"]["self"][self.rdmc.app.typepath.defs.hrefstring]: val}
+                    for val in content
+                ]
             except KeyError:
-                raise iLORisCorruptionError("iLO Database seems to be corrupted. Please check. Reboot the server to "
-                                            "restore\n")
+                raise iLORisCorruptionError(
+                    "iLO Database seems to be corrupted. Please check. Reboot the server to "
+                    "restore\n"
+                )
         type_string = self.rdmc.app.typepath.defs.typestring
 
         templist = list()
@@ -149,16 +173,28 @@ class SaveCommand():
             pathselector = None
 
             for path, values in content.items():
-                #if "Managers/1/EthernetInterfaces/1" not in path:
+                # if "Managers/1/EthernetInterfaces/1" not in path:
                 for dictentry in list(values.keys()):
                     if dictentry == type_string:
                         typeselector = values[dictentry]
                         pathselector = path
                         del values[dictentry]
-                    if dictentry in ["IPv4Addresses", "IPv6Addresses", "IPv6AddressPolicyTable", "MACAddress",
-                                     "StaticNameServers", "AutoNeg", "FullDuplex", "SpeedMbps"]:
+                    if dictentry in [
+                        "IPv4Addresses",
+                        "IPv6Addresses",
+                        "IPv6AddressPolicyTable",
+                        "MACAddress",
+                        "StaticNameServers",
+                        "AutoNeg",
+                        "FullDuplex",
+                        "SpeedMbps",
+                    ]:
                         del values[dictentry]
-                    if dictentry in ["IPv6StaticAddresses", "IPv6StaticDefaultGateways", "IPv4StaticAddresses"]:
+                    if dictentry in [
+                        "IPv6StaticAddresses",
+                        "IPv6StaticDefaultGateways",
+                        "IPv4StaticAddresses",
+                    ]:
                         if values[dictentry]:
                             del values[dictentry]
                     if dictentry in ["IPv4", "IPv6", "DHCPv6", "DHCPv4"]:
@@ -175,14 +211,16 @@ class SaveCommand():
                     if typeselector and pathselector:
                         tempcontents[typeselector] = {pathselector: values}
                     else:
-                        raise InvalidFileFormattingError("Missing path or selector in input file.")
+                        raise InvalidFileFormattingError(
+                            "Missing path or selector in input file."
+                        )
 
                 templist.append(tempcontents)
 
         return templist
 
     def nested_sort(self, data):
-        """ Helper function to sort all dictionary key:value pairs
+        """Helper function to sort all dictionary key:value pairs
 
         :param data: dictionary to sort
         :type data: dict.
@@ -197,17 +235,19 @@ class SaveCommand():
         return data
 
     def savevalidation(self, options):
-        """ Save method validation function
+        """Save method validation function
 
         :param options: command line options
         :type options: list.
         """
 
         if options.multisave:
-            options.multisave = options.multisave.replace('"', '').replace("'", '')
-            options.multisave = options.multisave.replace(' ', '').split(',')
+            options.multisave = options.multisave.replace('"', "").replace("'", "")
+            options.multisave = options.multisave.replace(" ", "").split(",")
             if not len(options.multisave) >= 1:
-                raise InvalidCommandLineError("Invalid number of types in multisave option.")
+                raise InvalidCommandLineError(
+                    "Invalid number of types in multisave option."
+                )
             options.selector = options.multisave[0]
             options.multisave = options.multisave[1:]
 
@@ -217,7 +257,9 @@ class SaveCommand():
         self.filename = None
 
         if options.filename and len(options.filename) > 1:
-            raise InvalidCommandLineError("Save command doesn't support multiple filenames.")
+            raise InvalidCommandLineError(
+                "Save command doesn't support multiple filenames."
+            )
         elif options.filename:
             self.filename = options.filename[0]
         elif self.rdmc.config:
@@ -228,7 +270,7 @@ class SaveCommand():
             self.filename = __filename__
 
     def add_save_file_header(self, contents):
-        """ Helper function to retrieve the comments for save file
+        """Helper function to retrieve the comments for save file
 
         :param contents: current save contents
         :type contents: list.
@@ -244,7 +286,7 @@ class SaveCommand():
         return templist
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -254,55 +296,55 @@ class SaveCommand():
 
         self.cmdbase.add_login_arguments_group(customparser)
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
-            help="Use this flag if you wish to use a different filename than the default one. " \
-                 "The default filename is %s." % __filename__,
+            "-f",
+            "--filename",
+            dest="filename",
+            help="Use this flag if you wish to use a different filename than the default one. "
+            "The default filename is %s." % __filename__,
             action="append",
             default=None,
         )
 
         customparser.add_argument(
-            '--selector',
-            dest='selector',
-            help="Optionally include this flag to select a type to run the current command on. " \
-                 "Use this flag when you wish to select a type without entering another command, " \
-                 "or if you wish to work with a type that is different from the one currently " \
-                 "selected.",
+            "--selector",
+            dest="selector",
+            help="Optionally include this flag to select a type to run the current command on. "
+            "Use this flag when you wish to select a type without entering another command, "
+            "or if you wish to work with a type that is different from the one currently "
+            "selected.",
             default=None,
         )
         customparser.add_argument(
-            '--multisave',
-            dest='multisave',
-            help="Optionally include this flag to save multiple types to a single file. " \
-                 "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
-            default='',
+            "--multisave",
+            dest="multisave",
+            help="Optionally include this flag to save multiple types to a single file. "
+            "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
+            default="",
         )
         customparser.add_argument(
-            '--filter',
-            dest='filter',
-            help="Optionally set a filter value for a filter attribute. This uses the provided " \
-                 "filter for the currently selected type. Note: Use this flag to narrow down your " \
-                 "results. For example, selecting a common type might return multiple objects that " \
-                 "are all of that type. If you want to modify the properties of only one of those " \
-                 "objects, use the filter flag to narrow down results based on properties." \
-                 "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            "--filter",
+            dest="filter",
+            help="Optionally set a filter value for a filter attribute. This uses the provided "
+            "filter for the currently selected type. Note: Use this flag to narrow down your "
+            "results. For example, selecting a common type might return multiple objects that "
+            "are all of that type. If you want to modify the properties of only one of those "
+            "objects, use the filter flag to narrow down results based on properties."
+            "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None,
         )
         customparser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
+            "-j",
+            "--json",
+            dest="json",
             action="store_true",
-            help="Optionally include this flag if you wish to change the displayed output to " \
-                 "JSON format. Preserving the JSON data structure makes the information easier to " \
-                 "parse.",
+            help="Optionally include this flag if you wish to change the displayed output to "
+            "JSON format. Preserving the JSON data structure makes the information easier to "
+            "parse.",
             default=False,
         )
         customparser.add_argument(
-            '--encryption',
-            dest='encryption',
+            "--encryption",
+            dest="encryption",
             help="Optionally include this flag to encrypt/decrypt a file using the key provided.",
             default=None,
         )

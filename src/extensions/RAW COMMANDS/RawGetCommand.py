@@ -24,28 +24,34 @@ from argparse import ArgumentParser, SUPPRESS
 
 import redfish
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
-class RawGetCommand():
-    """ Raw form of the get command """
+
+class RawGetCommand:
+    """Raw form of the get command"""
+
     def __init__(self):
         self.ident = {
-            'name':'rawget',
-            'usage': None,
-            'description':'Run to to retrieve data from '
-                    'the passed in path.\n\tExample: rawget "/redfish/v1/'
-                    'systems/(system ID)"',
-            'summary':'Raw form of the GET command.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "rawget",
+            "usage": None,
+            "description": "Run to to retrieve data from "
+            'the passed in path.\n\tExample: rawget "/redfish/v1/'
+            'systems/(system ID)"',
+            "summary": "Raw form of the GET command.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw get worker function
+        """Main raw get worker function
 
         :param line: command line input
         :type line: string.
@@ -69,7 +75,7 @@ class RawGetCommand():
         url = None
         headers = {}
 
-        if hasattr(options, 'sessionid') and options.sessionid:
+        if hasattr(options, "sessionid") and options.sessionid:
             url = self.sessionvalidation(options)
         else:
             self.getvalidation(options)
@@ -78,26 +84,32 @@ class RawGetCommand():
             options.path = options.path[1:-1]
 
         if options.expand:
-            options.path = options.path + '?$expand=.'
+            options.path = options.path + "?$expand=."
 
         if options.headers:
-            extraheaders = options.headers.split(',')
+            extraheaders = options.headers.split(",")
             for item in extraheaders:
-                header = item.split(':')
+                header = item.split(":")
 
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    InvalidCommandLineError("Invalid format for --headers "
-                                            "option.")
+                    InvalidCommandLineError("Invalid format for --headers " "option.")
 
         returnresponse = False
         if options.response or options.getheaders:
             returnresponse = True
 
-        results = self.rdmc.app.get_handler(options.path, sessionid=options.sessionid, headers=headers,
-                                            silent=options.silent, service=options.service, username=options.user,
-                                            password=options.password, base_url=options.url)
+        results = self.rdmc.app.get_handler(
+            options.path,
+            sessionid=options.sessionid,
+            headers=headers,
+            silent=options.silent,
+            service=options.service,
+            username=options.user,
+            password=options.password,
+            base_url=options.url,
+        )
 
         if results and results.status == 200 and options.binfile:
             output = results.read
@@ -115,14 +127,20 @@ class RawGetCommand():
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder,
-                                        sort_keys=True)
+                    output = json.dumps(
+                        results.dict,
+                        indent=2,
+                        cls=redfish.ris.JSONEncoder,
+                        sort_keys=True,
+                    )
 
                     filehndl = open(options.filename[0], "w")
                     filehndl.write(output)
                     filehndl.close()
 
-                    self.rdmc.ui.printer("Results written out to '%s'.\n" % options.filename[0])
+                    self.rdmc.ui.printer(
+                        "Results written out to '%s'.\n" % options.filename[0]
+                    )
                 else:
                     if options.service:
                         self.rdmc.ui.printer("%s\n" % results.dict)
@@ -132,11 +150,11 @@ class RawGetCommand():
             return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def getvalidation(self, options):
-        """ Raw get validation function
+        """Raw get validation function
 
         :param options: command line options
         :type options: list.
@@ -144,7 +162,7 @@ class RawGetCommand():
         self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def sessionvalidation(self, options):
-        """ Raw patch session validation function
+        """Raw patch session validation function
 
         :param options: command line options
         :type options: list.
@@ -163,7 +181,7 @@ class RawGetCommand():
         return url
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -174,65 +192,65 @@ class RawGetCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'path',
+            "path",
             help="Uri on iLO",
         )
         customparser.add_argument(
-            '--response',
-            dest='response',
+            "--response",
+            dest="response",
             action="store_true",
             help="Use this flag to return the iLO response body.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--getheaders',
-            dest='getheaders',
+            "--getheaders",
+            dest="getheaders",
             action="store_true",
             help="Use this flag to return the iLO response headers.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--headers',
-            dest='headers',
+            "--headers",
+            dest="headers",
             help="Use this flag to add extra headers to the request."
-                " example: --headers=HEADER:VALUE,HEADER:VALUE",
+            " example: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
         customparser.add_argument(
-            '--silent',
-            dest='silent',
+            "--silent",
+            dest="silent",
             action="store_true",
             help="""Use this flag to silence responses""",
             default=False,
         )
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
+            "-f",
+            "--filename",
+            dest="filename",
             help="""Write results to the specified file.""",
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '-b',
-            '--writebin',
-            dest='binfile',
+            "-b",
+            "--writebin",
+            dest="binfile",
             help="""Write the results to the specified file in binary.""",
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '--service',
-            dest='service',
+            "--service",
+            dest="service",
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_argument(
-            '--expand',
-            dest='expand',
+            "--expand",
+            dest="expand",
             action="store_true",
-            help="""Use this flag to expand the path specified using the """\
-                                            """expand notation '?$expand=.'""",
+            help="""Use this flag to expand the path specified using the """
+            """expand notation '?$expand=.'""",
             default=False,
         )

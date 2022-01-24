@@ -18,28 +18,35 @@
 """ Single Sign On Command for rdmc """
 from argparse import RawDescriptionHelpFormatter
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-            InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+)
 
-class SingleSignOnCommand():
-    """ Commands Single Sign On actions to the server """
+
+class SingleSignOnCommand:
+    """Commands Single Sign On actions to the server"""
+
     def __init__(self):
         self.ident = {
-            'name':'singlesignon',
-            'usage': None,
-            'description': 'Add or remove single sign on (SSO) records.\nTo view help on specific '
-                     'sub-commands run: singlesignon <sub-command> -h\n\nExample: singlesignon '
-                     'importcert -h\n\n',
-            'summary':"Command for all single sign on available actions. ",
-            'aliases': ['sso'],
-            'auxcommands': []
+            "name": "singlesignon",
+            "usage": None,
+            "description": "Add or remove single sign on (SSO) records.\nTo view help on specific "
+            "sub-commands run: singlesignon <sub-command> -h\n\nExample: singlesignon "
+            "importcert -h\n\n",
+            "summary": "Command for all single sign on available actions. ",
+            "aliases": ["sso"],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main SingleSignOnCommand function
+        """Main SingleSignOnCommand function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -81,16 +88,16 @@ class SingleSignOnCommand():
         if not options.command:
             return ReturnCodes.SUCCESS
 
-        if options.command.lower() == 'importdns':
+        if options.command.lower() == "importdns":
             actionitem = "ImportDNSName"
             body = {"Action": actionitem, "DNSName": options.dnsname}
-        elif options.command.lower() == 'importcert':
+        elif options.command.lower() == "importcert":
             cert = None
             certtype = None
             actionitem = "ImportCertificate"
 
             try:
-                cert = open(options.importcert, 'r')
+                cert = open(options.cert, "r")
 
                 if cert:
                     certtext = cert.read()
@@ -103,12 +110,12 @@ class SingleSignOnCommand():
 
             if not certtype:
                 certtype = "ImportCertUri"
-                certtext = options.importcert
+                certtext = options.cert
 
             body = {"Action": actionitem, "CertType": certtype, "CertInput": certtext}
 
-        elif options.command.lower() == 'deleterecord':
-            if optoins.record.lower() == 'all':
+        elif options.command.lower() == "deleterecord":
+            if options.record.lower() == "all":
                 actionitem = "DeleteAllSSORecords"
                 body = {"Action": actionitem}
             else:
@@ -120,13 +127,13 @@ class SingleSignOnCommand():
                     raise InvalidCommandLineError("Record to delete must be a number")
 
         try:
-            for item in bodydict['Actions']:
+            for item in bodydict["Actions"]:
                 if actionitem in item:
                     if self.rdmc.app.typepath.defs.isgen10:
-                        actionitem = item.split('#')[-1]
+                        actionitem = item.split("#")[-1]
                         body["Action"] = actionitem
 
-                    path = bodydict['Actions'][item]['target']
+                    path = bodydict["Actions"][item]["target"]
                     break
         except:
             pass
@@ -134,11 +141,11 @@ class SingleSignOnCommand():
         self.rdmc.app.post_handler(path, body)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def singlesignonvalidation(self, options):
-        """ single sign on validation function
+        """single sign on validation function
 
         :param options: command line options
         :type options: list.
@@ -146,7 +153,7 @@ class SingleSignOnCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -156,44 +163,45 @@ class SingleSignOnCommand():
 
         self.cmdbase.add_login_arguments_group(customparser)
 
-        subcommand_parser = customparser.add_subparsers(dest='command')
+        subcommand_parser = customparser.add_subparsers(dest="command")
         save_import_dns_help = "Import a DNS name."
-        #importdns sub-parser
+        # importdns sub-parser
         import_dns_parser = subcommand_parser.add_parser(
-            'importdns',
+            "importdns",
             help=save_import_dns_help,
-            description=save_import_dns_help + '\n\texample singlesignon importdns dnsname',
-            formatter_class=RawDescriptionHelpFormatter
+            description=save_import_dns_help
+            + "\n\texample singlesignon importdns dnsname",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         import_dns_parser.add_argument(
-            'dnsname',
-            help="DNS Name to be imported",
-            metavar='DNSNAME'
+            "dnsname", help="DNS Name to be imported", metavar="DNSNAME"
         )
         save_import_cert_help = "Import certificate from URI or file."
-        #importcert sub-parser
+        # importcert sub-parser
         import_cert_parser = subcommand_parser.add_parser(
-            'importcert',
+            "importcert",
             help=save_import_cert_help,
-            description=save_import_cert_help + '\n\texample singlesignon import cert',
-            formatter_class=RawDescriptionHelpFormatter
+            description=save_import_cert_help
+            + "\n\texample singlesignon importcert cert.txt",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         import_cert_parser.add_argument(
-            'cert',
-            help='Certificate URI or Certificate File to be imported.',
-            metavar='CERTIFICATE'
+            "cert",
+            help="Certificate URI or Certificate File to be imported.",
+            metavar="CERTIFICATE",
         )
-        #delete sub-parser
+        # delete sub-parser
         delete_sso_help = "Delete a single or all SSO records."
         delete_sso_parser = subcommand_parser.add_parser(
-            'deleterecord',
+            "deleterecord",
             help=delete_sso_help,
-            description=delete_sso_help + '\nDelete a single record:\nexample deleterecord 2\n' \
-                        'Delete all records:\nexample singlesignon deleterecord all',
-            formatter_class=RawDescriptionHelpFormatter
+            description=delete_sso_help
+            + "\nDelete a single record:\nexample deleterecord 2\n"
+            "Delete all records:\nexample singlesignon deleterecord all",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         delete_sso_parser.add_argument(
-            'record',
-            help='Record to be deleted (or use keyword \'all\' to delete all records)',
-            metavar='RECORD'
+            "record",
+            help="Record to be deleted (or use keyword 'all' to delete all records)",
+            metavar="RECORD",
         )

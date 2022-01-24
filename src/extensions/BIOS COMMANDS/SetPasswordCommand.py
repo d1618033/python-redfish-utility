@@ -18,37 +18,49 @@
 """ SetPassword Command for rdmc """
 
 import getpass
+from argparse import SUPPRESS, ArgumentParser
 
-from argparse import ArgumentParser, SUPPRESS
+from rdmc_helper import (
+    Encryption,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    ReturnCodes,
+    UnableToDecodeError,
+)
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption, UnableToDecodeError
 
-class SetPasswordCommand():
-    """ Set password class command """
+class SetPasswordCommand:
+    """Set password class command"""
+
     def __init__(self):
         self.ident = {
-            'name':'setpassword',
-            'usage': None,
-            'description':'Sets the admin password and power-on password\n'
-                    'setpassword --newpassword <NEW_PASSWORD> --currentpassword <OLD_PASSWORD> [OPTIONS]\n\n\t'
-                    'Setting the admin password with no previous password set.'
-                    '\n\texample: setpassword --newpassword testnew --currentpassword None\n\n\tSetting the admin '
-                    'password back to nothing.\n\texample: setpassword --newpassword None --currentpassword testnew '
-                    '\n\n\tSetting the power on password.\n\texample: setpassword'
-                    ' --newpassword testnew --currentpassword None --poweron\n\tNote: '
-                    'if it is empty password, send None as above.',
-            'summary':'Sets the admin password and power-on password',
-            'aliases': [],
-            'auxcommands': ['LoginCommand', 'SetCommand', 'SelectCommand',
-                            'CommitCommand', 'RebootCommand', 'LogoutCommand']
+            "name": "setpassword",
+            "usage": None,
+            "description": "Sets the admin password and power-on password\n"
+            "setpassword --newpassword <NEW_PASSWORD> --currentpassword <OLD_PASSWORD> [OPTIONS]\n\n\t"
+            "Setting the admin password with no previous password set."
+            "\n\texample: setpassword --newpassword testnew --currentpassword None\n\n\tSetting the admin "
+            "password back to nothing.\n\texample: setpassword --newpassword None --currentpassword testnew "
+            "\n\n\tSetting the power on password.\n\texample: setpassword"
+            " --newpassword testnew --currentpassword None --poweron\n\tNote: "
+            "if it is empty password, send None as above.",
+            "summary": "Sets the admin password and power-on password",
+            "aliases": [],
+            "auxcommands": [
+                "LoginCommand",
+                "SetCommand",
+                "SelectCommand",
+                "CommitCommand",
+                "RebootCommand",
+                "LogoutCommand",
+            ],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main set password worker function
+        """Main set password worker function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -69,7 +81,7 @@ class SetPasswordCommand():
 
         self.setpasswordvalidation(options)
 
-        #if not args:
+        # if not args:
         #    self.rdmc.ui.printer('Please input the current password.\n')
         #    tempoldpass = getpass.getpass()
 
@@ -87,9 +99,8 @@ class SetPasswordCommand():
         #        tempnewpass = '""'
         #    args.extend([tempnewpass, tempoldpass])
 
-        #if len(args) < 2:
+        # if len(args) < 2:
         #    raise InvalidCommandLineError("Please pass both new password and old password.")
-
 
         args = list()
         args.append(options.newpassword)
@@ -97,13 +108,17 @@ class SetPasswordCommand():
         count = 0
         for arg in args:
             if arg:
-                if arg.lower() == 'none':
+                if arg.lower() == "none":
                     args[count] = None
                 elif len(arg) > 2:
-                    if ('"' in arg[0] and '"' in arg[-1]) or ('\'' in arg[0] and '\'' in arg[-1]):
+                    if ('"' in arg[0] and '"' in arg[-1]) or (
+                        "'" in arg[0] and "'" in arg[-1]
+                    ):
                         args[count] = arg[1:-1]
                 elif len(arg) == 2:
-                    if (arg[0] == '"' and arg[1] == '"') or (arg[0] == '\'' and arg[1] == '\''):
+                    if (arg[0] == '"' and arg[1] == '"') or (
+                        arg[0] == "'" and arg[1] == "'"
+                    ):
                         args[count] = None
             count += 1
 
@@ -113,49 +128,63 @@ class SetPasswordCommand():
                 try:
                     arg = Encryption.decode_credentials(arg)
                     if isinstance(arg, bytes):
-                        arg = arg.decode('utf-8')
+                        arg = arg.decode("utf-8")
                     _args.append(arg)
                 except UnableToDecodeError:
                     _args.append(arg)
             args = _args
         if self.rdmc.app.typepath.defs.isgen10:
-            bodydict = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,
-                                                 service=True, silent=True).dict
+            bodydict = self.rdmc.app.get_handler(
+                self.rdmc.app.typepath.defs.biospath, service=True, silent=True
+            ).dict
 
-            for item in bodydict['Actions']:
-                if 'ChangePassword' in item:
-                    path = bodydict['Actions'][item]['target']
+            for item in bodydict["Actions"]:
+                if "ChangePassword" in item:
+                    path = bodydict["Actions"][item]["target"]
                     break
 
             if options.poweron:
-                body = {"PasswordName": "User", "OldPassword": args[1], "NewPassword": args[0]}
+                body = {
+                    "PasswordName": "User",
+                    "OldPassword": args[1],
+                    "NewPassword": args[0],
+                }
             else:
-                body = {"PasswordName": "Administrator", "OldPassword": args[1],
-                        "NewPassword": args[0]}
+                body = {
+                    "PasswordName": "Administrator",
+                    "OldPassword": args[1],
+                    "NewPassword": args[0],
+                }
 
             self.rdmc.app.post_handler(path, body)
         else:
             if options.poweron:
-                self.auxcommands['select'].run("HpBios.")
-                self.auxcommands['set'].run("PowerOnPassword=%s OldPowerOnPassword=%s" % (args[0], args[1]))
-                self.auxcommands['commit'].run("")
+                self.auxcommands["select"].run("HpBios.")
+                self.auxcommands["set"].run(
+                    "PowerOnPassword=%s OldPowerOnPassword=%s" % (args[0], args[1])
+                )
+                self.auxcommands["commit"].run("")
             else:
-                self.auxcommands['select'].run("HpBios.")
-                self.auxcommands['set'].run("AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1]))
-                self.auxcommands['commit'].run("")
-                self.rdmc.ui.printer('\nThe session will now be terminated.\n'
-                                     ' login again with updated credentials in order to continue.\n')
-                self.auxcommands['logout'].run("")
+                self.auxcommands["select"].run("HpBios.")
+                self.auxcommands["set"].run(
+                    "AdminPassword=%s OldAdminPassword=%s" % (args[0], args[1])
+                )
+                self.auxcommands["commit"].run("")
+                self.rdmc.ui.printer(
+                    "\nThe session will now be terminated.\n"
+                    " login again with updated credentials in order to continue.\n"
+                )
+                self.auxcommands["logout"].run("")
 
         if options:
             if options.reboot:
-                self.auxcommands['reboot'].run(options.reboot)
+                self.auxcommands["reboot"].run(options.reboot)
 
         self.cmdbase.logout_routine(self, options)
         return ReturnCodes.SUCCESS
 
     def setpasswordvalidation(self, options):
-        """ Results method validation function
+        """Results method validation function
 
         :param options: command line options
         :type options: list.
@@ -163,7 +192,7 @@ class SetPasswordCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -174,31 +203,31 @@ class SetPasswordCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--currentpassword',
-            dest='currentpassword',
+            "--currentpassword",
+            dest="currentpassword",
             help="Use this flag to provide current password.",
             required=True,
         )
 
         customparser.add_argument(
-            '--newpassword',
-            dest='newpassword',
+            "--newpassword",
+            dest="newpassword",
             help="Use this flag to provide new password.",
             required=True,
         )
 
         customparser.add_argument(
-            '--reboot',
-            dest='reboot',
-            help="Use this flag to perform a reboot command function after "\
-                "completion of operations. 'REBOOT' is a replaceable parameter "\
-                "that can have multiple values. For help with parameters and "\
-                "descriptions regarding the reboot flag, run help reboot.",
+            "--reboot",
+            dest="reboot",
+            help="Use this flag to perform a reboot command function after "
+            "completion of operations. 'REBOOT' is a replaceable parameter "
+            "that can have multiple values. For help with parameters and "
+            "descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
         customparser.add_argument(
-            '--poweron',
-            dest='poweron',
+            "--poweron",
+            dest="poweron",
             action="store_true",
             help="""Use this flag to set power on password instead""",
             default=None,

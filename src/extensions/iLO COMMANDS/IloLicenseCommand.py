@@ -17,20 +17,26 @@
 # -*- coding: utf-8 -*-
 """ Add License Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
-class IloLicenseCommand():
-    """ Add an iLO license to the server """
+
+class IloLicenseCommand:
+    """Add an iLO license to the server"""
+
     def __init__(self):
         self.ident = {
-            'name':'ilolicense',
-            'usage': None,
-            'description': 'Set an iLO license on the current logged in server.\n\t'
-                    'Example: ilolicense xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',
-            'summary':'Adds an iLO license key to the currently logged in server.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "ilolicense",
+            "usage": None,
+            "description": "Set an iLO license on the current logged in server.\n\t"
+            "Example: ilolicense xxxxx-xxxxx-xxxxx-xxxxx-xxxxx",
+            "summary": "Adds an iLO license key to the currently logged in server.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -65,11 +71,11 @@ class IloLicenseCommand():
         self.rdmc.app.post_handler(path, body)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def addlicensevalidation(self, options):
-        """ ilolicense validation function
+        """ilolicense validation function
 
         :param options: command line options
         :type options: list.
@@ -77,7 +83,7 @@ class IloLicenseCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

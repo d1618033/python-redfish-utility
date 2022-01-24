@@ -25,34 +25,41 @@ from collections import OrderedDict
 
 from argparse import ArgumentParser
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, InvalidFileInputError, \
-                    InvalidFileFormattingError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    InvalidFileInputError,
+    InvalidFileFormattingError,
+    Encryption,
+)
 
-class RawPostCommand():
-    """ Raw form of the post command """
+
+class RawPostCommand:
+    """Raw form of the post command"""
+
     def __init__(self):
         self.ident = {
-            'name':'rawpost',
-            'usage': None,
-            'description':'Run to send a post from '
-                    'the data in the input file.\n\tMultiple POSTs can be performed in sequence by'
-                    ' \n\tadding more path/body key/value pairs.\n'
-                    '\n\texample: rawpost rawpost.'
-                    'txt\n\n\tExample input file:\n\t{\n\t    "/'
-                    'redfish/v1/systems/(system ID)/Actions/ComputerSystem.'
-                    'Reset":\n\t    {\n\t        "ResetType": '
-                    '"ForceRestart"\n\t    }\n\t}',
-            'summary':'Raw form of the POST command.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "rawpost",
+            "usage": None,
+            "description": "Run to send a post from "
+            "the data in the input file.\n\tMultiple POSTs can be performed in sequence by"
+            " \n\tadding more path/body key/value pairs.\n"
+            "\n\texample: rawpost rawpost."
+            'txt\n\n\tExample input file:\n\t{\n\t    "/'
+            "redfish/v1/systems/(system ID)/Actions/ComputerSystem."
+            'Reset":\n\t    {\n\t        "ResetType": '
+            '"ForceRestart"\n\t    }\n\t}',
+            "summary": "Raw form of the POST command.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw patch worker function
+        """Main raw patch worker function
 
         :param line: command line input
         :type line: string.
@@ -77,7 +84,7 @@ class RawPostCommand():
         headers = {}
         results = []
 
-        if hasattr(options, 'sessionid') and options.sessionid:
+        if hasattr(options, "sessionid") and options.sessionid:
             url = self.sessionvalidation(options)
         else:
             self.postvalidation(options)
@@ -85,46 +92,69 @@ class RawPostCommand():
         contentsholder = None
 
         try:
-            with open(options.path, 'r') as _if:
+            with open(options.path, "r") as _if:
                 contentsholder = json.loads(_if.read(), object_pairs_hook=OrderedDict)
         except IOError:
-            raise InvalidFileInputError("File '%s' doesn't exist. " \
-                                "Please create file by running 'save' command." % options.path)
+            raise InvalidFileInputError(
+                "File '%s' doesn't exist. "
+                "Please create file by running 'save' command." % options.path
+            )
         except (ValueError):
-            raise InvalidFileFormattingError("Input file '%s' was not " \
-                                                            "formatted properly." % options.path)
+            raise InvalidFileFormattingError(
+                "Input file '%s' was not " "formatted properly." % options.path
+            )
         if options.encode:
-            if "body" in contentsholder and "UserName" in contentsholder["body"] and \
-                        "Password" in contentsholder["body"] and \
-                        len(list(contentsholder["body"].keys())) == 2:
+            if (
+                "body" in contentsholder
+                and "UserName" in contentsholder["body"]
+                and "Password" in contentsholder["body"]
+                and len(list(contentsholder["body"].keys())) == 2
+            ):
                 encobj = Encryption()
                 contentsholder["body"]["UserName"] = encobj.decode_credentials(
-                    contentsholder["body"]["UserName"])
+                    contentsholder["body"]["UserName"]
+                )
                 contentsholder["body"]["Password"] = encobj.decode_credentials(
-                    contentsholder["body"]["Password"])
+                    contentsholder["body"]["Password"]
+                )
 
         if options.headers:
-            extraheaders = options.headers.split(',')
+            extraheaders = options.headers.split(",")
             for item in extraheaders:
-                header = item.split(':')
+                header = item.split(":")
 
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    raise InvalidCommandLineError("Invalid format for --headers option.")
+                    raise InvalidCommandLineError(
+                        "Invalid format for --headers option."
+                    )
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self.rdmc.app.post_handler(contentsholder["path"],
-                                                      contentsholder["body"], headers=headers,
-                                                      silent=options.silent, service=options.service))
+            results.append(
+                self.rdmc.app.post_handler(
+                    contentsholder["path"],
+                    contentsholder["body"],
+                    headers=headers,
+                    silent=options.silent,
+                    service=options.service,
+                )
+            )
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self.rdmc.app.post_handler(path,
-                                                          body, headers=headers,
-                                                          silent=options.silent, service=options.service))
+                results.append(
+                    self.rdmc.app.post_handler(
+                        path,
+                        body,
+                        headers=headers,
+                        silent=options.silent,
+                        service=options.service,
+                    )
+                )
         else:
-            raise InvalidFileFormattingError("Input file '%s' was not "\
-                                             "formatted properly." % options.path)
+            raise InvalidFileFormattingError(
+                "Input file '%s' was not " "formatted properly." % options.path
+            )
         returnresponse = False
 
         if options.response or options.getheaders:
@@ -137,16 +167,16 @@ class RawPostCommand():
 
                 if options.response:
                     if isinstance(result.ori, bytes):
-                        self.rdmc.ui.printer(result.ori.decode('utf-8') + "\n")
+                        self.rdmc.ui.printer(result.ori.decode("utf-8") + "\n")
                     else:
                         self.rdmc.ui.printer(result.ori + "\n")
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def postvalidation(self, options):
-        """ Raw post validation function
+        """Raw post validation function
 
         :param options: command line options
         :type options: list.
@@ -154,7 +184,7 @@ class RawPostCommand():
         self.cmdbase.login_select_validation(self, options, skipbuild=True)
 
     def sessionvalidation(self, options):
-        """ Raw post session validation function
+        """Raw post session validation function
 
         :param options: command line options
         :type options: list.
@@ -173,7 +203,7 @@ class RawPostCommand():
         return url
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -184,41 +214,41 @@ class RawPostCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'path',
+            "path",
             help="Path to the JSON file containing the data to be patched.",
         )
         customparser.add_argument(
-            '--response',
-            dest='response',
+            "--response",
+            dest="response",
             action="store_true",
             help="Use this flag to return the iLO response body.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--getheaders',
-            dest='getheaders',
+            "--getheaders",
+            dest="getheaders",
             action="store_true",
             help="Use this flag to return the iLO response headers.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--headers',
-            dest='headers',
-            help="Use this flag to add extra headers to the request."\
+            "--headers",
+            dest="headers",
+            help="Use this flag to add extra headers to the request."
             "\t\t\t\t\t Usage: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
         customparser.add_argument(
-            '--silent',
-            dest='silent',
+            "--silent",
+            dest="silent",
             action="store_true",
             help="""Use this flag to silence responses""",
             default=False,
         )
         customparser.add_argument(
-            '--service',
-            dest='service',
+            "--service",
+            dest="service",
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
-            default=False
+            default=False,
         )

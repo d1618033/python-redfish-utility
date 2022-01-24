@@ -24,20 +24,26 @@ from redfish.ris.resp_handler import ResponseHandler
 
 from redfish.ris.rmc_helper import EmptyRaiseForEAFP
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
-class ResultsCommand():
-    """ Monolith class command """
+
+class ResultsCommand:
+    """Monolith class command"""
+
     def __init__(self):
         self.ident = {
-            'name':'results',
-            'usage': None,
-            'description':'Run to show the results of the last'
-                    ' changes after a server reboot.\n\texample: results',
-            'summary':'Show the results of changes which require a server reboot.',
-            'aliases': [],
-            'auxcommands': ['LoginCommand', 'SelectCommand']
+            "name": "results",
+            "usage": None,
+            "description": "Run to show the results of the last"
+            " changes after a server reboot.\n\texample: results",
+            "summary": "Show the results of changes which require a server reboot.",
+            "aliases": [],
+            "auxcommands": ["LoginCommand", "SelectCommand"],
         }
 
         self.cmdbase = None
@@ -45,7 +51,7 @@ class ResultsCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Gather results of latest BIOS change
+        """Gather results of latest BIOS change
 
         :param line: string of arguments passed in
         :type line: str.
@@ -62,60 +68,83 @@ class ResultsCommand():
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Results command does not take any arguments.")
+            raise InvalidCommandLineError(
+                "Results command does not take any arguments."
+            )
         self.resultsvalidation(options)
         results = {}
-        if self.rdmc.app.typepath.defs.biospath[-1] == '/':
-            iscsipath = self.rdmc.app.typepath.defs.biospath + 'iScsi/'
-            bootpath = self.rdmc.app.typepath.defs.biospath + 'Boot/'
+        if self.rdmc.app.typepath.defs.biospath[-1] == "/":
+            iscsipath = self.rdmc.app.typepath.defs.biospath + "iScsi/"
+            bootpath = self.rdmc.app.typepath.defs.biospath + "Boot/"
         else:
-            iscsipath = self.rdmc.app.typepath.defs.biospath + '/iScsi'
-            bootpath = self.rdmc.app.typepath.defs.biospath + '/Boot'
+            iscsipath = self.rdmc.app.typepath.defs.biospath + "/iScsi"
+            bootpath = self.rdmc.app.typepath.defs.biospath + "/Boot"
 
         try:
-            self.auxcommands['select'].selectfunction("SmartStorageConfig")
+            self.auxcommands["select"].selectfunction("SmartStorageConfig")
             smartarray = self.rdmc.app.getprops()
-            sapaths = [path['@odata.id'].split('settings')[0] for path in smartarray]
+            sapaths = [path["@odata.id"].split("settings")[0] for path in smartarray]
         except:
             sapaths = None
 
-        biosresults = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,
-                                                service=True, silent=True)
-        iscsiresults = self.rdmc.app.get_handler(iscsipath,
-                                                 service=True, silent=True)
-        bootsresults = self.rdmc.app.get_handler(bootpath,
-                                                 service=True, silent=True)
+        biosresults = self.rdmc.app.get_handler(
+            self.rdmc.app.typepath.defs.biospath, service=True, silent=True
+        )
+        iscsiresults = self.rdmc.app.get_handler(iscsipath, service=True, silent=True)
+        bootsresults = self.rdmc.app.get_handler(bootpath, service=True, silent=True)
         if sapaths:
-            saresults = [self.rdmc.app.get_handler(path, service=True,
-                                                   silent=True) for path in sapaths]
+            saresults = [
+                self.rdmc.app.get_handler(path, service=True, silent=True)
+                for path in sapaths
+            ]
         try:
-            results.update({'Bios:': biosresults.dict[self.rdmc.app.typepath.defs.\
-                                            biossettingsstring]['Messages']})
+            results.update(
+                {
+                    "Bios:": biosresults.dict[
+                        self.rdmc.app.typepath.defs.biossettingsstring
+                    ]["Messages"]
+                }
+            )
         except Exception as exp:
-            results.update({'Bios:': None})
+            results.update({"Bios:": None})
 
         try:
-            results.update({'Iscsi:': iscsiresults.dict[self.rdmc.app.typepath.defs.\
-                                           biossettingsstring]['Messages']})
+            results.update(
+                {
+                    "Iscsi:": iscsiresults.dict[
+                        self.rdmc.app.typepath.defs.biossettingsstring
+                    ]["Messages"]
+                }
+            )
         except:
-            results.update({'Iscsi:': None})
+            results.update({"Iscsi:": None})
 
         try:
-            results.update({'Boot:': bootsresults.dict[self.rdmc.app.typepath.defs.\
-                                             biossettingsstring]['Messages']})
+            results.update(
+                {
+                    "Boot:": bootsresults.dict[
+                        self.rdmc.app.typepath.defs.biossettingsstring
+                    ]["Messages"]
+                }
+            )
         except:
-            results.update({'Boot:': None})
+            results.update({"Boot:": None})
         try:
             for result in saresults:
-                loc = 'SmartArray'
+                loc = "SmartArray"
                 if saresults.index(result) > 0:
-                    loc += ' %d:' % saresults.index(result)
+                    loc += " %d:" % saresults.index(result)
                 else:
-                    loc += ':'
-                results.update({loc: result.dict[self.rdmc.app.typepath.defs.\
-                                             biossettingsstring]['Messages']})
+                    loc += ":"
+                results.update(
+                    {
+                        loc: result.dict[
+                            self.rdmc.app.typepath.defs.biossettingsstring
+                        ]["Messages"]
+                    }
+                )
         except:
-            results.update({'SmartArray:': None})
+            results.update({"SmartArray:": None})
 
         messagelist = list()
 
@@ -125,10 +154,12 @@ class ResultsCommand():
             self.rdmc.ui.printer("%s\n" % result)
             try:
                 for msg in results[result]:
-                    resp = ResponseHandler(self.rdmc.app.validationmanager,
-                        self.rdmc.app.typepath.defs.messageregistrytype).\
-                        message_handler(response_data=msg, message_text="", verbosity=0,
-                                        dl_reg=False)
+                    resp = ResponseHandler(
+                        self.rdmc.app.validationmanager,
+                        self.rdmc.app.typepath.defs.messageregistrytype,
+                    ).message_handler(
+                        response_data=msg, message_text="", verbosity=0, dl_reg=False
+                    )
                     pass
             except EmptyRaiseForEAFP as exp:
                 raise EmptyRaiseForEAFP(exp)
@@ -139,7 +170,7 @@ class ResultsCommand():
         return ReturnCodes.SUCCESS
 
     def resultsvalidation(self, options):
-        """ Results method validation function
+        """Results method validation function
 
         :param options: command line options
         :type options: list.
@@ -147,7 +178,7 @@ class ResultsCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

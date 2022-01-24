@@ -17,33 +17,39 @@
 # -*- coding: utf-8 -*-
 """ List Command for RDMC """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, InvalidCommandLineError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+)
 
 from argparse import ArgumentParser, SUPPRESS
 
-class ListCommand():
-    """ Constructor """
+
+class ListCommand:
+    """Constructor"""
+
     def __init__(self):
         self.ident = {
-            'name':'list',
-            'usage': None,
-            'description':'Displays the current values of the '
-                    'properties within\n\ta selected type including'
-                    ' reserved properties\n\texample: list\n\n\tNOTE: If '
-                    'you wish to not list all the reserved properties\n\t     '
-                    ' run the get command instead',
-            'summary':'Displays the current value(s) of a'
-                      ' property(ies) within a selected type including'
-                      ' reserved properties.',
-            'aliases': ['ls'],
-            'auxcommands': ["GetCommand"]
+            "name": "list",
+            "usage": None,
+            "description": "Displays the current values of the "
+            "properties within\n\ta selected type including"
+            " reserved properties\n\texample: list\n\n\tNOTE: If "
+            "you wish to not list all the reserved properties\n\t     "
+            " run the get command instead",
+            "summary": "Displays the current value(s) of a"
+            " property(ies) within a selected type including"
+            " reserved properties.",
+            "aliases": ["ls"],
+            "auxcommands": ["GetCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for main list function
+        """Wrapper function for main list function
 
         :param line: command line input
         :type line: string.
@@ -65,24 +71,29 @@ class ListCommand():
 
         if options.filter:
             try:
-                if (str(options.filter)[0] == str(options.filter)[-1])\
-                        and str(options.filter).startswith(("'", '"')):
+                if (str(options.filter)[0] == str(options.filter)[-1]) and str(
+                    options.filter
+                ).startswith(("'", '"')):
                     options.filter = options.filter[1:-1]
 
-                (sel, val) = options.filter.split('=')
+                (sel, val) = options.filter.split("=")
                 fvals = (sel.strip(), val.strip())
             except:
-                raise InvalidCommandLineError("Invalid filter"
-                                              " parameter format [filter_attribute]=[filter_value]")
+                raise InvalidCommandLineError(
+                    "Invalid filter"
+                    " parameter format [filter_attribute]=[filter_value]"
+                )
 
-        self.auxcommands['get'].getworkerfunction(args, options, filtervals=fvals, uselist=False)
+        self.auxcommands["get"].getworkerfunction(
+            args, options, filtervals=fvals, uselist=False
+        )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def listvalidation(self, options):
-        """ List data validation function
+        """List data validation function
 
         :param options: command line options
         :type options: list.
@@ -90,7 +101,7 @@ class ListCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -101,44 +112,44 @@ class ListCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--selector',
-            dest='selector',
-            help="Optionally include this flag to select a type to run"\
-             " the current command on. Use this flag when you wish to"\
-             " select a type without entering another command, or if you"\
-              " wish to work with a type that is different from the one"\
-              " you currently have selected.",
+            "--selector",
+            dest="selector",
+            help="Optionally include this flag to select a type to run"
+            " the current command on. Use this flag when you wish to"
+            " select a type without entering another command, or if you"
+            " wish to work with a type that is different from the one"
+            " you currently have selected.",
             default=None,
         )
 
         customparser.add_argument(
-            '--filter',
-            dest='filter',
+            "--filter",
+            dest="filter",
             help="Optionally set a filter value for a filter attribute."
-                 " This uses the provided filter for the currently selected"
-                 " type. Note: Use this flag to narrow down your results. For"
-                 " example, selecting a common type might return multiple"
-                 " objects that are all of that type. If you want to modify"
-                 " the properties of only one of those objects, use the filter"
-                 " flag to narrow down results based on properties."
-                 "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
-            default=None
+            " This uses the provided filter for the currently selected"
+            " type. Note: Use this flag to narrow down your results. For"
+            " example, selecting a common type might return multiple"
+            " objects that are all of that type. If you want to modify"
+            " the properties of only one of those objects, use the filter"
+            " flag to narrow down results based on properties."
+            "\t\t\t\t\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+            default=None,
         )
         customparser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
+            "-j",
+            "--json",
+            dest="json",
             action="store_true",
             help="Optionally include this flag if you wish to change the"
-                 " displayed output to JSON format. Preserving the JSON data"
-                 " structure makes the information easier to parse.",
-            default=False
+            " displayed output to JSON format. Preserving the JSON data"
+            " structure makes the information easier to parse.",
+            default=False,
         )
         customparser.add_argument(
-            '--refresh',
-            dest='ref',
+            "--refresh",
+            dest="ref",
             action="store_true",
             help="Optionally reload the data of selected type and clear "
-                 "patches from current selection.",
-            default=False
+            "patches from current selection.",
+            default=False,
         )

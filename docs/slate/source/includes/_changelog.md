@@ -1,5 +1,21 @@
 # Change Log
 
+##Version 3.5.0
+
+**Fixes:**   
+
+* Fixed issues serverclone command w.r.t automatic cloning of password.  
+* Fixed incorrect json outputs for installset and serverinfo commands to help in automation scripts.  
+* Fixed issues in ipprofiles command to aid in Intelligent Provisioning Job execution.  
+* Fixed issues in iscsiconfig --list command.  
+* Fixed an issue in directory show command to correctly show iLO Object Distinguished Name.  
+* Fixed an issue in securitystatus command with credentials security.  
+
+**Feature Enhancements:**   
+
+* Added support to manage Compute Ops Manager which abstracts and orchestrates infrastructure and compute workflows.  
+* Added support to enable/disable enhanced download capability to ethernet command.  
+
 ## Version 3.3.0
 
 **Fixes:**

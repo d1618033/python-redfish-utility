@@ -27,32 +27,40 @@ from argparse import ArgumentParser, SUPPRESS
 
 from argparse import ArgumentParser
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidFileFormattingError, \
-                    InvalidCommandLineErrorOPTS, InvalidFileInputError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidFileFormattingError,
+    InvalidCommandLineErrorOPTS,
+    InvalidFileInputError,
+    Encryption,
+)
 
-class RawPatchCommand():
-    """ Raw form of the patch command """
+
+class RawPatchCommand:
+    """Raw form of the patch command"""
+
     def __init__(self):
         self.ident = {
-            'name':'rawpatch',
-            'usage': None,
-            'description':'Run to send a patch from the data'
-                    ' in the input file.\n\tMultiple PATCHes can be performed in sequence by '
-                    '\n\tadding more path/body key/value pairs.\n'
-                    '\n\texample: rawpatch rawpatch.txt'
-                    '\n\n\tExample input file:\n\t{\n\t    "/redfish/'
-                    'v1/systems/(system ID)":\n\t    {\n\t        '
-                    '"AssetTag": "NewAssetTag"\n\t    }\n\t}',
-            'summary':'Raw form of the PATCH command.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "rawpatch",
+            "usage": None,
+            "description": "Run to send a patch from the data"
+            " in the input file.\n\tMultiple PATCHes can be performed in sequence by "
+            "\n\tadding more path/body key/value pairs.\n"
+            "\n\texample: rawpatch rawpatch.txt"
+            '\n\n\tExample input file:\n\t{\n\t    "/redfish/'
+            'v1/systems/(system ID)":\n\t    {\n\t        '
+            '"AssetTag": "NewAssetTag"\n\t    }\n\t}',
+            "summary": "Raw form of the PATCH command.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw patch worker function
+        """Main raw patch worker function
 
         :param line: command line input
         :type line: string.
@@ -77,46 +85,66 @@ class RawPatchCommand():
         headers = {}
         results = []
 
-        if hasattr(options, 'sessionid') and options.sessionid:
+        if hasattr(options, "sessionid") and options.sessionid:
             url = self.sessionvalidation(options)
         else:
             self.patchvalidation(options)
 
         contentsholder = None
         try:
-            with open(options.path, 'r') as _if:
+            with open(options.path, "r") as _if:
                 contentsholder = json.loads(_if.read(), object_pairs_hook=OrderedDict)
         except IOError:
-            raise InvalidFileInputError("File '%s' doesn't exist. " \
-                                "Please create file by running 'save' command." % options.path)
+            raise InvalidFileInputError(
+                "File '%s' doesn't exist. "
+                "Please create file by running 'save' command." % options.path
+            )
         except (ValueError):
-            raise InvalidFileFormattingError("Input file '%s' was not " \
-                                                            "formatted properly." % options.path)
+            raise InvalidFileFormattingError(
+                "Input file '%s' was not " "formatted properly." % options.path
+            )
 
         if options.headers:
-            extraheaders = options.headers.split(',')
+            extraheaders = options.headers.split(",")
 
             for item in extraheaders:
-                header = item.split(':')
+                header = item.split(":")
 
                 try:
                     headers[header[0]] = header[1]
                 except:
-                    raise InvalidCommandLineError("Invalid format for --headers option.")
+                    raise InvalidCommandLineError(
+                        "Invalid format for --headers option."
+                    )
 
         if "path" in contentsholder and "body" in contentsholder:
-            results.append(self.rdmc.app.patch_handler(contentsholder["path"],
-                                                       contentsholder["body"], headers=headers, silent=options.silent,
-                                                       optionalpassword=options.biospassword, service=options.service))
+            results.append(
+                self.rdmc.app.patch_handler(
+                    contentsholder["path"],
+                    contentsholder["body"],
+                    headers=headers,
+                    silent=options.silent,
+                    optionalpassword=options.biospassword,
+                    service=options.service,
+                )
+            )
 
         elif all([re.match("^\/(\S+\/?)+$", key) for key in contentsholder]):
             for path, body in contentsholder.items():
-                results.append(self.rdmc.app.patch_handler(path,
-                                                           body, headers=headers, silent=options.silent,
-                                                           optionalpassword=options.biospassword, service=options.service))
+                results.append(
+                    self.rdmc.app.patch_handler(
+                        path,
+                        body,
+                        headers=headers,
+                        silent=options.silent,
+                        optionalpassword=options.biospassword,
+                        service=options.service,
+                    )
+                )
         else:
-            raise InvalidFileFormattingError("Input file '%s' was not format properly." % \
-                                                                                    options.path)
+            raise InvalidFileFormattingError(
+                "Input file '%s' was not format properly." % options.path
+            )
 
         returnresponse = False
 
@@ -133,11 +161,11 @@ class RawPatchCommand():
                     self.rdmc.ui.printer("\n")
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def patchvalidation(self, options):
-        """ Raw patch validation function
+        """Raw patch validation function
 
         :param options: command line options
         :type options: list.
@@ -145,7 +173,7 @@ class RawPatchCommand():
         self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def sessionvalidation(self, options):
-        """ Raw patch session validation function
+        """Raw patch session validation function
 
         :param options: command line options
         :type options: list.
@@ -164,7 +192,7 @@ class RawPatchCommand():
         return url
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -175,40 +203,40 @@ class RawPatchCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'path',
+            "path",
             help="Path to the JSON file containing the data to be patched.",
         )
         customparser.add_argument(
-            '--silent',
-            dest='silent',
+            "--silent",
+            dest="silent",
             action="store_true",
             help="""Use this flag to silence responses""",
             default=False,
         )
         customparser.add_argument(
-            '--response',
-            dest='response',
+            "--response",
+            dest="response",
             action="store_true",
             help="Use this flag to return the iLO response body.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--getheaders',
-            dest='getheaders',
+            "--getheaders",
+            dest="getheaders",
             action="store_true",
             help="Use this flag to return the iLO response headers.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--headers',
-            dest='headers',
-            help="Use this flag to add extra headers to the request."\
+            "--headers",
+            dest="headers",
+            help="Use this flag to add extra headers to the request."
             "\t\t\t\t\t Usage: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
         customparser.add_argument(
-            '--service',
-            dest='service',
+            "--service",
+            dest="service",
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,

@@ -70,7 +70,7 @@ class HpGooeyCommand():
         }
         self.cmdbase = None
         self.rdmc = None
-        self.auxocmmands = dict()
+        self.auxcommands = dict()
 
         # TODO: Hack for high security cred issue (We need to keep a dll handle open)
         try:

@@ -34,22 +34,31 @@ import jsonpath_rw
 
 import redfish.ris
 from redfish.ris.utils import iterateandclear, diffdict, json_traversal_delete_empty
-from redfish.ris.rmc_helper import (IloResponseError, IdTokenError, InstanceNotFoundError)
+from redfish.ris.rmc_helper import IloResponseError, IdTokenError, InstanceNotFoundError
 
 from six.moves import input
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidKeyError, Encryption, \
-    InvalidCommandLineErrorOPTS, InvalidFileInputError, NoChangesFoundOrMadeError, \
-    NoContentsFoundForOperationError, ResourceExists, NoDifferencesFoundError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidKeyError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    InvalidFileInputError,
+    NoChangesFoundOrMadeError,
+    NoContentsFoundForOperationError,
+    ResourceExists,
+    NoDifferencesFoundError,
+)
 
 # default file name
 __DEFAULT__ = "<p/k>"
 __MINENCRYPTIONLEN__ = 16
-__clone_file__ = 'ilorest_clone.json'
-__tmp_clone_file__ = '_ilorest_clone_tmp'
-__tmp_sel_file__ = '_ilorest_sel_tmp'
-__error_log_file__ = 'clone_error_logfile.log'
-__changelog_file__ = 'changelog.log'
+__clone_file__ = "ilorest_clone.json"
+__tmp_clone_file__ = "_ilorest_clone_tmp"
+__tmp_sel_file__ = "_ilorest_sel_tmp"
+__error_log_file__ = "clone_error_logfile.log"
+__changelog_file__ = "changelog.log"
 __tempfoldername__ = "serverclone_data"
 
 
@@ -71,29 +80,51 @@ def log_decor(func):
         try:
             return func(*args, **kwargs)
         except IdTokenError as excp:
-            sys.stderr.write("You have logged into iLO with an account which has insufficient " \
-                             " user access privileges to modify properties in this type:\n %s\n" % (excp))
+            sys.stderr.write(
+                "You have logged into iLO with an account which has insufficient "
+                " user access privileges to modify properties in this type:\n %s\n"
+                % (excp)
+            )
             if args[0].rdmc.opts.debug:
-                logging(func.func_name if hasattr(func, 'func_name') else str(func),
-                        traceback.format_exc(), excp, args)
+                logging(
+                    func.func_name if hasattr(func, "func_name") else str(func),
+                    traceback.format_exc(),
+                    excp,
+                    args,
+                )
         except NoDifferencesFoundError as excp:
             sys.stderr.write("No differences identified from current configuration.\n")
             if args[0].rdmc.opts.debug:
-                logging(func.func_name if hasattr(func, 'func_name') else str(func),
-                        traceback.format_exc(), excp, args)
+                logging(
+                    func.func_name if hasattr(func, "func_name") else str(func),
+                    traceback.format_exc(),
+                    excp,
+                    args,
+                )
         except ExitHandler as excp:
-            sys.stderr.write("Exiting Servferclone command...no further changes have been "
-                             "implemented.\n")
-            raise NoChangesFoundOrMadeError("Exiting Serverclone command...no further changes "
-                                            "have been implemented.\n")
+            sys.stderr.write(
+                "Exiting Servferclone command...no further changes have been "
+                "implemented.\n"
+            )
+            raise NoChangesFoundOrMadeError(
+                "Exiting Serverclone command...no further changes "
+                "have been implemented.\n"
+            )
 
         except Exception as excp:
             sys.stderr.write("Unhandled exception(s) occurred: %s\n" % str(excp))
             if args[0].rdmc.opts.debug:
-                args[0].rdmc.ui.error("Check the ServerClone Error logfile for further info: %s\n" \
-                                      % __error_log_file__, excp)
-                logging(func.func_name if hasattr(func, 'func_name') else str(func),
-                        traceback.format_exc(), excp, args)
+                args[0].rdmc.ui.error(
+                    "Check the ServerClone Error logfile for further info: %s\n"
+                    % __error_log_file__,
+                    excp,
+                )
+                logging(
+                    func.func_name if hasattr(func, "func_name") else str(func),
+                    traceback.format_exc(),
+                    excp,
+                    args,
+                )
 
     return func_wrap
 
@@ -111,58 +142,71 @@ def logging(command, _trace, error, _args):
     :type _args: array
     """
 
-    sys.stderr.write("An error occurred: %s. Check the ServerClone Error logfile " \
-                     "for further info: %s\n" % (error, __error_log_file__))
-    sys.stderr.write("Logging error to \'%s\'.\n" % __error_log_file__)
-    with open(__error_log_file__, 'a+') as efh:
+    sys.stderr.write(
+        "An error occurred: %s. Check the ServerClone Error logfile "
+        "for further info: %s\n" % (error, __error_log_file__)
+    )
+    sys.stderr.write("Logging error to '%s'.\n" % __error_log_file__)
+    with open(__error_log_file__, "a+") as efh:
         efh.write(command + ":\n")
-        efh.write("Simplified Error: " + str(error) + '\n')
+        efh.write("Simplified Error: " + str(error) + "\n")
         efh.write("Traceback:\n")
-        efh.write(str(_trace) + '\n')
-        efh.write("Args State in: \'%s\'.\n" % command)
+        efh.write(str(_trace) + "\n")
+        efh.write("Args State in: '%s'.\n" % command)
         i = 0
         for _arg in _args:
             efh.write("Arg %s: %s\n" % (str(i), _arg))
             i += 1
-        efh.write('\n')
+        efh.write("\n")
 
 
 class ExitHandler(Exception):
     pass
 
 
-class ServerCloneCommand():
-    """ Constructor """
+class ServerCloneCommand:
+    """Constructor"""
 
     def __init__(self):
         self.ident = {
-            'name': 'serverclone',
-            'usage': None,
-            'description': 'Clone from a server or restore to a server a JSON formatted file '
-                           'containing the configuration settings of a system\'s iLO and Bios configuration.\n'
-                           'SSA controller settings and logical configurations can be optionally be included for '
-                           'save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n'
-                           'NOTE 1: Use the \'--silent\' OR \'--quiet\'option to ignore '
-                           'all user input. Intended for scripting purposes.\n'
-                           'NOTE 2: During clone load, login using an ilo account with full privileges'
-                           ' (such as the Administrator account) to ensure all items are cloned '
-                           'successfully.\n'
-                           'NOTE 3: It is suggested to only include types and properties targetted for '
-                           'modification when loading. If entire sections of properties (or all sub dictionaries)\n\t'
-                           'of a particular types) are to be removed; then the type, path and all associated '
-                           'properties within the section should be removed \n\tin a manner preserving the JSON '
-                           'formatting.Individual properties or entire sections may be removed.\n'
-                           'NOTE 4: Any iLO management account or iLO federation account not present in the '
-                           'serverclone file will be deleted if present on the server during load.',
-            'summary': "Creates a JSON formatted clone file of a system's iLO, Bios, and SSA "
-                       "configuration which can be duplicated onto other systems. "
-                       "User editable JSON file can be manipulated to modify settings before being "
-                       "loaded onto another machine.",
-            'aliases': [],
-            'auxcommands': ["LoginCommand", "LogoutCommand", "LoadCommand", "EthernetCommand",
-                            "CreateLogicalDriveCommand", "CreateLogicalDriveCommand", "IloAccountsCommand",
-                            "IloFederationCommand", "IloLicenseCommand", "CertificateCommand",
-                            "SingleSignOnCommand", "IloResetCommand", "RebootCommand"]
+            "name": "serverclone",
+            "usage": None,
+            "description": "Clone from a server or restore to a server a JSON formatted file "
+            "containing the configuration settings of a system's iLO and Bios configuration.\n"
+            "SSA controller settings and logical configurations can be optionally be included for "
+            "save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n"
+            "NOTE 1: Use the '--silent' OR '--quiet'option to ignore "
+            "all user input. Intended for scripting purposes.\n"
+            "NOTE 2: During clone load, login using an ilo account with full privileges"
+            " (such as the Administrator account) to ensure all items are cloned "
+            "successfully.\n"
+            "NOTE 3: It is suggested to only include types and properties targetted for "
+            "modification when loading. If entire sections of properties (or all sub dictionaries)\n\t"
+            "of a particular types) are to be removed; then the type, path and all associated "
+            "properties within the section should be removed \n\tin a manner preserving the JSON "
+            "formatting.Individual properties or entire sections may be removed.\n"
+            "NOTE 4: Any iLO management account or iLO federation account not present in the "
+            "serverclone file will be deleted if present on the server during load.",
+            "summary": "Creates a JSON formatted clone file of a system's iLO, Bios, and SSA "
+            "configuration which can be duplicated onto other systems. "
+            "User editable JSON file can be manipulated to modify settings before being "
+            "loaded onto another machine.",
+            "aliases": [],
+            "auxcommands": [
+                "LoginCommand",
+                "LogoutCommand",
+                "LoadCommand",
+                "EthernetCommand",
+                "CreateLogicalDriveCommand",
+                "CreateLogicalDriveCommand",
+                "IloAccountsCommand",
+                "IloFederationCommand",
+                "IloLicenseCommand",
+                "CertificateCommand",
+                "SingleSignOnCommand",
+                "IloResetCommand",
+                "RebootCommand",
+            ],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -187,7 +231,7 @@ class ServerCloneCommand():
         self._fdata = None
 
     def run(self, line, help_disp=False):
-        """ Main Serverclone Command function
+        """Main Serverclone Command function
         :param line: string of arguments passed in
         :type line: str.
         :param help_disp: display help flag
@@ -196,7 +240,7 @@ class ServerCloneCommand():
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        _valid_args = ['save', 'load']
+        _valid_args = ["save", "load"]
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
             if not line or line[0] == "help":
@@ -208,10 +252,10 @@ class ServerCloneCommand():
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if 'save' in options.command.lower():
+        if "save" in options.command.lower():
             self.save = True
             self.load = False
-        elif 'load' in options.command.lower():
+        elif "load" in options.command.lower():
             self.save = False
             self.load = True
         else:
@@ -219,7 +263,9 @@ class ServerCloneCommand():
 
         self.serverclonevalidation(options)
 
-        self.curr_iloversion, self.curr_ilorev = str(self.rdmc.app.getiloversion()).split('.')
+        self.curr_iloversion, self.curr_ilorev = str(
+            self.rdmc.app.getiloversion()
+        ).split(".")
         self.check_files(options)
 
         if self.save:
@@ -248,33 +294,52 @@ class ServerCloneCommand():
         :type options: attribute
         :returns: json file data
         """
-        writeable_ops = ['w', 'w+', 'a', 'a+']
-        readable_ops = ['r', 'r+']
+        writeable_ops = ["w", "w+", "a", "a+"]
+        readable_ops = ["r", "r+"]
         fdata = None
 
         try:
             if operation in writeable_ops:
                 if options.encryption:
-                    with open(filename, operation + 'b') as outfile:
-                        outfile.write(Encryption().encrypt_file(json.dumps(data, indent=2,
-                                                                           cls=redfish.ris.JSONEncoder, sort_keys=sk),
-                                                                options.encryption))
+                    with open(filename, operation + "b") as outfile:
+                        outfile.write(
+                            Encryption().encrypt_file(
+                                json.dumps(
+                                    data,
+                                    indent=2,
+                                    cls=redfish.ris.JSONEncoder,
+                                    sort_keys=sk,
+                                ),
+                                options.encryption,
+                            )
+                        )
                 else:
                     with open(filename, operation) as outfile:
-                        outfile.write(json.dumps(data, indent=2, cls=redfish.ris.JSONEncoder,
-                                                 sort_keys=sk))
+                        outfile.write(
+                            json.dumps(
+                                data,
+                                indent=2,
+                                cls=redfish.ris.JSONEncoder,
+                                sort_keys=sk,
+                            )
+                        )
             else:
                 if options.encryption:
-                    with open(filename, operation + 'b') as file_handle:
-                        fdata = json.loads(Encryption().decrypt_file(file_handle.read(),
-                                                                     options.encryption))
+                    with open(filename, operation + "b") as file_handle:
+                        fdata = json.loads(
+                            Encryption().decrypt_file(
+                                file_handle.read(), options.encryption
+                            )
+                        )
                 else:
                     with open(filename, operation) as file_handle:
                         fdata = json.loads(file_handle.read())
         except Exception as excp:
             self.cleanup()
-            raise InvalidFileInputError("Unable to open file: %s.\nVerify the file location " \
-                                        "and the file has a valid JSON format.\n" % excp)
+            raise InvalidFileInputError(
+                "Unable to open file: %s.\nVerify the file location "
+                "and the file has a valid JSON format.\n" % excp
+            )
         else:
             return fdata
 
@@ -286,36 +351,51 @@ class ServerCloneCommand():
         :type options: attribute
         :returns: returns list of types
         """
-        supported_types_dict = {'ManagerAccount': ['4', '5'], 'AccountService': ['4', '5'],
-                                'Bios': ['4', '5'], 'Manager': ['4', '5'],
-                                'SNMP': ['4', '5'], 'iLOLicense': ['4', '5'],
-                                'ManagerNetworkService': ['4', '5'],
-                                'EthernetNetworkInterface': ['4', '5'],
-                                'iLODateTime': ['4', '5'], 'iLOFederationGroup': ['4', '5'],
-                                'iLOSSO': ['4', '5'], 'ESKM': ['4', '5'],
-                                'ComputerSystem': ['4', '5'], 'EthernetInterface': ['4', '5'],
-                                'ServerBootSettings': ['4', '5'], 'SecureBoot': ['4', '5'],
-                                'SmartStorageConfig': ['5'], 'HpSmartStorage': [4],
-                                'HpeSmartStorage': [4]}
+        supported_types_dict = {
+            "ManagerAccount": ["4", "5"],
+            "AccountService": ["4", "5"],
+            "Bios": ["4", "5"],
+            "Manager": ["4", "5"],
+            "SNMP": ["4", "5"],
+            "iLOLicense": ["4", "5"],
+            "ManagerNetworkService": ["4", "5"],
+            "EthernetNetworkInterface": ["4", "5"],
+            "iLODateTime": ["4", "5"],
+            "iLOFederationGroup": ["4", "5"],
+            "iLOSSO": ["4", "5"],
+            "ESKM": ["4", "5"],
+            "ComputerSystem": ["4", "5"],
+            "EthernetInterface": ["4", "5"],
+            "ServerBootSettings": ["4", "5"],
+            "SecureBoot": ["4", "5"],
+            "SmartStorageConfig": ["5"],
+            "HpSmartStorage": [4],
+            "HpeSmartStorage": [4],
+        }
 
         if self.save:
             if options.noBIOS:
                 self.rdmc.ui.warn("Bios configuration will be excluded.\n")
-                del supported_types_dict['Bios']
+                del supported_types_dict["Bios"]
             if not options.iLOSSA:
                 self.rdmc.ui.warn("Smart storage configuration will not be included.")
-                del supported_types_dict['SmartStorageConfig']
-                del supported_types_dict['HpSmartStorage']
-                del supported_types_dict['HpeSmartStorage']
-        unsupported_types_list = ['Collection', 'PowerMeter', 'BiosMapping', 'Controller']
+                del supported_types_dict["SmartStorageConfig"]
+                del supported_types_dict["HpSmartStorage"]
+                del supported_types_dict["HpeSmartStorage"]
+        unsupported_types_list = [
+            "Collection",
+            "PowerMeter",
+            "BiosMapping",
+            "Controller",
+        ]
 
         # supported types comparison
         types_accepted = set()
-        for _type in sorted(set(self.rdmc.app.types('--fulltypes'))):
-            if _type[:1].split('.')[0] == '#':
-                _type_mod = _type[1:].split('.')[0]
+        for _type in sorted(set(self.rdmc.app.types("--fulltypes"))):
+            if _type[:1].split(".")[0] == "#":
+                _type_mod = _type[1:].split(".")[0]
             else:
-                _type_mod = _type.split('.')[0]
+                _type_mod = _type.split(".")[0]
             for stype in supported_types_dict:
                 if stype.lower() in _type_mod.lower():
                     found = False
@@ -342,34 +422,44 @@ class ServerCloneCommand():
 
         if not options.autocopy:
             while True:
-                ans = input("A configuration file \'%s\' containing configuration changes will be " \
-                            "applied to this iLO server resulting in system setting changes for " \
-                            "BIOS, ethernet controllers, disk controllers, deletion and " \
-                            "rearrangement of logical disks...etc. Please confirm you acknowledge " \
-                            "and would like to perform this operation now? (y/n)\n" \
-                            % self.clone_file)
-                if ans.lower() == 'y':
-                    self.rdmc.ui.printer("Proceeding with ServerClone Load Operation...\n")
+                ans = input(
+                    "A configuration file '%s' containing configuration changes will be "
+                    "applied to this iLO server resulting in system setting changes for "
+                    "BIOS, ethernet controllers, disk controllers, deletion and "
+                    "rearrangement of logical disks...etc. Please confirm you acknowledge "
+                    "and would like to perform this operation now? (y/n)\n"
+                    % self.clone_file
+                )
+                if ans.lower() == "y":
+                    self.rdmc.ui.printer(
+                        "Proceeding with ServerClone Load Operation...\n"
+                    )
                     break
-                elif ans.lower() == 'n':
-                    self.rdmc.ui.warn("Aborting load operation. No changes made to the server.\n")
+                elif ans.lower() == "n":
+                    self.rdmc.ui.warn(
+                        "Aborting load operation. No changes made to the server.\n"
+                    )
                     return ReturnCodes.NO_CHANGES_MADE_OR_FOUND
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
 
-        self._fdata = self.file_handler(self.clone_file, operation='r+', options=options)
+        self._fdata = self.file_handler(
+            self.clone_file, operation="r+", options=options
+        )
         self.loadhelper(options)
         self.loadpatch(options)
         self.getsystemstatus(options)
 
         if not options.autocopy:
             while True:
-                ans = input("The system is ready to be reset. Perform a reset now? (y/n)\n")
-                if ans.lower() == 'n':
+                ans = input(
+                    "The system is ready to be reset. Perform a reset now? (y/n)\n"
+                )
+                if ans.lower() == "n":
                     reset_confirm = False
                     self.rdmc.ui.printer("Aborting Server Reboot and iLO reset...\n")
                     break
-                elif ans.lower() == 'y':
+                elif ans.lower() == "y":
                     break
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
@@ -380,22 +470,30 @@ class ServerCloneCommand():
         if reset_confirm:
             if self.rdmc.app.current_client.base_url:  # reset process in remote mode
                 self.rdmc.ui.printer("Resetting the server...\n")
-                self.auxcommands['reboot'].run("ColdBoot")  # force restart, cold boot
+                self.auxcommands["reboot"].run("ColdBoot")  # force restart, cold boot
                 self.rdmc.ui.printer("Waiting 3 minutes for reboot to complete...\n")
                 time.sleep(180)
                 self.rdmc.ui.printer("Resetting iLO...\n")
-                self.auxcommands['iloreset'].run("")
-                self.rdmc.ui.printer("You will need to re-login to access this system...\n")
+                self.auxcommands["iloreset"].run("")
+                self.rdmc.ui.printer(
+                    "You will need to re-login to access this system...\n"
+                )
             else:  # reset process in local mode
                 self.rdmc.ui.printer("Resetting local iLO...\n")
-                self.auxcommands['iloreset'].run("")
-                self.rdmc.ui.printer("Your system may require a reboot...use at your discretion\n")
+                self.auxcommands["iloreset"].run("")
+                self.rdmc.ui.printer(
+                    "Your system may require a reboot...use at your discretion\n"
+                )
 
         else:
-            self.rdmc.ui.printer("Your system may require a reboot...use at your discretion\n")
+            self.rdmc.ui.printer(
+                "Your system may require a reboot...use at your discretion\n"
+            )
 
-        self.rdmc.ui.printer("Loading of clonefile \'%s\' to server is complete. Review the " \
-                             "changelog file \'%s\'.\n" % (self.clone_file, self.change_log_file))
+        self.rdmc.ui.printer(
+            "Loading of clonefile '%s' to server is complete. Review the "
+            "changelog file '%s'.\n" % (self.clone_file, self.change_log_file)
+        )
 
     def loadhelper(self, options):
         """
@@ -411,14 +509,17 @@ class ServerCloneCommand():
 
         server_avail_types = self.getilotypes(options)
         if not server_avail_types:
-            raise NoContentsFoundForOperationError("Unable to Obtain iLO Types from server.")
+            raise NoContentsFoundForOperationError(
+                "Unable to Obtain iLO Types from server."
+            )
 
-        if 'Comments' in list(self._fdata.keys()):
-            self.system_compatibility_check(self._fdata['Comments'], options)
-            del self._fdata['Comments']
+        if "Comments" in list(self._fdata.keys()):
+            self.system_compatibility_check(self._fdata["Comments"], options)
+            del self._fdata["Comments"]
         else:
-            raise InvalidFileInputError("Clone File \'%s\' does not include a valid \'Comments\' "
-                                        "dictionary.")
+            raise InvalidFileInputError(
+                "Clone File '%s' does not include a valid 'Comments' " "dictionary."
+            )
         if options.ssocert:
             self.load_ssocertificate()  # check and load sso certificates
         if options.tlscert:
@@ -427,21 +528,25 @@ class ServerCloneCommand():
         typelist = []
         for _x in self._fdata:
             for _y in server_avail_types:
-                _x1 = re.split('#|\.', _x)
-                _y1 = re.split('#|\.', _y)
-                if _x1[0] == '':
+                _x1 = re.split("#|\.", _x)
+                _y1 = re.split("#|\.", _y)
+                if _x1[0] == "":
                     _x1.pop(0)
-                if _y1[0] == '':
+                if _y1[0] == "":
                     _y1.pop(0)
                 if _x1[0] == _y1[0]:
                     _comp_tuple = self.type_compare(_x, _y)
-                    if (_comp_tuple[0] and _comp_tuple[1]):
-                        self.rdmc.ui.printer("Type \'%s\' is compatible with this system.\n" % _x)
+                    if _comp_tuple[0] and _comp_tuple[1]:
+                        self.rdmc.ui.printer(
+                            "Type '%s' is compatible with this system.\n" % _x
+                        )
                         typelist.append(_x)
                     else:
-                        self.rdmc.ui.warn("The type: \'%s\' isn't compatible with the type: \'%s\'" \
-                                          "found on this system. Associated properties can not " \
-                                          "be applied...Skipping\n" % (_x, _y))
+                        self.rdmc.ui.warn(
+                            "The type: '%s' isn't compatible with the type: '%s'"
+                            "found on this system. Associated properties can not "
+                            "be applied...Skipping\n" % (_x, _y)
+                        )
 
         for _type in typelist:
             singlet = True
@@ -449,25 +554,40 @@ class ServerCloneCommand():
             try:
                 root_path_comps = self.get_rootpath(thispath)
 
-                multi_sel = self.rdmc.app.select(_type.split('.')[0] + '.',
-                                                 (self.rdmc.app.typepath.defs.hrefstring, root_path_comps[0] + '*'),
-                                                 path_refresh=True)
+                multi_sel = self.rdmc.app.select(
+                    _type.split(".")[0] + ".",
+                    (self.rdmc.app.typepath.defs.hrefstring, root_path_comps[0] + "*"),
+                    path_refresh=True,
+                )
 
-                curr_sel = self.rdmc.app.select(_type.split('.')[0] + '.',
-                                                (self.rdmc.app.typepath.defs.hrefstring, thispath), path_refresh=True)
+                curr_sel = self.rdmc.app.select(
+                    _type.split(".")[0] + ".",
+                    (self.rdmc.app.typepath.defs.hrefstring, thispath),
+                    path_refresh=True,
+                )
 
             except InstanceNotFoundError:
-                curr_sel = self.rdmc.app.select(_type.split('.')[0] + '.')
+                curr_sel = self.rdmc.app.select(_type.split(".")[0] + ".")
 
             except Exception as excp:
-                self.rdmc.ui.error("Unable to find the correct path based on system " \
-                                   "type and clone file type: %s\n" % _type, excp)
+                self.rdmc.ui.error(
+                    "Unable to find the correct path based on system "
+                    "type and clone file type: %s\n" % _type,
+                    excp,
+                )
                 continue
             finally:
                 try:
-                    if 'multi_sel' in locals() and 'curr_sel' in locals():
-                        if len(multi_sel) > 1 and len(curr_sel) == 1 and (root_path_comps[1].
-                                                                                  isdigit() or 'iLOFederationGroup' in _type or 'ManagerAccount' in _type):
+                    if "multi_sel" in locals() and "curr_sel" in locals():
+                        if (
+                            len(multi_sel) > 1
+                            and len(curr_sel) == 1
+                            and (
+                                root_path_comps[1].isdigit()
+                                or "iLOFederationGroup" in _type
+                                or "ManagerAccount" in _type
+                            )
+                        ):
                             singlet = False
                             curr_sel = multi_sel
                 except (ValueError, KeyError):
@@ -475,58 +595,87 @@ class ServerCloneCommand():
 
             scanned_dict = dict()
             for thing in curr_sel:
-                scanned_dict[thing.path] = {'Origin': 'Server', 'Scanned': False,
-                                            'Data': thing.dict}
+                scanned_dict[thing.path] = {
+                    "Origin": "Server",
+                    "Scanned": False,
+                    "Data": thing.dict,
+                }
             for thing in self._fdata[_type]:
                 # if we only have a single path, the base path is in the path and only a single
                 # instance was retrieved from the server
-                if 'ManagerAccount' in _type or 'iLOFederationGroup' in _type:
-                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False,
-                                           'Data': self._fdata[_type][thing]}
+                if "ManagerAccount" in _type or "iLOFederationGroup" in _type:
+                    scanned_dict[thing] = {
+                        "Origin": "File",
+                        "Scanned": False,
+                        "Data": self._fdata[_type][thing],
+                    }
                 elif singlet and root_path_comps[0] in thing and len(scanned_dict) == 1:
-                    scanned_dict[next(iter(scanned_dict))] = {'Origin': 'File', 'Scanned': False,
-                                                              'Data': self._fdata[_type][thing]}
+                    scanned_dict[next(iter(scanned_dict))] = {
+                        "Origin": "File",
+                        "Scanned": False,
+                        "Data": self._fdata[_type][thing],
+                    }
                 else:
-                    scanned_dict[thing] = {'Origin': 'File', 'Scanned': False,
-                                           'Data': self._fdata[_type][thing]}
+                    scanned_dict[thing] = {
+                        "Origin": "File",
+                        "Scanned": False,
+                        "Data": self._fdata[_type][thing],
+                    }
 
             for path in scanned_dict.keys():
                 try:
-                    if scanned_dict[path]['Origin'] == 'Server':
+                    if scanned_dict[path]["Origin"] == "Server":
                         raise KeyError(path)
                     else:
-                        sys.stdout.write("---Check special loading for entry---\ntype: %s\npath: " \
-                                         "%s\n" % (_type, path))
-                        tmp = self.subhelper(scanned_dict[path]['Data'], _type, path, options)
+                        sys.stdout.write(
+                            "---Check special loading for entry---\ntype: %s\npath: "
+                            "%s\n" % (_type, path)
+                        )
+                        tmp = self.subhelper(
+                            scanned_dict[path]["Data"], _type, path, options
+                        )
                         if tmp:
-                            sys.stdout.write("Special entry not applicable...reserving for "
-                                             "patch loading stage.\n")
+                            sys.stdout.write(
+                                "Special entry not applicable...reserving for "
+                                "patch loading stage.\n"
+                            )
                             data.append(tmp)
                         else:
-                            sys.stdout.write("---Special loading complete for entry---.\n")
+                            sys.stdout.write(
+                                "---Special loading complete for entry---.\n"
+                            )
 
                 except KeyError as excp:
                     if path in str(excp) and self._fdata.get(_type):
-                        if self.delete(scanned_dict[path]['Data'], _type, path,
-                                       self._fdata[_type], options):
+                        if self.delete(
+                            scanned_dict[path]["Data"],
+                            _type,
+                            path,
+                            self._fdata[_type],
+                            options,
+                        ):
                             # ok so this thing does not have a valid path, is not considered a
                             # deletable item so....idk what to do with you. You go to load.
                             # Goodluck
-                            tmp = self.altsubhelper(scanned_dict[path]['Data'], _type, path)
+                            tmp = self.altsubhelper(
+                                scanned_dict[path]["Data"], _type, path
+                            )
                             if tmp:
                                 data.append(tmp)
                     else:
                         # if the instance item was not replaced with an entry in the clone file then
                         # it will be deleted
-                        self.rdmc.ui.warn("Entry at \'%s\' removed from this server.\n" % path)
+                        self.rdmc.ui.warn(
+                            "Entry at '%s' removed from this server.\n" % path
+                        )
 
                 except Exception as excp:
-                    self.rdmc.ui.error("An error occurred: \'%s\'" % excp)
+                    self.rdmc.ui.error("An error occurred: '%s'" % excp)
                     continue
                 finally:
-                    scanned_dict[path]['Scanned'] = True
+                    scanned_dict[path]["Scanned"] = True
 
-        self.file_handler(self.tmp_clone_file, 'w+', options, data, True)
+        self.file_handler(self.tmp_clone_file, "w+", options, data, True)
 
     def subhelper(self, data, _type, path, options):
         """
@@ -545,16 +694,31 @@ class ServerCloneCommand():
         # due to EthernetInterfaces OEM/HPE/DHCPv4 also having a key with 'Name'
         # this is required, removing readonly types after POST commands have
         # completed. Would be great if that was resolved...
-        prop_list = ["Modified", "Type", "Description", "Status", "Name",
-                     "AttributeRegistry", "links", "SettingsResult",
-                     "@odata.context", "@odata.type", "@odata.id",
-                     "@odata.etag", "Links", "Actions",
-                     "AvailableActions", "MACAddress", "BiosVersion"]
+        prop_list = [
+            "Modified",
+            "Type",
+            "Description",
+            "Status",
+            "Name",
+            "AttributeRegistry",
+            "links",
+            "SettingsResult",
+            "@odata.context",
+            "@odata.type",
+            "@odata.id",
+            "@odata.etag",
+            "Links",
+            "Actions",
+            "AvailableActions",
+            "MACAddress",
+            "BiosVersion",
+        ]
 
         tmp = dict()
         tmp[_type] = {path: data}
-        tmp[_type][path] = self.rdmc.app.removereadonlyprops(tmp[_type][path], False, True,
-                                                             prop_list)
+        tmp[_type][path] = self.rdmc.app.removereadonlyprops(
+            tmp[_type][path], False, True, prop_list
+        )
         json_traversal_delete_empty(tmp, None, None)
         if not self.ilo_special_functions(tmp, _type, path, options):
             return tmp
@@ -589,12 +753,12 @@ class ServerCloneCommand():
         :type options: attribute
         """
         self.rdmc.ui.printer("Patching remaining data.\n")
-        fdata = self.file_handler(self.tmp_clone_file, operation='r+', options=options)
+        fdata = self.file_handler(self.tmp_clone_file, operation="r+", options=options)
         for _sect in fdata:
             _tmp_sel = {}
-            _key = (next(iter(_sect)))
-            _tmp_sel[_key.split('.')[0] + '.'] = _sect[_key]
-            self.file_handler(self.tmp_sel_file, 'w', options, [_tmp_sel], True)
+            _key = next(iter(_sect))
+            _tmp_sel[_key.split(".")[0] + "."] = _sect[_key]
+            self.file_handler(self.tmp_sel_file, "w", options, [_tmp_sel], True)
             self.loadpatch_helper(_key, _sect, options)
 
     @log_decor
@@ -611,8 +775,8 @@ class ServerCloneCommand():
         if options.uniqueoverride:
             options_str += " --uniqueoverride"
 
-        self.rdmc.ui.printer("Patching \'%s\'.\n" % type)
-        self.auxcommands['load'].run("-f " + self.tmp_sel_file + options_str)
+        self.rdmc.ui.printer("Patching '%s'.\n" % type)
+        self.auxcommands["load"].run("-f " + self.tmp_sel_file + options_str)
 
     def gatherandsavefunction(self, typelist, options):
         """
@@ -628,8 +792,10 @@ class ServerCloneCommand():
         for _type in typelist:
             self.gatherandsavehelper(_type, data, options)
 
-        self.file_handler(self.clone_file, 'w+', options, data, False)
-        self.rdmc.ui.printer('Saving of clone file to \'%s\' is complete.\n' % self.clone_file)
+        self.file_handler(self.clone_file, "w+", options, data, False)
+        self.rdmc.ui.printer(
+            "Saving of clone file to '%s' is complete.\n" % self.clone_file
+        )
 
     def gatherandsavehelper(self, _type, data, options):
         """
@@ -642,32 +808,44 @@ class ServerCloneCommand():
         :param options: command line options
         :type options: attribute
         """
-        _typep = _type.split('.')[0]
-        _spec_list = ['SmartStorageConfig', 'iLOLicense', 'Bios']
+        _typep = _type.split(".")[0]
+        _spec_list = ["SmartStorageConfig", "iLOLicense", "Bios"]
 
         try:
-            if 'EthernetInterface' in _type:
-                instances = self.rdmc.app.select(_typep + '.', (self.rdmc.app.typepath.defs.hrefstring,
-                                                                self.rdmc.app.typepath.defs.managerpath + '*'),
-                                                 path_refresh=True)
+            if "EthernetInterface" in _type:
+                instances = self.rdmc.app.select(
+                    _typep + ".",
+                    (
+                        self.rdmc.app.typepath.defs.hrefstring,
+                        self.rdmc.app.typepath.defs.managerpath + "*",
+                    ),
+                    path_refresh=True,
+                )
             # 'links/self/href' required when using iLO 4 (rest).
-            elif 'EthernetNetworkInterface' in _type:
-                instances = self.rdmc.app.select(_typep + '.', ("links/self/" +
-                                                                self.rdmc.app.typepath.defs.hrefstring,
-                                                                self.rdmc.app.typepath.defs.managerpath + '*'),
-                                                 path_refresh=True)
+            elif "EthernetNetworkInterface" in _type:
+                instances = self.rdmc.app.select(
+                    _typep + ".",
+                    (
+                        "links/self/" + self.rdmc.app.typepath.defs.hrefstring,
+                        self.rdmc.app.typepath.defs.managerpath + "*",
+                    ),
+                    path_refresh=True,
+                )
             else:
-                instances = self.rdmc.app.select(_typep + '.', path_refresh=True)
+                instances = self.rdmc.app.select(_typep + ".", path_refresh=True)
 
             for j, instance in enumerate(self.rdmc.app.getprops(insts=instances)):
-                if '#' in _typep:
-                    _typep = _typep.split('#')[1]
+                if "#" in _typep:
+                    _typep = _typep.split("#")[1]
                 if self.rdmc.app.typepath.defs.flagforrest:
                     try:
-                        path = instance['links']['self'][self.rdmc.app.typepath.defs.hrefstring]
+                        path = instance["links"]["self"][
+                            self.rdmc.app.typepath.defs.hrefstring
+                        ]
                     except:
-                        path = instance['links'][next(iter(instance['links']))] \
-                            [self.rdmc.app.typepath.defs.hrefstring]
+                        path = instance["links"][next(iter(instance["links"]))][
+                            self.rdmc.app.typepath.defs.hrefstring
+                        ]
                 else:
                     path = instance[self.rdmc.app.typepath.defs.hrefstring]
 
@@ -676,10 +854,22 @@ class ServerCloneCommand():
                 _itc_pass = True
                 for _itm in _spec_list:
                     if _itm.lower() in _type.lower():
-                        templist = ["Modified", "Type", "Description", "Status", "links",
-                                    "SettingsResult", "@odata.context", "@odata.type", "@odata.id",
-                                    "@odata.etag", "Links", "Actions",
-                                    "AvailableActions", "BiosVersion"]
+                        templist = [
+                            "Modified",
+                            "Type",
+                            "Description",
+                            "Status",
+                            "links",
+                            "SettingsResult",
+                            "@odata.context",
+                            "@odata.type",
+                            "@odata.id",
+                            "@odata.etag",
+                            "Links",
+                            "Actions",
+                            "AvailableActions",
+                            "BiosVersion",
+                        ]
                         instance = iterateandclear(instance, templist)
                         _itc_pass = False
                         break
@@ -687,19 +877,23 @@ class ServerCloneCommand():
                     instance = self.rdmc.app.removereadonlyprops(instance, False, True)
 
                 if instance:
-                    self.rdmc.ui.printer("Saving properties of type: %s, path: %s\n" % \
-                                         (_typep, path))
+                    self.rdmc.ui.printer(
+                        "Saving properties of type: %s, path: %s\n" % (_typep, path)
+                    )
                     if _type not in data:
                         data[_type] = OrderedDict(sorted({path: instance}.items()))
                     else:
                         data[_type][path] = instance
                 else:
-                    self.rdmc.ui.warn("Type: %s, path: %s does not contain any modifiable " \
-                                      "properties on this system." % (_typep, path))
+                    self.rdmc.ui.warn(
+                        "Type: %s, path: %s does not contain any modifiable "
+                        "properties on this system." % (_typep, path)
+                    )
 
         except Exception as excp:
-            self.rdmc.ui.printer("An error occurred saving type: %s\nError: \"%s\"" % \
-                                 (_typep, excp))
+            self.rdmc.ui.printer(
+                'An error occurred saving type: %s\nError: "%s"' % (_typep, excp)
+            )
 
     @log_decor
     def getsystemstatus(self, options):
@@ -715,7 +909,12 @@ class ServerCloneCommand():
             status_list.append(item)
 
         if status_list:
-            self.file_handler(self.change_log_file, 'w', options, status_list, True)
+            self.file_handler(self.change_log_file, "w", options, status_list, True)
+            with open(self.change_log_file, "rb") as myfile:
+                data = myfile.read()
+                data = Encryption().decrypt_file(data, options.encryption)
+            with open(self.change_log_file, "wb") as outfile:
+                outfile.write(data)
         else:
             self.rdmc.ui.printer("No changes pending.\n")
 
@@ -734,44 +933,44 @@ class ServerCloneCommand():
         :returns: returns boolean indicating if the type/path was found.
         """
         identified = False
-        _typep = _type.split('.')[0]
-        if '#' in _typep:
-            _typep = _typep.split('#')[1]
+        _typep = _type.split(".")[0]
+        if "#" in _typep:
+            _typep = _typep.split("#")[1]
 
-        if 'EthernetInterface' in _typep or 'EthernetNetworkInterface' in _typep:
+        if "EthernetInterface" in _typep or "EthernetNetworkInterface" in _typep:
             identified = True
             # save function not needed
             if self.load:
                 self.load_ethernet(data[_type][path], _type, path)
 
-        elif 'DateTime' in _typep:
+        elif "DateTime" in _typep:
             # do not use identified=True. Kind of a hack to have additional items patched.
             # save function not needed
             if self.load:
                 self.load_datetime(data[_type][path], path)
 
-        elif 'LicenseService' in path and 'License' in _typep:
+        elif "LicenseService" in path and "License" in _typep:
             identified = True
             if self.save:
                 data = self.save_license(data, _type, options)
             elif self.load:
                 self.load_license(data[_type][path])
 
-        elif 'AccountService/Accounts' in path and 'AccountService' not in _typep:
+        elif "AccountService/Accounts" in path and "AccountService" not in _typep:
             identified = True
             if self.save:
                 data = self.save_accounts(data, _type, options)
             elif self.load:
                 self.load_accounts(data[_type][path], _type, path)
 
-        elif 'FederationGroup' in _typep:
+        elif "FederationGroup" in _typep:
             identified = True
             if self.save:
                 data = self.save_federation(data, _type, options)
             elif self.load:
                 self.load_federation(data[_type][path], _type, path)
 
-        elif 'SmartStorage' in _typep:
+        elif "SmartStorage" in _typep:
             # do not use identified=True. Kind of a hack to have the settings patched.
             if self.save:
                 data = self.save_smartstorage(data, _type)
@@ -798,85 +997,114 @@ class ServerCloneCommand():
 
         if not options.autocopy:
             while True:
-                ans = input("\n%s\nAre you sure you would like to delete the entry?:\n" %
-                            json.dumps(data, indent=1, sort_keys=True))
-                if ans.lower() == 'y':
+                ans = input(
+                    "\n%s\nAre you sure you would like to delete the entry?:\n"
+                    % json.dumps(data, indent=1, sort_keys=True)
+                )
+                if ans.lower() == "y":
                     self.rdmc.ui.printer("Proceeding with Deletion...\n")
                     return True
-                elif ans.lower() == 'n':
-                    self.rdmc.ui.warn("Aborting deletion. No changes have been made made to "
-                                      "the server.\n")
+                elif ans.lower() == "n":
+                    self.rdmc.ui.warn(
+                        "Aborting deletion. No changes have been made made to "
+                        "the server.\n"
+                    )
                     return False
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
 
-        if 'ManagerAccount' in _type:
-            user_name = data['UserName']
+        if "ManagerAccount" in _type:
+            user_name = data["UserName"]
 
             # obtaining account information on the current server as a check to verify the user
             # provided a decent path to use. This can be re-factored.
             try:
-                for curr_sel in self.rdmc.app.select(_type.split('.')[0] + '.'):
+                for curr_sel in self.rdmc.app.select(_type.split(".")[0] + "."):
                     try:
-                        if 'UserName' in list(curr_sel.dict.keys()):
-                            curr_un = curr_sel.dict['UserName']
+                        if "UserName" in list(curr_sel.dict.keys()):
+                            curr_un = curr_sel.dict["UserName"]
                             # check file to make sure this is not to be added later?
                         for fpath in fdata:
                             try:
-                                if fdata[fpath]['UserName'] == data['UserName']:
-                                    self.rdmc.ui.warn("Account \'%s\' exists in \'%s\', not "
-                                                      "deleting.\n" % (data['UserName'], self.clone_file))
+                                if fdata[fpath]["UserName"] == data["UserName"]:
+                                    self.rdmc.ui.warn(
+                                        "Account '%s' exists in '%s', not "
+                                        "deleting.\n"
+                                        % (data["UserName"], self.clone_file)
+                                    )
                                     return False
                             except:
                                 continue
 
-                        if data['UserName'] != "Administrator":
-                            self.rdmc.ui.warn("Manager Account, \'%s\' was not found in the " \
-                                              "clone file. Deleting entry from server.\n" % data['UserName'])
+                        if data["UserName"] != "Administrator":
+                            self.rdmc.ui.warn(
+                                "Manager Account, '%s' was not found in the "
+                                "clone file. Deleting entry from server.\n"
+                                % data["UserName"]
+                            )
                             if not options.autocopy:
                                 ans = userprompt(data)
                             else:
                                 ans = True
                             if ans:
-                                self.auxcommands['iloaccounts'].run("delete " + data['UserName'])
+                                self.auxcommands["iloaccounts"].run(
+                                    "delete " + data["UserName"]
+                                )
                                 time.sleep(2)
                             del fdata[fpath]
                             return False
                         else:
-                            self.rdmc.ui.error("Deletion of the Default System Administrator "
-                                               "account is not allowed.\n")
+                            self.rdmc.ui.error(
+                                "Deletion of the Default System Administrator "
+                                "account is not allowed.\n"
+                            )
                     except (KeyError, NameError):
-                        self.rdmc.ui.error("Unable to obtain the account information " \
-                                           "for: \'%s\'\'s' account.\n" % user_name)
+                        self.rdmc.ui.error(
+                            "Unable to obtain the account information "
+                            "for: '%s''s' account.\n" % user_name
+                        )
                         continue
             except InstanceNotFoundError:
                 return True
             return False
 
-        if 'FederationGroup' in _type:
+        if "FederationGroup" in _type:
             fed_identifier = None
-            if 'FederationName' in data:
-                fed_identifier = 'FederationName'
-            elif 'Name' in data:
-                fed_identifier = 'Name'
+            if "FederationName" in data:
+                fed_identifier = "FederationName"
+            elif "Name" in data:
+                fed_identifier = "Name"
             else:
-                raise InvalidKeyError("An invalid key was provided for the Federation Group Name.")
+                raise InvalidKeyError(
+                    "An invalid key was provided for the Federation Group Name."
+                )
             if data[fed_identifier] != "DEFAULT":
-                self.rdmc.ui.warn("Federation Account, \'%s\' was not found in the clone file." \
-                                  " Deleting entry from server.\n" % data[fed_identifier])
+                self.rdmc.ui.warn(
+                    "Federation Account, '%s' was not found in the clone file."
+                    " Deleting entry from server.\n" % data[fed_identifier]
+                )
                 for fpath in fdata:
-                    if fdata[next(iter(fdata))].get('FederationName') == data[fed_identifier]:
-                        self.rdmc.ui.warn("Account \'%s\' exists in file, not deleting."
-                                          "\n" % data[fed_identifier])
+                    if (
+                        fdata[next(iter(fdata))].get("FederationName")
+                        == data[fed_identifier]
+                    ):
+                        self.rdmc.ui.warn(
+                            "Account '%s' exists in file, not deleting."
+                            "\n" % data[fed_identifier]
+                        )
                         return False
                 if not options.autocopy:
                     ans = userprompt(data)
                 else:
                     ans = True
                 if ans:
-                    self.auxcommands['ilofederation'].run("delete " + data[fed_identifier])
+                    self.auxcommands["ilofederation"].run(
+                        "delete " + data[fed_identifier]
+                    )
             else:
-                self.rdmc.ui.warn("Deletion of the Default iLO Federation Group is not allowed.\n")
+                self.rdmc.ui.warn(
+                    "Deletion of the Default iLO Federation Group is not allowed.\n"
+                )
             return False
         return True
 
@@ -886,7 +1114,7 @@ class ServerCloneCommand():
         Load the SSO Certificate specified in the user defined options.
         """
         self.rdmc.ui.printer("Uploading SSO Certificate...\n")
-        self.auxcommands['singlesignon'].run("importcert " + self.sso_cert_file)
+        self.auxcommands["singlesignon"].run("importcert " + self.sso_cert_file)
 
     @log_decor
     def load_tlscertificate(self):
@@ -894,7 +1122,7 @@ class ServerCloneCommand():
         Load the SSO Certificate specified in the user defined options.
         """
         self.rdmc.ui.printer("Uploading TLS Certificate...\n")
-        self.auxcommands['certificate'].run("tls " + self.https_cert_file)
+        self.auxcommands["certificate"].run("tls " + self.https_cert_file)
 
     @log_decor
     def load_ethernet(self, ethernet_data, _type, path):
@@ -907,7 +1135,7 @@ class ServerCloneCommand():
         :param path: iLO schema path
         :type path: string
         """
-        self.auxcommands['ethernet'].load_ethernet_aux(_type, path, ethernet_data)
+        self.auxcommands["ethernet"].load_ethernet_aux(_type, path, ethernet_data)
 
     @log_decor
     def load_datetime(self, datetime_data, path):
@@ -920,35 +1148,51 @@ class ServerCloneCommand():
         """
         errors = []
 
-        if 'StaticNTPServers' in datetime_data:
-            self.rdmc.ui.printer("Attempting to modify \'UseNTPServers\' in each iLO Management "
-                                 "Network Interface regarding the StaticNTPServers list in "
-                                 "section \'iLODateTime (DateTime)\'\n")
+        if "StaticNTPServers" in datetime_data:
+            self.rdmc.ui.printer(
+                "Attempting to modify 'UseNTPServers' in each iLO Management "
+                "Network Interface regarding the StaticNTPServers list in "
+                "section 'iLODateTime (DateTime)'\n"
+            )
             oem_str = self.rdmc.app.typepath.defs.oempath
-            prop_str = (oem_str + '/DHCPv4/UseNTPServers')[1:]
-            path_str = self.rdmc.app.typepath.defs.managerpath + '*'
-            _instances = self.rdmc.app.select('EthernetInterface',
-                                              (self.rdmc.app.typepath.defs.hrefstring, path_str))
-            _content = self.rdmc.app.getprops('EthernetInterface',
-                                              [prop_str], None, True, True, _instances)
+            prop_str = (oem_str + "/DHCPv4/UseNTPServers")[1:]
+            path_str = self.rdmc.app.typepath.defs.managerpath + "*"
+            _instances = self.rdmc.app.select(
+                "EthernetInterface", (self.rdmc.app.typepath.defs.hrefstring, path_str)
+            )
+            _content = self.rdmc.app.getprops(
+                "EthernetInterface", [prop_str], None, True, True, _instances
+            )
 
             for item in _content:
                 try:
-                    if next(iter(jsonpath_rw.parse('$..UseNTPServers').find(item))).value:
-                        self.rdmc.app.patch_handler(path,
-                                                    {'Oem': {oem_str: {'DHCPv4': {'UseNTPServers': True}}}})
+                    if next(
+                        iter(jsonpath_rw.parse("$..UseNTPServers").find(item))
+                    ).value:
+                        self.rdmc.app.patch_handler(
+                            path,
+                            {"Oem": {oem_str: {"DHCPv4": {"UseNTPServers": True}}}},
+                        )
                     else:
-                        self.rdmc.app.patch_handler(path,
-                                                    {'Oem': {oem_str: {'DHCPv4': {'UseNTPServers': False}}}})
+                        self.rdmc.app.patch_handler(
+                            path,
+                            {"Oem": {oem_str: {"DHCPv4": {"UseNTPServers": False}}}},
+                        )
                 except IloResponseError as excp:
-                    errors.append("iLO Responded with the following error: %s.\n" % excp)
+                    errors.append(
+                        "iLO Responded with the following error: %s.\n" % excp
+                    )
 
         if errors:
-            self.rdmc.ui.error("iLO responded with an error while attempting to set values "
-                               "for \'UseNTPServers\'. An attempt to patch DateTime "
-                               "properties will be performed, but may be unsuccessful.\n")
-            raise IloResponseError("The following errors in, \'DateTime\' were found " \
-                                   "collectively: %s" % errors)
+            self.rdmc.ui.error(
+                "iLO responded with an error while attempting to set values "
+                "for 'UseNTPServers'. An attempt to patch DateTime "
+                "properties will be performed, but may be unsuccessful.\n"
+            )
+            raise IloResponseError(
+                "The following errors in, 'DateTime' were found "
+                "collectively: %s" % errors
+            )
 
     @log_decor
     def save_license(self, license_data, _type, options):
@@ -965,21 +1209,24 @@ class ServerCloneCommand():
         valid_key = False
         license_keys = []
         try:
-            if 'LicenseKey' in list(license_data['ConfirmationRequest']['EON'].keys()):
-                license_keys.append(license_data['ConfirmationRequest']['EON']['LicenseKey'])
+            if "LicenseKey" in list(license_data["ConfirmationRequest"]["EON"].keys()):
+                license_keys.append(
+                    license_data["ConfirmationRequest"]["EON"]["LicenseKey"]
+                )
         except:
             pass
         finally:
-            license_keys.append(license_data.get('LicenseKey'))
+            license_keys.append(license_data.get("LicenseKey"))
         for lic in reversed(license_keys):
-            if lic != '' and lic is not None:
+            if lic != "" and lic is not None:
                 license_key = lic
                 key_found = True
-                self.rdmc.ui.printer("License Key Found ending in: %s\n" % \
-                                     license_key.split('-')[-1])
+                self.rdmc.ui.printer(
+                    "License Key Found ending in: %s\n" % license_key.split("-")[-1]
+                )
                 segpass = []
-                for seg in lic.split('-'):
-                    if 'XXXXX' in seg.upper():
+                for seg in lic.split("-"):
+                    if "XXXXX" in seg.upper():
                         segpass.append(True)
 
                 if True not in segpass:
@@ -995,10 +1242,10 @@ class ServerCloneCommand():
                 segpass = []
                 license_key = input("Provide your license key: (press enter to skip)\n")
 
-                if license_key.count('X') == 25 or license_key.count('-') == 0:
+                if license_key.count("X") == 25 or license_key.count("-") == 0:
                     break
 
-                for seg in license_key[0].split('-'):
+                for seg in license_key[0].split("-"):
                     if len(seg) == 5:
                         segpass.append(True)
 
@@ -1006,7 +1253,9 @@ class ServerCloneCommand():
                     break
                 else:
                     segpass = False
-                    self.rdmc.ui.warn("An Invalid License Key was Provided: %s" % license_key)
+                    self.rdmc.ui.warn(
+                        "An Invalid License Key was Provided: %s" % license_key
+                    )
         else:
             self.rdmc.ui.warn("Remember to verify your License Key...")
 
@@ -1021,27 +1270,31 @@ class ServerCloneCommand():
         :parm ilolicdata: iLO Server License payload to be loaded
         :type ilolicdata: dict
         """
-        license_error_list = 'InvalidLicenseKey'
+        license_error_list = "InvalidLicenseKey"
         license_str = ""
         try:
-            license_str = ilolicdata['LicenseKey']
+            license_str = ilolicdata["LicenseKey"]
             segpass = []
-            for seg in license_str.split('-'):
+            for seg in license_str.split("-"):
                 if len(seg) == 5:
                     segpass.append(True)
 
             if len(segpass) == 5:
                 self.rdmc.ui.printer("Attempting to load a license key to the server.")
-                self.auxcommands['ilolicense'].run("" + license_str)
+                self.auxcommands["ilolicense"].run("" + license_str)
             else:
                 raise ValueError
         except IloResponseError as excp:
             if str(excp) in license_error_list:
-                self.rdmc.ui.error("iLO is not accepting your license key ending in \'%s\'." % \
-                                   license_str.split('-')[-1])
+                self.rdmc.ui.error(
+                    "iLO is not accepting your license key ending in '%s'."
+                    % license_str.split("-")[-1]
+                )
         except ValueError:
-            self.rdmc.ui.error("An Invalid License Key ending in \'%s\' was provided." % \
-                               license_str.split('-')[-1])
+            self.rdmc.ui.error(
+                "An Invalid License Key ending in '%s' was provided."
+                % license_str.split("-")[-1]
+            )
 
     @log_decor
     def save_accounts(self, accounts, _type, options):
@@ -1055,27 +1308,33 @@ class ServerCloneCommand():
         :type options: attribute
         """
         try:
-            account_type = next(iter(jsonpath_rw.parse('$..Name').find(accounts))).value
+            account_type = next(iter(jsonpath_rw.parse("$..Name").find(accounts))).value
         except StopIteration:
             account_type = None
 
         try:
-            account_un = next(iter(jsonpath_rw.parse('$..UserName').find(accounts))).value
+            account_un = next(
+                iter(jsonpath_rw.parse("$..UserName").find(accounts))
+            ).value
         except StopIteration:
             account_un = None
 
         try:
-            account_ln = next(iter(jsonpath_rw.parse('$..LoginName').find(accounts))).value
+            account_ln = next(
+                iter(jsonpath_rw.parse("$..LoginName").find(accounts))
+            ).value
         except StopIteration:
             account_ln = None
 
         try:
-            privileges = next(iter(jsonpath_rw.parse('$..Privileges').find(accounts))).value
+            privileges = next(
+                iter(jsonpath_rw.parse("$..Privileges").find(accounts))
+            ).value
         except StopIteration:
             privileges = None
 
         try:
-            role_id = next(iter(jsonpath_rw.parse('$..RoleId').find(accounts))).value
+            role_id = next(iter(jsonpath_rw.parse("$..RoleId").find(accounts))).value
         except StopIteration:
             role_id = None
 
@@ -1084,35 +1343,55 @@ class ServerCloneCommand():
             while True:
                 for i in range(2):
                     if i < 1:
-                        self.rdmc.ui.printer("Please input the desired password for user: %s\n" \
-                                             % account_un)
+                        self.rdmc.ui.printer(
+                            "Please input the desired password for user: %s\n"
+                            % account_un
+                        )
                     else:
-                        self.rdmc.ui.printer("Please re-enter the desired password for user: %s\n" \
-                                             % account_un)
+                        self.rdmc.ui.printer(
+                            "Please re-enter the desired password for user: %s\n"
+                            % account_un
+                        )
 
                     password[i] = getpass.getpass()
                     try:
-                        [password[i], _] = password[i].split('\r')
+                        [password[i], _] = password[i].split("\r")
                     except ValueError:
                         pass
 
-                if password[0] == password[1] and (password[0] is not None or password[0] != ''):
+                if password[0] == password[1] and (
+                    password[0] is not None or password[0] != ""
+                ):
                     break
                 else:
-                    ans = input("You have entered two different passwords...Retry?(y/n)\n")
-                    if ans.lower() != 'y':
-                        self.rdmc.ui.printer("Skipping Account Migration for: %s\n" % account_un)
+                    ans = input(
+                        "You have entered two different passwords...Retry?(y/n)\n"
+                    )
+                    if ans.lower() != "y":
+                        self.rdmc.ui.printer(
+                            "Skipping Account Migration for: %s\n" % account_un
+                        )
                         return None
         else:
-            self.rdmc.ui.printer("Remember to edit password for user: \'%s\', login name: \'%s\'" \
-                                 "." % (account_un, account_ln))
+            self.rdmc.ui.printer(
+                "Remember to edit password for user: '%s', login name: '%s'"
+                "." % (account_un, account_ln)
+            )
 
         if not password[0]:
             password[0] = __DEFAULT__
-            self.rdmc.ui.printer("Using a placeholder password of \'%s\' in %s file.\n" % \
-                                 (password[0], self.clone_file))
-        accounts = {"AccountType": account_type, "UserName": account_un, "LoginName": account_ln,
-                    "Password": password[0], "RoleId": role_id, "Privileges": privileges}
+            self.rdmc.ui.printer(
+                "Using a placeholder password of '%s' in %s file.\n"
+                % (password[0], self.clone_file)
+            )
+        accounts = {
+            "AccountType": account_type,
+            "UserName": account_un,
+            "LoginName": account_ln,
+            "Password": password[0],
+            "RoleId": role_id,
+            "Privileges": privileges,
+        }
 
         return accounts
 
@@ -1128,74 +1407,89 @@ class ServerCloneCommand():
         :type path: string
         """
         found_user = False
-        if 'UserName' in user_accounts:
-            user_name = user_accounts['UserName']
+        if "UserName" in user_accounts:
+            user_name = user_accounts["UserName"]
         else:
-            user_name = user_accounts['User_Name']
-        if 'LoginName' in user_accounts:
-            login_name = user_accounts['LoginName']
+            user_name = user_accounts["User_Name"]
+        if "LoginName" in user_accounts:
+            login_name = user_accounts["LoginName"]
         else:
-            login_name = user_accounts['Login_Name']
+            login_name = user_accounts["Login_Name"]
 
         # set minimum password length:
         for _t in self._fdata:
             try:
-                if 'AccountService' in _t:
+                if "AccountService" in _t:
                     _t_path = next(iter(list(self._fdata.get(_t).keys())))
                     pass_dict = {"Oem": {self.rdmc.app.typepath.defs.oemhp: {}}}
-                    pass_dict["Oem"][self.rdmc.app.typepath.defs.oemhp]['MinPasswordLength'] = \
-                        self._fdata[_t][_t_path]["Oem"] \
-                            [self.rdmc.app.typepath.defs.oemhp]["MinPasswordLength"]
-                    del self._fdata[_t][_t_path]["Oem"][self.rdmc.app.typepath.defs.oemhp] \
-                        ["MinPasswordLength"]
+                    pass_dict["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                        "MinPasswordLength"
+                    ] = self._fdata[_t][_t_path]["Oem"][
+                        self.rdmc.app.typepath.defs.oemhp
+                    ][
+                        "MinPasswordLength"
+                    ]
+                    del self._fdata[_t][_t_path]["Oem"][
+                        self.rdmc.app.typepath.defs.oemhp
+                    ]["MinPasswordLength"]
                     self.rdmc.app.patch_handler(_t_path, pass_dict)
                     break
             except KeyError as excp:
                 pass
             except Exception as excp:
-                self.rdmc.ui.error("Unable to set minimum password length for manager accounts.\n",
-                                   excp)
+                self.rdmc.ui.error(
+                    "Unable to set minimum password length for manager accounts.\n",
+                    excp,
+                )
 
         # set the current privileges to those in the clone file
-        curr_privs = user_accounts['Privileges']
+        curr_privs = user_accounts["Privileges"]
 
         # set the current role to that in the clone file
         curr_role_id = role_id = None
-        role_id = user_accounts.get('RoleId')
+        role_id = user_accounts.get("RoleId")
 
         if self.rdmc.app.typepath.defs.flagforrest:
-            href_path = 'links/self/' + self.rdmc.app.typepath.defs.hrefstring
+            href_path = "links/self/" + self.rdmc.app.typepath.defs.hrefstring
         else:
             href_path = self.rdmc.app.typepath.defs.hrefstring
 
         # obtaining account information on the current server as a check to verify the user
         # provided a decent path to use. This can be re-factored.
         try:
-            for curr_sel in self.rdmc.app.select(_type.split('.')[0] + '.'):
+            for curr_sel in self.rdmc.app.select(_type.split(".")[0] + "."):
                 try:
-                    curr_privs = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['Privileges']
-                    curr_role_id = curr_sel.dict.get('RoleId')
+                    curr_privs = curr_sel.dict["Oem"][
+                        self.rdmc.app.typepath.defs.oemhp
+                    ]["Privileges"]
+                    curr_role_id = curr_sel.dict.get("RoleId")
                     # curr_ln = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName']
-                    if 'UserName' in list(curr_sel.dict.keys()):
-                        curr_un = curr_sel.dict['UserName']
+                    if "UserName" in list(curr_sel.dict.keys()):
+                        curr_un = curr_sel.dict["UserName"]
                     else:
-                        curr_un = curr_sel.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]['LoginName']
+                        curr_un = curr_sel.dict["Oem"][
+                            self.rdmc.app.typepath.defs.oemhp
+                        ]["LoginName"]
                     if curr_un != user_name:
                         continue
                     else:
                         found_user = True
                         break
                 except (KeyError, NameError):
-                    self.rdmc.ui.error("Unable to obtain the account information for: \'%s\'\'s'" \
-                                       "account.\n" % user_name)
+                    self.rdmc.ui.error(
+                        "Unable to obtain the account information for: '%s''s'"
+                        "account.\n" % user_name
+                    )
                     continue
         except InstanceNotFoundError:
             pass
 
         if not found_user:
-            self.rdmc.ui.printer("Account \'%s\' was not found on this system.\n" % user_name)
+            self.rdmc.ui.printer(
+                "Account '%s' was not found on this system.\n" % user_name
+            )
 
-        user_pass = user_accounts['Password']
+        user_pass = user_accounts["Password"]
 
         (add_privs_str, remove_privs_str) = self.priv_helper(user_accounts, curr_privs)
 
@@ -1209,51 +1503,90 @@ class ServerCloneCommand():
                 self.rdmc.ui.warn("The default password will be attempted.")
             try:
                 if found_user:
-                    raise ResourceExists('')
+                    raise ResourceExists("")
 
                     # issue here then we just let it happen and perform a modify on the account.
                 elif role_id:
-                    self.auxcommands['iloaccounts'].run("add " + user_name + " " + login_name + " " + \
-                                                        user_pass + " " + " --role " + role_id)
+                    self.auxcommands["iloaccounts"].run(
+                        "add "
+                        + user_name
+                        + " "
+                        + login_name
+                        + " "
+                        + user_pass
+                        + " "
+                        + " --role "
+                        + role_id
+                    )
                     time.sleep(2)
                 elif add_privs_str:
-                    self.auxcommands['iloaccounts'].run("add " + user_name + " " + login_name + " " + \
-                                                        user_pass + " " + " --addprivs " + add_privs_str)
+                    self.auxcommands["iloaccounts"].run(
+                        "add "
+                        + user_name
+                        + " "
+                        + login_name
+                        + " "
+                        + user_pass
+                        + " "
+                        + " --addprivs "
+                        + add_privs_str
+                    )
                     time.sleep(2)
                 else:
-                    self.auxcommands['iloaccounts'].run("add " + user_name + " " + login_name + " " + user_pass)
+                    self.auxcommands["iloaccounts"].run(
+                        "add " + user_name + " " + login_name + " " + user_pass
+                    )
                     time.sleep(2)
             except ResourceExists:
-                self.rdmc.ui.warn("The account name \'%s\' exists on this system. " \
-                                  "Checking for account modifications.\n" % user_name)
-                self.rdmc.ui.printer("Changing account password for \'%s\'.\n" % user_name)
-                self.auxcommands['iloaccounts'].run("changepass " + user_name + " " + user_pass)
+                self.rdmc.ui.warn(
+                    "The account name '%s' exists on this system. "
+                    "Checking for account modifications.\n" % user_name
+                )
+                self.rdmc.ui.printer(
+                    "Changing account password for '%s'.\n" % user_name
+                )
+                self.auxcommands["iloaccounts"].run(
+                    "changepass " + user_name + " " + user_pass
+                )
                 time.sleep(2)
                 # if the user includes both role_id and privileges then privileges are applied
                 # first skipping role, if they exist. Extra steps, yes, in certain cases
                 # but not necessarily.
                 if role_id:
-                    self.rdmc.ui.printer("Changing roles for user: \'%s\'.\n" % user_name)
-                    self.auxcommands['iloaccounts'].run("modify " + user_name + " --role " + role_id)
+                    self.rdmc.ui.printer("Changing roles for user: '%s'.\n" % user_name)
+                    self.auxcommands["iloaccounts"].run(
+                        "modify " + user_name + " --role " + role_id
+                    )
                     time.sleep(2)
                 else:
                     if add_privs_str:
-                        self.rdmc.ui.printer("Adding privileges for user: \'%s\'.\n" % user_name)
-                        self.auxcommands['iloaccounts'].run("modify " + user_name + " --addprivs " + add_privs_str)
+                        self.rdmc.ui.printer(
+                            "Adding privileges for user: '%s'.\n" % user_name
+                        )
+                        self.auxcommands["iloaccounts"].run(
+                            "modify " + user_name + " --addprivs " + add_privs_str
+                        )
                         time.sleep(2)
                     if remove_privs_str:
-                        self.rdmc.ui.printer("Removing privileges for user: \'%s\'.\n" % user_name)
-                        self.auxcommands['iloaccounts'].run("modify " + user_name + " --removeprivs " + \
-                                                            remove_privs_str)
+                        self.rdmc.ui.printer(
+                            "Removing privileges for user: '%s'.\n" % user_name
+                        )
+                        self.auxcommands["iloaccounts"].run(
+                            "modify " + user_name + " --removeprivs " + remove_privs_str
+                        )
                         time.sleep(2)
                     elif role_id:
-                        self.auxcommands['iloaccounts'].run("modify " + user_name + " --role " + role_id)
+                        self.auxcommands["iloaccounts"].run(
+                            "modify " + user_name + " --role " + role_id
+                        )
                         time.sleep(2)
 
         else:
-            raise Exception("A password was not provided for account: \'%s\', path: \'%s\'. " \
-                            "iLO accounts will not be altered without a valid password.\n" % \
-                            (user_name, path))
+            raise Exception(
+                "A password was not provided for account: '%s', path: '%s'. "
+                "iLO accounts will not be altered without a valid password.\n"
+                % (user_name, path)
+            )
 
     @log_decor
     def save_federation(self, fedaccts, _type, options):
@@ -1268,17 +1601,19 @@ class ServerCloneCommand():
         """
 
         try:
-            fed_name = next(iter(jsonpath_rw.parse('$..Name').find(fedaccts))).value
+            fed_name = next(iter(jsonpath_rw.parse("$..Name").find(fedaccts))).value
         except StopIteration:
             privileges = None
 
         try:
-            fed_id = next(iter(jsonpath_rw.parse('$..Id').find(fedaccts))).value
+            fed_id = next(iter(jsonpath_rw.parse("$..Id").find(fedaccts))).value
         except StopIteration:
             privileges = None
 
         try:
-            privileges = next(iter(jsonpath_rw.parse('$..Privileges').find(fedaccts))).value
+            privileges = next(
+                iter(jsonpath_rw.parse("$..Privileges").find(fedaccts))
+            ).value
         except StopIteration:
             privileges = None
 
@@ -1287,35 +1622,53 @@ class ServerCloneCommand():
             while True:
                 for i in range(2):
                     if i < 1:
-                        self.rdmc.ui.printer("Please input the federation key for Federation " \
-                                             "user: %s\n" % fed_name)
+                        self.rdmc.ui.printer(
+                            "Please input the federation key for Federation "
+                            "user: %s\n" % fed_name
+                        )
                     else:
-                        self.rdmc.ui.printer("Please re-enter the federation key for Federation " \
-                                             "user: %s\n" % fed_name)
+                        self.rdmc.ui.printer(
+                            "Please re-enter the federation key for Federation "
+                            "user: %s\n" % fed_name
+                        )
 
                     fedkey[i] = getpass.getpass()
                     try:
-                        [fedkey[i], _] = fedkey[i].split('\r')
+                        [fedkey[i], _] = fedkey[i].split("\r")
                     except ValueError:
                         pass
 
-                if fedkey[0] == fedkey[1] and (fedkey[0] is not None or fedkey[0] != ''):
+                if fedkey[0] == fedkey[1] and (
+                    fedkey[0] is not None or fedkey[0] != ""
+                ):
                     break
                 else:
-                    ans = input("You have entered two different federation keys...Retry?(y/n)\n")
-                    if ans.lower() != 'y':
-                        self.rdmc.ui.printer("Skipping Federation Account Migration for: " \
-                                             "%s\n" % fed_name)
+                    ans = input(
+                        "You have entered two different federation keys...Retry?(y/n)\n"
+                    )
+                    if ans.lower() != "y":
+                        self.rdmc.ui.printer(
+                            "Skipping Federation Account Migration for: "
+                            "%s\n" % fed_name
+                        )
                         return None
         else:
-            self.rdmc.ui.warn("Remember to edit the Federation key for acct: \'%s\'." % fed_name)
+            self.rdmc.ui.warn(
+                "Remember to edit the Federation key for acct: '%s'." % fed_name
+            )
 
         if not fedkey[0]:
             fedkey[0] = __DEFAULT__
-            self.rdmc.ui.warn("Using a placeholder federation key \'%s\' in %s file.\n" % \
-                              (fedkey[0], self.clone_file))
-        fedaccts = {"AccountID": fed_id, "FederationName": fed_name, "FederationKey": fedkey[0],
-                    "Privileges": privileges}
+            self.rdmc.ui.warn(
+                "Using a placeholder federation key '%s' in %s file.\n"
+                % (fedkey[0], self.clone_file)
+            )
+        fedaccts = {
+            "AccountID": fed_id,
+            "FederationName": fed_name,
+            "FederationKey": fedkey[0],
+            "Privileges": privileges,
+        }
         return fedaccts
 
     @log_decor
@@ -1327,68 +1680,100 @@ class ServerCloneCommand():
         """
 
         found_user = False
-        fed_name = fed_accounts['FederationName']
-        fed_key = fed_accounts['FederationKey']
+        fed_name = fed_accounts["FederationName"]
+        fed_key = fed_accounts["FederationKey"]
 
         # set the current privileges to those in the clone file
-        curr_privs = fed_accounts['Privileges']
+        curr_privs = fed_accounts["Privileges"]
 
         # obtaining account information on the current server as a check to verify the user
         # provided a decent path to use. This can be re-factored.
         try:
-            for curr_sel in self.rdmc.app.select(_type.split('.')[0] + '.'):
+            for curr_sel in self.rdmc.app.select(_type.split(".")[0] + "."):
                 try:
-                    curr_privs = curr_sel.dict.get('Privileges')
-                    curr_fed = curr_sel.dict.get('Name')
+                    curr_privs = curr_sel.dict.get("Privileges")
+                    curr_fed = curr_sel.dict.get("Name")
                     if curr_fed != fed_name:
                         continue
                     else:
                         found_user = True
                         break
                 except (KeyError, NameError):
-                    self.rdmc.ui.error("Unable to obtain the account information for: \'%s\'\'s'" \
-                                       "account.\n" % fed_name)
+                    self.rdmc.ui.error(
+                        "Unable to obtain the account information for: '%s''s'"
+                        "account.\n" % fed_name
+                    )
                     continue
         except InstanceNotFoundError:
             pass
 
         if not found_user:
-            self.rdmc.ui.warn("Fed Account \'%s\' was not found on this system.\n" % fed_name)
+            self.rdmc.ui.warn(
+                "Fed Account '%s' was not found on this system.\n" % fed_name
+            )
 
         if fed_key:
             if fed_key == __DEFAULT__:
                 self.rdmc.ui.warn("The default federation key will be attempted.")
-            (add_privs_str, remove_privs_str) = self.priv_helper(fed_accounts, curr_privs)
+            (add_privs_str, remove_privs_str) = self.priv_helper(
+                fed_accounts, curr_privs
+            )
             try:
                 if found_user:
-                    raise ResourceExists('')
+                    raise ResourceExists("")
                 else:
-                    self.rdmc.ui.printer("Adding \'%s\' to iLO Federation.\n" % fed_name)
-                    self.auxcommands['ilofederation'].run("add " + fed_name + " " + fed_key + " " + \
-                                                          add_privs_str)
+                    self.rdmc.ui.printer("Adding '%s' to iLO Federation.\n" % fed_name)
+                    self.auxcommands["ilofederation"].run(
+                        "add " + fed_name + " " + fed_key + " " + add_privs_str
+                    )
                     time.sleep(2)
             except ResourceExists:
-                self.rdmc.ui.warn("This account already exists on this system: \'%s\'\n" % fed_name)
-                self.rdmc.ui.printer("Changing Federation account: \'%s\'s key\n" % fed_name)
-                self.auxcommands['ilofederation'].run("changekey " + fed_name + " " + fed_key)
+                self.rdmc.ui.warn(
+                    "This account already exists on this system: '%s'\n" % fed_name
+                )
+                self.rdmc.ui.printer(
+                    "Changing Federation account: '%s's key\n" % fed_name
+                )
+                self.auxcommands["ilofederation"].run(
+                    "changekey " + fed_name + " " + fed_key
+                )
             except ValueError:
-                self.rdmc.ui.error("Some other error occured while attempting to create this " \
-                                   "account: %s" % fed_name)
+                self.rdmc.ui.error(
+                    "Some other error occured while attempting to create this "
+                    "account: %s" % fed_name
+                )
             finally:
                 if add_privs_str:
-                    self.rdmc.ui.printer("Adding privs to Federation account: \'%s\'\n" % fed_name)
-                    self.auxcommands['ilofederation'].run("modify " + fed_name + " " + fed_key + \
-                                                          " --addprivs " + add_privs_str)
+                    self.rdmc.ui.printer(
+                        "Adding privs to Federation account: '%s'\n" % fed_name
+                    )
+                    self.auxcommands["ilofederation"].run(
+                        "modify "
+                        + fed_name
+                        + " "
+                        + fed_key
+                        + " --addprivs "
+                        + add_privs_str
+                    )
                     time.sleep(2)
                 if remove_privs_str:
-                    self.rdmc.ui.printer("Removing privs from Federation account: \'%s\'\n" % \
-                                         fed_name)
-                    self.auxcommands['ilofederation'].run("modify " + fed_name + " " + fed_key + \
-                                                          " --removeprivs " + remove_privs_str)
+                    self.rdmc.ui.printer(
+                        "Removing privs from Federation account: '%s'\n" % fed_name
+                    )
+                    self.auxcommands["ilofederation"].run(
+                        "modify "
+                        + fed_name
+                        + " "
+                        + fed_key
+                        + " --removeprivs "
+                        + remove_privs_str
+                    )
                     time.sleep(2)
         else:
-            self.rdmc.ui.warn("A valid Federation key was not provided...skipping account " \
-                              "creation or modification for Fed. Acct \'%s\'" % fed_name)
+            self.rdmc.ui.warn(
+                "A valid Federation key was not provided...skipping account "
+                "creation or modification for Fed. Acct '%s'" % fed_name
+            )
 
     @log_decor
     def save_smartstorage(self, drive_data, _type):
@@ -1429,57 +1814,82 @@ class ServerCloneCommand():
         checks = []
         try:
             curr_sys_info = self.rdmc.app.create_save_header()["Comments"]
-            curr_ilorev = format(float(self.curr_ilorev[0] + '.' + self.curr_ilorev[1:]), '.2f')
-            _, file_iloversion, file_ilorev = sys_info['iLOVersion'].split(' ')
-            file_ilorev = file_ilorev.split('v')[-1]
-            self.rdmc.ui.printer("This system has iLO Version %s. \n" % curr_sys_info['iLOVersion'])
-            self.rdmc.ui.printer("This system has BIOS Version %s.\n" % curr_sys_info['BIOSFamily'])
-            if curr_sys_info['BIOSFamily'] == sys_info['BIOSFamily']:
+            curr_ilorev = format(
+                float(self.curr_ilorev[0] + "." + self.curr_ilorev[1:]), ".2f"
+            )
+            _, file_iloversion, file_ilorev = sys_info["iLOVersion"].split(" ")
+            file_ilorev = file_ilorev.split("v")[-1]
+            self.rdmc.ui.printer(
+                "This system has iLO Version %s. \n" % curr_sys_info["iLOVersion"]
+            )
+            self.rdmc.ui.printer(
+                "This system has BIOS Version %s.\n" % curr_sys_info["BIOSFamily"]
+            )
+            if curr_sys_info["BIOSFamily"] == sys_info["BIOSFamily"]:
                 self.rdmc.ui.printer("BIOS Versions are compatible.\n")
                 checks.append(True)
             else:
-                self.rdmc.ui.warn("BIOS Versions are different. Suggest to have" \
-                                  " \'%s\' in place before upgrading.\n" % sys_info['BIOSFamily'])
+                self.rdmc.ui.warn(
+                    "BIOS Versions are different. Suggest to have"
+                    " '%s' in place before upgrading.\n" % sys_info["BIOSFamily"]
+                )
                 checks.append(False)
-            self.rdmc.ui.printer("This system has has iLO %s with firmware revision %s.\n" % \
-                                 (self.curr_iloversion, curr_ilorev))
+            self.rdmc.ui.printer(
+                "This system has has iLO %s with firmware revision %s.\n"
+                % (self.curr_iloversion, curr_ilorev)
+            )
             if self.curr_iloversion == file_iloversion and curr_ilorev == file_ilorev:
                 self.rdmc.ui.printer("iLO Versions are fully compatible.\n")
                 checks.append(True)
             elif self.curr_iloversion == file_iloversion and curr_ilorev != file_ilorev:
-                self.rdmc.ui.warn("The iLO Versions are compatible; however, the revisions " \
-                                  "differ (system version: iLO %s %s, file version: iLO %s %s). Some " \
-                                  "differences in properties, schemas and incompatible dependencies may " \
-                                  "exist. Proceed with caution.\n" % (self.curr_iloversion, curr_ilorev,
-                                                                      file_iloversion, file_ilorev))
+                self.rdmc.ui.warn(
+                    "The iLO Versions are compatible; however, the revisions "
+                    "differ (system version: iLO %s %s, file version: iLO %s %s). Some "
+                    "differences in properties, schemas and incompatible dependencies may "
+                    "exist. Proceed with caution.\n"
+                    % (self.curr_iloversion, curr_ilorev, file_iloversion, file_ilorev)
+                )
                 checks.append(False)
             else:
-                self.rdmc.ui.warn("The iLO Versions are different. Compatibility issues may exist " \
-                                  "attempting to commit changes to this system.\n(System version: iLO %s %s, " \
-                                  "file version: iLO %s %s)\n" % (self.curr_iloversion, curr_ilorev,
-                                                                  file_iloversion, file_ilorev))
+                self.rdmc.ui.warn(
+                    "The iLO Versions are different. Compatibility issues may exist "
+                    "attempting to commit changes to this system.\n(System version: iLO %s %s, "
+                    "file version: iLO %s %s)\n"
+                    % (self.curr_iloversion, curr_ilorev, file_iloversion, file_ilorev)
+                )
                 checks.append(False)
         except KeyError as exp:
-            if 'iLOVersion' in str(exp):
-                self.rdmc.ui.warn("iLOVersion not found in clone file \'Comments\' dictionary.\n")
-            elif 'BIOSFamily' in str(exp):
-                self.rdmc.ui.warn("BIOS Family not found in clone file \'Comments\' dictionary.\n")
+            if "iLOVersion" in str(exp):
+                self.rdmc.ui.warn(
+                    "iLOVersion not found in clone file 'Comments' dictionary.\n"
+                )
+            elif "BIOSFamily" in str(exp):
+                self.rdmc.ui.warn(
+                    "BIOS Family not found in clone file 'Comments' dictionary.\n"
+                )
             else:
                 raise Exception("%s" % exp)
 
         if (len(checks) == 0 or False in checks) and not options.autocopy:
             while True:
-                ans = input("Would you like to continue with migration of iLO configuration from " \
-                            "\'%s\' to \'%s\'? (y/n)\n" % (sys_info['Model'], curr_sys_info['Model']))
-                if ans.lower() == 'n':
-                    raise ExitHandler("Aborting load operation. No changes made to the server.")
-                elif ans.lower() == 'y':
+                ans = input(
+                    "Would you like to continue with migration of iLO configuration from "
+                    "'%s' to '%s'? (y/n)\n"
+                    % (sys_info["Model"], curr_sys_info["Model"])
+                )
+                if ans.lower() == "n":
+                    raise ExitHandler(
+                        "Aborting load operation. No changes made to the server."
+                    )
+                elif ans.lower() == "y":
                     break
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
 
-        self.rdmc.ui.printer('Attempting system clone from a \'%s\' to a \'%s\'.\n' % \
-                             (sys_info['Model'], curr_sys_info['Model']))
+        self.rdmc.ui.printer(
+            "Attempting system clone from a '%s' to a '%s'.\n"
+            % (sys_info["Model"], curr_sys_info["Model"])
+        )
 
     def priv_helper(self, desired_priv, curr_privs):
         """
@@ -1494,51 +1904,63 @@ class ServerCloneCommand():
         add_privs_str = ""
         remove_privs_str = ""
 
-        if desired_priv.get('Privileges').get('HostBIOSConfigPriv') and \
-                curr_privs.get('HostBIOSConfigPriv'):
+        if desired_priv.get("Privileges").get("HostBIOSConfigPriv") and curr_privs.get(
+            "HostBIOSConfigPriv"
+        ):
             add_privs_str += "8,"
         else:
             remove_privs_str += "8,"
-        if desired_priv.get('Privileges').get('HostNICConfigPriv') and \
-                curr_privs.get('HostNICConfigPriv'):
+        if desired_priv.get("Privileges").get("HostNICConfigPriv") and curr_privs.get(
+            "HostNICConfigPriv"
+        ):
             add_privs_str += "7,"
         else:
             remove_privs_str += "7,"
-        if desired_priv.get('Privileges').get('HostStorageConfigPriv') and \
-                curr_privs.get('HostStorageConfigPriv'):
+        if desired_priv.get("Privileges").get(
+            "HostStorageConfigPriv"
+        ) and curr_privs.get("HostStorageConfigPriv"):
             add_privs_str += "9,"
         else:
             remove_privs_str += "9,"
-        if desired_priv.get('Privileges').get('LoginPriv') and curr_privs.get('LoginPriv'):
+        if desired_priv.get("Privileges").get("LoginPriv") and curr_privs.get(
+            "LoginPriv"
+        ):
             add_privs_str += "1,"
         else:
             remove_privs_str += "1,"
-        if desired_priv.get('Privileges').get('RemoteConsolePriv') and \
-                curr_privs.get('RemoteConsolePriv'):
+        if desired_priv.get("Privileges").get("RemoteConsolePriv") and curr_privs.get(
+            "RemoteConsolePriv"
+        ):
             add_privs_str += "2,"
         else:
             remove_privs_str += "2,"
-        if desired_priv.get('Privileges').get('SystemRecoveryConfigPriv') and \
-                curr_privs.get('SystemRecoveryConfigPriv'):
+        if desired_priv.get("Privileges").get(
+            "SystemRecoveryConfigPriv"
+        ) and curr_privs.get("SystemRecoveryConfigPriv"):
             add_privs_str += "10,"
         else:
             remove_privs_str += "10,"
-        if desired_priv.get('Privileges').get('UserConfigPriv') and \
-                curr_privs.get('UserConfigPriv'):
+        if desired_priv.get("Privileges").get("UserConfigPriv") and curr_privs.get(
+            "UserConfigPriv"
+        ):
             add_privs_str += "3,"
         else:
             remove_privs_str += "3,"
-        if desired_priv.get('Privileges').get('VirtualMediaPriv') and \
-                curr_privs.get('VirtualMediaPriv'):
+        if desired_priv.get("Privileges").get("VirtualMediaPriv") and curr_privs.get(
+            "VirtualMediaPriv"
+        ):
             add_privs_str += "5,"
         else:
             remove_privs_str += "5,"
-        if desired_priv.get('Privileges').get('VirtualPowerAndResetPriv') and \
-                curr_privs.get('VirtualPowerAndResetPriv'):
+        if desired_priv.get("Privileges").get(
+            "VirtualPowerAndResetPriv"
+        ) and curr_privs.get("VirtualPowerAndResetPriv"):
             add_privs_str += "6,"
         else:
             remove_privs_str += "6,"
-        if desired_priv.get('Privileges').get('iLOConfigPriv') and curr_privs.get('iLOConfigPriv'):
+        if desired_priv.get("Privileges").get("iLOConfigPriv") and curr_privs.get(
+            "iLOConfigPriv"
+        ):
             add_privs_str += "4,"
         else:
             remove_privs_str += "4,"
@@ -1553,20 +1975,25 @@ class ServerCloneCommand():
         ending
         """
 
-        root_path = ''
+        root_path = ""
 
-        if path[-1] == '/':
-            ending = path.split('/')[-2]
+        if path[-1] == "/":
+            ending = path.split("/")[-2]
         else:
-            ending = path.split('/')[-1]
+            ending = path.split("/")[-1]
 
-        entries_list = [(pos.start(), pos.end()) for pos in list(re.finditer(ending, path))]
-        root_path, ident_ending = path[:entries_list[-1][0]], path[entries_list[-1][0]:]
+        entries_list = [
+            (pos.start(), pos.end()) for pos in list(re.finditer(ending, path))
+        ]
+        root_path, ident_ending = (
+            path[: entries_list[-1][0]],
+            path[entries_list[-1][0] :],
+        )
 
         # check to verify the root path + ending match the original path.
-        _ = ''
+        _ = ""
         if len(root_path + ident_ending) == len(path):
-            return (root_path, _.join(ident_ending.split('/')))
+            return (root_path, _.join(ident_ending.split("/")))
         return (path, ident_ending)
 
     def get_filenames(self):
@@ -1574,9 +2001,11 @@ class ServerCloneCommand():
         Obtain a dictionary of filenames for clonefile, and cert files
         :returns: returns dictionary of filenames
         """
-        return {'clone_file': self.clone_file,
-                'https_cert_file': self.https_cert_file,
-                'sso_cert_file': self.sso_cert_file}
+        return {
+            "clone_file": self.clone_file,
+            "https_cert_file": self.https_cert_file,
+            "sso_cert_file": self.sso_cert_file,
+        }
 
     def check_files(self, options):
         """
@@ -1586,37 +2015,43 @@ class ServerCloneCommand():
         """
         if options.encryption:
             if self.save:
-                self.rdmc.ui.printer("Serverclone JSON, \'%s\' will be encrypted.\n" \
-                                     % self.clone_file)
+                self.rdmc.ui.printer(
+                    "Serverclone JSON, '%s' will be encrypted.\n" % self.clone_file
+                )
             if self.load:
-                self.rdmc.ui.printer("Loading the encrypted JSON clone file: %s.\n" \
-                                     % self.clone_file)
-                self.rdmc.ui.printer("Note: Make sure %s is encrypted.\n" % self.clone_file)
+                self.rdmc.ui.printer(
+                    "Loading the encrypted JSON clone file: %s.\n" % self.clone_file
+                )
+                self.rdmc.ui.printer(
+                    "Note: Make sure %s is encrypted.\n" % self.clone_file
+                )
 
         # delete anything in the change log file
-        with open(self.change_log_file, 'w+') as clf:
+        with open(self.change_log_file, "w+") as clf:
             clf.write("")
         # delete anything in the error log file
-        with open(self.error_log_file, 'w+') as elf:
+        with open(self.error_log_file, "w+") as elf:
             elf.write("")
 
         # check the clone file exists (otherwise create)
         try:
             if options.encryption:
-                file_handle = open(self.clone_file, 'r+b')
+                file_handle = open(self.clone_file, "r+b")
             else:
-                file_handle = open(self.clone_file, 'r+')
+                file_handle = open(self.clone_file, "r+")
             file_handle.close()
         except:
             if self.save:
                 if options.encryption:
-                    file_handle = open(self.clone_file, 'w+b')
+                    file_handle = open(self.clone_file, "w+b")
                 else:
-                    file_handle = open(self.clone_file, 'w+')
+                    file_handle = open(self.clone_file, "w+")
                 file_handle.close()
             else:
-                self.rdmc.ui.error("The clone file \'%s\', selected for loading," \
-                                   " was not found.\n" % self.clone_file)
+                self.rdmc.ui.error(
+                    "The clone file '%s', selected for loading,"
+                    " was not found.\n" % self.clone_file
+                )
                 raise IOError
 
     @log_decor
@@ -1631,7 +2066,7 @@ class ServerCloneCommand():
         """
         _type1 = type1
         _type2 = type2
-        checklist = ['Major']  # , 'Minor'] #No minor checking for now
+        checklist = ["Major"]  # , 'Minor'] #No minor checking for now
 
         found_type = False
         compatible = list()
@@ -1639,16 +2074,16 @@ class ServerCloneCommand():
         _type1 = self.type_break(_type1)
         _type2 = self.type_break(_type2)
 
-        if _type1[type1]['Type'].lower() == _type2[type2]['Type'].lower():
+        if _type1[type1]["Type"].lower() == _type2[type2]["Type"].lower():
             found_type = True
 
         for item in checklist:
-            if _type1[type1]['Version'][item] == _type2[type2]['Version'][item]:
-                compatible.append('True')
+            if _type1[type1]["Version"][item] == _type2[type2]["Version"][item]:
+                compatible.append("True")
             else:
-                compatible.append('False')
+                compatible.append("False")
 
-        if 'False' in compatible:
+        if "False" in compatible:
             return (found_type, False)
         return (found_type, True)
 
@@ -1661,21 +2096,25 @@ class ServerCloneCommand():
         """
 
         _type2 = dict()
-        _type_breakdown = _type.split('#')[-1].split('.')
+        _type_breakdown = _type.split("#")[-1].split(".")
         _type2[_type] = dict([("Type", _type_breakdown[0]), ("Version", {})])
         versioning = list()
-        if len(_type_breakdown) == 3 and '_' in _type_breakdown[1]:
-            rev = _type_breakdown[1].split('_')
-            _type2[_type]["Version"] = {"Major": int(rev[0][-1]),
-                                        "Minor": int(rev[1]),
-                                        "Errata": int(rev[2])}
-        elif len(_type_breakdown) > 3 and '_' not in _type:
+        if len(_type_breakdown) == 3 and "_" in _type_breakdown[1]:
+            rev = _type_breakdown[1].split("_")
+            _type2[_type]["Version"] = {
+                "Major": int(rev[0][-1]),
+                "Minor": int(rev[1]),
+                "Errata": int(rev[2]),
+            }
+        elif len(_type_breakdown) > 3 and "_" not in _type:
             for value in _type_breakdown:
                 if value.isdigit():
                     versioning.append(int(value))
-            _type2[_type]["Version"] = {"Major": versioning[0],
-                                        "Minor": versioning[1],
-                                        "Errata": versioning[2]}
+            _type2[_type]["Version"] = {
+                "Major": versioning[0],
+                "Minor": versioning[1],
+                "Errata": versioning[2],
+            }
 
         return _type2
 
@@ -1701,77 +2140,84 @@ class ServerCloneCommand():
             if len(options.clonefilename) < 2:
                 self.clone_file = options.clonefilename[0]
             else:
-                raise InvalidCommandLineError("Only a single clone file may be specified.")
+                raise InvalidCommandLineError(
+                    "Only a single clone file may be specified."
+                )
         else:
             self.clone_file = __clone_file__
 
         if options.encryption:
             if len(options.encryption.encode("utf8")) not in [16, 24, 32]:
-                raise InvalidKeyError("An invalid encryption key has been used with a length of: " \
-                                      "%s chars....ensure the encryption key length is 16, 24 or " \
-                                      "32 characters long." % len((options.encryption). \
-                                                                  encode("utf8")))
+                raise InvalidKeyError(
+                    "An invalid encryption key has been used with a length of: "
+                    "%s chars....ensure the encryption key length is 16, 24 or "
+                    "32 characters long." % len((options.encryption).encode("utf8"))
+                )
         # filenames
         if self.load:
             if options.ssocert:
                 if len(options.ssocert) < 2 and self.load:
                     self.sso_cert_file = options.ssocert[0]
                 else:
-                    raise InvalidCommandLineError("Ensure you are loading a single SSO certificate"
-                                                  ".\n")
+                    raise InvalidCommandLineError(
+                        "Ensure you are loading a single SSO certificate" ".\n"
+                    )
             if options.tlscert:
                 if len(options.tlscert) < 2 and self.load:
                     self.https_cert_file = options.tlscert[0]
                 else:
-                    raise InvalidCommandLineError("Ensure you are loading a single TLS certificate"
-                                                  ".\n")
+                    raise InvalidCommandLineError(
+                        "Ensure you are loading a single TLS certificate" ".\n"
+                    )
         if self.rdmc.opts.debug:
-            self.rdmc.ui.warn("Debug selected...all exceptions will be handled in an external log "
-                              "file (check error log for automatic testing).\n")
-            with open(self.error_log_file, 'w+') as efh:
+            self.rdmc.ui.warn(
+                "Debug selected...all exceptions will be handled in an external log "
+                "file (check error log for automatic testing).\n"
+            )
+            with open(self.error_log_file, "w+") as efh:
                 efh.write("")
 
     @staticmethod
     def options_argument_group(parser):
-        """ Define option arguments group
+        """Define option arguments group
         :param parser: The parser to add the login option group to
         :type parser: ArgumentParser/OptionParser
         """
         group = parser.add_argument_group()
 
         parser.add_argument(
-            '--encryption',
-            dest='encryption',
-            help="Optionally include this flag to encrypt/decrypt a file" \
-                 " using the key provided.",
-            default=None
+            "--encryption",
+            dest="encryption",
+            help="Optionally include this flag to encrypt/decrypt a file"
+            " using the key provided.",
+            default=None,
         )
         parser.add_argument(
-            '-f',
-            '--clonefile',
-            dest='clonefilename',
-            help="Optionally rename the default clone file \'ilorest_clone.json\'",
+            "-f",
+            "--clonefile",
+            dest="clonefilename",
+            help="Optionally rename the default clone file 'ilorest_clone.json'",
             action="append",
             default=None,
         )
         parser.add_argument(
-            '--uniqueoverride',
-            dest='uniqueoverride',
-            action='store_true',
-            help="Override the measures stopping the tool from writing." \
-                 "over items that are system unique.",
+            "--uniqueoverride",
+            dest="uniqueoverride",
+            action="store_true",
+            help="Override the measures stopping the tool from writing."
+            "over items that are system unique.",
             default=None,
         )
         parser.add_argument(
-            '--auto',
-            dest='autocopy',
+            "--auto",
+            dest="autocopy",
             help="Optionally include this flag to ignore user prompts for save or load processes.",
             action="store_true",
             default=None,
         )
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
         :param customparser: command line input
         :type customparser: parser.
         """
@@ -1780,30 +2226,30 @@ class ServerCloneCommand():
 
         self.cmdbase.add_login_arguments_group(customparser)
         self.options_argument_group(customparser)
-        subcommand_parser = customparser.add_subparsers(dest='command')
-        save_help = 'Save an iLO, Bios and SSA config.'
+        subcommand_parser = customparser.add_subparsers(dest="command")
+        save_help = "Save an iLO, Bios and SSA config."
         # save sub-parser
         save_parser = subcommand_parser.add_parser(
-            'save',
+            "save",
             help=save_help,
-            description=save_help + '\n\texample: serverclone save' \
-                                    '\n\n\tSave iLO config omitting BIOS attributes to a non-default file name.\n\t' \
-                                    'example: serverclone save -f serv_clone.json --nobios' \
-                                    '\n\n\tSave an encrypted iLO configuration file (to the default file name)\n\t' \
-                                    'example: serverclone save --encryption <ENCRYPTION KEY>',
-            formatter_class=RawDescriptionHelpFormatter
+            description=save_help + "\n\texample: serverclone save"
+            "\n\n\tSave iLO config omitting BIOS attributes to a non-default file name.\n\t"
+            "example: serverclone save -f serv_clone.json --nobios"
+            "\n\n\tSave an encrypted iLO configuration file (to the default file name)\n\t"
+            "example: serverclone save --encryption <ENCRYPTION KEY>",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         save_parser.add_argument(
-            '--ilossa',
-            dest='iLOSSA',
-            help="Optionally include this flag to include configuration of" \
-                 " iLO Smart Array Devices during save.",
+            "--ilossa",
+            dest="iLOSSA",
+            help="Optionally include this flag to include configuration of"
+            " iLO Smart Array Devices during save.",
             action="store_true",
             default=None,
         )
         save_parser.add_argument(
-            '--nobios',
-            dest='noBIOS',
+            "--nobios",
+            dest="noBIOS",
             help="Optionally include this flag to omit save of Bios configuration.",
             action="store_true",
             default=None,
@@ -1811,39 +2257,39 @@ class ServerCloneCommand():
         self.cmdbase.add_login_arguments_group(save_parser)
         self.options_argument_group(save_parser)
 
-        load_help = 'Load an iLO, Bios and/or SSA config.'
+        load_help = "Load an iLO, Bios and/or SSA config."
         # load sub-parser
         load_parser = subcommand_parser.add_parser(
-            'load',
+            "load",
             help=load_help,
-            description=load_help + 'SSO and TLS certificates may be' \
-                                    'added on load.\n\n\tLoad a clone file from a non-default file name.\n\t' \
-                                    'example: serverclone load -f serv_clone.json' \
-                                    '\n\n\tLoad a clone file with SSO and TLS certificates.\n\t' \
-                                    'example: serverclone load -ssocert sso.txt --tlscert tls.txt' \
-                                    '\n\n\tLoad a clone file which has been encrypted.\n\t' \
-                                    'example: serverclone load --encryption abc12abc12abc123\n\n\t',
-            formatter_class=RawDescriptionHelpFormatter
+            description=load_help + "SSO and TLS certificates may be"
+            "added on load.\n\n\tLoad a clone file from a non-default file name.\n\t"
+            "example: serverclone load -f serv_clone.json"
+            "\n\n\tLoad a clone file with SSO and TLS certificates.\n\t"
+            "example: serverclone load -ssocert sso.txt --tlscert tls.txt"
+            "\n\n\tLoad a clone file which has been encrypted.\n\t"
+            "example: serverclone load --encryption abc12abc12abc123\n\n\t",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         load_parser.add_argument(
-            '--ssocert',
-            dest='ssocert',
-            help="Use this flag during \'load\' to include an SSO certificate." \
-                 " This should be properly formatted in a simple text file.",
+            "--ssocert",
+            dest="ssocert",
+            help="Use this flag during 'load' to include an SSO certificate."
+            " This should be properly formatted in a simple text file.",
             action="append",
             default=None,
         )
         load_parser.add_argument(
-            '--tlscert',
-            dest='tlscert',
-            help="Use this flag during \'load\' to include a TLS certificate." \
-                 " This should be properly formatted in a simple text file.",
+            "--tlscert",
+            dest="tlscert",
+            help="Use this flag during 'load' to include a TLS certificate."
+            " This should be properly formatted in a simple text file.",
             action="append",
             default=None,
         )
         load_parser.add_argument(
-            '--reboot',
-            dest='reboot',
+            "--reboot",
+            dest="reboot",
             help="Optionally reboot after loading",
             action="store_true",
             default=False,

@@ -22,8 +22,13 @@ import re
 from argparse import REMAINDER, Action
 
 from enum import Enum
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-    NoContentsFoundForOperationError, LOGGER
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    LOGGER,
+)
 
 from .lib.DisplayHelpers import DisplayHelpers, OutputFormats
 from .lib.Mapper import Mapper
@@ -35,6 +40,7 @@ from .lib.RestHelpers import RestHelpers
 class _Parse_Options_List(Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
         super(_Parse_Options_List, self).__init__(option_strings, dest, nargs, **kwargs)
+
     def __call__(self, parser, namespace, values, option_strings):
         """
         Callback to parse a comma-separated list into an array.
@@ -43,15 +49,18 @@ class _Parse_Options_List(Action):
         try:
             setattr(namespace, self.dest, next(iter(values)).split(","))
         except:
-            raise InvalidCommandLineError("Values in a list must be separated by a comma.")
+            raise InvalidCommandLineError(
+                "Values in a list must be separated by a comma."
+            )
+
 
 class DefaultAttributes(Enum):
     """
     Enum class containing default display attributes for various flags
     """
+
     device = ["Location", "Capacity", "Status", "DIMMStatus", "Life", "FWVersion"]
-    config = ["Location", "VolatileSize",
-              "PmemSize", "PmemInterleaved"]
+    config = ["Location", "VolatileSize", "PmemSize", "PmemInterleaved"]
     summary = ["TotalCapacity", "TotalVolatileSize", "TotalPmemSize"]
     logical = ["PmemSize", "DimmIds"]
 
@@ -74,18 +83,18 @@ def get_default_attributes(flag):
     return []
 
 
-class ShowPmemCommand():
-    """ Command to display information about Persistent Memory modules """
+class ShowPmemCommand:
+    """Command to display information about Persistent Memory modules"""
 
     def __init__(self):
         self.ident = {
-            'name':'showpmm',
-            'usage': None,
-            'description':"Display information about "
-                    "Persistent Memory modules \n\texample: showpmm --device",
-            'summary':"Display information about Persistent Memory modules.",
-            'aliases': [],
-            'auxcommands': []
+            "name": "showpmm",
+            "usage": None,
+            "description": "Display information about "
+            "Persistent Memory modules \n\texample: showpmm --device",
+            "summary": "Display information about Persistent Memory modules.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -102,17 +111,22 @@ class ShowPmemCommand():
         """
         # Retrieving memory collection resources
         if options.logical or options.config:
-            memory, domain_members, all_chunks = RestHelpers(rdmcObject=self.rdmc).retrieve_mem_and_mem_domains()
+            memory, domain_members, all_chunks = RestHelpers(
+                rdmcObject=self.rdmc
+            ).retrieve_mem_and_mem_domains()
             if not domain_members:
-                raise NoContentsFoundForOperationError("Failed to retrieve Memory "
-                                                       "Domain resources")
+                raise NoContentsFoundForOperationError(
+                    "Failed to retrieve Memory " "Domain resources"
+                )
         else:
             memory = RestHelpers(rdmcObject=self.rdmc).retrieve_memory_resources()
 
         if memory:
             memory_members = memory.get("Members")
         else:
-            raise NoContentsFoundForOperationError("Failed to retrieve Memory Resources")
+            raise NoContentsFoundForOperationError(
+                "Failed to retrieve Memory Resources"
+            )
 
         # Get dimm ids of all memory objects
         member_dimm_ids = set()
@@ -120,7 +134,9 @@ class ShowPmemCommand():
             member_dimm_ids.add(member.get("DeviceLocator"))
 
         # Filtering Persistent Memory members
-        pmem_members, pmem_dimm_ids = self._pmem_helpers.get_pmem_members(memory_members)
+        pmem_members, pmem_dimm_ids = self._pmem_helpers.get_pmem_members(
+            memory_members
+        )
         if not pmem_members:
             raise NoContentsFoundForOperationError("No Persistent Memory Modules found")
 
@@ -130,11 +146,14 @@ class ShowPmemCommand():
 
         for dimm_id in parsed_dimm_ids:
             if dimm_id not in member_dimm_ids:
-                raise InvalidCommandLineError("One or more of the specified "
-                                              "DIMM ID(s) are invalid")
+                raise InvalidCommandLineError(
+                    "One or more of the specified " "DIMM ID(s) are invalid"
+                )
             elif dimm_id not in pmem_dimm_ids:
-                raise InvalidCommandLineError("One or more of the specified DIMM ID(s) "
-                                              "are not Persistent Memory Modules")
+                raise InvalidCommandLineError(
+                    "One or more of the specified DIMM ID(s) "
+                    "are not Persistent Memory Modules"
+                )
 
         # Creating a list of persistent memory members according to specified DIMM Ids
         selected_pmem_members = list()
@@ -147,12 +166,18 @@ class ShowPmemCommand():
 
         # Call 'show_pmem_module_device()' when either the user specifies '--device' flag
         # or specifies no flag at all
-        if (not options.device and not options.config and not options.logical
-                and not options.summary) or options.device:
+        if (
+            not options.device
+            and not options.config
+            and not options.logical
+            and not options.summary
+        ) or options.device:
             self.show_pmem_module_device(selected_pmem_members, options)
 
         elif options.config:
-            self.show_pmem_module_configuration(selected_pmem_members, all_chunks, options)
+            self.show_pmem_module_configuration(
+                selected_pmem_members, all_chunks, options
+            )
 
         elif options.summary:
             self.show_pmem_module_summary(selected_pmem_members, options)
@@ -161,9 +186,13 @@ class ShowPmemCommand():
             if not all_chunks:
                 self.rdmc.ui.printer("No Persistent Memory regions found\n\n")
                 return
-            self.show_persistent_interleave_sets(selected_pmem_members, all_chunks, options)
+            self.show_persistent_interleave_sets(
+                selected_pmem_members, all_chunks, options
+            )
 
-    def generate_display_output(self, members, options, flag, mapping_table, **resources):
+    def generate_display_output(
+        self, members, options, flag, mapping_table, **resources
+    ):
         """
         :param members: list of members returned as a result of GET request
         :type members: list of dictionaries
@@ -179,10 +208,13 @@ class ShowPmemCommand():
         display_attributes = get_default_attributes(flag)
 
         for member in members:
-            temp_dict = self._mapper.get_multiple_attributes(member, display_attributes,
-                                                             mapping_table,
-                                                             output_as_json=options.json,
-                                                             **resources)
+            temp_dict = self._mapper.get_multiple_attributes(
+                member,
+                display_attributes,
+                mapping_table,
+                output_as_json=options.json,
+                **resources
+            )
             display_output_list.append(temp_dict)
         return display_output_list
 
@@ -196,15 +228,18 @@ class ShowPmemCommand():
         :type options: options
         """
         # generating the data to be printed
-        display_output = self.generate_display_output(selected_pmem_members, options, "device",
-                                                      MappingTable.device.value)
+        display_output = self.generate_display_output(
+            selected_pmem_members, options, "device", MappingTable.device.value
+        )
         # Displaying output based on --json flag
         if options.json:
             self._display_helpers.display_data(display_output, OutputFormats.json)
         else:
             self._display_helpers.display_data(display_output, OutputFormats.table)
 
-    def show_pmem_module_configuration(self, selected_pmem_members, all_chunks, options=None):
+    def show_pmem_module_configuration(
+        self, selected_pmem_members, all_chunks, options=None
+    ):
         """
         Command to display information about DIMMs when the
         '--pmmconfig' | '-C' flag is specified
@@ -216,15 +251,22 @@ class ShowPmemCommand():
         :type options: options
         """
         # generating the data to be printed
-        display_output = self.generate_display_output(selected_pmem_members, options, "config",
-                                                      MappingTable.config.value, chunks=all_chunks)
+        display_output = self.generate_display_output(
+            selected_pmem_members,
+            options,
+            "config",
+            MappingTable.config.value,
+            chunks=all_chunks,
+        )
         # Displaying output based on --json flag
         if options.json:
             self._display_helpers.display_data(display_output, OutputFormats.json)
         else:
             self._display_helpers.display_data(display_output, OutputFormats.table)
 
-    def show_persistent_interleave_sets(self, selected_pmem_members, all_chunks, options=None):
+    def show_persistent_interleave_sets(
+        self, selected_pmem_members, all_chunks, options=None
+    ):
         """
         Command to display information about the Persistent interleave
         regions among the Persistent Memory Modules when the '--logical' | '-L' flag is
@@ -237,9 +279,13 @@ class ShowPmemCommand():
         :type options: options
         """
         # generating the data to be printed
-        display_output = self.generate_display_output(all_chunks, options, "logical",
-                                                      MappingTable.logical.value,
-                                                      memory=selected_pmem_members)
+        display_output = self.generate_display_output(
+            all_chunks,
+            options,
+            "logical",
+            MappingTable.logical.value,
+            memory=selected_pmem_members,
+        )
         # Displaying output based on --json flag
         if options.json:
             self._display_helpers.display_data(display_output, OutputFormats.json)
@@ -259,9 +305,12 @@ class ShowPmemCommand():
         # getting default attributes for --summary flag
         attribute_list = get_default_attributes("summary")
         # generating the data to be printed
-        display_output = self._mapper.get_multiple_attributes(selected_pmem_members, attribute_list,
-                                                              MappingTable.summary.value,
-                                                              options.json)
+        display_output = self._mapper.get_multiple_attributes(
+            selected_pmem_members,
+            attribute_list,
+            MappingTable.summary.value,
+            options.json,
+        )
         # Displaying output based on --json flag
         if options.json:
             self._display_helpers.display_data(display_output, OutputFormats.json)
@@ -279,7 +328,7 @@ class ShowPmemCommand():
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        LOGGER.info("PMM: %s", self.ident['name'])
+        LOGGER.info("PMM: %s", self.ident["name"])
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
@@ -295,8 +344,10 @@ class ShowPmemCommand():
         self.validate_show_pmem_options(options)
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
-                                                   "server might be in POST or powered off")
+            raise NoContentsFoundForOperationError(
+                "Unable to retrieve resources - "
+                "server might be in POST or powered off"
+            )
         self.show_pmem_modules(options)
 
         return ReturnCodes.SUCCESS
@@ -306,14 +357,21 @@ class ShowPmemCommand():
         """
         Produces relevant error messages when unwanted extra arguments are specified with flags
         """
-        some_flag = options.device or options.config or options.logical or options.summary
+        some_flag = (
+            options.device or options.config or options.logical or options.summary
+        )
         if options.logical or options.summary:
-            raise InvalidCommandLineError("Chosen flag doesn't expect additional arguments")
+            raise InvalidCommandLineError(
+                "Chosen flag doesn't expect additional arguments"
+            )
         elif (options.device or options.config or not some_flag) and not options.dimm:
-            raise InvalidCommandLineError("Use the '--dimm | -I' flag to filter by DIMM IDs")
+            raise InvalidCommandLineError(
+                "Use the '--dimm | -I' flag to filter by DIMM IDs"
+            )
         elif (options.device or options.config or not some_flag) and options.dimm:
-            raise InvalidCommandLineError("Values in a list must be comma-separated "
-                                          "(no spaces)")
+            raise InvalidCommandLineError(
+                "Values in a list must be comma-separated " "(no spaces)"
+            )
 
     @staticmethod
     def validate_show_pmem_options(options):
@@ -323,13 +381,19 @@ class ShowPmemCommand():
         :type options: instance of OptionParser class
         """
         # Usage/Error strings
-        usage_multiple_flags = "Only one of '--device | -D', '--pmmconfig | -C', " \
-                               "'--logical | -L' or '--summary | -M' may be specified"
+        usage_multiple_flags = (
+            "Only one of '--device | -D', '--pmmconfig | -C', "
+            "'--logical | -L' or '--summary | -M' may be specified"
+        )
         # usage_all_display = "Only one of '--all | -a' or '--display | -d' may be specified\n"
-        usage_dimm_flag = "'--dimm | -I' can only be specified  with either the " \
-                          "'--device | -D' or '--pmmconfig | -C' flag\n" \
-                          " or without any flag"
-        error_dimm_format = "DIMM IDs should be of the form 'ProcessorNumber@SlotNumber'"
+        usage_dimm_flag = (
+            "'--dimm | -I' can only be specified  with either the "
+            "'--device | -D' or '--pmmconfig | -C' flag\n"
+            " or without any flag"
+        )
+        error_dimm_format = (
+            "DIMM IDs should be of the form 'ProcessorNumber@SlotNumber'"
+        )
         error_dimm_range = "One or more of the specified DIMM ID(s) are invalid"
 
         views = [options.device, options.config, options.logical, options.summary]
@@ -366,7 +430,7 @@ class ShowPmemCommand():
             action="store_true",
             dest="json",
             help="Optionally include this flag to change the output to JSON format.",
-            default=False
+            default=False,
         )
 
         customparser.add_argument(
@@ -376,9 +440,9 @@ class ShowPmemCommand():
             default=False,
             dest="device",
             help="Show information about the physical persistent memory modules."
-                 " Default view shows information about all PMMs."
-                 " To filter DIMMs, use this flag in conjunction with"
-                 " the --dimm flag."
+            " Default view shows information about all PMMs."
+            " To filter DIMMs, use this flag in conjunction with"
+            " the --dimm flag.",
         )
 
         customparser.add_argument(
@@ -388,9 +452,9 @@ class ShowPmemCommand():
             default=False,
             dest="config",
             help="Show the current configuration of the persistent memory modules."
-                 " Default view shows information about all PMMs."
-                 " To filter DIMMs, use this flag in conjunction with"
-                 " the --dimm flag."
+            " Default view shows information about all PMMs."
+            " To filter DIMMs, use this flag in conjunction with"
+            " the --dimm flag.",
         )
 
         customparser.add_argument(
@@ -399,7 +463,7 @@ class ShowPmemCommand():
             action="store_true",
             default=False,
             dest="logical",
-            help="Show the Persistent Memory Regions."
+            help="Show the Persistent Memory Regions.",
         )
 
         customparser.add_argument(
@@ -408,7 +472,7 @@ class ShowPmemCommand():
             action="store_true",
             default=False,
             dest="summary",
-            help="Show the summary of the persistent memory resources."
+            help="Show the summary of the persistent memory resources.",
         )
 
         customparser.add_argument(
@@ -420,6 +484,6 @@ class ShowPmemCommand():
             nargs=1,
             dest="dimm",
             help=" To view specific devices, supply a comma-separated list"
-                 " of DIMM IDs in the format P@S (without spaces),"
-                 " where P=processor and S=slot. Example: '1@1,1@12'"
+            " of DIMM IDs in the format P@S (without spaces),"
+            " where P=processor and S=slot. Example: '1@1,1@12'",
         )

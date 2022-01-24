@@ -19,30 +19,37 @@
 
 from redfish.ris.rmc_helper import IloResponseError
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    Encryption,
+)
 
-class IloResetCommand():
-    """ Reset iLO on the server that is currently logged in """
+
+class IloResetCommand:
+    """Reset iLO on the server that is currently logged in"""
+
     def __init__(self):
         self.ident = {
-            'name':'iloreset',
-            'usage': None,
-            'description':'Reset iLO on the current logged in'
-                    ' server.\n\tExample: iloreset',
-            'summary':'Reset iLO on the current logged in server.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "iloreset",
+            "usage": None,
+            "description": "Reset iLO on the current logged in"
+            " server.\n\tExample: iloreset",
+            "summary": "Reset iLO on the current logged in server.",
+            "aliases": [],
+            "auxcommands": [],
         }
-        #self.definearguments(self.parser)
-        #self.rdmc = rdmcObj
-        #self.typepath = self.rdmc.app.typepath
+        # self.definearguments(self.parser)
+        # self.rdmc = rdmcObj
+        # self.typepath = self.rdmc.app.typepath
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main iLO reset worker function
+        """Main iLO reset worker function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -62,9 +69,11 @@ class IloResetCommand():
 
         self.iloresetvalidation(options)
 
-        self.rdmc.ui.warn('\nAfter iLO resets, the session will be terminated.'
-                          '\nPlease wait for iLO to initialize completely before logging '
-                          'in again.\nThis process may take up to 3 minutes to complete.\n\n')
+        self.rdmc.ui.warn(
+            "\nAfter iLO resets, the session will be terminated."
+            "\nPlease wait for iLO to initialize completely before logging "
+            "in again.\nThis process may take up to 3 minutes to complete.\n\n"
+        )
 
         select = "Manager."
         results = self.rdmc.app.select(selector=select)
@@ -82,14 +91,14 @@ class IloResetCommand():
         bodydict = results.resp.dict
 
         try:
-            for item in bodydict['Actions']:
-                if 'Reset' in item:
+            for item in bodydict["Actions"]:
+                if "Reset" in item:
                     if self.rdmc.app.typepath.defs.isgen10:
-                        action = item.split('#')[-1]
+                        action = item.split("#")[-1]
                     else:
-                        action = 'Reset'
+                        action = "Reset"
 
-                    post_path = bodydict['Actions'][item]['target']
+                    post_path = bodydict["Actions"][item]["target"]
                     break
         except:
             action = "Reset"
@@ -104,11 +113,11 @@ class IloResetCommand():
             raise IloResponseError("")
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def iloresetvalidation(self, options):
-        """ reboot method validation function
+        """reboot method validation function
 
         :param options: command line options
         :type options: list.
@@ -116,7 +125,7 @@ class IloResetCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

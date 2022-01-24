@@ -21,28 +21,30 @@ from redfish.ris import NothingSelectedError
 
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
 
-class SelectCommand():
-    """ Constructor """
+
+class SelectCommand:
+    """Constructor"""
+
     def __init__(self):
         self.ident = {
-            'name': 'select',
-            'usage': None,
-            'description': 'Selects the Redfish/HpRest type to be used.\nIn order to '
-                           'remove the need of including the version while selecting you'
-                           ' can simply enter the type name until the first period\n\t'
-                           'example: select HpBios.\n'
-                           'Run without an argument to '
-                           'display the currently selected type\n\texample: select',
-            'summary': 'Selects the object type to be used.',
-            'aliases': ['sel'],
-            'auxcommands': ['LoginCommand']
+            "name": "select",
+            "usage": None,
+            "description": "Selects the Redfish/HpRest type to be used.\nIn order to "
+            "remove the need of including the version while selecting you"
+            " can simply enter the type name until the first period\n\t"
+            "example: select HpBios.\n"
+            "Run without an argument to "
+            "display the currently selected type\n\texample: select",
+            "summary": "Selects the object type to be used.",
+            "aliases": ["sel"],
+            "auxcommands": ["LoginCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def selectfunction(self, line):
-        """ Main select worker function
+        """Main select worker function
 
         :param line: command line input
         :type line: string.
@@ -62,7 +64,9 @@ class SelectCommand():
             if options.ref:
                 LOGGER.warning("Patches from current selection will be cleared.")
             selector = args[0]
-            selections = self.rdmc.app.select(selector=selector, path_refresh=options.ref)
+            selections = self.rdmc.app.select(
+                selector=selector, path_refresh=options.ref
+            )
 
             if self.rdmc.opts.verbose and selections:
                 templist = list()
@@ -72,23 +76,26 @@ class SelectCommand():
                     if item.type not in templist:
                         templist.append(item.type)
 
-                self.rdmc.ui.printer('%s\n' % ', '.join(map(str, templist)))
+                self.rdmc.ui.printer("%s\n" % ", ".join(map(str, templist)))
 
         else:
             selector = self.rdmc.app.selector
 
             if selector:
-                sellist = [sel for sel in self.rdmc.app.\
-                   monolith.typesadded if selector.lower() in sel.lower()]
+                sellist = [
+                    sel
+                    for sel in self.rdmc.app.monolith.typesadded
+                    if selector.lower() in sel.lower()
+                ]
                 self.rdmc.ui.printer("Current selection: ")
-                self.rdmc.ui.printer('%s\n' % ', '.join(map(str, sellist)))
+                self.rdmc.ui.printer("%s\n" % ", ".join(map(str, sellist)))
             else:
                 raise NothingSelectedError
 
         self.cmdbase.logout_routine(self, options)
 
     def selectvalidation(self, options):
-        """ Select data validation function
+        """Select data validation function
 
         :param options: command line options
         :type options: list.
@@ -97,7 +104,7 @@ class SelectCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for main select function
+        """Wrapper function for main select function
 
         :param line: entered command line
         :type line: list.
@@ -107,11 +114,11 @@ class SelectCommand():
             return ReturnCodes.SUCCESS
         self.selectfunction(line)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -122,10 +129,10 @@ class SelectCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--refresh',
-            dest='ref',
+            "--refresh",
+            dest="ref",
             action="store_true",
             help="Optionally reload the data of selected type and clear "
-                 "patches from current selection.",
+            "patches from current selection.",
             default=False,
         )

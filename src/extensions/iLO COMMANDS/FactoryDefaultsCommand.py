@@ -17,28 +17,35 @@
 # -*- coding: utf-8 -*-
 """ Factory Defaults Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    Encryption,
+)
 
-class FactoryDefaultsCommand():
-    """ Reset server to factory default settings """
+
+class FactoryDefaultsCommand:
+    """Reset server to factory default settings"""
+
     def __init__(self):
         self.ident = {
-            'name':'factorydefaults',
-            'usage': None,
-            'description': 'Reset iLO to factory defaults in the current logged in '
-                    'server.\n\texample: factorydefaults',
-            'summary':'Resets iLO to factory defaults. WARNING: user data will '
-                      'be removed use with caution.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "factorydefaults",
+            "usage": None,
+            "description": "Reset iLO to factory defaults in the current logged in "
+            "server.\n\texample: factorydefaults",
+            "summary": "Resets iLO to factory defaults. WARNING: user data will "
+            "be removed use with caution.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main factorydefaults function
+        """Main factorydefaults function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -61,10 +68,12 @@ class FactoryDefaultsCommand():
 
         self.factorydefaultsvalidation(options)
 
-        self.rdmc.ui.warn("Resetting iLO to factory default settings.\n"
-                          "Current session will be terminated.\n")
+        self.rdmc.ui.warn(
+            "Resetting iLO to factory default settings.\n"
+            "Current session will be terminated.\n"
+        )
 
-        select = 'Manager.'
+        select = "Manager."
         results = self.rdmc.app.select(selector=select)
 
         try:
@@ -77,31 +86,34 @@ class FactoryDefaultsCommand():
         else:
             raise NoContentsFoundForOperationError("Manager. not found.")
 
-        bodydict = results.resp.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
+        bodydict = results.resp.dict["Oem"][self.rdmc.app.typepath.defs.oemhp]
 
         try:
-            for item in bodydict['Actions']:
-                if 'ResetToFactoryDefaults' in item:
+            for item in bodydict["Actions"]:
+                if "ResetToFactoryDefaults" in item:
                     if self.rdmc.app.typepath.defs.isgen10:
-                        action = item.split('#')[-1]
+                        action = item.split("#")[-1]
                     else:
                         action = "ResetToFactoryDefaults"
 
-                    path = bodydict['Actions'][item]['target']
+                    path = bodydict["Actions"][item]["target"]
                     body = {"Action": action, "ResetType": "Default"}
                     break
         except:
-            body = {"Action": "ResetToFactoryDefaults",
-                    "Target": "/Oem/Hp", "ResetType": "Default"}
+            body = {
+                "Action": "ResetToFactoryDefaults",
+                "Target": "/Oem/Hp",
+                "ResetType": "Default",
+            }
 
         self.rdmc.app.post_handler(path, body, service=True)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def factorydefaultsvalidation(self, options):
-        """ factory defaults validation function
+        """factory defaults validation function
 
         :param options: command line options
         :type options: list.
@@ -109,7 +121,7 @@ class FactoryDefaultsCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

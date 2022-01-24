@@ -25,56 +25,65 @@ import time
 import gzip
 import base64
 
-from datetime import datetime
+from datetime import datetime, timezone
 from ctypes import create_string_buffer
 
 import six
 
-from six import StringIO
+from six import StringIO, BytesIO
 
 import redfish
 
 from redfish.hpilo.risblobstore2 import BlobStore2
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-                    InvalidFileFormattingError, UnableToDecodeError, Encryption, \
-                    PathUnavailableError, InvalidFileInputError, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidFileFormattingError,
+    UnableToDecodeError,
+    Encryption,
+    PathUnavailableError,
+    InvalidFileInputError,
+    NoContentsFoundForOperationError,
+)
 
-class IPProfilesCommand():
-    """ Raw form of the get command """
+
+class IPProfilesCommand:
+    """Raw form of the get command"""
+
     def __init__(self):
         self.ident = {
-            'name':'ipprofiles',
-            'usage': None,
-            'description':'Decodes and lists '
-                    'ipprofiles. This is default option. No argument required'
-                    '\n\tExample: ipprofiles'
-                    '\n\n\tAdds a new ipprofile from the provided json file.'
-                    '\n\tNOTE: Path can be absolute or from the '
-                    'same path you launch iLOrest.'
-                    '\n\tipprofiles <file path>'
-                    '\n\n\tDelete an ipprofile or list of profiles.\n\t'
-                    'Provide the unique key that corresponds to the ipprofile'
-                    ' data you want to delete.\n\tSeveral IDs can be comma-separated'
-                    ' with no space in between to delete more than one profile. '
-                    '\n\tipprofiles -d ID1,ID2,ID3...'
-                    '\n\n\tCopies ip profile with the specified ID into the ip job queue.'
-                    'and starts it.\n\texample: ipprofiles --start=<profile ID>',
-            'summary':'This is used to manage hpeipprofile data store.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "ipprofiles",
+            "usage": None,
+            "description": "Decodes and lists "
+            "ipprofiles. This is default option. No argument required"
+            "\n\tExample: ipprofiles"
+            "\n\n\tAdds a new ipprofile from the provided json file."
+            "\n\tNOTE: Path can be absolute or from the "
+            "same path you launch iLOrest."
+            "\n\tipprofiles <file path>"
+            "\n\n\tDelete an ipprofile or list of profiles.\n\t"
+            "Provide the unique key that corresponds to the ipprofile"
+            " data you want to delete.\n\tSeveral IDs can be comma-separated"
+            " with no space in between to delete more than one profile. "
+            "\n\tipprofiles -d ID1,ID2,ID3..."
+            "\n\n\tCopies ip profile with the specified ID into the ip job queue."
+            "and starts it.\n\texample: ipprofiles --start=<profile ID>",
+            "summary": "This is used to manage hpeipprofile data store.",
+            "aliases": [],
+            "auxcommands": ["BootOrderCommand"],
         }
-        self.path = ''
-        self.ipjobs = ''
-        self.running_jobs = ''
-        self.hvt_output = ''
-        self.ipjobtype = ['langsel', 'hvt', 'ssa', 'install', 'rbsu']
+        self.path = ""
+        self.ipjobs = ""
+        self.running_jobs = ""
+        self.hvt_output = ""
+        self.ipjobtype = ["langsel", "hvt", "ssa", "install", "rbsu"]
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw get worker function
+        """Main raw get worker function
 
         :param line: command line input
         :type line: string.
@@ -100,7 +109,7 @@ class IPProfilesCommand():
         self.ipprofileworkerfunction(options, args)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def ipprofileworkerfunction(self, options, args):
@@ -142,9 +151,11 @@ class IPProfilesCommand():
 
         results = self.rdmc.app.get_handler(self.path, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "
-                                       "is not available on this system. You may need"
-                                       " to run IP at least once to add the resource.")
+            raise PathUnavailableError(
+                "The Intelligent Provisioning resource "
+                "is not available on this system. You may need"
+                " to run IP at least once to add the resource."
+            )
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
@@ -157,14 +168,20 @@ class IPProfilesCommand():
             results.read = json.dumps(j2python, ensure_ascii=False, sort_keys=True)
             if results.dict:
                 if options.filename:
-                    output = json.dumps(results.dict, indent=2, cls=redfish.ris.JSONEncoder,
-                                        sort_keys=True)
+                    output = json.dumps(
+                        results.dict,
+                        indent=2,
+                        cls=redfish.ris.JSONEncoder,
+                        sort_keys=True,
+                    )
 
                     filehndl = open(options.filename[0], "w")
                     filehndl.write(output)
                     filehndl.close()
 
-                    self.rdmc.ui.printer("Results written out to '%s'.\n" % options.filename[0])
+                    self.rdmc.ui.printer(
+                        "Results written out to '%s'.\n" % options.filename[0]
+                    )
                 else:
                     self.rdmc.ui.print_out_json(results.dict)
         else:
@@ -178,9 +195,11 @@ class IPProfilesCommand():
 
         results = self.rdmc.app.get_handler(self.running_jobs, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "
-                                       "is not available on this system. You may need"
-                                       " to run IP at least once to add the resource.")
+            raise PathUnavailableError(
+                "The Intelligent Provisioning resource "
+                "is not available on this system. You may need"
+                " to run IP at least once to add the resource."
+            )
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
@@ -204,19 +223,22 @@ class IPProfilesCommand():
         return_value = {}
         results = self.rdmc.app.get_handler(self.hvt_output, silent=True)
         if results.status == 404:
-            raise PathUnavailableError("The Intelligent Provisioning resource "
-                                       "is not available on this system. You may need"
-                                       " to run IP at least once to add the resource.")
+            raise PathUnavailableError(
+                "The Intelligent Provisioning resource "
+                "is not available on this system. You may need"
+                " to run IP at least once to add the resource."
+            )
 
         if results and results.status == 200:
             j2python = json.loads(results.read)
             for _, val in enumerate(list(j2python.keys())):
-                if isinstance(val, six.string_types) and '@' not in val:
-                    return_value = json.loads(self.decode_base64_string(str(j2python[val])))
+                if isinstance(val, six.string_types) and "@" not in val:
+                    return_value = json.loads(
+                        self.decode_base64_string(str(j2python[val]))
+                    )
             self.rdmc.ui.print_out_json(return_value)
         else:
             self.rdmc.ui.error("No IP profiles found\n")
-
 
     def encodeandpatchipprofiledata(self, args):
         """
@@ -246,7 +268,7 @@ class IPProfilesCommand():
         get_results = self.rdmc.app.get_handler(self.path, silent=True)
 
         j2python = json.loads(get_results.read)
-        all_keys = options.del_key[0].split(',')
+        all_keys = options.del_key[0].split(",")
         for key in all_keys:
             if isinstance(key, six.string_types) and j2python.get(key.strip(), False):
                 del j2python[key.strip()]
@@ -273,8 +295,9 @@ class IPProfilesCommand():
 
         ipjob = self.hasipjobs()
         if not ipjob:
-            raise InvalidFileFormattingError("System does not have any IP"
-                                             " profile to copy to the job queue.\n")
+            raise InvalidFileFormattingError(
+                "System does not have any IP" " profile to copy to the job queue.\n"
+            )
 
         current_state = self.inipstate(ipprovider)
         if current_state is None:
@@ -283,33 +306,34 @@ class IPProfilesCommand():
         later_state = False
         ipstate = current_state["InIP"]
         if isinstance(ipstate, bool) and ipstate:
-            #make sure we are in IP state.  Reset and monitor
+            # make sure we are in IP state.  Reset and monitor
             self.resetinipstate(ipprovider, current_state)
-            #if we are in ip, monitor should be fast, use 15 seconds
+            # if we are in ip, monitor should be fast, use 15 seconds
             later_status = self.monitorinipstate(ipprovider, 3)
-            if  later_status:
+            if later_status:
                 self.copyjobtoipqueue(ipjob, options.start_ip)
                 self.rdmc.ui.printer("Copy operation was successful...\n")
                 return ReturnCodes.SUCCESS
 
         if not isinstance(ipstate, bool):
-#       inip is in an unknown state, so ...
-        #patch to false, reboot, then monitor...if it turns true later...
-        #then we are in IP state otherwise, manually check system...
+            #       inip is in an unknown state, so ...
+            # patch to false, reboot, then monitor...if it turns true later...
+            # then we are in IP state otherwise, manually check system...
             self.resetinipstate(ipprovider, current_state)
             later_status = self.monitorinipstate(ipprovider, 3)
-            if  later_status:
+            if later_status:
                 self.copyjobtoipqueue(ipjob, options.start_ip)
                 self.rdmc.ui.printer("Copy operation was successful...\n")
                 return ReturnCodes.SUCCESS
 
         try:
-            self.bootorderobj.run("--onetimeboot=Utilities "
-                                  "--reboot=ColdBoot --commit")
+            self.auxcommands["bootorder"].run(
+                "--onetimeboot=Utilities " "--reboot=ColdBoot --commit"
+            )
         except:
             raise InvalidFileFormattingError("System failed to reboot")
 
-        #After reboot, login again
+        # After reboot, login again
         self.validation(options)
 
         later_state = self.monitorinipstate(ipprovider)
@@ -317,8 +341,10 @@ class IPProfilesCommand():
             self.copyjobtoipqueue(ipjob, options.start_ip)
             self.rdmc.ui.printer("Copy operation was successful...\n")
         else:
-            raise InvalidFileFormattingError("\nSystem reboot took longer than 4 minutes."
-                                             "something is wrong. You need to physically check this system.\n")
+            raise InvalidFileFormattingError(
+                "\nSystem reboot took longer than 4 minutes."
+                "something is wrong. You need to physically check this system.\n"
+            )
 
         return ReturnCodes.SUCCESS
 
@@ -331,7 +357,7 @@ class IPProfilesCommand():
         :type current_state: dict
         """
 
-        current_state['InIP'] = False
+        current_state["InIP"] = False
 
         payload = {}
         payload["path"] = ipprovider
@@ -349,19 +375,19 @@ class IPProfilesCommand():
         :return ipstate: boolean
         """
 
-        retry = timer # 48 * 5 = 4 minutes
+        retry = timer  # 48 * 5 = 4 minutes
         ipstate = False
         progress = self.progressbar()
-        self.rdmc.ui.printer('\n')
+        self.rdmc.ui.printer("\n")
         while retry > 0:
             time.sleep(5)
             next(progress)
             status = self.inipstate(ipprovider)
-            if isinstance(status['InIP'], bool) and status['InIP']:
+            if isinstance(status["InIP"], bool) and status["InIP"]:
                 ipstate = True
                 break
             retry = retry - 1
-        self.rdmc.ui.printer('\n')
+        self.rdmc.ui.printer("\n")
 
         return ipstate
 
@@ -370,7 +396,7 @@ class IPProfilesCommand():
         An on demand function use to output the progress while iLO is booting into F10.
         """
         while True:
-            yield self.rdmc.ui.printer('>>>')
+            yield self.rdmc.ui.printer(">>>")
 
     def copyjobtoipqueue(self, ipjobs, jobkey):
         """
@@ -391,18 +417,25 @@ class IPProfilesCommand():
                 _decode = self.decode_base64_string(j2python[ipj])
                 if _decode is not None:
                     _critical_props = {
-                        "log": "[{\"msg\": \"WAITINGTOBEPROCESSED\", \"percent\": 0}]",
-                        "status": "waiting"
+                        "log": '[{"msg": "WAITINGTOBEPROCESSED", "percent": 0}]',
+                        "status": "waiting",
                     }
-                    copy_job.update({k: v.update(_critical_props) or v \
-                        for k, v in json.loads(_decode).items() if k in self.ipjobtype})
+                    copy_job.update(
+                        {
+                            k: v.update(_critical_props) or v
+                            for k, v in json.loads(_decode).items()
+                            if k in self.ipjobtype
+                        }
+                    )
                 else:
                     raise NoContentsFoundForOperationError(
-                        "Not supported profile content")
+                        "Not supported profile content"
+                    )
                 break
         if not copy_job:
             raise NoContentsFoundForOperationError(
-                "The ID %s does not match any ipprofile" % jobkey)
+                "The ID %s does not match any ipprofile" % jobkey
+            )
         payload = {}
         payload["path"] = self.ipjobs
         payload["body"] = copy_job
@@ -417,13 +450,13 @@ class IPProfilesCommand():
         :return is_inip: None or dict
         """
 
-        if ipprovider.startswith('/redfish/'):
+        if ipprovider.startswith("/redfish/"):
             get_results = self.rdmc.app.get_handler(ipprovider, silent=True)
             result = json.loads(get_results.read)
 
             is_inip = None
             try:
-                if 'InIP' in list(result.keys()):
+                if "InIP" in list(result.keys()):
                     is_inip = result
             except KeyError:
                 pass
@@ -451,9 +484,9 @@ class IPProfilesCommand():
         list_dict = []
 
         for key, value in j2python.items():
-            if not re.match('@odata', key):
+            if not re.match("@odata", key):
                 if len(key) >= 13 and key.isdigit():
-                    list_dict.append({key:value}) # list of dict with valid key/value
+                    list_dict.append({key: value})  # list of dict with valid key/value
 
         return list_dict
 
@@ -471,15 +504,16 @@ class IPProfilesCommand():
 
         is_ipprovider = None
         try:
-            is_ipprovider = list(result['Oem']['Hpe']['Links']\
-                ['HpeIpProvider'].values())[0]
+            is_ipprovider = list(
+                result["Oem"]["Hpe"]["Links"]["HpeIpProvider"].values()
+            )[0]
         except KeyError:
             pass
 
         return is_ipprovider
 
     def validation(self, options):
-        """ IPProfiles validation function
+        """IPProfiles validation function
 
         :param options: command line options
         :type options: list.
@@ -496,12 +530,12 @@ class IPProfilesCommand():
         read_data = None
         if isinstance(str_b64, six.string_types) and str_b64:
             try:
-                decoded_str = base64.decodestring(str(str_b64))
-                inbuffer = StringIO(decoded_str)
-                gzffile = gzip.GzipFile(mode='rb', fileobj=inbuffer)
+                decoded_str = base64.decodebytes(str_b64.encode('utf-8'))
+                inbuffer = BytesIO(decoded_str)
+                gzffile = gzip.GzipFile(mode="rb", fileobj=inbuffer)
                 read_data = ""
                 for line in gzffile.readlines():
-                    read_data = read_data + line
+                    read_data = read_data + line.decode('utf-8')
             except:
                 pass
 
@@ -518,41 +552,47 @@ class IPProfilesCommand():
         filename = args[0]
         if filename:
             if not os.path.isfile(filename):
-                raise InvalidFileInputError("File '%s' doesn't exist. "\
-                    "Please create file by running 'save' command." % filename)
+                raise InvalidFileInputError(
+                    "File '%s' doesn't exist. "
+                    "Please create file by running 'save' command." % filename
+                )
 
             try:
-                with open(filename, 'r') as fh:
+                with open(filename, "r") as fh:
                     contentsholder = json.loads(fh.read())
             except:
-                raise InvalidFileFormattingError("Input file '%s' was not "\
-                                                 "format properly." % filename)
+                raise InvalidFileFormattingError(
+                    "Input file '%s' was not " "format properly." % filename
+                )
 
             try:
-                text = json.dumps(contentsholder)
-                buf = StringIO()
-                gzfile = gzip.GzipFile(mode='wb', fileobj=buf)
+                text = json.dumps(contentsholder).encode('utf-8')
+                buf = BytesIO()
+                gzfile = gzip.GzipFile(mode="wb", fileobj=buf)
                 gzfile.write(text)
                 gzfile.close()
 
-                en_text = base64.encodestring(buf.getvalue())
+                en_text = base64.encodebytes(buf.getvalue()).decode('utf-8')
 
-                epoch = utcfromtimestamp(0)
-                now = utcnow()
+                epoch = datetime.fromtimestamp(0, tz=timezone.utc)
+                now = datetime.now(tz=timezone.utc)
                 delta = now - epoch
                 time_stamp = delta.total_seconds() * 1000
-                time_stamp = repr(time_stamp).split('.')[0]
+                time_stamp = repr(time_stamp).split(".")[0]
 
                 body_text = {time_stamp: en_text.strip()}
+
                 payload["body"] = body_text
+                if isinstance(self.path, bytes):
+                    self.path = self.path.decode('utf-8')
                 payload["path"] = self.path
-            except:
-                raise UnableToDecodeError("Error while encoding string.")
+            except Exception as excp:
+                raise UnableToDecodeError("Error while encoding string %s." % excp)
 
         return payload
 
     def getpaths(self):
-        """ Get paths for ipprofiles command """
+        """Get paths for ipprofiles command"""
         if not all(iter([self.path, self.ipjobs, self.running_jobs, self.hvt_output])):
             dll = BlobStore2.gethprestchifhandle()
 
@@ -572,7 +612,7 @@ class IPProfilesCommand():
             self.hvt_output = hvt_output_path.value
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -583,41 +623,41 @@ class IPProfilesCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-r',
-            '--running',
-            dest='running_jobs',
+            "-r",
+            "--running",
+            dest="running_jobs",
             default=False,
             action="store_true",
             help="""Show status of the currently running or last job executed""",
         )
         customparser.add_argument(
-            '-D',
-            '--diags',
+            "-D",
+            "--diags",
             help="""Get result of last HVT (diagnostics) run as part of an ipprofile job""",
             default=False,
-            action='store_true',
-            dest='get_hvt'
+            action="store_true",
+            dest="get_hvt",
         )
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
+            "-f",
+            "--filename",
+            dest="filename",
             help="""Write results to the specified file.""",
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '-d',
-            '--delete',
-            dest='del_key',
-            action='append',
-            help='Look for the key or keys in the ipprofile manager and delete',
+            "-d",
+            "--delete",
+            dest="del_key",
+            action="append",
+            help="Look for the key or keys in the ipprofile manager and delete",
             default=None,
         )
         customparser.add_argument(
-            '-s',
-            '--start',
-            dest='start_ip',
-            help='Copies the specified ip profile into the job queue and starts it',
+            "-s",
+            "--start",
+            dest="start_ip",
+            help="Copies the specified ip profile into the job queue and starts it",
             default=None,
         )

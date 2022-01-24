@@ -21,29 +21,34 @@ from argparse import SUPPRESS
 
 from redfish.ris.rmc_helper import NothingSelectedError
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, FailureDuringCommitError, \
-    NoChangesFoundOrMadeError, NoCurrentSessionEstablished
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    FailureDuringCommitError,
+    NoChangesFoundOrMadeError,
+    NoCurrentSessionEstablished,
+)
 
 
-class CommitCommand():
-    """ Constructor """
+class CommitCommand:
+    """Constructor"""
 
     def __init__(self):
         self.ident = {
-            'name': 'commit',
-            'usage': None,
-            'description': 'commit [OPTIONS]\n\n\tRun to apply all changes made during'
-                           ' the current session\n\texample: commit',
-            'summary': 'Applies all the changes made during the current session.',
-            'aliases': [],
-            'auxcommands': ["LogoutCommand", "RebootCommand"]
+            "name": "commit",
+            "usage": None,
+            "description": "commit [OPTIONS]\n\n\tRun to apply all changes made during"
+            " the current session\n\texample: commit",
+            "summary": "Applies all the changes made during the current session.",
+            "aliases": [],
+            "auxcommands": ["LogoutCommand", "RebootCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def commitfunction(self, options=None):
-        """ Main commit worker function
+        """Main commit worker function
 
         :param options: command line options
         :type options: list.
@@ -60,24 +65,28 @@ class CommitCommand():
             commit_opp = self.rdmc.app.commit()
             for path in commit_opp:
                 if self.rdmc.opts.verbose:
-                    self.rdmc.ui.printer('Changes are being made to path: %s\n' % path)
+                    self.rdmc.ui.printer("Changes are being made to path: %s\n" % path)
                 if next(commit_opp):
                     failure = True
         except NothingSelectedError:
-            raise NoChangesFoundOrMadeError("No changes found or made during commit operation.")
+            raise NoChangesFoundOrMadeError(
+                "No changes found or made during commit operation."
+            )
         else:
             if failure:
-                raise FailureDuringCommitError('One or more types failed to commit. Run the '
-                                               'status command to see uncommitted data. '
-                                               'if you wish to discard failed changes refresh the '
-                                               'type using select with the --refresh flag.')
+                raise FailureDuringCommitError(
+                    "One or more types failed to commit. Run the "
+                    "status command to see uncommitted data. "
+                    "if you wish to discard failed changes refresh the "
+                    "type using select with the --refresh flag."
+                )
 
         if options.reboot:
-            self.auxcommands['reboot'].run(options.reboot)
-            self.auxcommands['logout'].run("")
+            self.auxcommands["reboot"].run(options.reboot)
+            self.auxcommands["logout"].run("")
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for commit main function
+        """Wrapper function for commit main function
 
         :param line: command line input
         :type line: string.
@@ -99,16 +108,17 @@ class CommitCommand():
         return ReturnCodes.SUCCESS
 
     def commitvalidation(self):
-        """ Commit method validation function """
+        """Commit method validation function"""
 
         try:
             _ = self.rdmc.app.current_client
         except:
-            raise NoCurrentSessionEstablished("Please login and make setting"
-                                              " changes before using commit command.")
+            raise NoCurrentSessionEstablished(
+                "Please login and make setting" " changes before using commit command."
+            )
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -118,10 +128,10 @@ class CommitCommand():
 
         self.cmdbase.add_login_arguments_group(customparser)
         customparser.add_argument(
-            '--reboot',
-            dest='reboot',
-            help="Use this flag to perform a reboot command function after" \
-                 " completion of operations.  For help with parameters and" \
-                 " descriptions regarding the reboot flag, run help reboot.",
-            default=None
+            "--reboot",
+            dest="reboot",
+            help="Use this flag to perform a reboot command function after"
+            " completion of operations.  For help with parameters and"
+            " descriptions regarding the reboot flag, run help reboot.",
+            default=None,
         )

@@ -22,43 +22,53 @@ import json
 
 from six.moves import input
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, \
-    InvalidCommandLineErrorOPTS, InvalidCommandLineError
+from rdmc_helper import (
+    IncompatibleiLOVersionError,
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+)
 
 
-class MakeInstallSetCommand():
-    """ Command class to create installset payload"""
+class MakeInstallSetCommand:
+    """Command class to create installset payload"""
 
     def __init__(self):
         self.ident = {
-            'name': 'makeinstallset',
-            'usage': None,
-            'description': 'Run to enter a guided shell for making '
-                           'install sets. If not currently\n\tlogged into a server will perform '
-                           'basic guidance on making an installset,\n\tif logged into a server '
-                           'will provide guidance based on the current\n\tcomponents on the system. '
-                           'If you wish to use this command on a logged in\n\tserver upload the '
-                           'components before running for best results.',
-            'summary': 'Creates install sets for iLO.',
-            'aliases': ['minstallset'],
-            'auxcommands': []
+            "name": "makeinstallset",
+            "usage": None,
+            "description": "Run to enter a guided shell for making "
+            "install sets. If not currently\n\tlogged into a server will perform "
+            "basic guidance on making an installset,\n\tif logged into a server "
+            "will provide guidance based on the current\n\tcomponents on the system. "
+            "If you wish to use this command on a logged in\n\tserver upload the "
+            "components before running for best results.",
+            "summary": "Creates install sets for iLO.",
+            "aliases": ["minstallset"],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
-        self.defaultprops = {'UpdatableBy': ["Bmc"], "Command": "ApplyUpdate", "WaitTimeSeconds": 0, "Filename": ""}
-        self.helptext = {"Command": "Possible Commands: ApplyUpdate, ResetServer, "
-                                    "ResetBmc, Wait", "UpdatableBy": "Possible Update parameter(s)"
-                                                                     ":\nBmc: Updatable by iLO\nUefi: Updatable by Uefi\n"
-                                                                     "RuntimeAgent: Updatable by runtime agent such as SUM/SUT",
-                         "WaitTimeSeconds": "Number of seconds to pause in Wait "
-                                            "command.", "Filename": "Unique filename of component on "
-                                                                    "iLO repository"}
+        self.defaultprops = {
+            "UpdatableBy": ["Bmc"],
+            "Command": "ApplyUpdate",
+            "WaitTimeSeconds": 0,
+            "Filename": "",
+        }
+        self.helptext = {
+            "Command": "Possible Commands: ApplyUpdate, ResetServer, " "ResetBmc, Wait",
+            "UpdatableBy": "Possible Update parameter(s)"
+            ":\nBmc: Updatable by iLO\nUefi: Updatable by Uefi\n"
+            "RuntimeAgent: Updatable by runtime agent such as SUM/SUT",
+            "WaitTimeSeconds": "Number of seconds to pause in Wait " "command.",
+            "Filename": "Unique filename of component on " "iLO repository",
+        }
         self.loggedin = None
         self.comps = None
 
     def run(self, line, help_disp=False):
-        """ Main installset worker function
+        """Main installset worker function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -79,8 +89,9 @@ class MakeInstallSetCommand():
         self.loggedin = self.minstallsetvalidation()
 
         if self.loggedin and self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are '
-                                              'only available on iLO 5.')
+            raise IncompatibleiLOVersionError(
+                "iLO Repository commands are " "only available on iLO 5."
+            )
 
         self.rdmc.ui.warn("This command will run in interactive mode.\n")
         if args:
@@ -106,7 +117,8 @@ class MakeInstallSetCommand():
         if self.loggedin:
             self.rdmc.ui.printer("Running in logged in mode.")
             self.comps = self.rdmc.app.getcollectionmembers(
-                '/redfish/v1/UpdateService/ComponentRepository/')
+                "/redfish/v1/UpdateService/ComponentRepository/"
+            )
         else:
             self.rdmc.ui.printer("Running in basic guidance mode.")
         while True:
@@ -119,14 +131,16 @@ class MakeInstallSetCommand():
                 if count == -1:
                     line = input("\nEnter a name for this command: ")
                 else:
-                    self.rdmc.ui.printer('\n' + self.helptext[reqdprops[count]] + "\n")
-                    if self.loggedin and reqdprops[count].lower() == 'filename':
+                    self.rdmc.ui.printer("\n" + self.helptext[reqdprops[count]] + "\n")
+                    if self.loggedin and reqdprops[count].lower() == "filename":
                         filenm, updateby = self.checkfiles()
-                        comps['Filename'] = filenm
-                        comps['UpdatableBy'] = updateby
+                        comps["Filename"] = filenm
+                        comps["UpdatableBy"] = updateby
                         break
                     else:
-                        line = input('Enter ' + reqdprops[count] + " for " + comps["Name"] + ": ")
+                        line = input(
+                            "Enter " + reqdprops[count] + " for " + comps["Name"] + ": "
+                        )
                 if line.endswith(os.linesep):
                     line.rstrip(os.linesep)
                 if line == "quit":
@@ -137,12 +151,16 @@ class MakeInstallSetCommand():
                     comps["Name"] = line
                 else:
                     while True:
-                        validated = self.validatepropvalue(reqdprops[count], line, reqdprops)
+                        validated = self.validatepropvalue(
+                            reqdprops[count], line, reqdprops
+                        )
                         if not validated:
                             if line == "quit":
                                 break
-                            line = input("Input %s is not a valid property " \
-                                         "for %s. Try again: " % (line, reqdprops[count]))
+                            line = input(
+                                "Input %s is not a valid property "
+                                "for %s. Try again: " % (line, reqdprops[count])
+                            )
                         else:
                             comps[reqdprops[count]] = validated
                             break
@@ -154,14 +172,22 @@ class MakeInstallSetCommand():
                 totcount = totcount + 1
 
         if not totcount:
-            self.rdmc.ui.warn("No sequences created. Exiting without creating an installset.\n")
+            self.rdmc.ui.warn(
+                "No sequences created. Exiting without creating an installset.\n"
+            )
         else:
             while True:
                 isrecovery = input("Is this a recovery installset? ")
-                isrecovery = True if str(isrecovery).lower() in \
-                                     ['true', 't', 'yes', 'y'] else isrecovery
-                isrecovery = False if str(isrecovery).lower() in \
-                                      ['false', 'f', 'no', 'n'] else isrecovery
+                isrecovery = (
+                    True
+                    if str(isrecovery).lower() in ["true", "t", "yes", "y"]
+                    else isrecovery
+                )
+                isrecovery = (
+                    False
+                    if str(isrecovery).lower() in ["false", "f", "no", "n"]
+                    else isrecovery
+                )
                 if not isinstance(isrecovery, bool):
                     self.rdmc.ui.warn("'Isrecovery' should be either true or false.\n")
                     continue
@@ -180,11 +206,15 @@ class MakeInstallSetCommand():
 
             description = input("Enter description for the installset: ")
 
-            body = {"Name": installsetname, "Description": description,
-                    "IsRecovery": isrecovery, "Sequence": totcomps}
+            body = {
+                "Name": installsetname,
+                "Description": description,
+                "IsRecovery": isrecovery,
+                "Sequence": totcomps,
+            }
 
             self.rdmc.ui.print_out_json(body)
-            with open(options.filename, 'w') as outfile:
+            with open(options.filename, "w") as outfile:
                 json.dump(body, outfile, indent=2, sort_keys=True)
 
             self.rdmc.ui.printer("installset saved to %s\n" % options.filename)
@@ -205,7 +235,7 @@ class MakeInstallSetCommand():
         elif propvalue == "UpdatableBy":
             if isinstance(givenvalue, list):
                 validated_property = givenvalue
-            value = [x.strip() for x in givenvalue.split(',')]
+            value = [x.strip() for x in givenvalue.split(",")]
             for ind, item in enumerate(value):
                 if item.lower() == "runtimeagent":
                     value[ind] = "RuntimeAgent"
@@ -217,8 +247,10 @@ class MakeInstallSetCommand():
         elif propvalue == "Command":
             if givenvalue.lower() == "applyupdate":
                 if self.loggedin and not self.comps:
-                    self.rdmc.ui.printer("All components on the system are already "
-                                         "added to the installset.\n")
+                    self.rdmc.ui.printer(
+                        "All components on the system are already "
+                        "added to the installset.\n"
+                    )
                 else:
                     reqdprops.append("Filename")
                     reqdprops.append("UpdatableBy")
@@ -238,14 +270,18 @@ class MakeInstallSetCommand():
 
     def checkfiles(self):
         count = 0
-        self.rdmc.ui.printer("Components currently in the repository that have not "
-                             "been added to the installset:\n")
+        self.rdmc.ui.printer(
+            "Components currently in the repository that have not "
+            "been added to the installset:\n"
+        )
         for comp in self.comps:
             count += 1
-            self.rdmc.ui.printer("[%d] %s\n" % (count, comp['Name']))
+            self.rdmc.ui.printer("[%d] %s\n" % (count, comp["Name"]))
         while True:
-            userinput = input("Select the number of the component you want to add to "
-                              "the install set: ")
+            userinput = input(
+                "Select the number of the component you want to add to "
+                "the install set: "
+            )
             try:
                 userinput = int(userinput)
                 if userinput > count or userinput == 0:
@@ -259,7 +295,7 @@ class MakeInstallSetCommand():
         return filename, updatableby
 
     def minstallsetvalidation(self):
-        """ makeinstallset validation function"""
+        """makeinstallset validation function"""
 
         try:
             _ = self.rdmc.app.current_client
@@ -270,7 +306,7 @@ class MakeInstallSetCommand():
         return loggedin
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -281,11 +317,11 @@ class MakeInstallSetCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
+            "-f",
+            "--filename",
+            dest="filename",
             help="Use this flag if you wish to use a different"
-                 " filename than the default one. The default filename is"
-                 " myinstallset.json",
-            default="myinstallset.json"
+            " filename than the default one. The default filename is"
+            " myinstallset.json",
+            default="myinstallset.json",
         )

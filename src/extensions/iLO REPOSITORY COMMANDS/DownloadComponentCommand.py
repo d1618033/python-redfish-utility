@@ -25,12 +25,19 @@ from ctypes import c_char_p, c_int
 
 import redfish.hpilo.risblobstore2 as risblobstore2
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, \
-                        InvalidCommandLineError, DownloadError, \
-                        InvalidFileInputError, IncompatibleiLOVersionError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+    DownloadError,
+    InvalidFileInputError,
+    IncompatibleiLOVersionError,
+    Encryption,
+)
+
 
 def human_readable_time(seconds):
-    """ Returns human readable time
+    """Returns human readable time
 
     :param seconds: Amount of seconds to parse.
     :type seconds: string.
@@ -41,26 +48,30 @@ def human_readable_time(seconds):
     minutes = seconds / 60
     seconds = seconds % 60
 
-    return "{:02.0f} hour(s) {:02.0f} minute(s) {:02.0f} second(s) ".format(hours, minutes, seconds)
+    return "{:02.0f} hour(s) {:02.0f} minute(s) {:02.0f} second(s) ".format(
+        hours, minutes, seconds
+    )
 
-class DownloadComponentCommand():
-    """ Main download component command class """
+
+class DownloadComponentCommand:
+    """Main download component command class"""
+
     def __init__(self):
         self.ident = {
-            'name':'downloadcomp',
-            'usage': None,
-            'description':'Run to '
-                    'download the file from path\n\texample: downloadcomp '
-                    '/fwrepo/filename.exe --outdir <output location>'
-                    'download the file by name\n\texample: downloadcomp '
-                    'filename.exe --outdir <output location>',
-            'summary':'Downloads components/binaries from the iLO Repository.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "downloadcomp",
+            "usage": None,
+            "description": "Run to "
+            "download the file from path\n\texample: downloadcomp "
+            "/fwrepo/filename.exe --outdir <output location>"
+            "download the file by name\n\texample: downloadcomp "
+            "filename.exe --outdir <output location>",
+            "summary": "Downloads components/binaries from the iLO Repository.",
+            "aliases": [],
+            "auxcommands": [],
         }
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for download command main function
+        """Wrapper function for download command main function
 
         :param line: command line input
         :type line: string.
@@ -71,7 +82,7 @@ class DownloadComponentCommand():
             self.parser.print_help()
             return ReturnCodes.SUCCESS
         try:
-            (options, _) = self.rdmc.rdmc_parse_arglist(self,line)
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
             if not line or line[0] == "help":
                 self.parser.print_help()
                 return ReturnCodes.SUCCESS
@@ -84,15 +95,16 @@ class DownloadComponentCommand():
         self.downloadcomponentvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are '
-                                              'only available on iLO 5.')
+            raise IncompatibleiLOVersionError(
+                "iLO Repository commands are " "only available on iLO 5."
+            )
 
         start_time = time.time()
         ret = ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
 
         self.rdmc.ui.printer("Downloading component, this may take a while...\n")
 
-        if 'blobstore' in self.rdmc.app.current_client.base_url:
+        if "blobstore" in self.rdmc.app.current_client.base_url:
             ret = self.downloadlocally(options)
         else:
             ret = self.downloadfunction(options)
@@ -100,16 +112,16 @@ class DownloadComponentCommand():
         self.rdmc.ui.printer("%s\n" % human_readable_time(time.time() - start_time))
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ret
 
     def downloadfunction(self, options):
-        """ Main download command worker function
+        """Main download command worker function
 
         :param options: command options (argparse)
         :type options: options.
         """
-        filename = options.component.rsplit('/', 1)[-1]
+        filename = options.component.rsplit("/", 1)[-1]
 
         if not options.outdir:
             destination = os.path.join(os.getcwd(), filename)
@@ -123,17 +135,19 @@ class DownloadComponentCommand():
         if os.access(destination, os.F_OK) and not os.access(destination, os.W_OK):
             raise InvalidFileInputError("Existing File cannot be overwritten.")
 
-        if options.component[0] != '/':
-            options.component = '/' + options.component
+        if options.component[0] != "/":
+            options.component = "/" + options.component
 
-        if 'fwrepo' not in options.component:
-            options.component = '/fwrepo/' + options.component
+        if "fwrepo" not in options.component:
+            options.component = "/fwrepo/" + options.component
 
         results = self.rdmc.app.get_handler(options.component, uncache=True)
 
         if results.status == 404:
-            raise DownloadError("Downloading of component %s failed, please check the component name and check if the "
-                                "component exists in the repository\n" % options.component)
+            raise DownloadError(
+                "Downloading of component %s failed, please check the component name and check if the "
+                "component exists in the repository\n" % options.component
+            )
 
         with open(destination, "wb") as local_file:
             local_file.write(results.ori)
@@ -143,7 +157,7 @@ class DownloadComponentCommand():
         return ReturnCodes.SUCCESS
 
     def downloadlocally(self, options=None):
-        """ Used to download a component from the iLO Repo locally
+        """Used to download a component from the iLO Repo locally
 
         :param options: command options (argparse)
         :type options: options.
@@ -153,7 +167,7 @@ class DownloadComponentCommand():
             dll.downloadComponent.argtypes = [c_char_p, c_char_p]
             dll.downloadComponent.restype = c_int
 
-            filename = options.component.rsplit('/', 1)[-1]
+            filename = options.component.rsplit("/", 1)[-1]
             if not options.outdir:
                 destination = os.path.join(os.getcwd(), filename)
             else:
@@ -163,20 +177,24 @@ class DownloadComponentCommand():
                 raise InvalidFileInputError("Invalid output file location.")
             if not os.access(os.path.join(os.path.split(destination)[0]), os.W_OK):
                 raise InvalidFileInputError("File location is not writable.")
-            if os.access(destination, os.F_OK) and not os.access(destination,
-                                                                 os.W_OK):
+            if os.access(destination, os.F_OK) and not os.access(destination, os.W_OK):
                 raise InvalidFileInputError("Existing File cannot be overwritten.")
 
-            ret = dll.downloadComponent(ctypes.create_string_buffer(
-                filename.encode('utf-8')), ctypes.create_string_buffer(
-                destination.encode('utf-8')))
+            ret = dll.downloadComponent(
+                ctypes.create_string_buffer(filename.encode("utf-8")),
+                ctypes.create_string_buffer(destination.encode("utf-8")),
+            )
 
             if ret != 0:
-                self.rdmc.ui.error("Component " + filename + " download failed, please check the "
-                                "component name and check if the component exists in the respository.\n")
+                self.rdmc.ui.error(
+                    "Component " + filename + " download failed, please check the "
+                    "component name and check if the component exists in the respository.\n"
+                )
                 return ReturnCodes.FAILED_TO_DOWNLOAD_COMPONENT
             else:
-                self.rdmc.ui.printer("Component " + filename + " downloaded successfully.\n")
+                self.rdmc.ui.printer(
+                    "Component " + filename + " downloaded successfully.\n"
+                )
                 self.rdmc.ui.printer("[200] The operation completed successfully.\n")
 
         except Exception as excep:
@@ -185,7 +203,7 @@ class DownloadComponentCommand():
         return ReturnCodes.SUCCESS
 
     def downloadcomponentvalidation(self, options):
-        """ Download command method validation function
+        """Download command method validation function
 
         :param options: command options
         :type options: options.
@@ -193,7 +211,7 @@ class DownloadComponentCommand():
         self.rdmc.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for download command main function
+        """Wrapper function for download command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -204,14 +222,14 @@ class DownloadComponentCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'component',
-            help="""Component name (starting with path '/fwrepo/<comp name>') of the target"""\
+            "component",
+            help="""Component name (starting with path '/fwrepo/<comp name>') of the target"""
             """ component.""",
-            metavar="[COMPONENT URI]"
+            metavar="[COMPONENT URI]",
         )
         customparser.add_argument(
-            '--outdir',
-            dest='outdir',
+            "--outdir",
+            dest="outdir",
             help="""Output directory for saving the file.""",
             default="",
         )

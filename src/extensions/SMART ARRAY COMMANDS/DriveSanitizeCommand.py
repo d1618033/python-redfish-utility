@@ -17,31 +17,38 @@
 # -*- coding: utf-8 -*-
 """ Drive Erase/ Sanitize Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+    NoContentsFoundForOperationError,
+)
 
-class DriveSanitizeCommand():
-    """ Drive erase/sanitize command """
+
+class DriveSanitizeCommand:
+    """Drive erase/sanitize command"""
+
     def __init__(self):
         self.ident = {
-            'name': 'drivesanitize',
-            'usage': None,
-            'description': 'To sanitize a physical drive '
-                    'by index.\n\texample: drivesanitize "1I:1:1" --controller=1\n\n\tTo'
-                    ' sanitize multiple drives by specifying location.\n\texample: '
-                    'drivesanitize 1I:1:1,1I:1:2 --controller=1 --mediatype HDD/SSD\n\texample: drivesanitize '
-                    '1I:1:1,1I:1:2 --controller="Slot 1" --mediatype="HDD" '
-                    'if incorrect mediatype is specified, error will generated',
-            'summary': 'Erase/Sanitize physical drive(s)',
-            'aliases': [],
-            'auxcommands': ["SelectCommand", "RebootCommand", "SmartArrayCommand"]
+            "name": "drivesanitize",
+            "usage": None,
+            "description": "To sanitize a physical drive "
+            'by index.\n\texample: drivesanitize "1I:1:1" --controller=1\n\n\tTo'
+            " sanitize multiple drives by specifying location.\n\texample: "
+            "drivesanitize 1I:1:1,1I:1:2 --controller=1 --mediatype HDD/SSD\n\texample: drivesanitize "
+            '1I:1:1,1I:1:2 --controller="Slot 1" --mediatype="HDD" '
+            "if incorrect mediatype is specified, error will generated",
+            "summary": "Erase/Sanitize physical drive(s)",
+            "aliases": [],
+            "auxcommands": ["SelectCommand", "RebootCommand", "SmartArrayCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main disk inventory worker function
+        """Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
@@ -62,24 +69,30 @@ class DriveSanitizeCommand():
 
         self.drivesanitizevalidation(options)
 
-        self.auxcommands['select'].selectfunction("SmartStorageConfig.")
+        self.auxcommands["select"].selectfunction("SmartStorageConfig.")
         content = self.rdmc.app.getprops()
 
-        controllers = self.auxcommands['smartarray'].controllers(options, single_use=True)
+        controllers = self.auxcommands["smartarray"].controllers(
+            options, single_use=True
+        )
         if controllers:
             for controller in controllers:
                 if int(controller) == int(options.controller):
-                    controller_physicaldrives = self.auxcommands['smartarray'].physical_drives(options, controllers[controller], single_use=True)
+                    controller_physicaldrives = self.auxcommands[
+                        "smartarray"
+                    ].physical_drives(options, controllers[controller], single_use=True)
 
         if not args and not options.all:
-            raise InvalidCommandLineError('You must include a physical drive to sanitize.')
+            raise InvalidCommandLineError(
+                "You must include a physical drive to sanitize."
+            )
         elif not options.controller:
-            raise InvalidCommandLineError('You must include a controller to select.')
+            raise InvalidCommandLineError("You must include a controller to select.")
         else:
             if len(args) > 1:
                 physicaldrives = args
             elif len(args) == 1:
-                physicaldrives = args[0].replace(', ', ',').split(',')
+                physicaldrives = args[0].replace(", ", ",").split(",")
             else:
                 physicaldrives = None
 
@@ -89,37 +102,55 @@ class DriveSanitizeCommand():
             if options.controller.isdigit():
                 slotlocation = self.get_location_from_id(options.controller)
                 if slotlocation:
-                    slotcontrol = slotlocation.lower().strip('\"').split('slot')[-1].lstrip()
+                    slotcontrol = (
+                        slotlocation.lower().strip('"').split("slot")[-1].lstrip()
+                    )
                     for control in content:
-                        if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                        if (
+                            slotcontrol.lower()
+                            == control["Location"].lower().split("slot")[-1].lstrip()
+                        ):
                             controllist.append(control)
             if not controllist:
                 raise InvalidCommandLineError("")
         except InvalidCommandLineError:
-            raise InvalidCommandLineError("Selected controller not found in the current inventory "
-                                          "list.")
+            raise InvalidCommandLineError(
+                "Selected controller not found in the current inventory " "list."
+            )
 
-        if self.sanitizedrives(controllist, physicaldrives, controller_physicaldrives, options.mediatype, options.all):
+        if self.sanitizedrives(
+            controllist,
+            physicaldrives,
+            controller_physicaldrives,
+            options.mediatype,
+            options.all,
+        ):
             if options.reboot:
-                self.auxcommands['reboot'].run("ColdBoot")
-                self.rdmc.ui.printer('Preparing for sanitization...\n')
+                self.auxcommands["reboot"].run("ColdBoot")
+                self.rdmc.ui.printer("Preparing for sanitization...\n")
                 self.monitorsanitization()
             else:
-                self.rdmc.ui.printer('Sanitization will occur on the next system reboot.\n')
+                self.rdmc.ui.printer(
+                    "Sanitization will occur on the next system reboot.\n"
+                )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def get_location_from_id(self, controller_id):
-        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
-            if 'Collection' not in sel.maj_type:
+        for sel in self.rdmc.app.select(
+            "SmartStorageArrayController", path_refresh=True
+        ):
+            if "Collection" not in sel.maj_type:
                 controller = sel.dict
-                if controller['Id'] == str(controller_id):
+                if controller["Id"] == str(controller_id):
                     return controller["Location"]
         return None
 
-    def sanitizedrives(self, controllist, drivelist, controller_drives, mediatype, optall):
+    def sanitizedrives(
+        self, controllist, drivelist, controller_drives, mediatype, optall
+    ):
         """Gets drives ready for sanitization
 
         :param controllist: list of controllers
@@ -134,69 +165,95 @@ class DriveSanitizeCommand():
         changes = False
 
         for controller in controllist:
-            pdrivelist = [x['DataDrives'] for x in controller['LogicalDrives']]
+            pdrivelist = [x["DataDrives"] for x in controller["LogicalDrives"]]
 
             for plist in pdrivelist:
                 for drive in plist:
                     logicaldrivelist.append(drive)
 
             if optall:
-                sanitizedrivelist = [x['Location'] for x in controller['PhysicalDrives']]
+                sanitizedrivelist = [
+                    x["Location"] for x in controller["PhysicalDrives"]
+                ]
             else:
                 for erasedrive in drivelist:
                     try:
-                        for idx, pdrive in enumerate(controller['PhysicalDrives']):
-                            if erasedrive == pdrive['Location']:
-                                if pdrive['Location'] in logicaldrivelist:
-                                    raise InvalidCommandLineError("Unable to" \
-                                          " sanitize configured drive. Remove" \
-                                          " any logical drive(s) associated " \
-                                          "with drive %s and try again." % pdrive['Location'])
+                        for idx, pdrive in enumerate(controller["PhysicalDrives"]):
+                            if erasedrive == pdrive["Location"]:
+                                if pdrive["Location"] in logicaldrivelist:
+                                    raise InvalidCommandLineError(
+                                        "Unable to"
+                                        " sanitize configured drive. Remove"
+                                        " any logical drive(s) associated "
+                                        "with drive %s and try again."
+                                        % pdrive["Location"]
+                                    )
 
                                 # Validate Media Type
-                                if not (self.validate_mediatype(erasedrive, mediatype, controller_drives)):
-                                    raise InvalidCommandLineError("One or more of the drives given does not match the " \
-                                                    "mediatype %s which is specified" % mediatype)
-                                self.rdmc.ui.printer('Setting physical drive %s ' \
-                                                     'for sanitization\n' % pdrive['Location'])
-                                sanitizedrivelist.append(pdrive['Location'])
+                                if not (
+                                    self.validate_mediatype(
+                                        erasedrive, mediatype, controller_drives
+                                    )
+                                ):
+                                    raise InvalidCommandLineError(
+                                        "One or more of the drives given does not match the "
+                                        "mediatype %s which is specified" % mediatype
+                                    )
+                                self.rdmc.ui.printer(
+                                    "Setting physical drive %s "
+                                    "for sanitization\n" % pdrive["Location"]
+                                )
+                                sanitizedrivelist.append(pdrive["Location"])
                                 break
                     except KeyError as excp:
-                        raise NoContentsFoundForOperationError("The property \'%s\' is missing "\
-                                                               "or invalid." % str(excp))
+                        raise NoContentsFoundForOperationError(
+                            "The property '%s' is missing " "or invalid." % str(excp)
+                        )
 
             if sanitizedrivelist:
                 changes = True
-                if mediatype == 'SSD':
+                if mediatype == "SSD":
                     erase_pattern_string = "SanitizeRestrictedBlockErase"
                 else:
                     erase_pattern_string = "SanitizeRestrictedOverwrite"
 
-                contentsholder = {"Actions": [{"Action": "PhysicalDriveErase",
-                                               "ErasePattern": erase_pattern_string,
-                                               "PhysicalDriveList": sanitizedrivelist}], "DataGuard": "Disabled"}
+                contentsholder = {
+                    "Actions": [
+                        {
+                            "Action": "PhysicalDriveErase",
+                            "ErasePattern": erase_pattern_string,
+                            "PhysicalDriveList": sanitizedrivelist,
+                        }
+                    ],
+                    "DataGuard": "Disabled",
+                }
 
-                self.rdmc.ui.printer("DriveSanitize path and payload: %s, %s\n" % (controller["@odata.id"], contentsholder))
+                self.rdmc.ui.printer(
+                    "DriveSanitize path and payload: %s, %s\n"
+                    % (controller["@odata.id"], contentsholder)
+                )
 
                 self.rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
         return changes
 
     def validate_mediatype(self, erasedrive, mediatype, controller_drives):
-        """ validates media type as HDD or SSD"""
+        """validates media type as HDD or SSD"""
         for idx in list(controller_drives.keys()):
             phy_drive = controller_drives[idx]
-            if phy_drive['Location'] == erasedrive and phy_drive['MediaType'] == mediatype:
+            if (
+                phy_drive["Location"] == erasedrive
+                and phy_drive["MediaType"] == mediatype
+            ):
                 return True
         return False
 
-
     def monitorsanitization(self):
-        """ monitors sanitization percentage"""
-        #TODO: Add code to give updates on sanitization
+        """monitors sanitization percentage"""
+        # TODO: Add code to give updates on sanitization
 
     def drivesanitizevalidation(self, options):
-        """ drive sanitize validation function
+        """drive sanitize validation function
 
         :param options: command line options
         :type options: list.
@@ -204,7 +261,7 @@ class DriveSanitizeCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -215,32 +272,32 @@ class DriveSanitizeCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller "
-                "using either the slot number or index.",
+            "using either the slot number or index.",
             default=None,
         )
         customparser.add_argument(
-            '--mediatype',
-            dest='mediatype',
+            "--mediatype",
+            dest="mediatype",
             help="""Use this flag to select the mediatype of the hard disk """,
             default=None,
         )
         customparser.add_argument(
-            '--reboot',
-            dest='reboot',
+            "--reboot",
+            dest="reboot",
             help="Include this flag to perform a coldboot command "
-                "function after completion of operations and monitor "
-                "sanitization.",
+            "function after completion of operations and monitor "
+            "sanitization.",
             action="store_true",
             default=False,
         )
         customparser.add_argument(
-            '--all',
-            dest='all',
-            help="""Use this flag to sanitize all physical drives on a """ \
-                """controller.""",
+            "--all",
+            dest="all",
+            help="""Use this flag to sanitize all physical drives on a """
+            """controller.""",
             action="store_true",
             default=False,
         )

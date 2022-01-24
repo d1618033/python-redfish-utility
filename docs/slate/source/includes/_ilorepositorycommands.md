@@ -556,7 +556,7 @@ Including the help flag will display help for the command.
 
 Optionally include this flag to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
 
-- **-description=DESCRIPTION**
+- **--description=DESCRIPTION**
 
 Optionally include this flag to add a description to the maintenance window created by you.
 

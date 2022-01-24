@@ -18,31 +18,40 @@
 """ Factory Defaults Command for rdmc """
 import os
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError, InvalidFileInputError, Encryption, UploadError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    InvalidFileInputError,
+    Encryption,
+    UploadError,
+)
 
-class IloBackupRestoreCommand():
-    """ Backup and restore server using iLO's .bak file """
+
+class IloBackupRestoreCommand:
+    """Backup and restore server using iLO's .bak file"""
+
     def __init__(self):
         self.ident = {
-            'name':'backuprestore',
-            'usage': None,
-            'description': 'Create a .bak file. \n\tExample: backuprestore backup\n\n\t'
-                    'Restore a server using a .bak file. \n\texample: backuprestore '
-                    'restore\n\n\tNOTE: This command is designed to only restore\n\tthe '
-                    'machine from which the backup file was created against.\n\tIf you would like to '
-                    'take one configuration and apply it\n\tto multiple systems see the '
-                    'serverclone command.\n\tThis command is only available in remote mode.',
-            'summary':'Backup and restore iLO to a server using a .bak file.',
-            'aliases': ['br'],
-            'auxcommands': ["LogoutCommand"]
+            "name": "backuprestore",
+            "usage": None,
+            "description": "Create a .bak file. \n\tExample: backuprestore backup\n\n\t"
+            "Restore a server using a .bak file. \n\texample: backuprestore "
+            "restore\n\n\tNOTE: This command is designed to only restore\n\tthe "
+            "machine from which the backup file was created against.\n\tIf you would like to "
+            "take one configuration and apply it\n\tto multiple systems see the "
+            "serverclone command.\n\tThis command is only available in remote mode.",
+            "summary": "Backup and restore iLO to a server using a .bak file.",
+            "aliases": ["br"],
+            "auxcommands": ["LogoutCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main factorydefaults function
+        """Main factorydefaults function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -68,22 +77,23 @@ class IloBackupRestoreCommand():
 
         self.ilobackuprestorevalidation(options)
 
-        if 'blobstore' in self.rdmc.app.current_client.base_url:
+        if "blobstore" in self.rdmc.app.current_client.base_url:
             raise InvalidCommandLineError("This command is only available remotely.")
 
         sessionkey = self.rdmc.app.current_client.session_key
-        #sessionkey = (sessionkey).encode('ascii', 'ignore')
+        # sessionkey = (sessionkey).encode('ascii', 'ignore')
 
-        if args[0].lower() == 'backup':
+        if args[0].lower() == "backup":
             self.backupserver(options, sessionkey)
-        elif args[0].lower() == 'restore':
+        elif args[0].lower() == "restore":
             self.restoreserver(options, sessionkey)
         else:
-            raise InvalidCommandLineError("%s is not a valid option for this "\
-                                          "command."% str(args[0]))
+            raise InvalidCommandLineError(
+                "%s is not a valid option for this " "command." % str(args[0])
+            )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def backupserver(self, options, skey):
@@ -106,24 +116,26 @@ class IloBackupRestoreCommand():
         if results:
             service = results.resp.dict
         else:
-            raise NoContentsFoundForOperationError("%s not found.It may not " \
-                                       "be available on this system." % select)
+            raise NoContentsFoundForOperationError(
+                "%s not found.It may not " "be available on this system." % select
+            )
 
-        backuplocation = service['BackupFileLocation']
-        backupname = backuplocation.split('/')[-1]
+        backuplocation = service["BackupFileLocation"]
+        backupname = backuplocation.split("/")[-1]
 
         postdata = []
-        postdata.append(('sessionKey', skey))
+        postdata.append(("sessionKey", skey))
 
         if options.fpass:
-            postdata.append(('password', options.fpass))
+            postdata.append(("password", options.fpass))
         self.rdmc.ui.printer("Downloading backup file %s..." % backupname)
-        backupfile = self.rdmc.app.post_handler(backuplocation, postdata,
-                                                service=True, silent=True)
+        backupfile = self.rdmc.app.post_handler(
+            backuplocation, postdata, service=True, silent=True
+        )
 
         if backupfile:
             self.rdmc.ui.printer("Download complete.\n")
-            outfile = open(backupname, 'wb')
+            outfile = open(backupname, "wb")
             outfile.write(backupfile.ori)
             outfile.close()
         else:
@@ -144,14 +156,20 @@ class IloBackupRestoreCommand():
             filename = options.filename[0]
         else:
             files = []
-            files = [f for f in os.listdir('.') if os.path.isfile(f) and f.endswith('.bak')]
+            files = [
+                f for f in os.listdir(".") if os.path.isfile(f) and f.endswith(".bak")
+            ]
             if files and len(files) > 1:
-                raise InvalidFileInputError("More than one .bak file found in "
-                                            "the current directory. Please specify "
-                                            "a file using the -f option.")
+                raise InvalidFileInputError(
+                    "More than one .bak file found in "
+                    "the current directory. Please specify "
+                    "a file using the -f option."
+                )
             elif not files:
-                raise InvalidFileInputError("No .bak file found in current "
-                                            "directory. Please specify a file using the -f option.")
+                raise InvalidFileInputError(
+                    "No .bak file found in current "
+                    "directory. Please specify a file using the -f option."
+                )
             else:
                 filename = files[0]
 
@@ -165,35 +183,45 @@ class IloBackupRestoreCommand():
         if results:
             service = results.resp.dict
         else:
-            raise NoContentsFoundForOperationError("%s not found.It may not " \
-                                       "be available on this system." % select)
-        restorelocation = service['HttpPushUri']
+            raise NoContentsFoundForOperationError(
+                "%s not found.It may not " "be available on this system." % select
+            )
+        restorelocation = service["HttpPushUri"]
         postdata = []
 
-        with open(filename, 'rb') as fle:
+        with open(filename, "rb") as fle:
             bakfile = fle.read()
-        postdata.append(('sessionKey', skey))
+        postdata.append(("sessionKey", skey))
         if options.fpass:
-            postdata.append(('password', options.fpass))
-        postdata.append(('file', (filename, bakfile, 'application/octet-stream')))
+            postdata.append(("password", options.fpass))
+        postdata.append(("file", (filename, bakfile, "application/octet-stream")))
         if isinstance(skey, bytes):
-            skey = skey.decode('utf-8')
-        resp = self.rdmc.app.post_handler(restorelocation, postdata, service=False, silent=True,
-                                          headers={'Cookie': 'sessionKey=' + skey})
+            skey = skey.decode("utf-8")
+        resp = self.rdmc.app.post_handler(
+            restorelocation,
+            postdata,
+            service=False,
+            silent=True,
+            headers={"Cookie": "sessionKey=" + skey},
+        )
 
         if not resp.status == 200:
-            if resp.ori == 'invalid_restore_password':
-                raise UploadError("Invalid or no password supplied during restore. Please "
-                                  "supply the password used during creation of the backup file.")
+            if resp.ori == "invalid_restore_password":
+                raise UploadError(
+                    "Invalid or no password supplied during restore. Please "
+                    "supply the password used during creation of the backup file."
+                )
             else:
                 raise UploadError("Error while uploading the backup file.")
         else:
-            self.rdmc.ui.printer("Restore in progress. iLO while be unresponsive while the "
-                              "restore completes.\nYour session will be terminated.\n")
-            self.auxcommands['logout'].run("")
+            self.rdmc.ui.printer(
+                "Restore in progress. iLO while be unresponsive while the "
+                "restore completes.\nYour session will be terminated.\n"
+            )
+            self.auxcommands["logout"].run("")
 
     def ilobackuprestorevalidation(self, options):
-        """ factory defaults validation function
+        """factory defaults validation function
 
         :param options: command line options
         :type options: list.
@@ -201,7 +229,7 @@ class IloBackupRestoreCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -212,19 +240,19 @@ class IloBackupRestoreCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
-            help="Use this flag to specify which backup file to restore. By "\
-            "default the commmand will try to find a .bak file in the current "\
+            "-f",
+            "--filename",
+            dest="filename",
+            help="Use this flag to specify which backup file to restore. By "
+            "default the commmand will try to find a .bak file in the current "
             "working directory.",
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '--filepass',
-            dest='fpass',
-            help="Optionally use the provided password when creating the "\
-                "backup file. The same password must be used for restoring.",
+            "--filepass",
+            dest="fpass",
+            help="Optionally use the provided password when creating the "
+            "backup file. The same password must be used for restoring.",
             default=None,
         )

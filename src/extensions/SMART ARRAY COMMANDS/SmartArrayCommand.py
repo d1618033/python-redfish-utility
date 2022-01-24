@@ -23,8 +23,14 @@ import redfish
 
 from argparse import ArgumentParser, SUPPRESS, RawDescriptionHelpFormatter
 from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-    IncompatableServerTypeError, InvalidCommandLineErrorOPTS, UI
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    IncompatableServerTypeError,
+    InvalidCommandLineErrorOPTS,
+    UI,
+)
 from redfish.ris.resp_handler import ResponseHandler
 from redfish.ris.utils import iterateandclear
 
@@ -32,39 +38,39 @@ __config_file__ = "smartarray_config.json"
 
 from rdmc_base_classes import HARDCODEDLIST
 
-__subparsers__ = ['load', 'save', 'state']
+__subparsers__ = ["load", "save", "state"]
 
 
-class SmartArrayCommand():
-    """ Smart array command """
+class SmartArrayCommand:
+    """Smart array command"""
 
     def __init__(self):
         self.ident = {
-            'name': 'smartarray',
-            'usage': None,
-            'description': '\tRun without arguments for the '
-                           'current list of smart array controllers.\n\texample: '
-                           'smartarray\n\n\tTo get more details on a specific controller '
-                           'select it by index.\n\texample: smartarray --controller=2'
-                           '\n\n\tTo get more details on a specific controller select '
-                           'it by location.\n\texample: smartarray --controller "Slot 0"'
-                           '\n\n\tIn order to get a list of all physical drives for '
-                           'each controller.\n\texample: smartarray --physicaldrives'
-                           '\n\n\tTo obtain details about physical drives for a '
-                           'specific controller.\n\texample: smartarray --controller=3 '
-                           '--physicaldrives\n\n\tTo obtain details about a specific '
-                           'physical drive for a specific controller.\n\texample: smartarray '
-                           '--controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of '
-                           'all logical drives for the each controller.\n\texample: '
-                           'smartarray --logicaldrives\n\n\tTo obtain details about '
-                           'logical drives for a specific controller.\n\texample: '
-                           'smartarray --controller=3 --logicaldrives\n\n\tTo obtain '
-                           'details about a specific logical drive for a specific '
-                           'controller.\n\texample: smartarray --controller=3 --ldrive=1\n',
-            'summary': 'Discovers all storage controllers installed in the '
-                       'server and managed by the SmartStorage.',
-            'aliases': [],
-            'auxcommands': ["SelectCommand"]
+            "name": "smartarray",
+            "usage": None,
+            "description": "\tRun without arguments for the "
+            "current list of smart array controllers.\n\texample: "
+            "smartarray\n\n\tTo get more details on a specific controller "
+            "select it by index.\n\texample: smartarray --controller=2"
+            "\n\n\tTo get more details on a specific controller select "
+            'it by location.\n\texample: smartarray --controller "Slot 0"'
+            "\n\n\tIn order to get a list of all physical drives for "
+            "each controller.\n\texample: smartarray --physicaldrives"
+            "\n\n\tTo obtain details about physical drives for a "
+            "specific controller.\n\texample: smartarray --controller=3 "
+            "--physicaldrives\n\n\tTo obtain details about a specific "
+            "physical drive for a specific controller.\n\texample: smartarray "
+            "--controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of "
+            "all logical drives for the each controller.\n\texample: "
+            "smartarray --logicaldrives\n\n\tTo obtain details about "
+            "logical drives for a specific controller.\n\texample: "
+            "smartarray --controller=3 --logicaldrives\n\n\tTo obtain "
+            "details about a specific logical drive for a specific "
+            "controller.\n\texample: smartarray --controller=3 --ldrive=1\n",
+            "summary": "Discovers all storage controllers installed in the "
+            "server and managed by the SmartStorage.",
+            "aliases": [],
+            "auxcommands": ["SelectCommand"],
         }
         self.config_file = None
         self.fdata = None
@@ -88,36 +94,56 @@ class SmartArrayCommand():
         :type options: attribute
         :returns: json file data
         """
-        writeable_ops = ['w', 'w+', 'a', 'a+']
-        readable_ops = ['r', 'r+']
+        writeable_ops = ["w", "w+", "a", "a+"]
+        readable_ops = ["r", "r+"]
         fdata = None
 
         try:
             if operation in writeable_ops:
                 if getattr(options, "encryption", False):
-                    with open(filename, operation + 'b') as outfile:
-                        outfile.write(Encryption().encrypt_file(json.dumps(data, indent=2,
-                                                                           cls=redfish.ris.JSONEncoder, sort_keys=sk),
-                                                                getattr(options, "encryption", False)))
+                    with open(filename, operation + "b") as outfile:
+                        outfile.write(
+                            Encryption().encrypt_file(
+                                json.dumps(
+                                    data,
+                                    indent=2,
+                                    cls=redfish.ris.JSONEncoder,
+                                    sort_keys=sk,
+                                ),
+                                getattr(options, "encryption", False),
+                            )
+                        )
                 else:
                     with open(filename, operation) as outfile:
-                        outfile.write(json.dumps(data, indent=2, cls=redfish.ris.JSONEncoder,
-                                                 sort_keys=sk))
+                        outfile.write(
+                            json.dumps(
+                                data,
+                                indent=2,
+                                cls=redfish.ris.JSONEncoder,
+                                sort_keys=sk,
+                            )
+                        )
             else:
                 if getattr(options, "encryption", False):
-                    with open(filename, operation + 'b') as file_handle:
-                        fdata = json.loads(Encryption().decrypt_file(file_handle.read(),
-                                                                     getattr(options, "encryption", False)))
+                    with open(filename, operation + "b") as file_handle:
+                        fdata = json.loads(
+                            Encryption().decrypt_file(
+                                file_handle.read(),
+                                getattr(options, "encryption", False),
+                            )
+                        )
                 else:
                     with open(filename, operation) as file_handle:
                         fdata = json.loads(file_handle.read())
                 return fdata
         except Exception as excp:
-            raise InvalidFileInputError("Unable to open file: %s.\nVerify the file location " \
-                                        "and the file has a valid JSON format.\n" % excp)
+            raise InvalidFileInputError(
+                "Unable to open file: %s.\nVerify the file location "
+                "and the file has a valid JSON format.\n" % excp
+            )
 
     def run(self, line, help_disp=False):
-        """ Main smart array worker function
+        """Main smart array worker function
 
         :param line: command line input
         :type line: string.
@@ -145,66 +171,100 @@ class SmartArrayCommand():
 
         self.smartarrayvalidation(options)
 
-        if options.command == 'state':
+        if options.command == "state":
             controllers = self.controllers(options, print_ctrl=False, single_use=True)
             for controller in controllers:
-                if controllers[controller].get('@Redfish.Settings'):
-                    time = controllers[controller]['@Redfish.Settings'].get('Time', "Not Available")
+                if controllers[controller].get("@Redfish.Settings"):
+                    time = controllers[controller]["@Redfish.Settings"].get(
+                        "Time", "Not Available"
+                    )
                     sys.stdout.write("Last Configuration Attempt: %s\n" % str(time))
-                    for message in controllers[controller]['@Redfish.Settings'].get('Messages', []):
-                        ResponseHandler(self.rdmc.app.validationmanager,
-                                        self.rdmc.app.typepath.defs.messageregistrytype).message_handler(message,
-                                                                                                         2, warn=False)
+                    for message in controllers[controller]["@Redfish.Settings"].get(
+                        "Messages", []
+                    ):
+                        ResponseHandler(
+                            self.rdmc.app.validationmanager,
+                            self.rdmc.app.typepath.defs.messageregistrytype,
+                        ).message_handler(message, 2, warn=False)
                 else:
-                    sys.stdout.write("Previous smart array configuration status messages are " \
-                                     "not available for controller '%s - %s - %s' (@Redfish.Settings not " \
-                                     "available).\n" % (controller, controllers[controller].get('Location',
-                                                                                                'Unknown'),
-                                                        controllers[controller].get('Model', 'Unknown')))
+                    sys.stdout.write(
+                        "Previous smart array configuration status messages are "
+                        "not available for controller '%s - %s - %s' (@Redfish.Settings not "
+                        "available).\n"
+                        % (
+                            controller,
+                            controllers[controller].get("Location", "Unknown"),
+                            controllers[controller].get("Model", "Unknown"),
+                        )
+                    )
 
-        if options.command == 'save':
+        if options.command == "save":
             controllers = self.controllers(options, print_ctrl=False, single_use=True)
             for key, controller in controllers.items():
-                physical_drives = self.physical_drives(options, controller,
-                                                       print_ctrl=False, single_use=True)
-                logical_drives = self.logical_drives(options, controller,
-                                                     print_ctrl=False, single_use=True)
+                physical_drives = self.physical_drives(
+                    options, controller, print_ctrl=False, single_use=True
+                )
+                logical_drives = self.logical_drives(
+                    options, controller, print_ctrl=False, single_use=True
+                )
                 if self.rdmc.app.typepath.defs.isgen10:
-                    for drivec_idx, drivec in enumerate(controller.get('PhysicalDrives', [])):
+                    for drivec_idx, drivec in enumerate(
+                        controller.get("PhysicalDrives", [])
+                    ):
                         for drive in physical_drives:
-                            if drivec['Location'] == physical_drives[drive]['Location']:
-                                controller['PhysicalDrives'][drivec_idx]. \
-                                    update(physical_drives[drive])
+                            if drivec["Location"] == physical_drives[drive]["Location"]:
+                                controller["PhysicalDrives"][drivec_idx].update(
+                                    physical_drives[drive]
+                                )
                                 break
-                    for drivec_idx, drivec in enumerate(controller.get('LogicalDrives', [])):
+                    for drivec_idx, drivec in enumerate(
+                        controller.get("LogicalDrives", [])
+                    ):
                         for drive in logical_drives:
-                            if drivec['LogicalDriveNumber'] == logical_drives[drive]['Id']:
-                                controller['LogicalDrives'][drivec_idx]. \
-                                    update(logical_drives[drive])
+                            if (
+                                drivec["LogicalDriveNumber"]
+                                == logical_drives[drive]["Id"]
+                            ):
+                                controller["LogicalDrives"][drivec_idx].update(
+                                    logical_drives[drive]
+                                )
                                 break
-                if controller.get('Links'):
-                    controller['Links']['LogicalDrives'] = logical_drives
-                    controller['Links']['PhysicalDrives'] = physical_drives
+                if controller.get("Links"):
+                    controller["Links"]["LogicalDrives"] = logical_drives
+                    controller["Links"]["PhysicalDrives"] = physical_drives
                 else:
-                    controller['links']['LogicalDrives'] = logical_drives
-                    controller['links']['PhysicalDrives'] = physical_drives
+                    controller["links"]["LogicalDrives"] = logical_drives
+                    controller["links"]["PhysicalDrives"] = physical_drives
 
-            self.file_handler(self.config_file, 'w', options, controllers, sk=True)
-            sys.stdout.write("Smart Array configuration saved to '%s'.\n" % self.config_file)
+            self.file_handler(self.config_file, "w", options, controllers, sk=True)
+            sys.stdout.write(
+                "Smart Array configuration saved to '%s'.\n" % self.config_file
+            )
 
-        if options.command == 'load':
-            controllers = self.file_handler(self.config_file, operation='rb', options=options)
+        if options.command == "load":
+            controllers = self.file_handler(
+                self.config_file, operation="rb", options=options
+            )
             for controller in controllers:
                 if controllers[controller].get("DataGuard"):
                     controllers[controller]["DataGuard"] = "Disabled"
-                    readonly_removed = self.rdmc.app.removereadonlyprops(controllers[controller])
-                    readonly_removed['LogicalDrives'] = controllers[controller]['LogicalDrives']
-                    readonly_removed['PhysicalDrives'] = controllers[controller]['PhysicalDrives']
-                    self.rdmc.app.put_handler(controllers[controller]["@odata.id"],
-                                              readonly_removed)
-                    sys.stdout.write('Smart Array configuration loaded. Reboot the server to '
-                                     'finalize the configuration.\n')
-        elif options.command == 'default':
+                    readonly_removed = self.rdmc.app.removereadonlyprops(
+                        controllers[controller]
+                    )
+                    readonly_removed["LogicalDrives"] = controllers[controller][
+                        "LogicalDrives"
+                    ]
+                    readonly_removed["PhysicalDrives"] = controllers[controller][
+                        "PhysicalDrives"
+                    ]
+                    self.rdmc.app.put_handler(
+                        controllers[controller]["@odata.id"], readonly_removed
+                    )
+                    sys.stdout.write(
+                        "Smart Array configuration loaded. Reboot the server to "
+                        "finalize the configuration.\n"
+                    )
+        elif options.command == "default":
             if getattr(options, "json", False):
                 self.controllers(options, print_ctrl=False, single_use=False)
             else:
@@ -230,60 +290,93 @@ class SmartArrayCommand():
 
         if getattr(options, "controller", False):
             controller_ident = False
-        if not (getattr(options, "json", False)) and not (getattr(options, "controller", False)) \
-                and print_ctrl:
+        if (
+            not (getattr(options, "json", False))
+            and not (getattr(options, "controller", False))
+            and print_ctrl
+        ):
             sys.stdout.write("Controllers:\n")
 
         controller_data = {}
 
-        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
-            if 'Collection' not in sel.maj_type:
+        for sel in self.rdmc.app.select(
+            "SmartStorageArrayController", path_refresh=True
+        ):
+            if "Collection" not in sel.maj_type:
                 controller = sel.dict
                 if getattr(options, "controller", False):
-                    if getattr(options, "controller", False) == controller["Id"] or \
-                            getattr(options, "controller", False) == controller["Location"]:
+                    if (
+                        getattr(options, "controller", False) == controller["Id"]
+                        or getattr(options, "controller", False)
+                        == controller["Location"]
+                    ):
                         controller_ident = True
                     else:
                         continue
 
                 if self.rdmc.app.typepath.defs.isgen10:
-                    for g10controller in self.rdmc.app.select("SmartStorageConfig.",
-                                                              path_refresh=True):
-                        if g10controller.dict.get('Location') == controller.get('Location'):
-                            id = controller.get('Id')
+                    for g10controller in self.rdmc.app.select(
+                        "SmartStorageConfig.", path_refresh=True
+                    ):
+                        if g10controller.dict.get("Location") == controller.get(
+                            "Location"
+                        ):
+                            id = controller.get("Id")
                             controller.update(g10controller.dict)
                             if id:  # iLO Bug - overwrite the Id from collection
-                                controller['Id'] = id
+                                controller["Id"] = id
                             break
 
                 if print_ctrl:
-                    sys.stdout.write("[%s]: %s - %s\n" % (controller["Id"],
-                                                          controller["Location"], controller["Model"]))
+                    sys.stdout.write(
+                        "[%s]: %s - %s\n"
+                        % (
+                            controller["Id"],
+                            controller["Location"],
+                            controller["Model"],
+                        )
+                    )
 
                     # self.tranverse_func(controller)
 
                 elif getattr(options, "json", False):
                     outjson = dict()
-                    outjson['Controllers'] = dict()
-                    outjson['Controllers'][controller["Id"]] = dict()
-                    outjson['Controllers'][controller["Id"]]['Location'] = controller["Location"]
-                    outjson['Controllers'][controller["Id"]]['Model'] = controller["Model"]
+                    outjson["Controllers"] = dict()
+                    outjson["Controllers"][controller["Id"]] = dict()
+                    outjson["Controllers"][controller["Id"]]["Location"] = controller[
+                        "Location"
+                    ]
+                    outjson["Controllers"][controller["Id"]]["Model"] = controller[
+                        "Model"
+                    ]
                     UI().print_out_json(outjson)
 
-                if getattr(options, "logicaldrives", False) or \
-                        getattr(options, "ldrive", False) or single_use:
+                if (
+                    getattr(options, "logicaldrives", False)
+                    or getattr(options, "ldrive", False)
+                    or single_use
+                ):
                     self.logical_drives(options, controller, print_ctrl)
 
-                if getattr(options, "physicaldrives", False) or \
-                        getattr(options, "pdrive", False) or single_use:
+                if (
+                    getattr(options, "physicaldrives", False)
+                    or getattr(options, "pdrive", False)
+                    or single_use
+                ):
                     self.physical_drives(options, controller, print_ctrl)
 
                 if single_use:
                     controller_data[controller["Id"]] = controller
 
-        if getattr(options, "controller", False) and not controller_ident and print_ctrl:
-            sys.stdout.write("Controller in position '%s' was not found\n" % \
-                             (getattr(options, "controller", False)))
+        if (
+            getattr(options, "controller", False)
+            and not controller_ident
+            and print_ctrl
+        ):
+            sys.stdout.write(
+                "Controller in position '%s' was not found\n"
+                % (getattr(options, "controller", False))
+            )
 
         if single_use:
             return controller_data
@@ -315,9 +408,13 @@ class SmartArrayCommand():
 
         confd = content.get("PhysicalDrives")
         try:
-            dd = content["links"]["PhysicalDrives"][self.rdmc.app.typepath.defs.hrefstring]
+            dd = content["links"]["PhysicalDrives"][
+                self.rdmc.app.typepath.defs.hrefstring
+            ]
         except:
-            dd = content["Links"]["PhysicalDrives"][self.rdmc.app.typepath.defs.hrefstring]
+            dd = content["Links"]["PhysicalDrives"][
+                self.rdmc.app.typepath.defs.hrefstring
+            ]
         finally:
             if not getattr(options, "json", False) and print_ctrl:
                 sys.stdout.write("\tPhysical Drives:\n")
@@ -328,7 +425,9 @@ class SmartArrayCommand():
             if single_use:
                 physicaldrives = {}
             found_entries = False
-            for data in self.rdmc.app.get_handler(dd, silent=True).dict.get('Members', {}):
+            for data in self.rdmc.app.get_handler(dd, silent=True).dict.get(
+                "Members", {}
+            ):
                 try:
                     tmp = data[self.rdmc.app.typepath.defs.hrefstring]
                 except:
@@ -342,33 +441,50 @@ class SmartArrayCommand():
                             tmp.update(confdd)
                             break
                 if getattr(options, "pdrive", False):
-                    if options.pdrive != tmp['Location']:
+                    if options.pdrive != tmp["Location"]:
                         continue
                     else:
                         pdrive_ident = True
                 if single_use:
-                    physicaldrives[tmp['Id']] = tmp
+                    physicaldrives[tmp["Id"]] = tmp
                 if print_ctrl and pdrive_ident:
-                    sys.stdout.write("\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s MiB\n" %
-                                     (tmp['Location'], tmp['Model'], tmp['Location'], tmp['MediaType'],
-                                      tmp['SerialNumber']
-                                      , tmp['CapacityMiB']))
+                    sys.stdout.write(
+                        "\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s MiB\n"
+                        % (
+                            tmp["Location"],
+                            tmp["Model"],
+                            tmp["Location"],
+                            tmp["MediaType"],
+                            tmp["SerialNumber"],
+                            tmp["CapacityMiB"],
+                        )
+                    )
                     # self.tranverse_func(tmp)
                     # sys.stdout.write("\n")
                 elif getattr(options, "json", False) and pdrive_ident:
                     outjson = dict()
-                    outjson['PhysicalDrives'] = dict()
-                    outjson['PhysicalDrives'][tmp['Location']] = dict()
-                    outjson['PhysicalDrives'][tmp['Location']]['Model'] = tmp['Model']
-                    outjson['PhysicalDrives'][tmp['Location']]['Location'] = tmp['Location']
-                    outjson['PhysicalDrives'][tmp['Location']]['MediaType'] = tmp['MediaType']
-                    outjson['PhysicalDrives'][tmp['Location']]['SerialNumber'] = tmp['SerialNumber']
-                    outjson['PhysicalDrives'][tmp['Location']]['CapacityMiB'] = tmp['CapacityMiB']
+                    outjson["PhysicalDrives"] = dict()
+                    outjson["PhysicalDrives"][tmp["Location"]] = dict()
+                    outjson["PhysicalDrives"][tmp["Location"]]["Model"] = tmp["Model"]
+                    outjson["PhysicalDrives"][tmp["Location"]]["Location"] = tmp[
+                        "Location"
+                    ]
+                    outjson["PhysicalDrives"][tmp["Location"]]["MediaType"] = tmp[
+                        "MediaType"
+                    ]
+                    outjson["PhysicalDrives"][tmp["Location"]]["SerialNumber"] = tmp[
+                        "SerialNumber"
+                    ]
+                    outjson["PhysicalDrives"][tmp["Location"]]["CapacityMiB"] = tmp[
+                        "CapacityMiB"
+                    ]
                     UI().print_out_json(outjson)
                 if getattr(options, "pdrive", False) and pdrive_ident:
                     break
             if getattr(options, "pdrive", False) and not pdrive_ident and print_ctrl:
-                sys.stdout.write("\tPhysical drive in position '%s' was not found" % options.pdrive)
+                sys.stdout.write(
+                    "\tPhysical drive in position '%s' was not found" % options.pdrive
+                )
             elif not found_entries and print_ctrl:
                 sys.stdout.write("\tPhysical drives not found.\n")
 
@@ -394,9 +510,13 @@ class SmartArrayCommand():
 
         confd = content.get("LogicalDrives")
         try:
-            dd = content["links"]["LogicalDrives"][self.rdmc.app.typepath.defs.hrefstring]
+            dd = content["links"]["LogicalDrives"][
+                self.rdmc.app.typepath.defs.hrefstring
+            ]
         except:
-            dd = content["Links"]["LogicalDrives"][self.rdmc.app.typepath.defs.hrefstring]
+            dd = content["Links"]["LogicalDrives"][
+                self.rdmc.app.typepath.defs.hrefstring
+            ]
         finally:
             if not getattr(options, "json", False) and print_ctrl:
                 sys.stdout.write("\tLogical Drives:\n")
@@ -407,7 +527,9 @@ class SmartArrayCommand():
             if single_use:
                 logicaldrives = {}
             found_entries = False
-            for data in self.rdmc.app.get_handler(dd, silent=True).dict.get('Members', {}):
+            for data in self.rdmc.app.get_handler(dd, silent=True).dict.get(
+                "Members", {}
+            ):
                 try:
                     tmp = data[self.rdmc.app.typepath.defs.hrefstring]
                 except:
@@ -417,47 +539,69 @@ class SmartArrayCommand():
                     found_entries = True
                 if confd:
                     for confdd in confd:
-                        if confdd.get("LogicalDriveNumber") == tmp.get("LogicalDriveNumber"):
+                        if confdd.get("LogicalDriveNumber") == tmp.get(
+                            "LogicalDriveNumber"
+                        ):
                             tmp.update(confdd)
                             break
                 if getattr(options, "ldrive", False):
-                    if options.ldrive != tmp['Id']:
+                    if options.ldrive != tmp["Id"]:
                         continue
                     else:
                         ldrive_ident = True
                 if print_ctrl and ldrive_ident:
-                    sys.stdout.write("\t[%s]: Name %s VUID %s - %s MiB\n" %
-                                     (tmp['Id'], tmp['LogicalDriveName'], tmp['VolumeUniqueIdentifier'],
-                                      tmp['CapacityMiB']))
+                    sys.stdout.write(
+                        "\t[%s]: Name %s VUID %s - %s MiB\n"
+                        % (
+                            tmp["Id"],
+                            tmp["LogicalDriveName"],
+                            tmp["VolumeUniqueIdentifier"],
+                            tmp["CapacityMiB"],
+                        )
+                    )
                 elif getattr(options, "json", False) and ldrive_ident:
                     outjson = dict()
-                    outjson['LogicalDrives'] = dict()
-                    outjson['LogicalDrives'][tmp['Id']] = dict()
-                    outjson['LogicalDrives'][tmp['Id']]['LogicalDriveName'] = tmp['LogicalDriveName']
-                    outjson['LogicalDrives'][tmp['Id']]['VolumeUniqueIdentifier'] = tmp['VolumeUniqueIdentifier']
-                    outjson['LogicalDrives'][tmp['Id']]['CapacityMiB'] = tmp['CapacityMiB']
-                    #self.tranverse_func(tmp)
-                    #sys.stdout.write("\n")
+                    outjson["LogicalDrives"] = dict()
+                    outjson["LogicalDrives"][tmp["Id"]] = dict()
+                    outjson["LogicalDrives"][tmp["Id"]]["LogicalDriveName"] = tmp[
+                        "LogicalDriveName"
+                    ]
+                    outjson["LogicalDrives"][tmp["Id"]]["VolumeUniqueIdentifier"] = tmp[
+                        "VolumeUniqueIdentifier"
+                    ]
+                    outjson["LogicalDrives"][tmp["Id"]]["CapacityMiB"] = tmp[
+                        "CapacityMiB"
+                    ]
+                    # self.tranverse_func(tmp)
+                    # sys.stdout.write("\n")
                 elif getattr(options, "json", False) and ldrive_ident:
                     UI().print_out_json(tmp)
                 try:
-                    tmp2 = tmp['Links']['DataDrives'][self.rdmc.app.typepath.defs.hrefstring]
+                    tmp2 = tmp["Links"]["DataDrives"][
+                        self.rdmc.app.typepath.defs.hrefstring
+                    ]
                 except:
-                    tmp2 = tmp['links']['DataDrives'][next(iter(tmp['links']['DataDrives']))]
+                    tmp2 = tmp["links"]["DataDrives"][
+                        next(iter(tmp["links"]["DataDrives"]))
+                    ]
                 finally:
                     tmp2 = self.rdmc.app.get_handler(tmp2, silent=True).dict
                 if ldrive_ident:
-                    data_drives = self.get_data_drives(options, tmp2, print_ctrl, single_use)
+                    data_drives = self.get_data_drives(
+                        options, tmp2, print_ctrl, single_use
+                    )
                     try:
-                        tmp['links']['DataDrives'] = data_drives
+                        tmp["links"]["DataDrives"] = data_drives
                     except:
-                        tmp['Links']['DataDrives'] = data_drives
+                        tmp["Links"]["DataDrives"] = data_drives
                 if single_use:
-                    logicaldrives[tmp['Id']] = tmp
+                    logicaldrives[tmp["Id"]] = tmp
                 if getattr(options, "ldrive", False) and ldrive_ident:
                     break
             if getattr(options, "ldrive", False) and not ldrive_ident:
-                sys.stdout.write("\tLogical drive in position '%s' was not found" % options.pdrive)
+                sys.stdout.write(
+                    "\tLogical drive in position '%s' was not found" % options.pdrive
+                )
             elif not found_entries and print_ctrl:
                 sys.stdout.write("\tLogical drives not found.\n")
 
@@ -489,7 +633,7 @@ class SmartArrayCommand():
         if single_use:
             subsetdrives = {}
         found_entries = False
-        for member in drives.get('Members', {}):
+        for member in drives.get("Members", {}):
             try:
                 tmp = member[self.rdmc.app.typepath.defs.hrefstring]
             except:
@@ -498,7 +642,7 @@ class SmartArrayCommand():
                 tmp = self.rdmc.app.get_handler(tmp, silent=True).dict
                 found_entries = True
             if single_use:
-                subsetdrives[tmp['Id']] = tmp
+                subsetdrives[tmp["Id"]] = tmp
             if print_ctrl:
                 self.tranverse_func(tmp)
             elif getattr(options, "json", False):
@@ -510,7 +654,7 @@ class SmartArrayCommand():
             return subsetdrives
 
     def smartarrayvalidation(self, options):
-        """ Smart array validation function
+        """Smart array validation function
 
         :param options: command line options
         :type options: list.
@@ -518,16 +662,16 @@ class SmartArrayCommand():
         self.cmdbase.login_select_validation(self, options)
 
         if getattr(options, "sa_conf_filename", False):
-            if options.command == 'save':
-                open(options.sa_conf_filename, 'w+b')
-            if options.command == 'load':
-                open(options.sa_conf_filename, 'r+b')
+            if options.command == "save":
+                open(options.sa_conf_filename, "w+b")
+            if options.command == "load":
+                open(options.sa_conf_filename, "r+b")
             self.config_file = options.sa_conf_filename
         else:
             self.config_file = __config_file__
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -536,117 +680,121 @@ class SmartArrayCommand():
             return
 
         self.cmdbase.add_login_arguments_group(customparser)
-        subcommand_parser = customparser.add_subparsers(dest='command')
+        subcommand_parser = customparser.add_subparsers(dest="command")
 
         default_parser = subcommand_parser.add_parser(
-            'default',
+            "default",
             help="Running without any sub-command will return smart array configuration data\n"
-                 "on the currently logged in server. Additional optional arguments will narrow the\n"
-                 "scope of returned data to individual controllers, physical or logical drives"
+            "on the currently logged in server. Additional optional arguments will narrow the\n"
+            "scope of returned data to individual controllers, physical or logical drives",
         )
         default_parser.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller using either the slot "
-                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-                 "controller, select it by index.\tsmartarray --controller=2"
-                 "\n\t2. To get more details on a specific controller select "
-                 "it by location.\tsmartarray --controller=\'Slot 0\'",
-            default=None
+            "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+            "controller, select it by index.\tsmartarray --controller=2"
+            "\n\t2. To get more details on a specific controller select "
+            "it by location.\tsmartarray --controller='Slot 0'",
+            default=None,
         )
         default_parser.add_argument(
-            '--physicaldrives',
-            dest='physicaldrives',
+            "--physicaldrives",
+            dest="physicaldrives",
             action="store_true",
             help="Use this flag to return the physical drives for the controller selected."
-                 "\n\tExamples:\n\t1. smartarray --physicaldrives\n\t2. To obtain details about "
-                 "physical drives for a specific controller.\tsmartarray --controller=3 "
-                 "--physicaldrives",
-            default=None
+            "\n\tExamples:\n\t1. smartarray --physicaldrives\n\t2. To obtain details about "
+            "physical drives for a specific controller.\tsmartarray --controller=3 "
+            "--physicaldrives",
+            default=None,
         )
         default_parser.add_argument(
-            '--logicaldrives',
-            dest='logicaldrives',
+            "--logicaldrives",
+            dest="logicaldrives",
             action="store_true",
             help="Use this flag to return the logical drives for the controller selected.\n\t "
-                 "\n\tExamples:\n\t1. smartarray --logicaldrives\n\t2. To obtain details about "
-                 "logical drives for a specific controller.\tsmartarray --controller=3 "
-                 "--logicaldrives",
-            default=None
+            "\n\tExamples:\n\t1. smartarray --logicaldrives\n\t2. To obtain details about "
+            "logical drives for a specific controller.\tsmartarray --controller=3 "
+            "--logicaldrives",
+            default=None,
         )
         default_parser.add_argument(
-            '--pdrive',
-            dest='pdrive',
+            "--pdrive",
+            dest="pdrive",
             help="Use this flag to select the corresponding physical disk.\n\tExamples:\n\t "
-                 "1. To obtain details about a specific physical drive for a specific controller."
-                 "\tsmartarray --controller=3 --pdrive=1I:1:1",
-            default=None
+            "1. To obtain details about a specific physical drive for a specific controller."
+            "\tsmartarray --controller=3 --pdrive=1I:1:1",
+            default=None,
         )
         default_parser.add_argument(
-            '--ldrive',
-            dest='ldrive',
+            "--ldrive",
+            dest="ldrive",
             help="Use this flag to select the corresponding logical disk.\n\tExamples:\n\t "
-                 "1. To obtain details about a specific physical drive for a specific controller."
-                 "\tsmartarray --controller=3 --ldrive=1",
-            default=None
+            "1. To obtain details about a specific physical drive for a specific controller."
+            "\tsmartarray --controller=3 --ldrive=1",
+            default=None,
         )
         default_parser.add_argument(
-            '-j',
-            '--json',
-            dest='json',
+            "-j",
+            "--json",
+            dest="json",
             action="store_true",
             help="""Use this flag to output data in JSON format.""",
-            default=None
+            default=None,
         )
         self.cmdbase.add_login_arguments_group(default_parser)
-        state_help = 'Print state/event information from @Redfish.Settings (if available)'
+        state_help = (
+            "Print state/event information from @Redfish.Settings (if available)"
+        )
         state_parser = subcommand_parser.add_parser(
-            'state',
+            "state",
             help=state_help,
-            description=state_help + '\n\tExample: smartarray state',
-            formatter_class=RawDescriptionHelpFormatter
+            description=state_help + "\n\tExample: smartarray state",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         state_parser.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller using either the slot "
-                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-                 "controller, select it by index.\tsmartarray state --controller=2"
-                 "\n\t2. To get more details on a specific controller select "
-                 "it by location.\tsmartarray state --controller=\'Slot 0\'",
-            default=None
+            "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+            "controller, select it by index.\tsmartarray state --controller=2"
+            "\n\t2. To get more details on a specific controller select "
+            "it by location.\tsmartarray state --controller='Slot 0'",
+            default=None,
         )
         self.cmdbase.add_login_arguments_group(state_parser)
-        json_save_help = 'Save a JSON file with all current configurations (all controllers, logical and \nphysical drives).'
+        json_save_help = "Save a JSON file with all current configurations (all controllers, logical and \nphysical drives)."
         # json save sub-parser
         json_save_parser = subcommand_parser.add_parser(
-            'save',
+            "save",
             help=json_save_help,
-            description=json_save_help + '\n\tExample: smartarray save -f <filename>',
-            formatter_class=RawDescriptionHelpFormatter
+            description=json_save_help + "\n\tExample: smartarray save -f <filename>",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         json_save_parser.add_argument(
-            '-f',
-            dest='sa_conf_filename',
+            "-f",
+            dest="sa_conf_filename",
             help="Specify a filename for saving the smartarray configuration. (Default: "
-                 "\'smartarray_config.json\')",
-            default=None
+            "'smartarray_config.json')",
+            default=None,
         )
         self.cmdbase.add_login_arguments_group(json_save_parser)
-        json_load_help = "Load a JSON file with modified smartarray configurations (All read-only " \
-                         "properties\nare discarded)."
+        json_load_help = (
+            "Load a JSON file with modified smartarray configurations (All read-only "
+            "properties\nare discarded)."
+        )
         # json load sub-parser
         json_load_parser = subcommand_parser.add_parser(
-            'load',
+            "load",
             help=json_load_help,
-            description=json_load_help + '\n\tExample: smartarray load -f <filename>',
-            formatter_class=RawDescriptionHelpFormatter
+            description=json_load_help + "\n\tExample: smartarray load -f <filename>",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         json_load_parser.add_argument(
-            '-f',
-            dest='sa_conf_filename',
+            "-f",
+            dest="sa_conf_filename",
             help="Specify a filename for loading a smartarray configuration. (Default: "
-                 "\'smartarray_config.json\')",
-            default=None
+            "'smartarray_config.json')",
+            default=None,
         )
         self.cmdbase.add_login_arguments_group(json_load_parser)

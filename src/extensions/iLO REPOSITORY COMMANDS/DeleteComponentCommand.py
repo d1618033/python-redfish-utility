@@ -17,24 +17,31 @@
 # -*- coding: utf-8 -*-
 """ Delete Component Command for rdmc """
 
-from rdmc_helper import IncompatibleiLOVersionError, ReturnCodes, Encryption, \
-                        InvalidCommandLineErrorOPTS, InvalidCommandLineError
+from rdmc_helper import (
+    IncompatibleiLOVersionError,
+    ReturnCodes,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+)
 
-class DeleteComponentCommand():
-    """ Main download command class """
+
+class DeleteComponentCommand:
+    """Main download command class"""
+
     def __init__(self):
         self.ident = {
-            'name':'deletecomp',
-            'usage': None,
-            'description':'Run to delete component(s) of the currently logged in system.\n\n\t'
-                    'Delete a single component by name.\n\texample: deletecomp '
-                    'CP327.zip\n\n\tDelete multiple components by '
-                    'id.\n\tExample: deletecomp 377fg6c4 327cf4c7\n\n\tDelete '
-              'multiple components by filename.\n\texample: deletecomp '
-              'CP327.exe CP99.exe',
-            'summary': 'Deletes components/binaries from the iLO Repository.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "deletecomp",
+            "usage": None,
+            "description": "Run to delete component(s) of the currently logged in system.\n\n\t"
+            "Delete a single component by name.\n\texample: deletecomp "
+            "CP327.zip\n\n\tDelete multiple components by "
+            "id.\n\tExample: deletecomp 377fg6c4 327cf4c7\n\n\tDelete "
+            "multiple components by filename.\n\texample: deletecomp "
+            "CP327.exe CP99.exe",
+            "summary": "Deletes components/binaries from the iLO Repository.",
+            "aliases": [],
+            "auxcommands": [],
         }
 
         self.cmdbase = None
@@ -42,7 +49,7 @@ class DeleteComponentCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main deletecomp worker function
+        """Main deletecomp worker function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -66,81 +73,93 @@ class DeleteComponentCommand():
         self.deletecomponentvalidation(options)
 
         if self.rdmc.app.typepath.defs.isgen9:
-            raise IncompatibleiLOVersionError('iLO Repository commands are '
-                                              'only available on iLO 5.')
+            raise IncompatibleiLOVersionError(
+                "iLO Repository commands are " "only available on iLO 5."
+            )
 
         comps = self.rdmc.app.getcollectionmembers(
-            '/redfish/v1/UpdateService/ComponentRepository/')
+            "/redfish/v1/UpdateService/ComponentRepository/"
+        )
 
         if not comps:
-            self.rdmc.ui.printer('No components found to delete\n')
+            self.rdmc.ui.printer("No components found to delete\n")
 
         elif options.deleteall:
             delopts = []
 
             for comp in comps:
                 try:
-                    if comp['Locked']:
-                        self.rdmc.ui.warn("Unable to delete %s. It is in use by "\
-                                          "an install set or update task.\n" % comp['Filename'])
+                    if comp["Locked"]:
+                        self.rdmc.ui.warn(
+                            "Unable to delete %s. It is in use by "
+                            "an install set or update task.\n" % comp["Filename"]
+                        )
                         continue
                 except KeyError:
                     pass
-                delopts.append(comp['@odata.id'])
+                delopts.append(comp["@odata.id"])
 
             self.deletecomponents(comps, delopts)
         elif args:
             self.deletecomponents(comps, args)
         else:
-            InvalidCommandLineError("Please include the component(s) you wish to delete")
+            InvalidCommandLineError(
+                "Please include the component(s) you wish to delete"
+            )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def deletecomponents(self, comps, delopts):
-        """ component validation function
+        """component validation function
 
         :param comps: component list
         :type comps: list.
         :param delopts: delete items list
         :type delopts: list.
         """
-        if ',' in delopts:
-            delopts = delopts.split(',')
+        if "," in delopts:
+            delopts = delopts.split(",")
         elif not isinstance(delopts, list):
             delopts = [delopts]
 
         for opt in delopts:
             deleted = False
 
-            if '/' in opt:
+            if "/" in opt:
                 self.rdmc.app.delete_handler(opt)
                 deleted = True
             else:
                 for comp in comps:
-                    if opt == comp['Id'] or opt == comp['Filename']:
+                    if opt == comp["Id"] or opt == comp["Filename"]:
                         try:
-                            if comp['Locked']:
-                                self.rdmc.ui.error("Unable to delete %s. It is in use by "\
-                                         "an install set or update task.\n" % comp['Filename'])
+                            if comp["Locked"]:
+                                self.rdmc.ui.error(
+                                    "Unable to delete %s. It is in use by "
+                                    "an install set or update task.\n"
+                                    % comp["Filename"]
+                                )
                                 continue
                         except KeyError:
                             pass
 
-                        self.rdmc.app.delete_handler(comp['@odata.id'])
+                        self.rdmc.app.delete_handler(comp["@odata.id"])
                         deleted = True
 
                 if deleted:
-                    self.rdmc.ui.printer('Deleted %s\n' % opt)
-                    self.rdmc.ui.printer("Component " + opt + " deleted successfully.\n")
-                    #self.rdmc.ui.printer("[200] The operation completed successfully.\n")
+                    self.rdmc.ui.printer("Deleted %s\n" % opt)
+                    self.rdmc.ui.printer(
+                        "Component " + opt + " deleted successfully.\n"
+                    )
+                    # self.rdmc.ui.printer("[200] The operation completed successfully.\n")
                 else:
-                    raise InvalidCommandLineError('Cannot find or unable to delete component %s' \
-                                                                                            % opt)
+                    raise InvalidCommandLineError(
+                        "Cannot find or unable to delete component %s" % opt
+                    )
 
     def deletecomponentvalidation(self, options):
-        """ component validation function
+        """component validation function
 
         :param options: command line options
         :type options: list.
@@ -148,7 +167,7 @@ class DeleteComponentCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -159,9 +178,9 @@ class DeleteComponentCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-a',
-            '--all',
-            dest='deleteall',
+            "-a",
+            "--all",
+            dest="deleteall",
             action="store_true",
             help="""Delete all components.""",
             default=False,

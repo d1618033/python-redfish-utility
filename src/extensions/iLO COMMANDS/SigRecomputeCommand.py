@@ -17,22 +17,29 @@
 # -*- coding: utf-8 -*-
 """ SigRecompute Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                    InvalidCommandLineErrorOPTS, IncompatibleiLOVersionError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    IncompatibleiLOVersionError,
+)
 
-class SigRecomputeCommand():
-    """ Recalculate the signature of the servers configuration """
+
+class SigRecomputeCommand:
+    """Recalculate the signature of the servers configuration"""
+
     def __init__(self):
         self.ident = {
-            'name':'sigrecompute',
-            'usage': None,
-            'description':'Recalculate the signature on '
-                    'the computers configuration.\n\texample: sigrecompute\n\n'
-                    '\tNote: sigrecompute command is not available on Redfish systems.',
-            'summary':"Command to recalculate the signature of the computer's "
-                      "configuration.",
-            'aliases': [],
-            'auxcommands': []
+            "name": "sigrecompute",
+            "usage": None,
+            "description": "Recalculate the signature on "
+            "the computers configuration.\n\texample: sigrecompute\n\n"
+            "\tNote: sigrecompute command is not available on Redfish systems.",
+            "summary": "Command to recalculate the signature of the computer's "
+            "configuration.",
+            "aliases": [],
+            "auxcommands": [],
         }
 
         self.cmdbase = None
@@ -40,7 +47,7 @@ class SigRecomputeCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main sigrecompute function
+        """Main sigrecompute function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -68,14 +75,16 @@ class SigRecomputeCommand():
             body = {"Action": "ServerSigRecompute", "Target": "/Oem/Hp"}
             self.rdmc.app.post_handler(path, body)
         else:
-            raise IncompatibleiLOVersionError("Sigrecompute action not available on redfish.")
+            raise IncompatibleiLOVersionError(
+                "Sigrecompute action not available on redfish."
+            )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def sigrecomputevalidation(self, options):
-        """ sigrecomputevalidation method validation function
+        """sigrecomputevalidation method validation function
 
         :param options: command line options
         :type options: list.
@@ -83,7 +92,7 @@ class SigRecomputeCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

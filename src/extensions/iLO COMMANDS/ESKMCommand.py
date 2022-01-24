@@ -17,20 +17,27 @@
 # -*- coding: utf-8 -*-
 """ ESKM Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                    NoContentsFoundForOperationError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    Encryption,
+)
 
-class ESKMCommand():
-    """ Commands ESKM available actions """
+
+class ESKMCommand:
+    """Commands ESKM available actions"""
+
     def __init__(self):
         self.ident = {
-            'name':'eskm',
-            'usage': None,
-            'description':'Clear the ESKM logs.\n\texample: eskm'
-                    ' clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections',
-            'summary':"Command for all ESKM available actions.",
-            'aliases': [],
-            'auxcommands': []
+            "name": "eskm",
+            "usage": None,
+            "description": "Clear the ESKM logs.\n\texample: eskm"
+            " clearlog\n\n\tTest the ESKM connections.\n\texample: eskm testconnections",
+            "summary": "Command for all ESKM available actions.",
+            "aliases": [],
+            "auxcommands": [],
         }
 
         self.cmdbase = None
@@ -38,7 +45,7 @@ class ESKMCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main ESKMCommand function
+        """Main ESKMCommand function
 
         :param line: string of arguments passed in
         :type line: str.
@@ -77,21 +84,21 @@ class ESKMCommand():
         else:
             raise NoContentsFoundForOperationError("ESKM not found.")
 
-        if args[0].lower() == 'clearlog':
+        if args[0].lower() == "clearlog":
             actionitem = "ClearESKMLog"
-        elif args[0].lower() == 'testconnections':
+        elif args[0].lower() == "testconnections":
             actionitem = "TestESKMConnections"
         else:
-            raise InvalidCommandLineError('Invalid command.')
+            raise InvalidCommandLineError("Invalid command.")
 
         bodydict = results.resp.dict
         try:
-            for item in bodydict['Actions']:
+            for item in bodydict["Actions"]:
                 if actionitem in item:
                     if self.rdmc.app.typepath.defs.isgen10:
-                        actionitem = item.split('#')[-1]
+                        actionitem = item.split("#")[-1]
 
-                    path = bodydict['Actions'][item]['target']
+                    path = bodydict["Actions"][item]["target"]
                     break
         except:
             pass
@@ -100,11 +107,11 @@ class ESKMCommand():
         self.rdmc.app.post_handler(path, body)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def eskmvalidation(self, options):
-        """ eskmvalidation method validation function
+        """eskmvalidation method validation function
 
         :param options: command line options
         :type options: list.
@@ -112,7 +119,7 @@ class ESKMCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

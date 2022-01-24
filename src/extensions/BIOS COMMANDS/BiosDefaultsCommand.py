@@ -17,35 +17,41 @@
 # -*- coding: utf-8 -*-
 """ BiosDefaultsCommand for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption
-from argparse import ArgumentParser, SUPPRESS
+from argparse import SUPPRESS, ArgumentParser
+
+from rdmc_helper import (
+    Encryption,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    ReturnCodes,
+)
 
 
-class BiosDefaultsCommand():
-    """ Set BIOS settings back to default for the server that is currently
-        logged in """
+class BiosDefaultsCommand:
+    """Set BIOS settings back to default for the server that is currently
+    logged in"""
+
     def __init__(self):
         self.ident = {
-            'name':'biosdefaults',
-            'usage': None,
-            'description':"Run to set the currently"
-                    " logged in server's Bios. type settings to defaults\n\texample: "
-                    "biosdefaults\n\n\tRun to set the currently logged in server's "
-                    "Bios. type settings to user defaults\n\texample: biosdefaults "
-                    "--userdefaults\n\n\tRun to set the currently logged in server "
-                    "to manufacturing defaults, including boot order and secure boot."
-                "\n\texample: biosdefaults --manufacturingdefaults",
-            'summary':'Set the currently logged in server to default BIOS settings.',
-            'aliases': [],
-            'auxcommands': ['SetCommand', 'RebootCommand']
+            "name": "biosdefaults",
+            "usage": None,
+            "description": "Run to set the currently"
+            " logged in server's Bios. type settings to defaults\n\texample: "
+            "biosdefaults\n\n\tRun to set the currently logged in server's "
+            "Bios. type settings to user defaults\n\texample: biosdefaults "
+            "--userdefaults\n\n\tRun to set the currently logged in server "
+            "to manufacturing defaults, including boot order and secure boot."
+            "\n\texample: biosdefaults --manufacturingdefaults",
+            "summary": "Set the currently logged in server to default BIOS settings.",
+            "aliases": [],
+            "auxcommands": ["SetCommand", "RebootCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main BIOS defaults worker function """
+        """Main BIOS defaults worker function"""
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
@@ -59,19 +65,22 @@ class BiosDefaultsCommand():
 
         self.defaultsvalidation(options)
 
-        self.rdmc.ui.printer("Resetting BIOS attributes and settings to factory defaults.\n")
+        self.rdmc.ui.printer(
+            "Resetting BIOS attributes and settings to factory defaults.\n"
+        )
 
         put_path = self.rdmc.app.typepath.defs.biospath
         body = None
 
         if self.rdmc.app.typepath.defs.isgen10 and not options.manufdefaults:
-            bodydict = self.rdmc.app.get_handler(self.rdmc.app.typepath.defs.biospath,
-                                                 service=True, silent=True).dict
+            bodydict = self.rdmc.app.get_handler(
+                self.rdmc.app.typepath.defs.biospath, service=True, silent=True
+            ).dict
 
-            for item in bodydict['Actions']:
-                if 'ResetBios' in item:
-                    action = item.split('#')[-1]
-                    path = bodydict['Actions'][item]['target']
+            for item in bodydict["Actions"]:
+                if "ResetBios" in item:
+                    action = item.split("#")[-1]
+                    path = bodydict["Actions"][item]["target"]
                     break
 
             body = {"Action": action}
@@ -84,38 +93,41 @@ class BiosDefaultsCommand():
             self.rdmc.app.post_handler(path, body)
         else:
             if options.userdefaults:
-                body = {'BaseConfig': 'default.user'}
+                body = {"BaseConfig": "default.user"}
             elif not options.manufdefaults:
-                body = {'BaseConfig': 'default'}
+                body = {"BaseConfig": "default"}
             if body:
-                self.rdmc.app.put_handler(put_path + '/settings', body=body,
-                                          optionalpassword=options.biospassword)
+                self.rdmc.app.put_handler(
+                    put_path + "/settings",
+                    body=body,
+                    optionalpassword=options.biospassword,
+                )
 
         if not body and options.manufdefaults:
             setstring = "RestoreManufacturingDefaults=Yes --selector=HpBios. --commit"
             if options.reboot:
                 setstring += " --reboot=%s" % options.reboot
 
-            self.auxcommands['set'].run(setstring)
+            self.auxcommands["set"].run(setstring)
 
         elif options.reboot:
-            self.auxcommands['reboot'].run(options.reboot)
+            self.auxcommands["reboot"].run(options.reboot)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def defaultsvalidation(self, options):
-        """ BIOS defaults method validation function """
+        """BIOS defaults method validation function"""
         self.cmdbase.login_select_validation(self, options)
 
         if options.encode:
             options.biospassword = Encryption.decode_credentials(options.biospassword)
             if isinstance(options.biospassword, bytes):
-                options.biospassword = options.biospassword.decode('utf-8')
+                options.biospassword = options.biospassword.decode("utf-8")
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -126,26 +138,25 @@ class BiosDefaultsCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--reboot',
-            dest='reboot',
-            help="Use this flag to perform a reboot command function after"\
-            " completion of operations.  For help with parameters and"\
+            "--reboot",
+            dest="reboot",
+            help="Use this flag to perform a reboot command function after"
+            " completion of operations.  For help with parameters and"
             " descriptions regarding the reboot flag, run help reboot.",
             default=None,
         )
         customparser.add_argument(
-            '--userdefaults',
-            dest='userdefaults',
+            "--userdefaults",
+            dest="userdefaults",
             action="store_true",
-            help="Sets bios to user defaults instead of factory "\
-                                                                "defaults.",
-            default=False
+            help="Sets bios to user defaults instead of factory " "defaults.",
+            default=False,
         )
         customparser.add_argument(
-            '--manufacturingdefaults',
-            dest='manufdefaults',
+            "--manufacturingdefaults",
+            dest="manufdefaults",
             action="store_true",
-            help="Reset all configuration settings to manufacturing defaults, "\
-                                        "including boot order and secure boot.",
-            default=False
+            help="Reset all configuration settings to manufacturing defaults, "
+            "including boot order and secure boot.",
+            default=False,
         )

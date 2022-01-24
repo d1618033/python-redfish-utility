@@ -78,6 +78,10 @@ class SecurityStatusCommand(RdmcCommandBase):
 
             result = self.validate_creds(options.user, options.password)
             if result:
+                secstate = BlobStore2().get_security_state()
+                if isinstance(secstate, bytes):
+                    secstate = secstate.decode('utf-8')
+                self.rdmc.ui.printer('Security State is {}...\n'.format(secstate))
                 self.rdmc.ui.printer("Credentials: Valid\n")
             else:
                 self.rdmc.ui.error("Credentials: Invalid\n")

@@ -17,28 +17,34 @@
 # -*- coding: utf-8 -*-
 """ Clear Controller Configuration Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
-class ClearControllerConfigCommand():
-    """ Drive erase/sanitize command """
+
+class ClearControllerConfigCommand:
+    """Drive erase/sanitize command"""
+
     def __init__(self):
         self.ident = {
-            'name':'clearcontrollerconfig',
-            'usage': None,
-            'description':'To clear a controller'
-                    ' config.\n\tExample: clearcontrollerconfig --controller=1'
-            '\n\texample: clearcontrollerconfig --controller=\"Slot0"',
-            'summary':'Clears smart array controller configuration.',
-            'aliases': [],
-            'auxcommands': ["SelectCommand"]
+            "name": "clearcontrollerconfig",
+            "usage": None,
+            "description": "To clear a controller"
+            " config.\n\tExample: clearcontrollerconfig --controller=1"
+            '\n\texample: clearcontrollerconfig --controller="Slot0"',
+            "summary": "Clears smart array controller configuration.",
+            "aliases": [],
+            "auxcommands": ["SelectCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main disk inventory worker function
+        """Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
@@ -59,49 +65,65 @@ class ClearControllerConfigCommand():
 
         self.clearcontrollerconfigvalidation(options)
 
-        self.auxcommands['select'].selectfunction("SmartStorageConfig.")
+        self.auxcommands["select"].selectfunction("SmartStorageConfig.")
         content = self.rdmc.app.getprops()
 
         if not options.controller:
-            raise InvalidCommandLineError('You must include a controller to select.')
+            raise InvalidCommandLineError("You must include a controller to select.")
 
         if options.controller:
             controllist = []
-            contentsholder = {"LogicalDrives": [], "Actions": [{"Action": "ClearConfigurationMetadata"}],
-                              "DataGuard": "Disabled"}
+            contentsholder = {
+                "LogicalDrives": [],
+                "Actions": [{"Action": "ClearConfigurationMetadata"}],
+                "DataGuard": "Disabled",
+            }
 
             try:
                 if options.controller.isdigit():
                     slotlocation = self.get_location_from_id(options.controller)
                     if slotlocation:
-                        slotcontrol = slotlocation.lower().strip('\"').split('slot')[-1].lstrip()
+                        slotcontrol = (
+                            slotlocation.lower().strip('"').split("slot")[-1].lstrip()
+                        )
                         for control in content:
-                            if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                            if (
+                                slotcontrol.lower()
+                                == control["Location"]
+                                .lower()
+                                .split("slot")[-1]
+                                .lstrip()
+                            ):
                                 controllist.append(control)
                 if not controllist:
                     raise InvalidCommandLineError("")
             except InvalidCommandLineError:
-                raise InvalidCommandLineError("Selected controller not found in the current "
-                                              "inventory list.")
+                raise InvalidCommandLineError(
+                    "Selected controller not found in the current " "inventory list."
+                )
             for controller in controllist:
                 self.rdmc.ui.printer(
-                    "ClearController path and payload: %s, %s\n" % (controller["@odata.id"], contentsholder))
+                    "ClearController path and payload: %s, %s\n"
+                    % (controller["@odata.id"], contentsholder)
+                )
                 self.rdmc.app.put_handler(controller["@odata.id"], contentsholder)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def get_location_from_id(self, controller_id):
-        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
-            if 'Collection' not in sel.maj_type:
+        for sel in self.rdmc.app.select(
+            "SmartStorageArrayController", path_refresh=True
+        ):
+            if "Collection" not in sel.maj_type:
                 controller = sel.dict
-                if controller['Id'] == str(controller_id):
+                if controller["Id"] == str(controller_id):
                     return controller["Location"]
         return None
 
     def clearcontrollerconfigvalidation(self, options):
-        """ clear controller config validation function
+        """clear controller config validation function
 
         :param options: command line options
         :type options: list.
@@ -109,7 +131,7 @@ class ClearControllerConfigCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -120,9 +142,9 @@ class ClearControllerConfigCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller "
-                "using either the slot number or index.",
+            "using either the slot number or index.",
             default=None,
         )

@@ -24,30 +24,34 @@ from argparse import ArgumentParser, SUPPRESS
 
 import redfish
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
 
-class RawHeadCommand():
-    """ Raw form of the head command """
+class RawHeadCommand:
+    """Raw form of the head command"""
 
     def __init__(self):
         self.ident = {
-            'name': 'rawhead',
-            'usage': None,
-            'description': 'Run to to retrieve data from the '
-                     'passed in path\n\texample: rawhead "/redfish/v1/systems/'
-                     '(system ID)"\n',
-            'summary': 'Raw form of the HEAD command.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "rawhead",
+            "usage": None,
+            "description": "Run to to retrieve data from the "
+            'passed in path\n\texample: rawhead "/redfish/v1/systems/'
+            '(system ID)"\n',
+            "summary": "Raw form of the HEAD command.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw head worker function
+        """Main raw head worker function
 
         :param line: command line input
         :type line: string.
@@ -73,8 +77,9 @@ class RawHeadCommand():
         if options.path.startswith('"') and options.path.endswith('"'):
             options.path = options.path[1:-1]
 
-        results = self.rdmc.app.head_handler(options.path, silent=options.silent,
-                                             service=options.service)
+        results = self.rdmc.app.head_handler(
+            options.path, silent=options.silent, service=options.service
+        )
 
         content = None
         tempdict = dict()
@@ -88,12 +93,16 @@ class RawHeadCommand():
             tempdict = dict(content)
 
             if options.filename:
-                output = json.dumps(tempdict, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True)
+                output = json.dumps(
+                    tempdict, indent=2, cls=redfish.ris.JSONEncoder, sort_keys=True
+                )
                 filehndl = open(options.filename[0], "w")
                 filehndl.write(output)
                 filehndl.close()
 
-                self.rdmc.ui.printer("Results written out to '%s'.\n" % options.filename[0])
+                self.rdmc.ui.printer(
+                    "Results written out to '%s'.\n" % options.filename[0]
+                )
             else:
                 if options.service:
                     self.rdmc.ui.printer("%s\n" % tempdict)
@@ -107,7 +116,7 @@ class RawHeadCommand():
         return ReturnCodes.SUCCESS
 
     def headvalidation(self, options):
-        """ Raw head validation function
+        """Raw head validation function
 
         :param options: command line options
         :type options: list.
@@ -115,7 +124,7 @@ class RawHeadCommand():
         self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -126,27 +135,27 @@ class RawHeadCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'path',
+            "path",
             help="Uri on iLO to query HEAD.",
         )
         customparser.add_argument(
-            '--silent',
-            dest='silent',
+            "--silent",
+            dest="silent",
             action="store_true",
             help="""Use this flag to silence responses""",
             default=None,
         )
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
+            "-f",
+            "--filename",
+            dest="filename",
             help="""Use the provided filename to perform operations.""",
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '--service',
-            dest='service',
+            "--service",
+            dest="service",
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,

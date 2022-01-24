@@ -31,38 +31,45 @@ from six.moves import queue
 import redfish.ris
 
 from redfish.ris.rmc_helper import LoadSkipSettingError
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-    InvalidCommandLineErrorOPTS, InvalidFileFormattingError, \
-    NoChangesFoundOrMadeError, InvalidFileInputError, \
-    NoDifferencesFoundError, MultipleServerConfigError, \
-    InvalidMSCfileInputError, Encryption
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    InvalidFileFormattingError,
+    NoChangesFoundOrMadeError,
+    InvalidFileInputError,
+    NoDifferencesFoundError,
+    MultipleServerConfigError,
+    InvalidMSCfileInputError,
+    Encryption,
+)
 
 from rdmc_base_classes import HARDCODEDLIST
 
 # default file name
-__filename__ = 'ilorest.json'
+__filename__ = "ilorest.json"
 
 
-class LoadCommand():
-    """ Constructor """
+class LoadCommand:
+    """Constructor"""
 
     def __init__(self):
         self.ident = {
-            'name': 'load',
-            'usage': None,
-            'description': 'Run to load the default configuration'
-                           ' file\n\texample: load\n\n\tLoad configuration file from a '
-                           'different file\n\tif any property values have changed, the '
-                           'changes are committed and the user is logged out of the server'
-                           '\n\n\texample: load -f output.json\n\n\tLoad configurations to '
-                           'multiple servers\n\texample: load -m mpfilename.txt -f output.'
-                           'json\n\n\tNote: multiple server file format (1 server per new '
-                           'line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url'
-                           ' <iLO url/hostname> -u admin -p password\n\t--url <iLO url/'
-                           'hostname> -u admin -p password',
-            'summary': 'Loads the server configuration settings from a file.',
-            'aliases': [],
-            'auxcommands': ["CommitCommand", "SelectCommand"]
+            "name": "load",
+            "usage": None,
+            "description": "Run to load the default configuration"
+            " file\n\texample: load\n\n\tLoad configuration file from a "
+            "different file\n\tif any property values have changed, the "
+            "changes are committed and the user is logged out of the server"
+            "\n\n\texample: load -f output.json\n\n\tLoad configurations to "
+            "multiple servers\n\texample: load -m mpfilename.txt -f output."
+            "json\n\n\tNote: multiple server file format (1 server per new "
+            "line)\n\t--url <iLO url/hostname> -u admin -p password\n\t--url"
+            " <iLO url/hostname> -u admin -p password\n\t--url <iLO url/"
+            "hostname> -u admin -p password",
+            "summary": "Loads the server configuration settings from a file.",
+            "aliases": [],
+            "auxcommands": ["CommitCommand", "SelectCommand"],
         }
         self.filenames = None
         self.mpfilename = None
@@ -72,7 +79,7 @@ class LoadCommand():
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main load worker function
+        """Main load worker function
 
         :param line: command line input
         :type line: string.
@@ -98,36 +105,39 @@ class LoadCommand():
 
         for files in self.filenames:
             if not os.path.isfile(files):
-                raise InvalidFileInputError("File '%s' doesn't exist. Please " \
-                                            "create file by running save command." % files)
+                raise InvalidFileInputError(
+                    "File '%s' doesn't exist. Please "
+                    "create file by running save command." % files
+                )
             if options.encryption:
                 with open(files, "rb") as myfile:
                     data = myfile.read()
-                    data = Encryption().decrypt_file(data,
-                                                     options.encryption)
+                    data = Encryption().decrypt_file(data, options.encryption)
+                    loadcontents = json.loads(data)
             else:
                 try:
                     with open(files, "r") as myfile:
                         loadcontents = json.load(myfile)
-            #        for loadcontent in loadcontents:
-            #            if 'Comments' in loadcontent:
-            #                if "SerialNumber" in loadcontent["Comments"]:
-            #                    del (loadcontent["Comments"]["SerialNumber"])
-            #            for _, v in loadcontent.items():
-            #                for _, v in v.items():
-            #                    if "Attributes" in v:
-            #                        if 'SerialNumber' in v['Attributes']:
-            #                            del (v["Attributes"]["SerialNumber"])
-            #                        if 'ProductId' in v['Attributes']:
-            #                            del (v["Attributes"]["ProductId"])
-            #                    else:
-            #                        if 'SerialNumber' in v:
-            #                            del (v["SerialNumber"])
-            #                        if 'ProductId' in v:
-            #                            del (v["ProductId"])
+                #        for loadcontent in loadcontents:
+                #            if 'Comments' in loadcontent:
+                #                if "SerialNumber" in loadcontent["Comments"]:
+                #                    del (loadcontent["Comments"]["SerialNumber"])
+                #            for _, v in loadcontent.items():
+                #                for _, v in v.items():
+                #                    if "Attributes" in v:
+                #                        if 'SerialNumber' in v['Attributes']:
+                #                            del (v["Attributes"]["SerialNumber"])
+                #                        if 'ProductId' in v['Attributes']:
+                #                            del (v["Attributes"]["ProductId"])
+                #                    else:
+                #                        if 'SerialNumber' in v:
+                #                            del (v["SerialNumber"])
+                #                        if 'ProductId' in v:
+                #                            del (v["ProductId"])
                 except:
-                    raise InvalidFileFormattingError("Invalid file formatting " \
-                                                     "found in file %s" % files)
+                    raise InvalidFileFormattingError(
+                        "Invalid file formatting " "found in file %s" % files
+                    )
 
             if options.mpfilename:
                 mfile = options.mpfilename
@@ -136,12 +146,12 @@ class LoadCommand():
                 if options.outdirectory:
                     outputdir = options.outdirectory
 
-                if self.runmpfunc(mpfile=mfile, lfile=files,
-                                  outputdir=outputdir):
+                if self.runmpfunc(mpfile=mfile, lfile=files, outputdir=outputdir):
                     return ReturnCodes.SUCCESS
                 else:
-                    raise MultipleServerConfigError("One or more servers "
-                                                    "failed to load given configuration.")
+                    raise MultipleServerConfigError(
+                        "One or more servers " "failed to load given configuration."
+                    )
 
             results = False
             validation_errs = []
@@ -157,16 +167,18 @@ class LoadCommand():
                     if options.biospassword:
                         inputlist.extend(["--biospassword", options.biospassword])
 
-                    self.auxcommands['select'].selectfunction(inputlist)
+                    self.auxcommands["select"].selectfunction(inputlist)
                     if self.rdmc.app.selector.lower() not in content.lower():
                         raise InvalidCommandLineError("Selector not found.\n")
 
                     try:
                         for _, items in loaddict.items():
                             try:
-                                if self.rdmc.app.loadset(seldict=items,
-                                                         latestschema=options.latestschema,
-                                                         uniqueoverride=options.uniqueoverride):
+                                if self.rdmc.app.loadset(
+                                    seldict=items,
+                                    latestschema=options.latestschema,
+                                    uniqueoverride=options.uniqueoverride,
+                                ):
                                     results = True
                             except LoadSkipSettingError as excp:
                                 returnvalue = True
@@ -181,7 +193,7 @@ class LoadCommand():
 
             try:
                 if results:
-                    self.auxcommands['commit'].commitfunction(options=options)
+                    self.auxcommands["commit"].commitfunction(options=options)
             except NoChangesFoundOrMadeError as excp:
                 if returnvalue:
                     pass
@@ -191,7 +203,9 @@ class LoadCommand():
             if validation_errs:
                 for validation_err in validation_errs:
                     for err_type in validation_err:
-                        self.rdmc.ui.error("Validation error(s) in type %s:\n" % err_type)
+                        self.rdmc.ui.error(
+                            "Validation error(s) in type %s:\n" % err_type
+                        )
                         for err in validation_err[err_type]:
                             if isinstance(err, redfish.ris.RegistryValidationError):
                                 self.rdmc.ui.error(err.message)
@@ -203,7 +217,9 @@ class LoadCommand():
                 raise redfish.ris.ValidationError(excp)
 
             if not results:
-                raise NoDifferencesFoundError("No differences found from current configuration.")
+                raise NoDifferencesFoundError(
+                    "No differences found from current configuration."
+                )
 
         # Return code
         if returnvalue:
@@ -212,7 +228,7 @@ class LoadCommand():
         return ReturnCodes.SUCCESS
 
     def loadvalidation(self, options):
-        """ Load method validation function
+        """Load method validation function
 
         :param options: command line options
         :type options: list.
@@ -240,7 +256,7 @@ class LoadCommand():
             self.filenames = [__filename__]
 
     def verify_file(self, filedata, inputfile):
-        """ Function used to handle oddly named files and convert to JSON
+        """Function used to handle oddly named files and convert to JSON
 
         :param filedata: input file data
         :type filedata: string.
@@ -251,10 +267,12 @@ class LoadCommand():
             tempholder = json.loads(filedata)
             return tempholder
         except:
-            raise InvalidFileFormattingError("Invalid file formatting found in file %s" % inputfile)
+            raise InvalidFileFormattingError(
+                "Invalid file formatting found in file %s" % inputfile
+            )
 
     def get_current_selector(self, path=None):
-        """ Returns current selected content minus hard coded list
+        """Returns current selected content minus hard coded list
 
         :param path: current path
         :type path: string.
@@ -266,13 +284,13 @@ class LoadCommand():
 
         for content in contents:
             for k in list(content.keys()):
-                if k.lower() in HARDCODEDLIST or '@odata' in k.lower():
+                if k.lower() in HARDCODEDLIST or "@odata" in k.lower():
                     del content[k]
 
         return contents
 
     def runmpfunc(self, mpfile=None, lfile=None, outputdir=None):
-        """ Main worker function for multi file command
+        """Main worker function for multi file command
 
         :param mpfile: configuration file
         :type mpfile: string.
@@ -289,7 +307,7 @@ class LoadCommand():
 
         processes = []
         finalreturncode = True
-        outputform = '%Y-%m-%d-%H-%M-%S'
+        outputform = "%Y-%m-%d-%H-%M-%S"
 
         if outputdir:
             if outputdir.endswith(('"', "'")) and outputdir.startswith(('"', "'")):
@@ -303,13 +321,15 @@ class LoadCommand():
         else:
             dirpath = os.getcwd()
 
-        dirname = '%s_%s' % (datetime.now().strftime(outputform), 'MSClogs')
+        dirname = "%s_%s" % (datetime.now().strftime(outputform), "MSClogs")
         createdir = os.path.join(dirpath, dirname)
         os.mkdir(createdir)
 
-        oofile = open(os.path.join(createdir, 'CompleteOutputfile.txt'), 'w+')
-        self.rdmc.ui.printer('Create multiple processes to load configuration '
-                             'concurrently to all servers...\n')
+        oofile = open(os.path.join(createdir, "CompleteOutputfile.txt"), "w+")
+        self.rdmc.ui.printer(
+            "Create multiple processes to load configuration "
+            "concurrently to all servers...\n"
+        )
 
         while True:
             if not self.queue.empty():
@@ -317,22 +337,23 @@ class LoadCommand():
             else:
                 break
 
-            finput = '\n' + 'Output for ' + line[line.index('--url') + 1] + ': \n\n'
-            urlvar = line[line.index('--url') + 1]
+            finput = "\n" + "Output for " + line[line.index("--url") + 1] + ": \n\n"
+            urlvar = line[line.index("--url") + 1]
 
-            if 'python' in os.path.basename(sys.executable.lower()):
+            if "python" in os.path.basename(sys.executable.lower()):
                 # If we are running from source we have to add the python file to the command
                 listargforsubprocess = [sys.executable, sys.argv[0]] + line
             else:
                 listargforsubprocess = [sys.executable] + line
 
-            if os.name != 'nt':
+            if os.name != "nt":
                 listargforsubprocess = " ".join(listargforsubprocess)
 
-            urlfilename = urlvar.split('//')[-1]
+            urlfilename = urlvar.split("//")[-1]
             logfile = open(os.path.join(createdir, urlfilename + ".txt"), "w+")
-            pinput = subprocess.Popen(listargforsubprocess, shell=True,
-                                      stdout=logfile, stderr=logfile)
+            pinput = subprocess.Popen(
+                listargforsubprocess, shell=True, stdout=logfile, stderr=logfile
+            )
 
             processes.append((pinput, finput, urlfilename, logfile))
 
@@ -344,46 +365,56 @@ class LoadCommand():
             logfile.close()
             logfile = open(os.path.join(createdir, urlfilename + ".txt"), "r+")
             oofile.write(finput + str(logfile.read()))
-            oofile.write('-x+x-' * 16)
+            oofile.write("-x+x-" * 16)
             logfile.close()
 
             if returncode == 0:
-                self.rdmc.ui.printer('Loading Configuration for {} : SUCCESS\n'.format(urlfilename))
+                self.rdmc.ui.printer(
+                    "Loading Configuration for {} : SUCCESS\n".format(urlfilename)
+                )
             else:
-                self.rdmc.ui.error('Loading Configuration for {} : FAILED\n'.format(urlfilename))
-                self.rdmc.ui.error('ILOREST return code : {}.\nFor more details please check ' \
-                                   '{}.txt under {} directory.\n'.format(returncode, urlfilename, createdir))
+                self.rdmc.ui.error(
+                    "Loading Configuration for {} : FAILED\n".format(urlfilename)
+                )
+                self.rdmc.ui.error(
+                    "ILOREST return code : {}.\nFor more details please check "
+                    "{}.txt under {} directory.\n".format(
+                        returncode, urlfilename, createdir
+                    )
+                )
 
         oofile.close()
 
         if finalreturncode:
-            self.rdmc.ui.printer('All servers have been successfully configured.\n')
+            self.rdmc.ui.printer("All servers have been successfully configured.\n")
 
         return finalreturncode
 
     def validatempfile(self, mpfile=None, lfile=None):
-        """ Validate temporary file
+        """Validate temporary file
 
         :param mpfile: configuration file
         :type mpfile: string.
         :param lfile: custom file name
         :type lfile: string.
         """
-        self.rdmc.ui.printer('Checking given server information...\n')
+        self.rdmc.ui.printer("Checking given server information...\n")
 
         if not mpfile:
             return False
 
         if not os.path.isfile(mpfile):
-            raise InvalidFileInputError("File '%s' doesn't exist, please " \
-                                        "create file by running save command." % mpfile)
+            raise InvalidFileInputError(
+                "File '%s' doesn't exist, please "
+                "create file by running save command." % mpfile
+            )
 
         try:
             with open(mpfile, "r") as myfile:
                 data = list()
-                cmdtorun = ['load']
-                cmdargs = ['-f', str(lfile)]
-                globalargs = ['-v', '--nocache']
+                cmdtorun = ["load"]
+                cmdargs = ["-f", str(lfile)]
+                globalargs = ["-v", "--nocache"]
 
                 while True:
                     line = myfile.readline()
@@ -397,9 +428,12 @@ class LoadCommand():
                     args = shlex.split(line, posix=False)
 
                     if len(args) < 5:
-                        self.rdmc.ui.error('Incomplete data in input file: {}\n'.format(line))
-                        raise InvalidMSCfileInputError('Please verify the ' \
-                                                       'contents of the %s file' % mpfile)
+                        self.rdmc.ui.error(
+                            "Incomplete data in input file: {}\n".format(line)
+                        )
+                        raise InvalidMSCfileInputError(
+                            "Please verify the " "contents of the %s file" % mpfile
+                        )
                     else:
                         linelist = globalargs + cmdtorun + args + cmdargs
                         line = str(line).replace("\n", "")
@@ -414,7 +448,7 @@ class LoadCommand():
         return False
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -425,58 +459,58 @@ class LoadCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '-f',
-            '--filename',
-            dest='filename',
-            help="Use this flag if you wish to use a different" \
-                 " filename than the default one. The default filename is" \
-                 " %s." % __filename__,
+            "-f",
+            "--filename",
+            dest="filename",
+            help="Use this flag if you wish to use a different"
+            " filename than the default one. The default filename is"
+            " %s." % __filename__,
             action="append",
             default=None,
         )
         customparser.add_argument(
-            '-m',
-            '--multiprocessing',
-            dest='mpfilename',
+            "-m",
+            "--multiprocessing",
+            dest="mpfilename",
             help="""use the provided filename to obtain data""",
             default=None,
         )
         customparser.add_argument(
-            '-o',
-            '--outputdirectory',
-            dest='outdirectory',
+            "-o",
+            "--outputdirectory",
+            dest="outdirectory",
             help="""use the provided directory to output data for multiple server configuration""",
             default=None,
         )
         customparser.add_argument(
-            '--latestschema',
-            dest='latestschema',
-            action='store_true',
-            help="Optionally use the latest schema instead of the one " \
-                 "requested by the file. Note: May cause errors in some data " \
-                 "retrieval due to difference in schema versions.",
-            default=None
+            "--latestschema",
+            dest="latestschema",
+            action="store_true",
+            help="Optionally use the latest schema instead of the one "
+            "requested by the file. Note: May cause errors in some data "
+            "retrieval due to difference in schema versions.",
+            default=None,
         )
         customparser.add_argument(
-            '--uniqueoverride',
-            dest='uniqueoverride',
-            action='store_true',
-            help="Override the measures stopping the tool from writing " \
-                 "over items that are system unique.",
-            default=False
+            "--uniqueoverride",
+            dest="uniqueoverride",
+            action="store_true",
+            help="Override the measures stopping the tool from writing "
+            "over items that are system unique.",
+            default=False,
         )
         customparser.add_argument(
-            '--encryption',
-            dest='encryption',
-            help="Optionally include this flag to encrypt/decrypt a file " \
-                 "using the key provided.",
-            default=None
+            "--encryption",
+            dest="encryption",
+            help="Optionally include this flag to encrypt/decrypt a file "
+            "using the key provided.",
+            default=None,
         )
         customparser.add_argument(
-            '--reboot',
-            dest='reboot',
-            help="Use this flag to perform a reboot command function after" \
-                 " completion of operations.  For help with parameters and" \
-                 " descriptions regarding the reboot flag, run help reboot.",
-            default=None
+            "--reboot",
+            dest="reboot",
+            help="Use this flag to perform a reboot command function after"
+            " completion of operations.  For help with parameters and"
+            " descriptions regarding the reboot flag, run help reboot.",
+            default=None,
         )

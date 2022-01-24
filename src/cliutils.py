@@ -17,7 +17,7 @@
 # -*- coding: utf-8 -*-
 """Base implementation for cli interaction with Redfish interface"""
 
-#---------Imports---------
+# ---------Imports---------
 
 import os
 import re
@@ -27,19 +27,24 @@ import subprocess
 
 from rdmc_helper import UI
 
-if os.name == 'nt':
+if os.name == "nt":
     import ctypes
     from ctypes import wintypes, windll
 
-#---------End of imports---------
+# ---------End of imports---------
+
 
 class CommandNotFoundException(Exception):
     """Exception throw when Command is not found"""
+
     pass
+
 
 class ResourceAllocationError(Exception):
     """Exception throw when Command is not found"""
+
     pass
+
 
 def get_user_config_dir():
     """Platform specific directory for user configuration.
@@ -47,14 +52,18 @@ def get_user_config_dir():
     :returns: returns the user configuration directory.
     :rtype: string
     """
-    if os.name == 'nt':
+    if os.name == "nt":
         try:
             csidl_appdata = 26
 
             shgetfolderpath = windll.shell32.SHGetFolderPathW
-            shgetfolderpath.argtypes = [wintypes.HWND, ctypes.c_int,
-                                        wintypes.HANDLE, wintypes.DWORD, wintypes.LPCWSTR]
-
+            shgetfolderpath.argtypes = [
+                wintypes.HWND,
+                ctypes.c_int,
+                wintypes.HANDLE,
+                wintypes.DWORD,
+                wintypes.LPCWSTR,
+            ]
 
             path_buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
             result = shgetfolderpath(0, csidl_appdata, 0, 0, path_buf)
@@ -64,9 +73,10 @@ def get_user_config_dir():
         except ImportError:
             pass
 
-        return os.environ['APPDATA']
+        return os.environ["APPDATA"]
 
-    return os.path.expanduser('~')
+    return os.path.expanduser("~")
+
 
 def is_exe(filename):
     """Determine if filename is an executable.
@@ -76,12 +86,12 @@ def is_exe(filename):
     :returns: True if filename is executable False otherwise.
     :rtype: boolean
     """
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         if os.path.exists(filename):
             return True
 
         # windows uses PATHEXT to list valid executable extensions
-        pathext = os.environ['PATHEXT'].split(os.pathsep)
+        pathext = os.environ["PATHEXT"].split(os.pathsep)
         (_, ext) = os.path.splitext(filename)
 
         if ext in pathext:
@@ -91,6 +101,7 @@ def is_exe(filename):
             return True
 
     return False
+
 
 def find_exe(filename, path=None):
     """Search path for a executable (aka which)
@@ -103,7 +114,7 @@ def find_exe(filename, path=None):
     :rtype: string or None.
     """
     if path is None:
-        path = os.environ['PATH']
+        path = os.environ["PATH"]
 
     pathlist = path.split(os.pathsep)
 
@@ -119,24 +130,26 @@ def find_exe(filename, path=None):
 
     return None
 
+
 def get_terminal_size():
     """Returns the rows and columns of the terminal as a tuple.
 
     :returns: the row and column count of the terminal
     :rtype: tuple (cols, rows)
     """
-    _tuple = (80, 25) # default
+    _tuple = (80, 25)  # default
 
-    if os.name == 'nt':
+    if os.name == "nt":
         pass
     else:
-        which_stty = find_exe('stty')
+        which_stty = find_exe("stty")
 
         if which_stty:
-            args = [which_stty, 'size']
+            args = [which_stty, "size"]
             try:
-                procs = subprocess.Popen(args, shell=False,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                procs = subprocess.Popen(
+                    args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
             except OSError as excp:
                 raise ResourceAllocationError(str(excp))
             (stdout_s, _) = procs.communicate()
@@ -144,15 +157,17 @@ def get_terminal_size():
             _ = procs.wait()
             # python3 change
             if isinstance(stdout_s, bytes):
-                stdout_s = stdout_s.decode('utf-8')
-            if stdout_s and re.search(r'^\d+ \d+$', stdout_s):
+                stdout_s = stdout_s.decode("utf-8")
+            if stdout_s and re.search(r"^\d+ \d+$", stdout_s):
                 rows, cols = stdout_s.split()
                 _tuple = (cols, rows)
 
     return _tuple
 
+
 class CLI(object):
     """Class for building command line interfaces."""
+
     def __init__(self, verbosity=1, out=sys.stdout):
         self._verbosity = verbosity
         self._out = out
@@ -163,13 +178,13 @@ class CLI(object):
     def verbosity(self, verbosity):
         self._verbosity = verbosity
 
-    def get_hrstr(self, character='-'):
+    def get_hrstr(self, character="-"):
         """returns a string suitable for use as a horizontal rule.
 
         :param character: the character to use as the rule. (default -)
         :type character: str.
         """
-        return '%s\n' % (character * self._cols)
+        return "%s\n" % (character * self._cols)
 
     def printer(self, data, flush=True):
         """printing wrapper
@@ -182,7 +197,7 @@ class CLI(object):
 
         UI(self._verbosity).printer(data, flush)
 
-    def horizontalrule(self, character='-'):
+    def horizontalrule(self, character="-"):
         """writes a horizontal rule to the file handle.
 
         :param character: the character to use as the rule. (default -)
@@ -218,7 +233,7 @@ class CLI(object):
         message = "%s : " % msg
 
         if default is not None:
-            message = "%s [%s] : "%(msg, default)
+            message = "%s [%s] : " % (msg, default)
 
         i = getpass.getpass(message)
 

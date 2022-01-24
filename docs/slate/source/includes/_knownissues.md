@@ -11,4 +11,6 @@ Updating recovery set on SLES 12 SP5 may fail with iLOInitialError.|[SID7996](ht
 Serverclone load error when input file is encrypted.|NA |Serverclone load command errors when input configuration file is encrypted.|Use unencrypted input file for serverclone load.
 Directory group clone does not work with serverclone command.|NA |Serverclone save, create a directory grp, serverclone load to old config and directory group is not erased.|Directory Groups need to be manually created/erased.
 UnifiedCertificate may error out when generating certificate.|NA |UnifiedCertificate command is future replacement for certificate command.| Use Certificate command instead to generate certificate and get certificate.
-iscsiconfig --list may error out with 'Name' not found|NA |This may happen due to iscsi is added as second attempt onwards.|Use rawget command to list the iscsi attempts.
+iscsiconfig --list may error out with 'Name' not found|NA |This may happen due to iscsi is added as second attempt onwards.|Use rawget command to list the iscsi attempts. 
+
+

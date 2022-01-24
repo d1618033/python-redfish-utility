@@ -18,7 +18,7 @@
 
 """  Command to Display Security State of Dimms """
 
-#---------Imports---------
+# ---------Imports---------
 from __future__ import absolute_import
 import sys
 import json
@@ -30,24 +30,30 @@ from tabulate import tabulate
 
 from argparse import ArgumentParser
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-                        NoContentsFoundForOperationError, \
-                        NoChangesFoundOrMadeError, LOGGER
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    NoChangesFoundOrMadeError,
+    LOGGER,
+)
 from .lib.RestHelpers import RestHelpers
 
-#---------End of imports---------
+# ---------End of imports---------
 
-class DisplaySecurityStateCommand():
-    """ Command to Display Security State of Dimms"""
+
+class DisplaySecurityStateCommand:
+    """Command to Display Security State of Dimms"""
 
     def __init__(self):
         self.ident = {
-            'name': "pmmsecuritystate",
-            'usage': None,
-            'description': "Displaying the Security state of dimms\n\texample: pmmsecuritystate",
-            'summary': "Displaying the Security state of dimms.",
-            'aliases': [],
-            'auxcommands': []
+            "name": "pmmsecuritystate",
+            "usage": None,
+            "description": "Displaying the Security state of dimms\n\texample: pmmsecuritystate",
+            "summary": "Displaying the Security state of dimms.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -58,20 +64,20 @@ class DisplaySecurityStateCommand():
         resp = self._rest_helpers.retrieve_pmem_location()
 
         pmemLocation = []
-        for item in resp['Members']:
-            if item['MemoryType'] == 'IntelOptane':
-                pmemLocation.append(item['Name'])
+        for item in resp["Members"]:
+            if item["MemoryType"] == "IntelOptane":
+                pmemLocation.append(item["Name"])
 
         securityState = []
         headers = ["Location", "State"]
         for i in pmemLocation:
-            path = '/redfish/v1/Systems/1/Memory/' +i
+            path = "/redfish/v1/Systems/1/Memory/" + i
             resp = self._rest_helpers.retrieve_security_state(path)
-            state = resp['SecurityState']
+            state = resp["SecurityState"]
             securityState.append(state)
 
         merged_list = tuple(zip(pmemLocation, securityState))
-        print(tabulate(merged_list, headers, tablefmt='psql'))
+        print(tabulate(merged_list, headers, tablefmt="psql"))
 
     def run(self, line, help_disp=False):
         """
@@ -92,20 +98,24 @@ class DisplaySecurityStateCommand():
             else:
                 raise InvalidCommandLineError("Failed to parse options")
         if args:
-            raise InvalidCommandLineError("Chosen flag doesn't expect additional arguments")
+            raise InvalidCommandLineError(
+                "Chosen flag doesn't expect additional arguments"
+            )
 
         # Raise exception if server is in POST
         self._rest_helpers = RestHelpers(rdmcObject=self.rdmc)
         if self._rest_helpers.in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
-                                                   "server might be in POST or powered off")
+            raise NoContentsFoundForOperationError(
+                "Unable to retrieve resources - "
+                "server might be in POST or powered off"
+            )
 
         self.display_SecurityState()
 
         return ReturnCodes.SUCCESS
 
     def definearguments(self, customparser):
-        """ Wrapper function for smbios command main function
+        """Wrapper function for smbios command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -114,4 +124,3 @@ class DisplaySecurityStateCommand():
             return
 
         self.cmdbase.add_login_arguments_group(customparser)
-

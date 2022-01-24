@@ -19,30 +19,37 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS, \
-                        Encryption, InvalidSmartArrayConfigurationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+    InvalidSmartArrayConfigurationError,
+)
 
-class CreateLogicalDriveCommand():
-    """ Create logical drive command """
+
+class CreateLogicalDriveCommand:
+    """Create logical drive command"""
+
     def __init__(self):
         self.ident = {
-            'name': 'createlogicaldrive',
-            'usage': None,
-            'description': 'Creates logical drives on compatible HPE SSA RAID controllers\nTo view '
-                          'help on specific sub-commands run: createlogicaldrive <sub-command> -h\n\n'
-                          'NOTE: When you select multiple physicaldrives you can select by both\n\t'
-                          'physical drive name and by the location at the same time.\n\t'
-                          'You can also select controllers by slot number as well as index.',
-            'summary': 'Creates a new logical drive on the selected controller.',
-            'aliases': [],
-            'auxcommands': ["SelectCommand", "SmartArrayCommand"]
+            "name": "createlogicaldrive",
+            "usage": None,
+            "description": "Creates logical drives on compatible HPE SSA RAID controllers\nTo view "
+            "help on specific sub-commands run: createlogicaldrive <sub-command> -h\n\n"
+            "NOTE: When you select multiple physicaldrives you can select by both\n\t"
+            "physical drive name and by the location at the same time.\n\t"
+            "You can also select controllers by slot number as well as index.",
+            "summary": "Creates a new logical drive on the selected controller.",
+            "aliases": [],
+            "auxcommands": ["SelectCommand", "SmartArrayCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main disk inventory worker function
+        """Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
@@ -64,65 +71,95 @@ class CreateLogicalDriveCommand():
         self.createlogicaldrivevalidation(options)
 
         if options.controller:
-            controllers = self.auxcommands['smartarray'].controllers(options, single_use=True)
+            controllers = self.auxcommands["smartarray"].controllers(
+                options, single_use=True
+            )
             try:
                 controller = controllers[next(iter(controllers))]
                 (create_flag, newdrive) = self.createlogicaldrive(options, controller)
                 if create_flag:
-                    #if controller.get("DataGuard"):
+                    # if controller.get("DataGuard"):
                     #    controller["DataGuard"] = "Disabled"
-                    temp_odata = controller['@odata.id']
-                    #temp_l = controller['LogicalDrives']
-                    #temp_p = controller['PhysicalDrives']
-                    #readonly_removed = self.rdmc.app.removereadonlyprops(controller)
+                    temp_odata = controller["@odata.id"]
+                    # temp_l = controller['LogicalDrives']
+                    # temp_p = controller['PhysicalDrives']
+                    # readonly_removed = self.rdmc.app.removereadonlyprops(controller)
                     payload_dict = dict()
-                    payload_dict['DataGuard'] = "Disabled"
-                    #readonly_removed['LogicalDrives'] = controller['LogicalDrives']
-                    #readonly_removed['PhysicalDrives'] = temp_p
-                    if not 'settings' in temp_odata:
+                    payload_dict["DataGuard"] = "Disabled"
+                    # readonly_removed['LogicalDrives'] = controller['LogicalDrives']
+                    # readonly_removed['PhysicalDrives'] = temp_p
+                    if not "settings" in temp_odata:
                         temp_odata = temp_odata + "settings/"
-                    settings_controller = self.rdmc.app.get_handler(temp_odata,
-                                                                    service=False, silent=True)
+                    settings_controller = self.rdmc.app.get_handler(
+                        temp_odata, service=False, silent=True
+                    )
                     # Fix for multiple logical creation at single reboot
                     if self.rdmc.app.typepath.defs.isgen9:
-                        payload_dict['logical_drives'] = dict()
-                        payload_dict['logical_drives']['new'] = newdrive
+                        payload_dict["logical_drives"] = dict()
+                        payload_dict["logical_drives"]["new"] = newdrive
                     else:
-                        payload_dict['LogicalDrives'] = settings_controller.dict['LogicalDrives']
-                        payload_dict['LogicalDrives'].append(newdrive)
-                    self.rdmc.ui.printer("CreateLogicalDrive path and payload: %s, %s\n" % (temp_odata, payload_dict))
-                    self.rdmc.app.put_handler(temp_odata, payload_dict,
-                                              headers={'If-Match': self.getetag(temp_odata)})
-                    self.rdmc.app.download_path([temp_odata], path_refresh=True,
-                                                crawl=False)
+                        payload_dict["LogicalDrives"] = settings_controller.dict[
+                            "LogicalDrives"
+                        ]
+                        payload_dict["LogicalDrives"].append(newdrive)
+                    self.rdmc.ui.printer(
+                        "CreateLogicalDrive path and payload: %s, %s\n"
+                        % (temp_odata, payload_dict)
+                    )
+                    self.rdmc.app.put_handler(
+                        temp_odata,
+                        payload_dict,
+                        headers={"If-Match": self.getetag(temp_odata)},
+                    )
+                    self.rdmc.app.download_path(
+                        [temp_odata], path_refresh=True, crawl=False
+                    )
+                    self.rdmc.ui.printer(
+                        "One or more properties were changed and will not take effect "
+                        "until system is reset \n"
+                    )
             except Exception as excp:
-                raise InvalidCommandLineError("%s for  "\
-                            "controller ID ('--controller=%s')"% (str(excp), options.controller))
+                raise InvalidCommandLineError(
+                    "%s for  "
+                    "controller ID ('--controller=%s')"
+                    % (str(excp), options.controller)
+                )
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def createlogicaldrive(self, options, controller):
-        """ Create logical drive """
-        raidlvllist = ['Raid0', 'Raid1', 'Raid1ADM', 'Raid10', 'Raid10ADM',
-                       'Raid5', 'Raid50', 'Raid6', 'Raid60']
-        interfacetypelist = ['SAS', 'SATA', 'NVMe']
-        mediatypelist = ['SSD', 'HDD']
-        sparetypelist = ['Dedicated', 'Roaming']
-        acceltypelist = ['ControllerCache', 'IOBypass', 'None']
-        locationtypelist = ['Internal', 'External']
-        legacylist = ['Primary', 'Secondary', 'All', 'None']
-        paritylist = ['Default', 'Rapid']
+        """Create logical drive"""
+        raidlvllist = [
+            "Raid0",
+            "Raid1",
+            "Raid1ADM",
+            "Raid10",
+            "Raid10ADM",
+            "Raid5",
+            "Raid50",
+            "Raid6",
+            "Raid60",
+        ]
+        interfacetypelist = ["SAS", "SATA", "NVMe"]
+        mediatypelist = ["SSD", "HDD"]
+        sparetypelist = ["Dedicated", "Roaming"]
+        acceltypelist = ["ControllerCache", "IOBypass", "None"]
+        locationtypelist = ["Internal", "External"]
+        legacylist = ["Primary", "Secondary", "All", "None"]
+        paritylist = ["Default", "Rapid"]
 
         sparedrives = []
         changes = False
 
-        controller['physical_drives'] = \
-                self.auxcommands['smartarray'].physical_drives(options, controller, single_use=True)
-        controller['logical_drives'] = \
-                self.auxcommands['smartarray'].logical_drives(options, controller, single_use=True)
-        if controller.get('Links'):
+        controller["physical_drives"] = self.auxcommands["smartarray"].physical_drives(
+            options, controller, single_use=True
+        )
+        controller["logical_drives"] = self.auxcommands["smartarray"].logical_drives(
+            options, controller, single_use=True
+        )
+        if controller.get("Links"):
             newdrive = {"Links": {"DataDrives": {}}}
         else:
             newdrive = {"links": {"DataDrives": {}}}
@@ -132,30 +169,32 @@ class CreateLogicalDriveCommand():
 
         for item in raidlvllist:
             if options.raid.lower() == item.lower():
-                if options.command == 'customdrive':
-                    drivecount = len(options.disks.replace(', ', ',').split(','))
+                if options.command == "customdrive":
+                    drivecount = len(options.disks.replace(", ", ",").split(","))
                 else:
                     try:
                         drivecount = int(options.disks)
                     except ValueError:
-                        raise InvalidCommandLineError('Number of drives is not an integer.')
+                        raise InvalidCommandLineError(
+                            "Number of drives is not an integer."
+                        )
                 if self.raidvalidation(item.lower(), drivecount, options):
                     itemadded = True
                     newdrive["Raid"] = item
                 break
 
         if not itemadded:
-            raise InvalidCommandLineError('Invalid raid type or configuration.')
+            raise InvalidCommandLineError("Invalid raid type or configuration.")
         else:
             itemadded = False
 
-        if options.command == 'customdrive':
+        if options.command == "customdrive":
             if options.sparedrives:
-                sparedrives = options.sparedrives.replace(', ', ',').split(',')
+                sparedrives = options.sparedrives.replace(", ", ",").split(",")
                 newdrive["SpareDrives"] = []
-                newdrive["SpareRebuildMode"] = 'Dedicated'
+                newdrive["SpareRebuildMode"] = "Dedicated"
 
-            drives = options.disks.replace(', ', ',').split(',')
+            drives = options.disks.replace(", ", ",").split(",")
             newdrive["DataDrives"] = []
 
             if len(controller["physical_drives"]) > 0:
@@ -168,11 +207,13 @@ class CreateLogicalDriveCommand():
                         if sdrive == controller["physical_drives"][str(id)]["Location"]:
                             newdrive["SpareDrives"].append(sdrive)
             else:
-                raise InvalidCommandLineError('No Physical Drives in this controller')
+                raise InvalidCommandLineError("No Physical Drives in this controller")
 
             if drivecount > len(newdrive["DataDrives"]):
-                raise InvalidCommandLineError("Not all of the selected drives could "
-                                              "be found in the specified locations.")
+                raise InvalidCommandLineError(
+                    "Not all of the selected drives could "
+                    "be found in the specified locations."
+                )
 
             if options.sparetype:
                 itemadded = False
@@ -183,7 +224,7 @@ class CreateLogicalDriveCommand():
                         break
 
                 if not itemadded:
-                    raise InvalidCommandLineError('Invalid spare drive type.')
+                    raise InvalidCommandLineError("Invalid spare drive type.")
 
             if options.drivename:
                 newdrive["LogicalDriveName"] = options.drivename
@@ -192,7 +233,7 @@ class CreateLogicalDriveCommand():
                 try:
                     capacitygib = int(options.capacitygib)
                 except ValueError:
-                    raise InvalidCommandLineError('Capacity is not an integer.')
+                    raise InvalidCommandLineError("Capacity is not an integer.")
                 newdrive["CapacityGiB"] = capacitygib
 
             if options.acceleratortype:
@@ -204,7 +245,7 @@ class CreateLogicalDriveCommand():
                         break
 
                 if not itemadded:
-                    raise InvalidCommandLineError('Invalid accelerator type.')
+                    raise InvalidCommandLineError("Invalid accelerator type.")
 
             if options.legacyboot:
                 itemadded = False
@@ -215,13 +256,13 @@ class CreateLogicalDriveCommand():
                         break
 
                 if not itemadded:
-                    raise InvalidCommandLineError('Invalid legacy boot priority.')
+                    raise InvalidCommandLineError("Invalid legacy boot priority.")
 
             if options.capacityblocks:
                 try:
                     capacityblocks = int(options.capacityblocks)
                 except ValueError:
-                    raise InvalidCommandLineError('Capacity is not an integer.')
+                    raise InvalidCommandLineError("Capacity is not an integer.")
 
                 newdrive["CapacityBlocks"] = capacityblocks
 
@@ -229,7 +270,7 @@ class CreateLogicalDriveCommand():
                 try:
                     paritygroup = int(options.paritygroup)
                 except ValueError:
-                    raise InvalidCommandLineError('Parity group is not an integer.')
+                    raise InvalidCommandLineError("Parity group is not an integer.")
 
                 newdrive["ParityGroupCount"] = paritygroup
 
@@ -248,7 +289,7 @@ class CreateLogicalDriveCommand():
                 try:
                     blocksize = int(options.blocksize)
                 except ValueError:
-                    raise InvalidCommandLineError('Block size is not an integer.')
+                    raise InvalidCommandLineError("Block size is not an integer.")
 
                 newdrive["BlockSizeBytes"] = blocksize
 
@@ -256,7 +297,7 @@ class CreateLogicalDriveCommand():
                 try:
                     stripsize = int(options.stripsize)
                 except ValueError:
-                    raise InvalidCommandLineError('Strip size is not an integer.')
+                    raise InvalidCommandLineError("Strip size is not an integer.")
 
                 newdrive["StripSizeBytes"] = stripsize
 
@@ -264,23 +305,26 @@ class CreateLogicalDriveCommand():
                 try:
                     stripesize = int(options.stripesize)
                 except ValueError:
-                    raise InvalidCommandLineError('Stripe size is not an integer.')
+                    raise InvalidCommandLineError("Stripe size is not an integer.")
 
                 newdrive["StripeSizeBytes"] = stripesize
-        elif options.command == 'quickdrive':
+        elif options.command == "quickdrive":
             try:
                 numdrives = int(options.disks)
             except ValueError:
-                raise InvalidCommandLineError('Number of drives is not an integer.')
+                raise InvalidCommandLineError("Number of drives is not an integer.")
 
-            newdrive["DataDrives"] = {"DataDriveCount": numdrives, "DataDriveMinimumSizeGiB": 0}
+            newdrive["DataDrives"] = {
+                "DataDriveCount": numdrives,
+                "DataDriveMinimumSizeGiB": 0,
+            }
             for item in mediatypelist:
                 if options.drivetype.lower() == item.lower():
                     newdrive["DataDrives"]["DataDriveMediaType"] = item
                     itemadded = True
                     break
             if not itemadded:
-                raise InvalidCommandLineError('Invalid media type.')
+                raise InvalidCommandLineError("Invalid media type.")
             else:
                 itemadded = False
             for item in interfacetypelist:
@@ -289,7 +333,7 @@ class CreateLogicalDriveCommand():
                     itemadded = True
                     break
             if not itemadded:
-                raise InvalidCommandLineError('Invalid interface type.')
+                raise InvalidCommandLineError("Invalid interface type.")
 
             if options.locationtype:
                 for item in locationtypelist:
@@ -300,11 +344,11 @@ class CreateLogicalDriveCommand():
                 try:
                     minimumsize = int(options.minimumsize)
                 except ValueError:
-                    raise InvalidCommandLineError('Minimum size is not an integer.')
+                    raise InvalidCommandLineError("Minimum size is not an integer.")
                 newdrive["DataDrives"]["DataDriveMinimumSizeGiB"] = minimumsize
 
         if newdrive:
-            if options.command == 'quickdrive':
+            if options.command == "quickdrive":
                 newdrive_count = newdrive["DataDrives"]["DataDriveCount"]
             else:
                 newdrive_count = len(newdrive["DataDrives"])
@@ -314,20 +358,26 @@ class CreateLogicalDriveCommand():
                 for cnt, drive in enumerate(controller["physical_drives"]):
                     drivechecks = (False, False, False, False)
                     if drives_avail < newdrive_count:
-                        raise InvalidSmartArrayConfigurationError("Unable to continue, requested "
-                                                                  "configuration not possible with current physical drive inventory.\n")
+                        raise InvalidSmartArrayConfigurationError(
+                            "Unable to continue, requested "
+                            "configuration not possible with current physical drive inventory.\n"
+                        )
                     else:
                         drivechecks = (True, False, False, False)
 
-                    if options.command == 'quickdrive':
-                        if controller["physical_drives"][drive]["InterfaceType"] == newdrive\
-                                                        ["DataDrives"]["DataDriveInterfaceType"]:
+                    if options.command == "quickdrive":
+                        if (
+                            controller["physical_drives"][drive]["InterfaceType"]
+                            == newdrive["DataDrives"]["DataDriveInterfaceType"]
+                        ):
                             drivechecks = (True, True, False, False)
                         else:
                             drives_avail -= 1
                             continue
-                        if controller["physical_drives"][drive]["MediaType"] == newdrive["DataDrives"]\
-                                                                            ["DataDriveMediaType"]:
+                        if (
+                            controller["physical_drives"][drive]["MediaType"]
+                            == newdrive["DataDrives"]["DataDriveMediaType"]
+                        ):
                             drivechecks = (True, True, True, False)
                         else:
                             drives_avail -= 1
@@ -335,20 +385,38 @@ class CreateLogicalDriveCommand():
                     else:
                         drivechecks = (True, True, True, False)
                     in_use = False
-                    for existing_logical_drives in controller['logical_drives']:
-                        _logical_drive = controller['logical_drives'][existing_logical_drives]
-                        if _logical_drive.get('LogicalDrives'):
-                            for _data_drive in _logical_drive['LogicalDrives']['DataDrives']:
-                                if drive == _logical_drive['LogicalDrives']['DataDrives']\
-                                                                                [_data_drive]:
+                    for existing_logical_drives in controller["logical_drives"]:
+                        _logical_drive = controller["logical_drives"][
+                            existing_logical_drives
+                        ]
+                        if _logical_drive.get("LogicalDrives"):
+                            for _data_drive in _logical_drive["LogicalDrives"][
+                                "DataDrives"
+                            ]:
+                                if (
+                                    drive
+                                    == _logical_drive["LogicalDrives"]["DataDrives"][
+                                        _data_drive
+                                    ]
+                                ):
                                     in_use = True
-                        elif _logical_drive.get('Links'):
-                            for _data_drive in _logical_drive['Links']['DataDrives']:
-                                if drive == _logical_drive['Links']['DataDrives'][_data_drive]:
+                        elif _logical_drive.get("Links"):
+                            for _data_drive in _logical_drive["Links"]["DataDrives"]:
+                                if (
+                                    drive
+                                    == _logical_drive["Links"]["DataDrives"][
+                                        _data_drive
+                                    ]
+                                ):
                                     in_use = True
-                        elif _logical_drive.get('links'):
-                            for _data_drive in _logical_drive['links']['DataDrives']:
-                                if drive == _logical_drive['links']['DataDrives'][_data_drive]:
+                        elif _logical_drive.get("links"):
+                            for _data_drive in _logical_drive["links"]["DataDrives"]:
+                                if (
+                                    drive
+                                    == _logical_drive["links"]["DataDrives"][
+                                        _data_drive
+                                    ]
+                                ):
                                     in_use = True
                     if in_use:
                         drives_avail -= 1
@@ -356,12 +424,14 @@ class CreateLogicalDriveCommand():
                     else:
                         drivechecks = (True, True, True, True)
                     if drivechecks[0] and drivechecks[1] and drivechecks[2]:
-                        if controller.get('Links'):
-                            newdrive["Links"]["DataDrives"][drive] = controller["physical_drives"]\
-                                                                                            [drive]
+                        if controller.get("Links"):
+                            newdrive["Links"]["DataDrives"][drive] = controller[
+                                "physical_drives"
+                            ][drive]
                         else:
-                            newdrive["links"]["DataDrives"][drive] = controller["physical_drives"]\
-                                                                                            [drive]
+                            newdrive["links"]["DataDrives"][drive] = controller[
+                                "physical_drives"
+                            ][drive]
                         accepted_drives += 1
                         changes = True
                         if accepted_drives == newdrive_count:
@@ -371,29 +441,32 @@ class CreateLogicalDriveCommand():
 
             if changes:
                 if self.rdmc.app.typepath.defs.isgen9:
-                    controller['logical_drives']['new'] = newdrive
+                    controller["logical_drives"]["new"] = newdrive
                 else:
                     try:
-                        newdrive.pop('Links')
+                        newdrive.pop("Links")
                     except KeyError:
-                        newdrive.pop('links')
-                    controller['LogicalDrives'].append(newdrive)
-                    del controller['logical_drives']
-                    del controller['physical_drives']
+                        newdrive.pop("links")
+                    controller["LogicalDrives"].append(newdrive)
+                    del controller["logical_drives"]
+                    del controller["physical_drives"]
 
         return (changes, newdrive)
 
     def getetag(self, path):
-        """ get etag from path """
+        """get etag from path"""
         etag = None
         instance = self.rdmc.app.monolith.path(path)
         if instance:
-            etag = instance.resp.getheader('etag') if 'etag' in instance.resp.getheaders() \
-                                            else instance.resp.getheader('ETag')
+            etag = (
+                instance.resp.getheader("etag")
+                if "etag" in instance.resp.getheaders()
+                else instance.resp.getheader("ETag")
+            )
         return etag
 
     def raidvalidation(self, raidtype, numdrives, options):
-        """ vaidation function for raid levels
+        """vaidation function for raid levels
         :param raidtype: raid type
         :type options: string.
         :param numdrives: number of drives
@@ -404,23 +477,23 @@ class CreateLogicalDriveCommand():
 
         valid = True
 
-        if raidtype == 'raid5':
-            if numdrives < 3: #or options.stripsize:
+        if raidtype == "raid5":
+            if numdrives < 3:  # or options.stripsize:
                 valid = False
-        elif raidtype == 'raid6':
-            if numdrives < 4: #or options.stripsize:
+        elif raidtype == "raid6":
+            if numdrives < 4:  # or options.stripsize:
                 valid = False
-        elif raidtype == 'raid50':
+        elif raidtype == "raid50":
             if numdrives < 6:
                 valid = False
-        elif raidtype == 'raid60':
+        elif raidtype == "raid60":
             if numdrives < 8:
                 valid = False
 
         return valid
 
     def createlogicaldrivevalidation(self, options):
-        """ Create logical drive validation function
+        """Create logical drive validation function
 
         :param options: command line options
         :type options: list.
@@ -429,25 +502,28 @@ class CreateLogicalDriveCommand():
 
     @staticmethod
     def options_argument_group(parser):
-        """ Define optional arguments group
+        """Define optional arguments group
 
         :param parser: The parser to add the login option group to
         :type parser: ArgumentParser/OptionParser
         """
-        group = parser.add_argument_group('GLOBAL OPTIONS', 'Options are available for all'
-                                                            'arguments within the scope of this command.')
+        group = parser.add_argument_group(
+            "GLOBAL OPTIONS",
+            "Options are available for all"
+            "arguments within the scope of this command.",
+        )
 
         group.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller "
-                 "using either the slot number or index.\nexample: --controller=Slot 0 OR "
-                 "--controller=1",
-            default=None
+            "using either the slot number or index.\nexample: --controller=Slot 0 OR "
+            "--controller=1",
+            default=None,
         )
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -458,174 +534,178 @@ class CreateLogicalDriveCommand():
         self.cmdbase.add_login_arguments_group(customparser)
         self.options_argument_group(customparser)
 
-        subcommand_parser = customparser.add_subparsers(dest='command')
-        qd_help='Create a logical drive with a minimal number of arguments (utilizes default ' \
-                'values on the controller).'
-        #quickdrive sub-parser
+        subcommand_parser = customparser.add_subparsers(dest="command")
+        qd_help = (
+            "Create a logical drive with a minimal number of arguments (utilizes default "
+            "values on the controller)."
+        )
+        # quickdrive sub-parser
         qd_parser = subcommand_parser.add_parser(
-            'quickdrive',
+            "quickdrive",
             help=qd_help,
-            description=qd_help + '\n\texample: createlogicaldrive quickdrive ' \
-                '<raid-level> <num-drives> <media-type> <interface-type> ' \
-                '--locationtype=Internal  --minimumsize=0 --controller=1',
-            formatter_class=RawDescriptionHelpFormatter
+            description=qd_help + "\n\texample: createlogicaldrive quickdrive "
+            "<raid-level> <num-drives> <media-type> <interface-type> "
+            "--locationtype=Internal  --minimumsize=0 --controller=1",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         qd_parser.add_argument(
-            'raid',
-            help='Specify the RAID level for the logical drive to be created.',
-            metavar='Raid_Level'
+            "raid",
+            help="Specify the RAID level for the logical drive to be created.",
+            metavar="Raid_Level",
         )
         qd_parser.add_argument(
-            'disks',
-            help='For quick drive creation, specify number of disks.',
-            metavar='Drives'
+            "disks",
+            help="For quick drive creation, specify number of disks.",
+            metavar="Drives",
         )
         qd_parser.add_argument(
-            'drivetype',
-            help='Specify the drive media type of the physical disk(s) (i.e. HDD or SSD)',
-            metavar='Drive_Media_Type'
+            "drivetype",
+            help="Specify the drive media type of the physical disk(s) (i.e. HDD or SSD)",
+            metavar="Drive_Media_Type",
         )
         qd_parser.add_argument(
-            'interfacetype',
-            help='Specify the interface type of the physical disk(s) (i.e. SATA or SAS or NVMe)',
-            metavar='Drive_Interface_Type'
+            "interfacetype",
+            help="Specify the interface type of the physical disk(s) (i.e. SATA or SAS or NVMe)",
+            metavar="Drive_Interface_Type",
         )
         qd_parser.add_argument(
-            '--locationtype',
-            dest='locationtype',
-            help='Optionally specify the location of the physical disks(s) (i.e. Internal or External)',
+            "--locationtype",
+            dest="locationtype",
+            help="Optionally specify the location of the physical disks(s) (i.e. Internal or External)",
             default=None,
         )
         qd_parser.add_argument(
-            '--minimumsize',
-            dest='minimumsize',
-            help="""Optionally include to set the minimum size of the drive """ \
-                """in GiB. (usable in quick creation only, use -1 for max size)""",
+            "--minimumsize",
+            dest="minimumsize",
+            help="""Optionally include to set the minimum size of the drive """
+            """in GiB. (usable in quick creation only, use -1 for max size)""",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(qd_parser)
         self.options_argument_group(qd_parser)
 
-        cd_help='Create a customized logical drive using all available properties (as optional '\
-                'arguments) for creation.'
-        #customdrive sub-parser
+        cd_help = (
+            "Create a customized logical drive using all available properties (as optional "
+            "arguments) for creation."
+        )
+        # customdrive sub-parser
         cd_parser = subcommand_parser.add_parser(
-            'customdrive',
+            "customdrive",
             help=cd_help,
-            description=cd_help + '\n\texample: createlogicaldrive customdrive '
-                                  '<raid-level> <physicaldrivelocations> --controller=1 '
-                                  '--name=drivename --spare-drives=1I:1:1,1I:1:3 --spare-type=Dedicated --capacitygib=10 '
-                                  '--accelerator-type=None\n\n\tOPTIONS:\n\traid-level:\t\t'
-                                  'Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, '
-                                  'Raid6, Raid60\n\tphysicaldrivelocation(s):\tLocation, Drive-name\n\t'
-                                  'media-type:\t\tSSD,HDD\n\tinterface-type:'
-                                  '\t\tSAS, SATA, NVMe\n\tdrive-location:\t\tInternal, External\n\t'
-                                  '--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t'
-                                  'ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid'
-                                  '\n\t--capacitygib:\t\t-1 (for Max Size)\n\t--capacityblocks:\t'
-                                  '-1 (for Max Size)\n\n\t',
-            formatter_class=RawDescriptionHelpFormatter
+            description=cd_help + "\n\texample: createlogicaldrive customdrive "
+            "<raid-level> <physicaldrivelocations> --controller=1 "
+            "--name=drivename --spare-drives=1I:1:1,1I:1:3 --spare-type=Dedicated --capacitygib=10 "
+            "--accelerator-type=None\n\n\tOPTIONS:\n\traid-level:\t\t"
+            "Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, "
+            "Raid6, Raid60\n\tphysicaldrivelocation(s):\tLocation, Drive-name\n\t"
+            "media-type:\t\tSSD,HDD\n\tinterface-type:"
+            "\t\tSAS, SATA, NVMe\n\tdrive-location:\t\tInternal, External\n\t"
+            "--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t"
+            "ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid"
+            "\n\t--capacitygib:\t\t-1 (for Max Size)\n\t--capacityblocks:\t"
+            "-1 (for Max Size)\n\n\t",
+            formatter_class=RawDescriptionHelpFormatter,
         )
         cd_parser.add_argument(
-            'raid',
-            help='Specify the RAID level for the logical drive to be created.',
-            metavar='Raid_Level'
+            "raid",
+            help="Specify the RAID level for the logical drive to be created.",
+            metavar="Raid_Level",
         )
         cd_parser.add_argument(
-            'disks',
-            help='For custom drive, specify a comma separated physical disk locations.',
-            metavar='Drive_Indices'
+            "disks",
+            help="For custom drive, specify a comma separated physical disk locations.",
+            metavar="Drive_Indices",
         )
         cd_parser.add_argument(
-            '-n',
-            '--name',
-            dest='drivename',
-            help="""Optionally include to set the drive name (usable in """ \
-                """custom creation only).""",
+            "-n",
+            "--name",
+            dest="drivename",
+            help="""Optionally include to set the drive name (usable in """
+            """custom creation only).""",
             default=None,
         )
         cd_parser.add_argument(
-            '--spare-drives',
-            dest='sparedrives',
-            help="""Optionally include to set the spare drives by the """ \
-                """physical drive's location. (usable in custom creation only)""",
+            "--spare-drives",
+            dest="sparedrives",
+            help="""Optionally include to set the spare drives by the """
+            """physical drive's location. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--capacitygib',
-            dest='capacitygib',
-            help="""Optionally include to set the capacity of the drive in """ \
-                 """GiB. (usable in custom creation only, use -1 for max """ \
-                 """size)""",
+            "--capacitygib",
+            dest="capacitygib",
+            help="""Optionally include to set the capacity of the drive in """
+            """GiB. (usable in custom creation only, use -1 for max """
+            """size)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--accelerator-type',
-            dest='acceleratortype',
+            "--accelerator-type",
+            dest="acceleratortype",
             help="""Optionally include to choose the accelerator type.""",
             default=None,
         )
         cd_parser.add_argument(
-            '--spare-type',
-            dest='sparetype',
-            help="""Optionally include to choose the spare drive type. """ \
-                """(usable in custom creation only)""",
+            "--spare-type",
+            dest="sparetype",
+            help="""Optionally include to choose the spare drive type. """
+            """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--minimumsize',
-            dest='minimumsize',
-            help="""Optionally include to set the minimum size of the drive """ \
-                """in GiB. (usable in quick creation only, use -1 for max size)""",
+            "--minimumsize",
+            dest="minimumsize",
+            help="""Optionally include to set the minimum size of the drive """
+            """in GiB. (usable in quick creation only, use -1 for max size)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--legacy-boot',
-            dest='legacyboot',
-            help="""Optionally include to choose the legacy boot priority. """ \
-                """(usable in custom creation only)""",
+            "--legacy-boot",
+            dest="legacyboot",
+            help="""Optionally include to choose the legacy boot priority. """
+            """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--capacityblocks',
-            dest='capacityblocks',
-            help="""Optionally include to choose the capacity in blocks. """ \
-                """(use -1 for max size, usable in custom creation only)""",
+            "--capacityblocks",
+            dest="capacityblocks",
+            help="""Optionally include to choose the capacity in blocks. """
+            """(use -1 for max size, usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--paritygroupcount',
-            dest='paritygroup',
-            help="""Optionally include to include the number of parity """ \
-                """groups to use. (only valid for certain RAID levels)""",
+            "--paritygroupcount",
+            dest="paritygroup",
+            help="""Optionally include to include the number of parity """
+            """groups to use. (only valid for certain RAID levels)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--paritytype',
-            dest='paritytype',
-            help="""Optionally include to choose the parity initialization""" \
-                """ type. (usable in custom creation only)""",
+            "--paritytype",
+            dest="paritytype",
+            help="""Optionally include to choose the parity initialization"""
+            """ type. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--block-size-bytes',
-            dest='blocksize',
-            help="""Optionally include to choose the block size of the disk""" \
-                """ drive. (usable in custom creation only)""",
+            "--block-size-bytes",
+            dest="blocksize",
+            help="""Optionally include to choose the block size of the disk"""
+            """ drive. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--strip-size-bytes',
-            dest='stripsize',
-            help="""Optionally include to choose the strip size in bytes. """ \
-                """(usable in custom creation only)""",
+            "--strip-size-bytes",
+            dest="stripsize",
+            help="""Optionally include to choose the strip size in bytes. """
+            """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
-            '--stripe-size-bytes',
-            dest='stripesize',
-            help="""Optionally include to choose the stripe size in bytes. """ \
-                """(usable in custom creation only)""",
+            "--stripe-size-bytes",
+            dest="stripesize",
+            help="""Optionally include to choose the stripe size in bytes. """
+            """(usable in custom creation only)""",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(cd_parser)

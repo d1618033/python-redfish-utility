@@ -16,13 +16,19 @@
 
 # -*- coding: utf-8 -*-
 """Command to apply specified configuration to PMM"""
-from __future__ import absolute_import #verify if python3 libs can handle
+from __future__ import absolute_import  # verify if python3 libs can handle
 
 from copy import deepcopy
 from argparse import Action, REMAINDER
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-    LOGGER, NoChangesFoundOrMadeError, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    LOGGER,
+    NoChangesFoundOrMadeError,
+    NoContentsFoundForOperationError,
+)
 
 from .lib.DisplayHelpers import DisplayHelpers
 from .lib.Mapper import Mapper
@@ -30,9 +36,11 @@ from .lib.RestHelpers import RestHelpers
 from .ClearPendingConfigCommand import ClearPendingConfigCommand
 from .ShowPmemPendingConfigCommand import ShowPmemPendingConfigCommand
 
+
 class _ParseOptionsList(Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
         super(_ParseOptionsList, self).__init__(option_strings, dest, nargs, **kwargs)
+
     def __call__(self, parser, namespace, values, option_strings):
         """
         Callback to parse a comma-separated list into an array.
@@ -41,22 +49,28 @@ class _ParseOptionsList(Action):
         try:
             setattr(namespace, self.dest, next(iter(values)).split(","))
         except:
-            raise InvalidCommandLineError("Values in a list must be separated by a comma.")
+            raise InvalidCommandLineError(
+                "Values in a list must be separated by a comma."
+            )
 
-class AdvancedPmmConfigCommand():
+
+class AdvancedPmmConfigCommand:
     """
     Command to apply specified configuration to PMM
     """
 
     def __init__(self):
         self.ident = {
-            'name':"provisionpmm",
-            'usage': None,
-            'description':"Applies specified configuration to PMM.\n"
-                    "\texample: provisionpmm -m 50 -i On -pid 1,2",
-            'summary':"Applies specified configuration to PMM.",
-            'aliases': ["provisionpmm"],
-            'auxcommands': ["ShowPmemPendingConfigCommand", "ClearPendingConfigCommand"]
+            "name": "provisionpmm",
+            "usage": None,
+            "description": "Applies specified configuration to PMM.\n"
+            "\texample: provisionpmm -m 50 -i On -pid 1,2",
+            "summary": "Applies specified configuration to PMM.",
+            "aliases": ["provisionpmm"],
+            "auxcommands": [
+                "ShowPmemPendingConfigCommand",
+                "ClearPendingConfigCommand",
+            ],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -74,7 +88,7 @@ class AdvancedPmmConfigCommand():
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        LOGGER.info("PMM: %s", self.ident['name'])
+        LOGGER.info("PMM: %s", self.ident["name"])
 
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
@@ -92,8 +106,10 @@ class AdvancedPmmConfigCommand():
         self.validate_options(options)
         # Raise exception if server is in POST
         if self._rest_helpers.in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
-                                                   "server might be in POST or powered off")
+            raise NoContentsFoundForOperationError(
+                "Unable to retrieve resources - "
+                "server might be in POST or powered off"
+            )
         self.configure_pmm(options)
 
         return ReturnCodes.SUCCESS
@@ -104,18 +120,38 @@ class AdvancedPmmConfigCommand():
         Produces relevant error messages when unwanted
         extra arguments are specified with flags.
         """
-        error_message = "Chosen flag is invalid. Use the '-m | --memory-mode'"\
-                        " flag to specify the size in percentage."
-        some_flag = options.memorymode or options.interleave or options.proc or options.force
+        error_message = (
+            "Chosen flag is invalid. Use the '-m | --memory-mode'"
+            " flag to specify the size in percentage."
+        )
+        some_flag = (
+            options.memorymode or options.interleave or options.proc or options.force
+        )
 
-        case_a = options.force and not options.memorymode \
-                 and not options.interleave and not options.proc
-        case_b = options.interleave and not options.memorymode \
-                 and not options.force and not options.proc
-        case_c = options.proc and not options.memorymode \
-                 and not options.force and not options.interleave
-        case_d = options.memorymode and not options.proc \
-                 and not options.interleave and not options.force
+        case_a = (
+            options.force
+            and not options.memorymode
+            and not options.interleave
+            and not options.proc
+        )
+        case_b = (
+            options.interleave
+            and not options.memorymode
+            and not options.force
+            and not options.proc
+        )
+        case_c = (
+            options.proc
+            and not options.memorymode
+            and not options.force
+            and not options.interleave
+        )
+        case_d = (
+            options.memorymode
+            and not options.proc
+            and not options.interleave
+            and not options.force
+        )
 
         if case_a or case_b or case_c:
             raise InvalidCommandLineError(error_message)
@@ -128,39 +164,54 @@ class AdvancedPmmConfigCommand():
         :param options: options specified by the user with the 'provisionpmm' command
         :type options: instance of OptionParser class
         """
-        some_flag = options.memorymode or options.interleave or options.proc or options.force
+        some_flag = (
+            options.memorymode or options.interleave or options.proc or options.force
+        )
         if not some_flag:
-            raise InvalidCommandLineError("No flag specified.\n\nUsage: " + self.ident['usage'])
+            raise InvalidCommandLineError(
+                "No flag specified.\n\nUsage: " + self.ident["usage"]
+            )
 
         # If the memory mode option value is not valid.
         resp = self._rest_helpers.retrieve_model(self.rdmc)
-        model = resp['Model']
+        model = resp["Model"]
 
         if "Gen10 Plus" in model:
-            if  not (options.memorymode == 0 or options.memorymode == 100):
-                raise InvalidCommandLineError("Specify the correct value (0 or 100)"
-                                              " to configure PMM")
+            if not (options.memorymode == 0 or options.memorymode == 100):
+                raise InvalidCommandLineError(
+                    "Specify the correct value (0 or 100)" " to configure PMM"
+                )
         else:
             if options.memorymode < 0 or options.memorymode > 100:
-                raise InvalidCommandLineError("Specify the correct value (1-100)"
-                                                " to configure PMM")
+                raise InvalidCommandLineError(
+                    "Specify the correct value (1-100)" " to configure PMM"
+                )
         if options.interleave:
-            if (options.interleave).lower() not in ['on', 'off']:
-                raise InvalidCommandLineError("Specify the correct value to set interleave"\
-                    " state of persistent memory regions\n\n" + self.ident['usage'])
+            if (options.interleave).lower() not in ["on", "off"]:
+                raise InvalidCommandLineError(
+                    "Specify the correct value to set interleave"
+                    " state of persistent memory regions\n\n" + self.ident["usage"]
+                )
             options.interleave = options.interleave.lower()
 
         if options.proc and not options.memorymode and not options.interleave:
-            raise InvalidCommandLineError \
-            ("Use '-m|--memory-mode' flag to specify the size in percentage"
-             " or '-i|--pmem-interleave' flag to set interleave"
-             " state of persistent memory regions")
+            raise InvalidCommandLineError(
+                "Use '-m|--memory-mode' flag to specify the size in percentage"
+                " or '-i|--pmem-interleave' flag to set interleave"
+                " state of persistent memory regions"
+            )
 
         # If not 100% memorymode, -i flag is mandatory to interleave memroy regions.
-        if options.memorymode >= 0 and options.memorymode < 100 and not options.interleave:
-            raise InvalidCommandLineError("Use '-i | --pmem-interleave' flag to"
-                                          " specify the interleave state of persistent"
-                                          " memory regions")
+        if (
+            options.memorymode >= 0
+            and options.memorymode < 100
+            and not options.interleave
+        ):
+            raise InvalidCommandLineError(
+                "Use '-i | --pmem-interleave' flag to"
+                " specify the interleave state of persistent"
+                " memory regions"
+            )
         if options.proc:
             for proc_id in options.proc:
                 if not proc_id.isdigit():
@@ -183,12 +234,12 @@ class AdvancedPmmConfigCommand():
             dest="memorymode",
             type=int,
             help="Percentage of the total capacity to configure all PMMs to MemoryMode."
-                 " This flag is optional. If not specified,"
-                 " by default configuration will be applied with 0%% Volatile."
-                 " To interleave persistent memory regions, use this flag in conjunction with"
-                 " the --pmem-interleave flag. To configure all the PMMs on specific processor,"
-                 " use this flag in conjunction with the --proc flag.",
-            default=0
+            " This flag is optional. If not specified,"
+            " by default configuration will be applied with 0%% Volatile."
+            " To interleave persistent memory regions, use this flag in conjunction with"
+            " the --pmem-interleave flag. To configure all the PMMs on specific processor,"
+            " use this flag in conjunction with the --proc flag.",
+            default=0,
         )
 
         customparser.add_argument(
@@ -196,7 +247,7 @@ class AdvancedPmmConfigCommand():
             "--pmem-interleave",
             dest="interleave",
             help="Indicates whether the persistent memory regions should be interleaved or not.",
-            default=None
+            default=None,
         )
 
         customparser.add_argument(
@@ -206,9 +257,9 @@ class AdvancedPmmConfigCommand():
             action=_ParseOptionsList,
             dest="proc",
             help="To apply selected configuration on specific processors, "
-                 "supply a comma-separated list of Processor IDs (without spaces) where "
-                 "p=processor id. This flag is optional. If not specified, "
-                 "by default configuration will be applied to all the Processors."
+            "supply a comma-separated list of Processor IDs (without spaces) where "
+            "p=processor id. This flag is optional. If not specified, "
+            "by default configuration will be applied to all the Processors.",
         )
 
         customparser.add_argument(
@@ -217,8 +268,8 @@ class AdvancedPmmConfigCommand():
             action="store_true",
             dest="force",
             help="Allow the user to force the configuration "
-                 "by automatically accepting any prompts.",
-            default=False
+            "by automatically accepting any prompts.",
+            default=False,
         )
 
     @staticmethod
@@ -237,20 +288,24 @@ class AdvancedPmmConfigCommand():
             self.rdmc.ui.warn(
                 "Existing configuration found. Proceeding with applying a new "
                 "configuration will result in overwriting the current configuration and "
-                "cause data loss.\n")
+                "cause data loss.\n"
+            )
         # If Pending Configuration Tasks exist, display warning
         if memory_chunk_tasks:
             self.rdmc.ui.printer(
                 "Warning: Pending configuration tasks found. Proceeding with applying "
                 "a new configuration will result in overwriting the pending "
-                "configuration tasks.\n")
+                "configuration tasks.\n"
+            )
         # Raise a NoChangesFoundOrMade exception when either of the above conditions exist
         if memory_chunks or memory_chunk_tasks:
             # Line feed for proper formatting
-            raise NoChangesFoundOrMadeError("\nFound one or more of Existing Configuration or "
-                                            "Pending Configuration Tasks. Please use the "
-                                            "'--force | -f' flag with the same command to "
-                                            "approve these changes.")
+            raise NoChangesFoundOrMadeError(
+                "\nFound one or more of Existing Configuration or "
+                "Pending Configuration Tasks. Please use the "
+                "'--force | -f' flag with the same command to "
+                "approve these changes."
+            )
         return None
 
     def delete_existing_chunks_and_tasks(self, memory_chunk_tasks, memory_chunks):
@@ -271,8 +326,9 @@ class AdvancedPmmConfigCommand():
                 data_id = chunk.get("@odata.id")
                 resp = self._rest_helpers.delete_resource(data_id)
                 if not resp:
-                    raise NoChangesFoundOrMadeError("Error occurred while deleting "
-                                                    "existing configuration")
+                    raise NoChangesFoundOrMadeError(
+                        "Error occurred while deleting " "existing configuration"
+                    )
         return None
 
     @staticmethod
@@ -292,7 +348,7 @@ class AdvancedPmmConfigCommand():
             proc_list.append(member["Id"])
 
         for index, proc_id in enumerate(input_proc_list):
-            temp_proc_id = "PROC"+str(proc_id)+"MemoryDomain"
+            temp_proc_id = "PROC" + str(proc_id) + "MemoryDomain"
             if temp_proc_id not in proc_list:
                 invalid_proc_list.append(proc_id)
             else:
@@ -301,13 +357,17 @@ class AdvancedPmmConfigCommand():
         # Raise execption if given proc id is not exist.
         if invalid_proc_list:
             if len(invalid_proc_list) == 1:
-                raise NoChangesFoundOrMadeError\
-                ("Specified processor number {proc_list} is invalid"\
-                 .format(proc_list=invalid_proc_list[0]))
+                raise NoChangesFoundOrMadeError(
+                    "Specified processor number {proc_list} is invalid".format(
+                        proc_list=invalid_proc_list[0]
+                    )
+                )
             else:
-                raise NoChangesFoundOrMadeError\
-                ("Specified processor numbers {proc_list} are invalid"\
-                 .format(proc_list=','.join(invalid_proc_list)))
+                raise NoChangesFoundOrMadeError(
+                    "Specified processor numbers {proc_list} are invalid".format(
+                        proc_list=",".join(invalid_proc_list)
+                    )
+                )
 
         return input_proc_list
 
@@ -325,8 +385,11 @@ class AdvancedPmmConfigCommand():
             proc_id = member["Id"]
             if not proc_list or (proc_id in proc_list):
                 data_id = member.get("MemoryChunks").get("@odata.id")
-                all_chunks += [chunk for chunk in memory_chunks
-                               if data_id in chunk.get("@odata.id")]
+                all_chunks += [
+                    chunk
+                    for chunk in memory_chunks
+                    if data_id in chunk.get("@odata.id")
+                ]
 
         return all_chunks
 
@@ -344,28 +407,31 @@ class AdvancedPmmConfigCommand():
         body = {
             "AddressRangeType": "PMEM",
             "InterleaveSets": [],
-            "Oem": {
-                "Hpe": {
-                    "MemoryChunkSizePercentage": 100 - config_data["size"]
-                }
-            }
+            "Oem": {"Hpe": {"MemoryChunkSizePercentage": 100 - config_data["size"]}},
         }
         # Get the list of interleave sets based on the configuration
-        if config_data["pmeminterleave"] == 'on' or config_data["size"] == 100:
+        if config_data["pmeminterleave"] == "on" or config_data["size"] == 100:
             # If persistent memory regions are interleaved or if it's 100% MemoryMode,
             # choose the list with maximum entries.
-            interleave_sets = [max(interleavable_memory_sets, key=lambda x: len(x['MemorySet']))]
+            interleave_sets = [
+                max(interleavable_memory_sets, key=lambda x: len(x["MemorySet"]))
+            ]
         else:
             # If persistent memory regions are not interleaved,
             # choose all the lists with exactly one entry.
-            interleave_sets = [il_set for il_set in interleavable_memory_sets
-                               if len(il_set['MemorySet']) == 1]
+            interleave_sets = [
+                il_set
+                for il_set in interleavable_memory_sets
+                if len(il_set["MemorySet"]) == 1
+            ]
 
         # Using in-place update to change the interleave sets format.
         # Replace 'MemorySet' with 'Memory' for each MemorySet in interleave_sets.
         for index, interleavableset in enumerate(interleave_sets):
-            interleave_sets[index] = [{"Memory": {"@odata.id": str(memory_region['@odata.id'])}}
-                                      for memory_region in interleavableset['MemorySet']]
+            interleave_sets[index] = [
+                {"Memory": {"@odata.id": str(memory_region["@odata.id"])}}
+                for memory_region in interleavableset["MemorySet"]
+            ]
 
         # Create post body for each interleave sets from post body template.
         post_data = []
@@ -383,31 +449,45 @@ class AdvancedPmmConfigCommand():
         :returns: None
         """
         # Retrieve Memory Chunks and Task Resources from server.
-        (task_members, domain_members, memory_chunks) = self._rest_helpers \
-                                    .retrieve_task_members_and_mem_domains()
+        (
+            task_members,
+            domain_members,
+            memory_chunks,
+        ) = self._rest_helpers.retrieve_task_members_and_mem_domains()
 
         # Filter Task Resources to include only Pending Configuration Tasks.
         memory_chunk_tasks = self._rest_helpers.filter_task_members(task_members)
 
         if not domain_members:
-            raise NoContentsFoundForOperationError("Failed to retrieve Memory Domain Resources, please check if persistent memory is present/configured")
+            raise NoContentsFoundForOperationError(
+                "Failed to retrieve Memory Domain Resources, please check if persistent memory is present/configured"
+            )
 
         # Dict with input config data
-        config_data = {"size": options.memorymode,
-                       "pmeminterleave": options.interleave,
-                       "proc": options.proc}
+        config_data = {
+            "size": options.memorymode,
+            "pmeminterleave": options.interleave,
+            "proc": options.proc,
+        }
         # Check for given processor id list is valid or not.
         if options.proc:
-            config_data["proc"] = self.get_valid_processor_list(config_data["proc"], domain_members)
-            memory_chunks = self.filter_memory_chunks(memory_chunks,
-                                                      domain_members,
-                                                      config_data["proc"])
+            config_data["proc"] = self.get_valid_processor_list(
+                config_data["proc"], domain_members
+            )
+            memory_chunks = self.filter_memory_chunks(
+                memory_chunks, domain_members, config_data["proc"]
+            )
 
         # In case of 100% Volatile, Interleaving memory regions is not applicable.
-        if config_data["size"] == 100 and config_data["pmeminterleave"] and \
-        config_data["pmeminterleave"].lower() == "on":
-            raise InvalidCommandLineError("Selected configuration is invalid. "
-                                          "Interleaving not supported in 100% volatile.")
+        if (
+            config_data["size"] == 100
+            and config_data["pmeminterleave"]
+            and config_data["pmeminterleave"].lower() == "on"
+        ):
+            raise InvalidCommandLineError(
+                "Selected configuration is invalid. "
+                "Interleaving not supported in 100% volatile."
+            )
 
         if options.force:
             self.delete_existing_chunks_and_tasks(memory_chunk_tasks, memory_chunks)
@@ -415,20 +495,25 @@ class AdvancedPmmConfigCommand():
             self.warn_existing_chunks_and_tasks(self, memory_chunk_tasks, memory_chunks)
 
         for member in domain_members:
-            proc_id = member['Id']
+            proc_id = member["Id"]
             # If given proc list is not empty, applies configuration to selected processors
             if not config_data["proc"] or (proc_id in config_data["proc"]):
-                path = member['MemoryChunks'].get('@odata.id')
-                data = self.get_post_data(config_data, member['InterleavableMemorySets'])
+                path = member["MemoryChunks"].get("@odata.id")
+                data = self.get_post_data(
+                    config_data, member["InterleavableMemorySets"]
+                )
                 for body in data:
                     resp = self._rest_helpers.post_resource(path, body)
                 if resp is None:
-                    raise NoChangesFoundOrMadeError("Error occurred while applying configuration")
+                    raise NoChangesFoundOrMadeError(
+                        "Error occurred while applying configuration"
+                    )
 
         # Display warning
         self.rdmc.ui.printer("\nConfiguration changes require reboot to take effect.\n")
 
         # Display pending configuration
-        self.auxcommands['showpmmpendingconfig'].show_pending_config(type("MyOptions", (object, ),
-                                                                          dict(json=False)))
+        self.auxcommands["showpmmpendingconfig"].show_pending_config(
+            type("MyOptions", (object,), dict(json=False))
+        )
         return None

@@ -19,8 +19,13 @@
 
 from __future__ import absolute_import
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-    LOGGER, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    LOGGER,
+    NoContentsFoundForOperationError,
+)
 
 from .lib.DisplayHelpers import DisplayHelpers, OutputFormats
 from .lib.Mapper import Mapper
@@ -29,20 +34,20 @@ from .lib.PmemHelpers import PmemHelpers
 from .lib.RestHelpers import RestHelpers
 
 
-class ShowPmemPendingConfigCommand():
+class ShowPmemPendingConfigCommand:
     """
     Command to show the pending configuration for PMM
     """
 
     def __init__(self):
         self.ident = {
-            'name':"showpmmpendingconfig",
-            'usage': None,
-            'description':"Shows the pending tasks for configuring PMM\n"
-                    "\texample: showpmmpendingconfig --json",
-            'summary':"Shows the pending configuration for PMM.",
-            'aliases': [],
-            'auxcommands': []
+            "name": "showpmmpendingconfig",
+            "usage": None,
+            "description": "Shows the pending tasks for configuring PMM\n"
+            "\texample: showpmmpendingconfig --json",
+            "summary": "Shows the pending configuration for PMM.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self._mapper = Mapper()
         self.cmdbase = None
@@ -68,7 +73,7 @@ class ShowPmemPendingConfigCommand():
             action="store_true",
             dest="json",
             help="Optionally include this flag to change the output to JSON format.",
-            default=False
+            default=False,
         )
 
     def run(self, line, help_disp=False):
@@ -82,7 +87,7 @@ class ShowPmemPendingConfigCommand():
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        LOGGER.info("PMM Pending Configuration: %s", self.ident['name'])
+        LOGGER.info("PMM Pending Configuration: %s", self.ident["name"])
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
@@ -92,11 +97,14 @@ class ShowPmemPendingConfigCommand():
                 raise InvalidCommandLineError("Failed to parse options")
         if args:
             raise InvalidCommandLineError(
-                "Chosen command or flag doesn't expect additional arguments")
+                "Chosen command or flag doesn't expect additional arguments"
+            )
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
-                                                   "server might be in POST or powered off")
+            raise NoContentsFoundForOperationError(
+                "Unable to retrieve resources - "
+                "server might be in POST or powered off"
+            )
         self.show_pending_config(options)
 
         return ReturnCodes.SUCCESS
@@ -111,7 +119,9 @@ class ShowPmemPendingConfigCommand():
         task_members = RestHelpers(rdmcObject=self.rdmc).retrieve_task_members()
 
         # filtering task members
-        filtered_task_members = RestHelpers(rdmcObject=self.rdmc).filter_task_members(task_members)
+        filtered_task_members = RestHelpers(rdmcObject=self.rdmc).filter_task_members(
+            task_members
+        )
         if not filtered_task_members:
             self.rdmc.ui.printer("No pending configuration tasks found.\n\n")
             return None
@@ -121,32 +131,42 @@ class ShowPmemPendingConfigCommand():
         if memory:
             memory_members = memory.get("Members")
         else:
-            raise NoContentsFoundForOperationError("Failed to retrieve Memory Resources")
+            raise NoContentsFoundForOperationError(
+                "Failed to retrieve Memory Resources"
+            )
 
         attributes = ["Operation", "PmemSize", "VolatileSize", "DimmIds"]
         display_output = list()
         for task in filtered_task_members:
             # finding operation of task
-            operation = self._mapper.get_single_attribute(task, "Operation",
-                                                          MappingTable.tasks.value, True)
+            operation = self._mapper.get_single_attribute(
+                task, "Operation", MappingTable.tasks.value, True
+            )
             # displaying existing configuration for DELETE operation
             if operation.get("Operation", "") == "DELETE":
                 target_uri = task.get("Payload").get("TargetUri")
                 data = RestHelpers(rdmcObject=self.rdmc).get_resource(target_uri)
                 table = MappingTable.delete_task.value
             else:
-                task_type = self._mapper.get_single_attribute(task, "Type",
-                                                              MappingTable.tasks.value, True)
+                task_type = self._mapper.get_single_attribute(
+                    task, "Type", MappingTable.tasks.value, True
+                )
                 task_type = task_type.get("Type", "")
                 if task_type != "PMEM":
-                    self.rdmc.ui.warn("Unsupported interleave set type found: " + task_type)
+                    self.rdmc.ui.warn(
+                        "Unsupported interleave set type found: " + task_type
+                    )
                     continue
                 data = task
                 table = MappingTable.tasks.value
 
-            task_output = self._mapper.get_multiple_attributes(data, attributes, table,
-                                                               output_as_json=options.json,
-                                                               memory=memory_members)
+            task_output = self._mapper.get_multiple_attributes(
+                data,
+                attributes,
+                table,
+                output_as_json=options.json,
+                memory=memory_members,
+            )
             display_output.append(task_output)
 
         if options.json:

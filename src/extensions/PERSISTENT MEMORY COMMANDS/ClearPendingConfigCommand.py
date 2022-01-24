@@ -18,24 +18,29 @@
 """Command to clear pending tasks"""
 from __future__ import absolute_import
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS,\
-                        NoContentsFoundForOperationError, \
-                        NoChangesFoundOrMadeError, LOGGER
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+    NoChangesFoundOrMadeError,
+    LOGGER,
+)
 from .lib.RestHelpers import RestHelpers
 
 
-class ClearPendingConfigCommand():
-    """ Command to clear pending config tasks"""
+class ClearPendingConfigCommand:
+    """Command to clear pending config tasks"""
 
     def __init__(self):
         self.ident = {
-            'name':'clearpmmpendingconfig',
-            'usage': None,
-            'description':"Clear pmm pending config tasks\n"
-                    "\texample: clearpmmpendingconfig",
-            'summary':"Clear pending config tasks",
-            'aliases': [],
-            'auxcommands': []
+            "name": "clearpmmpendingconfig",
+            "usage": None,
+            "description": "Clear pmm pending config tasks\n"
+            "\texample: clearpmmpendingconfig",
+            "summary": "Clear pending config tasks",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -50,7 +55,9 @@ class ClearPendingConfigCommand():
         tasks = RestHelpers(rdmcObject=self.rdmc).retrieve_task_members()
         if tasks:
             # Filtering out Memory Chunk Tasks
-            memory_chunk_tasks = RestHelpers(rdmcObject=self.rdmc).filter_task_members(tasks)
+            memory_chunk_tasks = RestHelpers(rdmcObject=self.rdmc).filter_task_members(
+                tasks
+            )
             if memory_chunk_tasks:
                 return memory_chunk_tasks
         self.rdmc.ui.printer("No pending configuration tasks found.\n\n")
@@ -72,10 +79,11 @@ class ClearPendingConfigCommand():
             resp = RestHelpers(rdmcObject=self.rdmc).delete_resource(data_id)
             if resp:
                 if verbose:
-                    self.rdmc.ui.printer("Deleted Task #{}".format(task_id)+"\n")
+                    self.rdmc.ui.printer("Deleted Task #{}".format(task_id) + "\n")
             else:
-                raise NoChangesFoundOrMadeError("Error occured while deleting "
-                                                "task #{}".format(task_id))
+                raise NoChangesFoundOrMadeError(
+                    "Error occured while deleting " "task #{}".format(task_id)
+                )
         return None
 
     def run(self, line, help_disp=False):
@@ -87,7 +95,7 @@ class ClearPendingConfigCommand():
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        LOGGER.info("Clear Pending Configuration: %s", self.ident['name'])
+        LOGGER.info("Clear Pending Configuration: %s", self.ident["name"])
         # pylint: disable=unused-variable
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
@@ -97,11 +105,15 @@ class ClearPendingConfigCommand():
             else:
                 raise InvalidCommandLineError("Failed to parse options")
         if args:
-            raise InvalidCommandLineError("Chosen flag doesn't expect additional arguments")
+            raise InvalidCommandLineError(
+                "Chosen flag doesn't expect additional arguments"
+            )
         # Raise exception if server is in POST
         if RestHelpers(rdmcObject=self.rdmc).in_post():
-            raise NoContentsFoundForOperationError("Unable to retrieve resources - "
-                                                   "server might be in POST or powered off")
+            raise NoContentsFoundForOperationError(
+                "Unable to retrieve resources - "
+                "server might be in POST or powered off"
+            )
         memory_chunk_tasks = self.get_memory_chunk_tasks()
         self.delete_tasks(memory_chunk_tasks, verbose=True)
 

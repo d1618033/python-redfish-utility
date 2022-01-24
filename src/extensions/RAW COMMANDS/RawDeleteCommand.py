@@ -22,28 +22,34 @@ import json
 
 from argparse import ArgumentParser
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                                                    InvalidCommandLineErrorOPTS
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+)
 
-class RawDeleteCommand():
-    """ Raw form of the delete command """
+
+class RawDeleteCommand:
+    """Raw form of the delete command"""
+
     def __init__(self):
         self.ident = {
-            'name':'rawdelete',
-            'usage': None,
-            'description':'Run to to delete data from'
-                    ' the passed in path.\n\texample: rawdelete "/redfish/v1/'
-                    'Sessions/(session ID)"\n',
-            'summary':'Raw form of the DELETE command.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "rawdelete",
+            "usage": None,
+            "description": "Run to to delete data from"
+            ' the passed in path.\n\texample: rawdelete "/redfish/v1/'
+            'Sessions/(session ID)"\n',
+            "summary": "Raw form of the DELETE command.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main raw delete worker function
+        """Main raw delete worker function
 
         :param line: command line input
         :type line: string.
@@ -67,7 +73,7 @@ class RawDeleteCommand():
         url = None
         headers = {}
 
-        if hasattr(options, 'sessionid') and options.sessionid:
+        if hasattr(options, "sessionid") and options.sessionid:
             url = self.sessionvalidation(options)
         else:
             self.deletevalidation(options)
@@ -76,7 +82,7 @@ class RawDeleteCommand():
             options.path = options.path[1:-1]
 
         if options.expand:
-            options.path = options.path + '?$expand=.'
+            options.path = options.path + "?$expand=."
 
         try:
             currentsess = self.rdmc.app.current_client.session_location
@@ -84,10 +90,10 @@ class RawDeleteCommand():
             currentsess = None
 
         if options.headers:
-            extraheaders = options.headers.split(',')
+            extraheaders = options.headers.split(",")
 
             for item in extraheaders:
-                header = item.split(':')
+                header = item.split(":")
 
                 try:
                     headers[header[0]] = header[1]
@@ -96,16 +102,22 @@ class RawDeleteCommand():
 
         if currentsess and (options.path in currentsess):
             self.rdmc.app.logout()
-            self.rdmc.ui.printer("Your session has been terminated (deleted).\nPlease log "
-                                 "back in if you wish to continue.\n")
+            self.rdmc.ui.printer(
+                "Your session has been terminated (deleted).\nPlease log "
+                "back in if you wish to continue.\n"
+            )
         else:
             returnresponse = False
 
             if options.response or options.getheaders:
                 returnresponse = True
 
-            results = self.rdmc.app.delete_handler(options.path,
-                                                   headers=headers, silent=options.silent, service=options.service)
+            results = self.rdmc.app.delete_handler(
+                options.path,
+                headers=headers,
+                silent=options.silent,
+                service=options.service,
+            )
 
             if returnresponse and results:
                 if options.getheaders:
@@ -119,11 +131,11 @@ class RawDeleteCommand():
                 return ReturnCodes.UI_CLI_USAGE_EXCEPTION
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def deletevalidation(self, options):
-        """ Raw delete validation function
+        """Raw delete validation function
 
         :param options: command line options
         :type options: list.
@@ -131,7 +143,7 @@ class RawDeleteCommand():
         self.rdmc.login_select_validation(self, options, skipbuild=True)
 
     def sessionvalidation(self, options):
-        """ Raw delete session validation function
+        """Raw delete session validation function
 
         :param options: command line options
         :type options: list.
@@ -150,7 +162,7 @@ class RawDeleteCommand():
         return url
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -161,49 +173,49 @@ class RawDeleteCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            'path',
+            "path",
             help="Uri on iLO to be deleted.",
         )
         customparser.add_argument(
-            '--response',
-            dest='response',
+            "--response",
+            dest="response",
             action="store_true",
             help="Use this flag to return the iLO response body.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--getheaders',
-            dest='getheaders',
+            "--getheaders",
+            dest="getheaders",
             action="store_true",
             help="Use this flag to return the iLO response headers.",
-            default=False
+            default=False,
         )
         customparser.add_argument(
-            '--headers',
-            dest='headers',
-            help="Use this flag to add extra headers to the request."\
+            "--headers",
+            dest="headers",
+            help="Use this flag to add extra headers to the request."
             "\t\t\t\t\t Usage: --headers=HEADER:VALUE,HEADER:VALUE",
             default=None,
         )
         customparser.add_argument(
-            '--silent',
-            dest='silent',
+            "--silent",
+            dest="silent",
             action="store_true",
             help="""Use this flag to silence responses""",
             default=False,
         )
         customparser.add_argument(
-            '--service',
-            dest='service',
+            "--service",
+            dest="service",
             action="store_true",
             help="""Use this flag to enable service mode and increase the function speed""",
             default=False,
         )
         customparser.add_argument(
-            '--expand',
-            dest='expand',
+            "--expand",
+            dest="expand",
             action="store_true",
-            help="""Use this flag to expand the path specified using the """\
-                                            """expand notation '?$expand=.'""",
+            help="""Use this flag to expand the path specified using the """
+            """expand notation '?$expand=.'""",
             default=False,
         )

@@ -22,23 +22,25 @@ import sys
 from argparse import ArgumentParser, SUPPRESS
 from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
-class LogoutCommand():
-    """ Constructor """
+
+class LogoutCommand:
+    """Constructor"""
+
     def __init__(self):
         self.ident = {
-            'name': 'logout',
-            'usage': None,
-            'description': 'Run to end the current session and disconnect'
-                     ' from the server\n\tExample: logout',
-            'summary': 'Ends the current session and disconnects from the server.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "logout",
+            "usage": None,
+            "description": "Run to end the current session and disconnect"
+            " from the server\n\tExample: logout",
+            "summary": "Ends the current session and disconnects from the server.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
 
     def logoutfunction(self, line):
-        """ Main logout worker function
+        """Main logout worker function
 
         :param line: command line input
         :type line: string.
@@ -54,7 +56,7 @@ class LogoutCommand():
         self.rdmc.app.logout("")
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for main logout function
+        """Wrapper function for main logout function
 
         :param line: command line input
         :type line: string.
@@ -65,11 +67,11 @@ class LogoutCommand():
         self.rdmc.ui.printer("Logging session out.\n")
         self.logoutfunction(line)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

@@ -17,20 +17,27 @@
 # -*- coding: utf-8 -*-
 """ Server State Command for rdmc """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+)
 
-class ServerStateCommand():
-    """ Returns the current state of the server that  is currently logged in """
+
+class ServerStateCommand:
+    """Returns the current state of the server that  is currently logged in"""
+
     def __init__(self):
         self.ident = {
-            'name':'serverstate',
-            'usage': None,
-            'description':'Returns the current state of the'
-                    ' server\n\n\tExample: serverstate',
-            'summary':'Returns the current state of the server.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "serverstate",
+            "usage": None,
+            "description": "Returns the current state of the"
+            " server\n\n\tExample: serverstate",
+            "summary": "Returns the current state of the server.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -54,8 +61,10 @@ class ServerStateCommand():
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Invalid number of parameters, "
-                                          "serverstate command does not take any parameters.")
+            raise InvalidCommandLineError(
+                "Invalid number of parameters, "
+                "serverstate command does not take any parameters."
+            )
 
         self.serverstatevalidation(options)
 
@@ -63,17 +72,17 @@ class ServerStateCommand():
         results = self.rdmc.app.get_handler(path, silent=True, uncache=True).dict
 
         if results:
-            results = results['Oem'][self.rdmc.app.typepath.defs.oemhp]['PostState']
-            self.rdmc.ui.printer("The server is currently in state: " + results + '\n')
+            results = results["Oem"][self.rdmc.app.typepath.defs.oemhp]["PostState"]
+            self.rdmc.ui.printer("The server is currently in state: " + results + "\n")
         else:
             raise NoContentsFoundForOperationError("Unable to retrieve server state")
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def serverstatevalidation(self, options):
-        """ Server state method validation function
+        """Server state method validation function
 
         :param options: command line options
         :type options: list.
@@ -81,7 +90,7 @@ class ServerStateCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

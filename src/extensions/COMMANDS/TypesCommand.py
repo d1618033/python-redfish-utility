@@ -17,26 +17,32 @@
 # -*- coding: utf-8 -*-
 """ Types Command for RDMC """
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, InvalidCommandLineErrorOPTS
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+)
 
-class TypesCommand():
-    """ Constructor """
+
+class TypesCommand:
+    """Constructor"""
+
     def __init__(self):
         self.ident = {
-            'name':'types',
-            'usage': None,
-            'description':'Run to display currently '
-                    'available selectable types\n\tExample: types',
-            'summary':'Displays all selectable types within the currently logged in server.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "types",
+            "usage": None,
+            "description": "Run to display currently "
+            "available selectable types\n\tExample: types",
+            "summary": "Displays all selectable types within the currently logged in server.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def typesfunction(self, line, returntypes=False):
-        """ Main types worker function
+        """Main types worker function
 
         :param line: command line input
         :type line: string.
@@ -65,12 +71,14 @@ class TypesCommand():
             else:
                 return typeslist
         else:
-            raise InvalidCommandLineError("The 'types' command does not take any arguments.")
+            raise InvalidCommandLineError(
+                "The 'types' command does not take any arguments."
+            )
 
         self.cmdbase.logout_routine(self, options)
 
     def run(self, line, help_disp=False):
-        """ Wrapper function for types main function
+        """Wrapper function for types main function
 
         :param line: command line input
         :type line: string.
@@ -80,11 +88,11 @@ class TypesCommand():
             return ReturnCodes.SUCCESS
         self.typesfunction(line)
 
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def typesvalidation(self, options):
-        """ types method validation function
+        """types method validation function
 
         :param options: command line options
         :type options: list.
@@ -92,7 +100,7 @@ class TypesCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -103,11 +111,11 @@ class TypesCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--fulltypes',
-            dest='fulltypes',
-            action='store_true',
-            help="Optionally include this flag if you would prefer to "\
-            "return the full type name instead of the simplified versions" \
+            "--fulltypes",
+            dest="fulltypes",
+            action="store_true",
+            help="Optionally include this flag if you would prefer to "
+            "return the full type name instead of the simplified versions"
             " (Redfish only option).",
-            default=None
+            default=None,
         )

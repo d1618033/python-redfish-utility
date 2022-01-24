@@ -19,31 +19,37 @@
 
 from argparse import ArgumentParser, SUPPRESS
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, \
-                    InvalidCommandLineErrorOPTS, Encryption, \
-                    NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+    NoContentsFoundForOperationError,
+)
 
-class ClearRestApiStateCommand():
-    """ Clear the rest api state of the server """
+
+class ClearRestApiStateCommand:
+    """Clear the rest api state of the server"""
+
     def __init__(self):
         self.ident = {
-            'name':'clearrestapistate',
-            'usage': None,
-            'description': 'Clears the persistent rest api state.\n\texample: '
-                    'clearrestapistate\n\n\tNote: Some types such as Bios, '
-                    'Iscsi, and SmartStorageConfig will be unavailable until '
-                    'a system reboot occurs after running this command.',
-            'summary':'Clears the persistent state of the REST API. Some '
-                      'portions of the API may not be available until after the server reboots.',
-            'aliases': [],
-            'auxcommands': []
+            "name": "clearrestapistate",
+            "usage": None,
+            "description": "Clears the persistent rest api state.\n\texample: "
+            "clearrestapistate\n\n\tNote: Some types such as Bios, "
+            "Iscsi, and SmartStorageConfig will be unavailable until "
+            "a system reboot occurs after running this command.",
+            "summary": "Clears the persistent state of the REST API. Some "
+            "portions of the API may not be available until after the server reboots.",
+            "aliases": [],
+            "auxcommands": [],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main clearrestapistate function.
+        """Main clearrestapistate function.
 
         :param line: string of arguments passed in
         :type line: str.
@@ -62,11 +68,13 @@ class ClearRestApiStateCommand():
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("clearrestapistate command takes no arguments.")
+            raise InvalidCommandLineError(
+                "clearrestapistate command takes no arguments."
+            )
 
         self.clearrestapistatevalidation(options)
 
-        select = 'Manager.'
+        select = "Manager."
         results = self.rdmc.app.select(selector=select)
 
         try:
@@ -79,15 +87,15 @@ class ClearRestApiStateCommand():
         else:
             raise NoContentsFoundForOperationError("Manager. not found.")
 
-        bodydict = results.resp.dict['Oem'][self.rdmc.app.typepath.defs.oemhp]
+        bodydict = results.resp.dict["Oem"][self.rdmc.app.typepath.defs.oemhp]
         try:
-            for item in bodydict['Actions']:
-                if 'ClearRestApiState' in item:
+            for item in bodydict["Actions"]:
+                if "ClearRestApiState" in item:
                     if self.rdmc.app.typepath.defs.isgen10:
-                        action = item.split('#')[-1]
+                        action = item.split("#")[-1]
                     else:
                         action = "ClearRestApiState"
-                    path = bodydict['Actions'][item]['target']
+                    path = bodydict["Actions"][item]["target"]
                     body = {"Action": action}
                     break
         except:
@@ -95,11 +103,11 @@ class ClearRestApiStateCommand():
         self.rdmc.app.post_handler(path, body)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def clearrestapistatevalidation(self, options):
-        """ clearrestapistate method validation function.
+        """clearrestapistate method validation function.
 
         :param options: command line options
         :type options: list.
@@ -107,7 +115,7 @@ class ClearRestApiStateCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.

@@ -19,36 +19,43 @@
 
 from six.moves import input
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineError, Encryption, \
-                    InvalidCommandLineErrorOPTS, NoContentsFoundForOperationError
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    Encryption,
+    InvalidCommandLineErrorOPTS,
+    NoContentsFoundForOperationError,
+)
 
-class DeleteLogicalDriveCommand():
-    """ Delete logical drive command """
+
+class DeleteLogicalDriveCommand:
+    """Delete logical drive command"""
+
     def __init__(self):
         self.ident = {
-            'name':'deletelogicaldrive',
-            'usage': None,
-            'description':'To delete a logical '
-                    'drive a controller by index.\n\texample: deletelogicaldrive '
-                    '1 --controller=1\n\n\tTo delete multiple logical drives by '
-                    'index.\n\tExample: deletelogicaldrive 1,2 --controller=1'
-                    '\n\n\tTo delete all logical drives on a controller.\n\t'
-                    'deletelogicaldrive --controller=1 --all\n\n\t'
-                    'deletelogicaldrive --controller="Slot1" --all\n\n\tNOTE: '
-                    'You can also delete logical drives by '
-                    '"VolumeUniqueIdentifier".\n\n\t'
-                    'You can also delete logical drives by '
-                    '"LogicalDriveName".',
-            'summary':'Deletes logical drives from the selected controller.',
-            'aliases': [],
-            'auxcommands': ["SelectCommand"]
+            "name": "deletelogicaldrive",
+            "usage": None,
+            "description": "To delete a logical "
+            "drive a controller by index.\n\texample: deletelogicaldrive "
+            "1 --controller=1\n\n\tTo delete multiple logical drives by "
+            "index.\n\tExample: deletelogicaldrive 1,2 --controller=1"
+            "\n\n\tTo delete all logical drives on a controller.\n\t"
+            "deletelogicaldrive --controller=1 --all\n\n\t"
+            'deletelogicaldrive --controller="Slot1" --all\n\n\tNOTE: '
+            "You can also delete logical drives by "
+            '"VolumeUniqueIdentifier".\n\n\t'
+            "You can also delete logical drives by "
+            '"LogicalDriveName".',
+            "summary": "Deletes logical drives from the selected controller.",
+            "aliases": [],
+            "auxcommands": ["SelectCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
 
     def run(self, line, help_disp=False):
-        """ Main disk inventory worker function
+        """Main disk inventory worker function
 
         :param line: command line input
         :type line: string.
@@ -69,18 +76,18 @@ class DeleteLogicalDriveCommand():
 
         self.deletelogicaldrivevalidation(options)
 
-        self.auxcommands['select'].selectfunction("SmartStorageConfig.")
+        self.auxcommands["select"].selectfunction("SmartStorageConfig.")
         content = self.rdmc.app.getprops()
 
         if not args and not options.all:
-            raise InvalidCommandLineError('You must include a logical drive to delete.')
+            raise InvalidCommandLineError("You must include a logical drive to delete.")
         elif not options.controller:
-            raise InvalidCommandLineError('You must include a controller to select.')
+            raise InvalidCommandLineError("You must include a controller to select.")
         else:
             if len(args) > 1:
                 logicaldrives = args
             elif len(args) == 1:
-                logicaldrives = args[0].replace(', ', ',').split(',')
+                logicaldrives = args[0].replace(", ", ",").split(",")
             else:
                 logicaldrives = None
 
@@ -90,30 +97,40 @@ class DeleteLogicalDriveCommand():
             if options.controller.isdigit():
                 slotlocation = self.get_location_from_id(options.controller)
                 if slotlocation:
-                    slotcontrol = slotlocation.lower().strip('\"').split('slot')[-1].lstrip()
+                    slotcontrol = (
+                        slotlocation.lower().strip('"').split("slot")[-1].lstrip()
+                    )
                     for control in content:
-                        if slotcontrol.lower() == control["Location"].lower().split('slot')[-1].lstrip():
+                        if (
+                            slotcontrol.lower()
+                            == control["Location"].lower().split("slot")[-1].lstrip()
+                        ):
                             controllist.append(control)
             if not controllist:
                 raise InvalidCommandLineError("")
         except InvalidCommandLineError:
-            raise InvalidCommandLineError("Selected controller not found in the current inventory "
-                                          "list.")
+            raise InvalidCommandLineError(
+                "Selected controller not found in the current inventory " "list."
+            )
 
         self.deletelogicaldrives(controllist, logicaldrives, options.all, options.force)
 
         self.cmdbase.logout_routine(self, options)
-        #Return code
+        # Return code
         return ReturnCodes.SUCCESS
 
     def get_location_from_id(self, controller_id):
         self.rdmc.ui.printer("Controller ID: %s\n" % (controller_id))
-        for sel in self.rdmc.app.select("SmartStorageArrayController", path_refresh=True):
-            if 'Collection' not in sel.maj_type:
+        for sel in self.rdmc.app.select(
+            "SmartStorageArrayController", path_refresh=True
+        ):
+            if "Collection" not in sel.maj_type:
                 controller = sel.dict
-                self.rdmc.ui.printer("Controller ID: %s\n" % (controller['Id']))
-                if controller['Id'] == str(controller_id):
-                    self.rdmc.ui.printer("Controller Location: %s\n" % (controller['Location']))
+                self.rdmc.ui.printer("Controller ID: %s\n" % (controller["Id"]))
+                if controller["Id"] == str(controller_id):
+                    self.rdmc.ui.printer(
+                        "Controller Location: %s\n" % (controller["Location"])
+                    )
                     return controller["Location"]
         return None
 
@@ -131,12 +148,12 @@ class DeleteLogicalDriveCommand():
         for controller in controllist:
             changes = False
 
-            numdrives = len(controller['LogicalDrives'])
+            numdrives = len(controller["LogicalDrives"])
             deletecount = 0
 
             if allopt:
-                controller['LogicalDrives'] = []
-                controller['DataGuard'] = "Disabled"
+                controller["LogicalDrives"] = []
+                controller["DataGuard"] = "Disabled"
                 self.lastlogicaldrive(controller)
                 changes = True
             else:
@@ -146,27 +163,34 @@ class DeleteLogicalDriveCommand():
                     if deldrive.isdigit():
                         deldrive = int(deldrive)
 
-                    for idx, ldrive in enumerate(controller['LogicalDrives']):
-                        if deldrive == ldrive['LogicalDriveNumber']:
+                    for idx, ldrive in enumerate(controller["LogicalDrives"]):
+                        if deldrive == ldrive["LogicalDriveNumber"]:
                             if not force:
                                 while True:
-                                    ans = input("Are you sure you would"\
-                                            " like to continue deleting drive"\
-                                            ' %s? (y/n)' % ldrive['LogicalDriveName'])
+                                    ans = input(
+                                        "Are you sure you would"
+                                        " like to continue deleting drive"
+                                        " %s? (y/n)" % ldrive["LogicalDriveName"]
+                                    )
 
-                                    if ans.lower() == 'y':
+                                    if ans.lower() == "y":
                                         break
-                                    elif ans.lower() == 'n':
-                                        self.rdmc.ui.warn("Stopping command without "
-                                                          "deleting logical drive.\n")
+                                    elif ans.lower() == "n":
+                                        self.rdmc.ui.warn(
+                                            "Stopping command without "
+                                            "deleting logical drive.\n"
+                                        )
                                         return
-                            self.rdmc.ui.printer('Setting logical drive %s ' \
-                                                 'for deletion\n' % ldrive['LogicalDriveName'])
+                            self.rdmc.ui.printer(
+                                "Setting logical drive %s "
+                                "for deletion\n" % ldrive["LogicalDriveName"]
+                            )
 
-                            controller['LogicalDrives'][idx]['Actions'] = \
-                                        [{"Action": "LogicalDriveDelete"}]
+                            controller["LogicalDrives"][idx]["Actions"] = [
+                                {"Action": "LogicalDriveDelete"}
+                            ]
 
-                            controller['DataGuard'] = "Permissive"
+                            controller["DataGuard"] = "Permissive"
                             deletecount += 1
 
                             changes = True
@@ -174,19 +198,26 @@ class DeleteLogicalDriveCommand():
                             break
 
                     if not found:
-                        raise NoContentsFoundForOperationError('Logical '\
-                                        'drive %s not found.'% str(deldrive))
+                        raise NoContentsFoundForOperationError(
+                            "Logical " "drive %s not found." % str(deldrive)
+                        )
 
                 if deletecount == numdrives:
                     self.lastlogicaldrive(controller)
 
             if changes:
                 self.rdmc.ui.printer(
-                    "DeleteLogicalDrive path and payload: %s, %s\n" % (controller["@odata.id"], controller))
-                self.rdmc.app.put_handler(controller["@odata.id"], controller,
-                                          headers={'If-Match': self.getetag(controller['@odata.id'])})
-                self.rdmc.app.download_path([controller["@odata.id"]], path_refresh=True,
-                                            crawl=False)
+                    "DeleteLogicalDrive path and payload: %s, %s\n"
+                    % (controller["@odata.id"], controller)
+                )
+                self.rdmc.app.put_handler(
+                    controller["@odata.id"],
+                    controller,
+                    headers={"If-Match": self.getetag(controller["@odata.id"])},
+                )
+                self.rdmc.app.download_path(
+                    [controller["@odata.id"]], path_refresh=True, crawl=False
+                )
 
     def lastlogicaldrive(self, controller):
         """Special case that sets required properties after last drive deletion
@@ -194,30 +225,44 @@ class DeleteLogicalDriveCommand():
         :param controller: controller change settings on
         :type controller: dict.
         """
-        changelist = ['PredictiveSpareRebuild', 'SurfaceScanAnalysisPriority',
-                      'FlexibleLatencySchedulerSetting', 'DegradedPerformanceOptimization',
-                      'CurrentParallelSurfaceScanCount', 'SurfaceScanAnalysisDelaySeconds',
-                      'MonitorAndPerformanceAnalysisDelaySeconds',
-                      'InconsistencyRepairPolicy', 'DriveWriteCache',
-                      'ExpandPriority', 'EncryptionEULA', 'NoBatteryWriteCache',
-                      'ReadCachePercent', 'WriteCacheBypassThresholdKiB',
-                      'RebuildPriority', 'QueueDepth', 'ElevatorSort']
+        changelist = [
+            "PredictiveSpareRebuild",
+            "SurfaceScanAnalysisPriority",
+            "FlexibleLatencySchedulerSetting",
+            "DegradedPerformanceOptimization",
+            "CurrentParallelSurfaceScanCount",
+            "SurfaceScanAnalysisDelaySeconds",
+            "MonitorAndPerformanceAnalysisDelaySeconds",
+            "InconsistencyRepairPolicy",
+            "DriveWriteCache",
+            "ExpandPriority",
+            "EncryptionEULA",
+            "NoBatteryWriteCache",
+            "ReadCachePercent",
+            "WriteCacheBypassThresholdKiB",
+            "RebuildPriority",
+            "QueueDepth",
+            "ElevatorSort",
+        ]
 
         for item in changelist:
             if item in list(controller.keys()):
                 controller[item] = None
 
     def getetag(self, path):
-        """ get etag from path """
+        """get etag from path"""
         etag = None
         instance = self.rdmc.app.monolith.path(path)
         if instance:
-            etag = instance.resp.getheader('etag') if 'etag' in instance.resp.getheaders() \
-                                            else instance.resp.getheader('ETag')
+            etag = (
+                instance.resp.getheader("etag")
+                if "etag" in instance.resp.getheaders()
+                else instance.resp.getheader("ETag")
+            )
         return etag
 
     def deletelogicaldrivevalidation(self, options):
-        """ delete logical drive validation function
+        """delete logical drive validation function
 
         :param options: command line options
         :type options: list.
@@ -225,7 +270,7 @@ class DeleteLogicalDriveCommand():
         self.cmdbase.login_select_validation(self, options)
 
     def definearguments(self, customparser):
-        """ Wrapper function for new command main function
+        """Wrapper function for new command main function
 
         :param customparser: command line input
         :type customparser: parser.
@@ -236,25 +281,25 @@ class DeleteLogicalDriveCommand():
         self.cmdbase.add_login_arguments_group(customparser)
 
         customparser.add_argument(
-            '--controller',
-            dest='controller',
+            "--controller",
+            dest="controller",
             help="Use this flag to select the corresponding controller "
-                "using either the slot number or index.",
+            "using either the slot number or index.",
             default=None,
         )
         customparser.add_argument(
-            '--all',
-            dest='all',
-            help="""Use this flag to delete all logical drives on a """ \
-                """controller.""",
+            "--all",
+            dest="all",
+            help="""Use this flag to delete all logical drives on a """
+            """controller.""",
             action="store_true",
             default=False,
         )
         customparser.add_argument(
-            '--force',
-            dest='force',
-            help="""Use this flag to override the "are you sure?" text when """ \
-                """deleting a logical drive.""",
+            "--force",
+            dest="force",
+            help="""Use this flag to override the "are you sure?" text when """
+            """deleting a logical drive.""",
             action="store_true",
             default=False,
         )
