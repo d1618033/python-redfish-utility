@@ -390,6 +390,10 @@ class IloLicenseError(RdmcError):
 
     pass
 
+class ScepenabledError(RdmcError):
+    """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""
+
+    pass
 
 class ResourceExists(RdmcError):
     """Raised when the account to be added already exists"""
