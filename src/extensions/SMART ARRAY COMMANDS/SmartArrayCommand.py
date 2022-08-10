@@ -22,15 +22,28 @@ import json
 import redfish
 
 from argparse import ArgumentParser, SUPPRESS, RawDescriptionHelpFormatter
-from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
-from rdmc_helper import (
-    ReturnCodes,
-    InvalidCommandLineError,
-    Encryption,
-    IncompatableServerTypeError,
-    InvalidCommandLineErrorOPTS,
-    UI,
-)
+try:
+    from rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+except ImportError:
+    from ilorest.rdmc_base_classes import RdmcCommandBase, HARDCODEDLIST
+try:
+    from rdmc_helper import (
+        ReturnCodes,
+        InvalidCommandLineError,
+        Encryption,
+        IncompatableServerTypeError,
+        InvalidCommandLineErrorOPTS,
+        UI,
+    )
+except ImportError:
+    from ilorest.rdmc_helper import (
+        ReturnCodes,
+        InvalidCommandLineError,
+        Encryption,
+        IncompatableServerTypeError,
+        InvalidCommandLineErrorOPTS,
+        UI,
+    )
 from redfish.ris.resp_handler import ResponseHandler
 from redfish.ris.utils import iterateandclear
 
