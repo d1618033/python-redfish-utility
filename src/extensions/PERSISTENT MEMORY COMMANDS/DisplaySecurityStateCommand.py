@@ -30,14 +30,24 @@ from tabulate import tabulate
 
 from argparse import ArgumentParser
 
-from rdmc_helper import (
-    ReturnCodes,
-    InvalidCommandLineError,
-    InvalidCommandLineErrorOPTS,
-    NoContentsFoundForOperationError,
-    NoChangesFoundOrMadeError,
-    LOGGER,
-)
+try:
+    from rdmc_helper import (
+        ReturnCodes,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        NoContentsFoundForOperationError,
+        NoChangesFoundOrMadeError,
+        LOGGER,
+    )
+except ImportError:
+    from ilorest.rdmc_helper import (
+        ReturnCodes,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        NoContentsFoundForOperationError,
+        NoChangesFoundOrMadeError,
+        LOGGER,
+    )
 from .lib.RestHelpers import RestHelpers
 
 # ---------End of imports---------

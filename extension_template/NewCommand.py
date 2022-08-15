@@ -3,7 +3,10 @@
 
 import sys
 
-from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
+try:
+    from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
+except ImportError:
+    from ilorest.rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
 class NewCommand():
     """ Main new command template class """

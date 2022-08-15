@@ -24,17 +24,31 @@ from argparse import SUPPRESS, ArgumentParser
 from functools import reduce
 
 import six
-from rdmc import RdmcCommand
-from rdmc_helper import (
-    UI,
-    BootOrderMissingEntriesError,
-    Encryption,
-    InvalidCommandLineError,
-    InvalidCommandLineErrorOPTS,
-    InvalidOrNothingChangedSettingsError,
-    ReturnCodes,
-)
+try:
+    from rdmc import RdmcCommand
+except:
+    from ilorest.rdmc import RdmcCommand
 
+try:
+    from rdmc_helper import (
+        UI,
+        BootOrderMissingEntriesError,
+        Encryption,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        InvalidOrNothingChangedSettingsError,
+        ReturnCodes,
+    )
+except:
+    from ilorest.rdmc_helper import (
+        UI,
+        BootOrderMissingEntriesError,
+        Encryption,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        InvalidOrNothingChangedSettingsError,
+        ReturnCodes,
+    )
 
 class BootOrderCommand:
     """Changes the boot order for the server that is currently logged in"""
