@@ -34,10 +34,24 @@ from argparse import (
 
 from redfish.ris import NothingSelectedError
 
-import cliutils
-import versioning
-import rdmc_helper
-from rdmc_helper import InvalidCommandLineErrorOPTS
+try:
+    import cliutils
+except ImportError:
+    from ilorest import cliutils
+
+try:
+    import versioning
+except ImportError:
+    from ilorest import versioning
+try:
+    import rdmc_helper
+except ImportError:
+    from ilorest import rdmc_helper
+
+try:
+    from rdmc_helper import InvalidCommandLineErrorOPTS
+except ImportError:
+    from ilorest.rdmc_helper import InvalidCommandLineErrorOPTS
 
 # from extensions.COMMANDS import LoginCommand, SelectCommand
 

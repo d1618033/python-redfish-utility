@@ -50,67 +50,134 @@ import redfish.ris
 import redfish.hpilo
 import redfish.rest.v1
 
-import cliutils
-import versioning
-import extensions
+try:
+    import cliutils
+except ImportError:
+    from ilorest import cliutils
+try:
+    import versioning
+except ImportError:
+    from ilorest import versioning
+try:
+    import extensions
+except ImportError:
+    from ilorest import extensions
 
-from config.rdmc_config import RdmcConfig
+try:
+    from config.rdmc_config import RdmcConfig
+except ImportError:
+    from ilorest.config.rdmc_config import RdmcConfig
 
 from redfish.ris.rmc_helper import NothingSelectedError, UndefinedClientError
 
-from rdmc_helper import (
-    ReturnCodes,
-    RdmcError,
-    ConfigurationFileError,
-    CommandNotEnabledError,
-    InvalidCommandLineError,
-    InvalidCommandLineErrorOPTS,
-    UI,
-    LOGGER,
-    LERR,
-    LOUT,
-    InvalidFileFormattingError,
-    NoChangesFoundOrMadeError,
-    InvalidFileInputError,
-    NoContentsFoundForOperationError,
-    InfoMissingEntriesError,
-    MultipleServerConfigError,
-    InvalidOrNothingChangedSettingsError,
-    NoDifferencesFoundError,
-    InvalidMSCfileInputError,
-    FirmwareUpdateError,
-    BootOrderMissingEntriesError,
-    NicMissingOrConfigurationError,
-    StandardBlobErrorHandler,
-    NoCurrentSessionEstablished,
-    InvalidCListFileError,
-    FailureDuringCommitError,
-    IncompatibleiLOVersionError,
-    PartitionMoutingError,
-    TimeOutError,
-    DownloadError,
-    UploadError,
-    BirthcertParseError,
-    ResourceExists,
-    IncompatableServerTypeError,
-    IloLicenseError,
-    InvalidKeyError,
-    UnableToDecodeError,
-    UnabletoFindDriveError,
-    Encryption,
-    PathUnavailableError,
-    TaskQueueError,
-    UsernamePasswordRequiredError,
-    TabAndHistoryCompletionClass,
-    iLORisCorruptionError,
-    CloudConnectTimeoutError,
-    CloudConnectFailedError,
-    ProxyConfigFailedError,
-    AlreadyCloudConnectedError,
-)
+try:
+    from rdmc_helper import (
+        ReturnCodes,
+        RdmcError,
+        ConfigurationFileError,
+        CommandNotEnabledError,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        UI,
+        LOGGER,
+        LERR,
+        LOUT,
+        InvalidFileFormattingError,
+        NoChangesFoundOrMadeError,
+        InvalidFileInputError,
+        NoContentsFoundForOperationError,
+        InfoMissingEntriesError,
+        MultipleServerConfigError,
+        InvalidOrNothingChangedSettingsError,
+        NoDifferencesFoundError,
+        InvalidMSCfileInputError,
+        FirmwareUpdateError,
+        BootOrderMissingEntriesError,
+        NicMissingOrConfigurationError,
+        StandardBlobErrorHandler,
+        NoCurrentSessionEstablished,
+        InvalidCListFileError,
+        FailureDuringCommitError,
+        IncompatibleiLOVersionError,
+        PartitionMoutingError,
+        TimeOutError,
+        DownloadError,
+        UploadError,
+        BirthcertParseError,
+        ResourceExists,
+        IncompatableServerTypeError,
+        IloLicenseError,
+        InvalidKeyError,
+        UnableToDecodeError,
+        UnabletoFindDriveError,
+        Encryption,
+        PathUnavailableError,
+        TaskQueueError,
+        UsernamePasswordRequiredError,
+        TabAndHistoryCompletionClass,
+        iLORisCorruptionError,
+        CloudConnectTimeoutError,
+        CloudConnectFailedError,
+        ProxyConfigFailedError,
+        AlreadyCloudConnectedError,
+    )
+except ImportError:
+    from ilorest.rdmc_helper import (
+        ReturnCodes,
+        RdmcError,
+        ConfigurationFileError,
+        CommandNotEnabledError,
+        InvalidCommandLineError,
+        InvalidCommandLineErrorOPTS,
+        UI,
+        LOGGER,
+        LERR,
+        LOUT,
+        InvalidFileFormattingError,
+        NoChangesFoundOrMadeError,
+        InvalidFileInputError,
+        NoContentsFoundForOperationError,
+        InfoMissingEntriesError,
+        MultipleServerConfigError,
+        InvalidOrNothingChangedSettingsError,
+        NoDifferencesFoundError,
+        InvalidMSCfileInputError,
+        FirmwareUpdateError,
+        BootOrderMissingEntriesError,
+        NicMissingOrConfigurationError,
+        StandardBlobErrorHandler,
+        NoCurrentSessionEstablished,
+        InvalidCListFileError,
+        FailureDuringCommitError,
+        IncompatibleiLOVersionError,
+        PartitionMoutingError,
+        TimeOutError,
+        DownloadError,
+        UploadError,
+        BirthcertParseError,
+        ResourceExists,
+        IncompatableServerTypeError,
+        IloLicenseError,
+        InvalidKeyError,
+        UnableToDecodeError,
+        UnabletoFindDriveError,
+        Encryption,
+        PathUnavailableError,
+        TaskQueueError,
+        UsernamePasswordRequiredError,
+        TabAndHistoryCompletionClass,
+        iLORisCorruptionError,
+        CloudConnectTimeoutError,
+        CloudConnectFailedError,
+        ProxyConfigFailedError,
+        AlreadyCloudConnectedError,
+    )
 
 from argparse import ArgumentParser
-from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
+try:
+    from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
+except ImportError:
+    from ilorest.rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 
 from contextlib import contextmanager
 

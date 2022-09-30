@@ -37,7 +37,10 @@ from prompt_toolkit.completion import Completer, Completion
 import redfish.ris
 import redfish.hpilo.risblobstore2 as risblobstore2
 
-import versioning
+try:
+    import versioning
+except ImportError:
+    from ilorest import versioning
 
 # from rdmc_base_classes import HARDCODEDLIST
 
@@ -398,6 +401,10 @@ class IloLicenseError(RdmcError):
 
     pass
 
+class ScepenabledError(RdmcError):
+    """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""
+
+    pass
 
 class ScepenabledError(RdmcError):
     """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""

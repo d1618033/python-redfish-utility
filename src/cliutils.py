@@ -25,7 +25,10 @@ import sys
 import getpass
 import subprocess
 
-from rdmc_helper import UI
+try:
+    from rdmc_helper import UI
+except ImportError:
+    from ilorest.rdmc_helper import UI
 
 if os.name == "nt":
     import ctypes
