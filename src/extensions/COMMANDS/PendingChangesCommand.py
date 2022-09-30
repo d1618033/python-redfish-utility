@@ -69,9 +69,7 @@ class PendingChangesCommand:
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError(
-                "Pending command does not take any arguments."
-            )
+            raise InvalidCommandLineError("Pending command does not take any arguments.")
         self.pendingvalidation(options)
 
         self.pendingfunction()
@@ -143,9 +141,9 @@ class PendingChangesCommand:
         ):
             return self.wildcard_str_match(first[1:], second[1:])
         if first and first[0] == "*":
-            return self.wildcard_str_match(
-                first[1:], second
-            ) or self.wildcard_str_match(first, second[1:])
+            return self.wildcard_str_match(first[1:], second) or self.wildcard_str_match(
+                first, second[1:]
+            )
 
         return False
 

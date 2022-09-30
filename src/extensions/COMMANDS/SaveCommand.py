@@ -79,8 +79,8 @@ class SaveCommand:
 
         self.savevalidation(options)
 
-        if args:
-            raise InvalidCommandLineError("Save command takes no arguments.")
+        # if args:
+        #  raise InvalidCommandLineError("Save command takes no arguments.")
 
         self.rdmc.ui.printer("Saving configuration...\n")
         if options.filter:
@@ -95,14 +95,13 @@ class SaveCommand:
                 val = val.strip()
             except:
                 raise InvalidCommandLineError(
-                    "Invalid filter"
-                    " parameter format [filter_attribute]=[filter_value]"
+                    "Invalid filter" " parameter format [filter_attribute]=[filter_value]"
                 )
 
             instances = self.rdmc.app.select(
                 selector=self.rdmc.app.selector,
                 fltrvals=(sel, val),
-                path_refresh=options.ref,
+                path_refresh=True,
             )
             contents = self.saveworkerfunction(instances=instances)
         else:
@@ -110,7 +109,10 @@ class SaveCommand:
 
         if options.multisave:
             for select in options.multisave:
-                self.auxcommands["select"].run(select)
+                try:
+                    self.auxcommands["select"].run(select)
+                except:
+                    pass
                 contents += self.saveworkerfunction()
 
         if not contents:

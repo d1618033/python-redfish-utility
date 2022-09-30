@@ -64,9 +64,7 @@ class SelectCommand:
             if options.ref:
                 LOGGER.warning("Patches from current selection will be cleared.")
             selector = args[0]
-            selections = self.rdmc.app.select(
-                selector=selector, path_refresh=options.ref
-            )
+            selections = self.rdmc.app.select(selector=selector, path_refresh=options.ref)
 
             if self.rdmc.opts.verbose and selections:
                 templist = list()

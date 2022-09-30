@@ -130,15 +130,12 @@ class StatusCommand:
                             continue
                     except:
                         if content[0]["op"] == "move":
-                            moveoperation = "/".join(
-                                content[0]["path"].split("/")[1:-1]
-                            )
+                            moveoperation = "/".join(content[0]["path"].split("/")[1:-1])
                             continue
                     try:
                         if isinstance(content[0]["value"], int):
                             self.rdmc.ui.printer(
-                                "\t%s=%s"
-                                % (content[0]["path"][1:], content[0]["value"])
+                                "\t%s=%s" % (content[0]["path"][1:], content[0]["value"])
                             )
                         elif (
                             not isinstance(content[0]["value"], bool)
@@ -180,10 +177,7 @@ class StatusCommand:
                             and not isinstance(content["value"], bool)
                             and not len(content["value"]) == 0
                         ):
-                            if (
-                                content["value"][0] == '"'
-                                and content["value"][-1] == '"'
-                            ):
+                            if content["value"][0] == '"' and content["value"][-1] == '"':
                                 self.rdmc.ui.printer(
                                     "\t%s=%s" % (content["path"][1:], content["value"])
                                 )

@@ -130,9 +130,7 @@ try:
     CLI = cliutils.CLI()
 except cliutils.ResourceAllocationError as excp:
     RdmcError("Unable to allocate more resources.")
-    RdmcError(
-        "ILOREST return code: %s\n" % ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR
-    )
+    RdmcError("ILOREST return code: %s\n" % ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
     sys.exit(ReturnCodes.RESOURCE_ALLOCATION_ISSUES_ERROR)
 
 try:

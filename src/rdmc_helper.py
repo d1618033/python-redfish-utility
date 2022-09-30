@@ -50,6 +50,12 @@ if os.name == "nt":
 
 # ---------Debug logger---------
 
+
+class InfoFilter(logging.Filter):
+    def filter(self, rec):
+        return rec.levelno in (logging.DEBUG, logging.INFO, logging.WARN)
+
+
 LOGGER = logging.getLogger()
 # default logging level setting
 LOGGER.setLevel(logging.ERROR)
@@ -67,11 +73,13 @@ LERR.setLevel(logging.ERROR)
 LOGGER.addHandler(LERR)
 LOUT.setFormatter(LFMT)
 # default stdout level setting
-LOUT.setLevel(logging.INFO)
+LOUT.setLevel(logging.WARN)
+LOUT.addFilter(InfoFilter())
 # add logger handle
 LOGGER.addHandler(LOUT)
 
 # ---------End of debug logger---------
+
 
 class ReturnCodes(object):
     """Return code class to be used by all functions"""
@@ -175,7 +183,7 @@ class ReturnCodes(object):
     FAILED_TO_UPLOAD_COMPONENT = 103
     TASKQUEUE_ERROR = 104
 
-    # **** ComputeOpsManagement Errors****
+    # **** Compute Ops Manager Errors****
     CLOUD_CONNECT_TIMEOUT = 111
     CLOUD_CONNECT_FAILED = 112
     CLOUD_ALREADY_CONNECTED = 113
@@ -201,25 +209,25 @@ class ConfigurationFileError(RdmcError):
 
 
 class ProxyConfigFailedError(RdmcError):
-    """Raised when ComputeOpsManagement connection fails"""
+    """Raised when compute ops manager connection fails"""
 
     pass
 
 
 class CloudConnectTimeoutError(RdmcError):
-    """Raised when ComputeOpsManagement connection times out"""
+    """Raised when compute ops manager connection times out"""
 
     pass
 
 
 class CloudConnectFailedError(RdmcError):
-    """Raised when ComputeOpsManagement connection fails"""
+    """Raised when compute ops manager connection fails"""
 
     pass
 
 
 class AlreadyCloudConnectedError(RdmcError):
-    """Raised when ComputeOpsManagement is already connected"""
+    """Raised when compute ops manager is already connected"""
 
     pass
 
@@ -387,6 +395,12 @@ class IncompatableServerTypeError(RdmcError):
 
 class IloLicenseError(RdmcError):
     """Raised when the proper iLO license is not available for a command"""
+
+    pass
+
+
+class ScepenabledError(RdmcError):
+    """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""
 
     pass
 
@@ -932,9 +946,7 @@ class TabAndHistoryCompletionClass(Completer):
                         except Exception:
                             break
                     nested_data = (
-                        list(nested_data.keys())
-                        if isinstance(nested_data, dict)
-                        else []
+                        list(nested_data.keys()) if isinstance(nested_data, dict) else []
                     )
                     lstoption = nested_data
 

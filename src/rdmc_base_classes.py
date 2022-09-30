@@ -151,10 +151,7 @@ class RdmcCommandBase(CommandBase):
         client = None
         loggedin = False
 
-        if (
-            hasattr(options, "json")
-            and cmdinstance.rdmc.config.format.lower() == "json"
-        ):
+        if hasattr(options, "json") and cmdinstance.rdmc.config.format.lower() == "json":
             options.json = True
 
         try:
@@ -188,9 +185,7 @@ class RdmcCommandBase(CommandBase):
                 if getattr(options, "user_root_ca_key", False):
                     inputline.extend(["--userkey", options.user_root_ca_key])
                 if getattr(options, "user_root_ca_password", False):
-                    inputline.extend(
-                        ["--userpassphrase", options.user_root_ca_password]
-                    )
+                    inputline.extend(["--userpassphrase", options.user_root_ca_password])
             else:
                 if cmdinstance.rdmc.config.url:
                     inputline.extend([cmdinstance.rdmc.config.url])
@@ -205,9 +200,7 @@ class RdmcCommandBase(CommandBase):
                 if getattr(options, "user_root_ca_key", False):
                     inputline.extend(["--userkey", options.user_root_ca_key])
                 if getattr(options, "user_root_ca_password", False):
-                    inputline.extend(
-                        ["--userpassphrase", options.user_root_ca_password]
-                    )
+                    inputline.extend(["--userpassphrase", options.user_root_ca_password])
             if options.includelogs:
                 inputline.extend(["--includelogs"])
             if options.path:
@@ -430,7 +423,6 @@ class RdmcOptionParser(ArgumentParser):
         globalgroup = _ArgumentGroup(self, "GLOBAL OPTIONS")
 
         self.add_argument(
-            "-c",
             "--config",
             dest="config",
             help="Use the provided configuration file instead of the default one.",

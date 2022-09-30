@@ -68,9 +68,7 @@ class ResultsCommand:
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError(
-                "Results command does not take any arguments."
-            )
+            raise InvalidCommandLineError("Results command does not take any arguments.")
         self.resultsvalidation(options)
         results = {}
         if self.rdmc.app.typepath.defs.biospath[-1] == "/":
@@ -138,9 +136,9 @@ class ResultsCommand:
                     loc += ":"
                 results.update(
                     {
-                        loc: result.dict[
-                            self.rdmc.app.typepath.defs.biossettingsstring
-                        ]["Messages"]
+                        loc: result.dict[self.rdmc.app.typepath.defs.biossettingsstring][
+                            "Messages"
+                        ]
                     }
                 )
         except:

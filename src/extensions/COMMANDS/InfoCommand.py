@@ -93,8 +93,7 @@ class InfoCommand:
 
                 if not outdata:
                     raise InfoMissingEntriesError(
-                        "There are no valid "
-                        "entries for info in the current instance."
+                        "There are no valid " "entries for info in the current instance."
                     )
                 else:
                     if len(args) > 1 and not item == args[-1]:
@@ -108,9 +107,7 @@ class InfoCommand:
                 currdict = instance.resp.dict
                 currdict = (
                     currdict["Attributes"]
-                    if instance.maj_type.startswith(
-                        self.rdmc.app.typepath.defs.biostype
-                    )
+                    if instance.maj_type.startswith(self.rdmc.app.typepath.defs.biostype)
                     and currdict.get("Attributes", None)
                     else currdict
                 )

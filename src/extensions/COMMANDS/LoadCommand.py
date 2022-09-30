@@ -203,9 +203,7 @@ class LoadCommand:
             if validation_errs:
                 for validation_err in validation_errs:
                     for err_type in validation_err:
-                        self.rdmc.ui.error(
-                            "Validation error(s) in type %s:\n" % err_type
-                        )
+                        self.rdmc.ui.error("Validation error(s) in type %s:\n" % err_type)
                         for err in validation_err[err_type]:
                             if isinstance(err, redfish.ris.RegistryValidationError):
                                 self.rdmc.ui.error(err.message)
@@ -217,9 +215,7 @@ class LoadCommand:
                 raise redfish.ris.ValidationError(excp)
 
             if not results:
-                raise NoDifferencesFoundError(
-                    "No differences found from current configuration."
-                )
+                self.rdmc.ui.printer("No differences found from current configuration.\n")
 
         # Return code
         if returnvalue:

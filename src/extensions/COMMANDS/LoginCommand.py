@@ -154,6 +154,12 @@ class LoginCommand:
             except:
                 pass
 
+            if self.username is not None:
+                self.username = self.username.replace("\\", "")
+            if self.password is not None:
+                self.password = self.password.replace("\\", "")
+            # print (self.username)
+            # print (self.password)
             self.rdmc.app.login(
                 username=self.username,
                 password=self.password,
@@ -186,9 +192,7 @@ class LoginCommand:
 
         # Warning for cache enabled, since we save session in plain text
         if not self.rdmc.encoding:
-            self.rdmc.ui.warn(
-                "Cache is activated. Session keys are stored in plaintext."
-            )
+            self.rdmc.ui.warn("Cache is activated. Session keys are stored in plaintext.")
 
         if self.rdmc.opts.debug:
             self.rdmc.ui.warn("Logger is activated. Logging is stored in plaintext.")
@@ -222,16 +226,21 @@ class LoginCommand:
         if not hasattr(options, "user_root_ca_password"):
             options.user_root_ca_password = self.rdmc.config.user_root_ca_password
 
-        if options.user and not options.password and (not hasattr(options,'user_certificate') or \
-                     not hasattr(options,'user_root_ca_key') or hasattr(options,'user_root_ca_password')):
+        if (
+            options.user
+            and not options.password
+            and (
+                not hasattr(options, "user_certificate")
+                or not hasattr(options, "user_root_ca_key")
+                or hasattr(options, "user_root_ca_password")
+            )
+        ):
             # Option for interactive entry of password
             tempinput = getpass.getpass().rstrip()
             if tempinput:
                 options.password = tempinput
             else:
-                raise InvalidCommandLineError(
-                        "Empty or invalid password was entered."
-                )
+                raise InvalidCommandLineError("Empty or invalid password was entered.")
 
         if options.user:
             self.username = options.user

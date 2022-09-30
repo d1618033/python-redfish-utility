@@ -80,8 +80,7 @@ class ListCommand:
                 fvals = (sel.strip(), val.strip())
             except:
                 raise InvalidCommandLineError(
-                    "Invalid filter"
-                    " parameter format [filter_attribute]=[filter_value]"
+                    "Invalid filter" " parameter format [filter_attribute]=[filter_value]"
                 )
 
         self.auxcommands["get"].getworkerfunction(

@@ -92,8 +92,7 @@ class GetCommand:
 
             except:
                 raise InvalidCommandLineError(
-                    "Invalid filter"
-                    " parameter format [filter_attribute]=[filter_value]"
+                    "Invalid filter" " parameter format [filter_attribute]=[filter_value]"
                 )
 
         self.getworkerfunction(
@@ -173,9 +172,7 @@ class GetCommand:
             ):
                 content.update(content["Attributes"])
                 del content["Attributes"]
-            contents[ind] = OrderedDict(
-                sorted(list(content.items()), key=lambda x: x[0])
-            )
+            contents[ind] = OrderedDict(sorted(list(content.items()), key=lambda x: x[0]))
         if uselist:
             map(lambda x: self.removereserved(x), contents)
         if results:
