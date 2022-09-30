@@ -19,10 +19,7 @@
 
 from redfish.ris import NothingSelectedError
 
-try:
-    from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
-except ImportError:
-    from ilorest.rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS, LOGGER, Encryption
 
 
 class SelectCommand:

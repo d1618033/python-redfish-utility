@@ -19,22 +19,13 @@
 
 import redfish.ris
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        InvalidOrNothingChangedSettingsError,
-        UsernamePasswordRequiredError,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        InvalidOrNothingChangedSettingsError,
-        UsernamePasswordRequiredError,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    InvalidOrNothingChangedSettingsError,
+    UsernamePasswordRequiredError,
+)
 
 from redfish.ris.rmc_helper import NothingSelectedError
 

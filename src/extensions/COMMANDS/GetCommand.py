@@ -24,26 +24,14 @@ from argparse import ArgumentParser, SUPPRESS
 import redfish.ris
 from redfish.ris.utils import iterateandclear
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        UI,
-        NoContentsFoundForOperationError,
-        InvalidCommandLineError,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        UI,
-        NoContentsFoundForOperationError,
-        InvalidCommandLineError,
-    )
-try:
-    from rdmc_base_classes import HARDCODEDLIST
-except:
-    from ilorest.rdmc_base_classes import HARDCODEDLIST
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    UI,
+    NoContentsFoundForOperationError,
+    InvalidCommandLineError,
+)
+from rdmc_base_classes import HARDCODEDLIST
 
 
 class GetCommand:

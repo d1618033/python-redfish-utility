@@ -17,18 +17,11 @@
 # -*- coding: utf-8 -*-
 """ Types Command for RDMC """
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+)
 
 
 class TypesCommand:

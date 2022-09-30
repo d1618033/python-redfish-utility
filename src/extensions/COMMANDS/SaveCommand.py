@@ -23,24 +23,14 @@ from collections import OrderedDict
 
 import redfish.ris
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        InvalidCommandLineError,
-        InvalidFileFormattingError,
-        Encryption,
-        iLORisCorruptionError,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        InvalidCommandLineError,
-        InvalidFileFormattingError,
-        Encryption,
-        iLORisCorruptionError,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+    InvalidFileFormattingError,
+    Encryption,
+    iLORisCorruptionError,
+)
 
 # default file name
 __filename__ = "ilorest.json"

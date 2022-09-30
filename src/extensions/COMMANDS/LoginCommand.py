@@ -22,24 +22,14 @@ import os
 import socket
 
 import redfish.ris
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        PathUnavailableError,
-        Encryption,
-        UsernamePasswordRequiredError,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        PathUnavailableError,
-        Encryption,
-        UsernamePasswordRequiredError,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    PathUnavailableError,
+    Encryption,
+    UsernamePasswordRequiredError,
+)
 from redfish.rest.v1 import ServerDownOrUnreachableError
 
 

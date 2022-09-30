@@ -24,22 +24,13 @@ from argparse import ArgumentParser, SUPPRESS
 
 import jsondiff
 
-try:
-    from rdmc_base_classes import HARDCODEDLIST
-except ImportError:
-    from ilorest.rdmc_base_classes import HARDCODEDLIST
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-    )
+from rdmc_base_classes import HARDCODEDLIST
+
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+)
 
 
 class PendingChangesCommand:

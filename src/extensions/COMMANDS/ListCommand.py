@@ -17,18 +17,11 @@
 # -*- coding: utf-8 -*-
 """ List Command for RDMC """
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        InvalidCommandLineError,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        InvalidCommandLineError,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    InvalidCommandLineError,
+)
 
 from argparse import ArgumentParser, SUPPRESS
 

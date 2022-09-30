@@ -20,10 +20,7 @@
 import sys
 
 from argparse import ArgumentParser, SUPPRESS
-try:
-    from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
-except ImportError:
-    from ilorest.rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
+from rdmc_helper import ReturnCodes, InvalidCommandLineErrorOPTS
 
 
 class LogoutCommand:

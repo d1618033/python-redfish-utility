@@ -24,20 +24,12 @@ from redfish.ris.resp_handler import ResponseHandler
 
 from redfish.ris.rmc_helper import EmptyRaiseForEAFP
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        Encryption,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineError,
-        InvalidCommandLineErrorOPTS,
-        Encryption,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineError,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+)
 
 
 class ResultsCommand:

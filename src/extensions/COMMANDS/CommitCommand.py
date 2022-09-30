@@ -21,22 +21,13 @@ from argparse import SUPPRESS
 
 from redfish.ris.rmc_helper import NothingSelectedError
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        FailureDuringCommitError,
-        NoChangesFoundOrMadeError,
-        NoCurrentSessionEstablished,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        FailureDuringCommitError,
-        NoChangesFoundOrMadeError,
-        NoCurrentSessionEstablished,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    FailureDuringCommitError,
+    NoChangesFoundOrMadeError,
+    NoCurrentSessionEstablished,
+)
 
 
 class CommitCommand:

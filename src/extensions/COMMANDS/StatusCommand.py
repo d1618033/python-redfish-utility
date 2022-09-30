@@ -19,20 +19,12 @@
 
 from redfish.ris.utils import merge_dict
 
-try:
-    from rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        Encryption,
-        NoCurrentSessionEstablished,
-    )
-except ImportError:
-    from ilorest.rdmc_helper import (
-        ReturnCodes,
-        InvalidCommandLineErrorOPTS,
-        Encryption,
-        NoCurrentSessionEstablished,
-    )
+from rdmc_helper import (
+    ReturnCodes,
+    InvalidCommandLineErrorOPTS,
+    Encryption,
+    NoCurrentSessionEstablished,
+)
 
 
 class StatusCommand:
