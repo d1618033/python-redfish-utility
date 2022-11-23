@@ -241,11 +241,12 @@ class RdmcCommand(RdmcCommandBase):
         # import all extensions dynamically
         for name in extensions.classNames:
             pkgName, cName = name.rsplit(".", 1)
-            pkgName = "extensions" + pkgName
+            pkgName = ".extensions" + pkgName
+
             try:
                 if "__pycache__" not in pkgName and "Command" in cName:
                     self.commands_dict[cName] = getattr(
-                        importlib.import_module(pkgName), cName
+                        importlib.import_module(pkgName, __package__), cName
                     )()
                     sName = pkgName.split(".")[1]
                     self.add_command(cName, section=sName)
