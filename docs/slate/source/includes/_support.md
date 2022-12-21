@@ -47,8 +47,6 @@
 
 ### Tutorial Videos
 
-[Creating iLO REST Extensions](https://www.youtube.com/watch?v=CGl8DsYTdQo)
-
 [An Introduction to the RESTful Interface Tool](https://www.youtube.com/watch?v=xfEN95pNNfY)
 
 [Benefits of RESTful Interface Tool vs. CONREP](https://www.youtube.com/watch?v=WPz2FP8bXYU)
@@ -62,7 +60,6 @@ Hewlett Packard Enterprise Support Center		| [www.hpe.com/support/hpesc](http://
 Contact Hewlett Packard Enterprise Worldwide	| [www.hpe.com/assistance](http://www.hpe.com/assistance)
 Subscription Service/Support Alerts				| [www.hpe.com/support/e-updates](http://www.hpe.com/support/e-updates)
 Software Depot									| [www.hpe.com/support/softwaredepot](http://www.hpe.com/support/softwaredepot)
-Customer Self Repair							| [www.hpe.com/support/selfrepair](http://www.hpe.com/support/selfrepair)
 Insight Remote Support							| [www.hpe.com/info/insightremotesupport/docs](http://www.hpe.com/info/insightremotesupport/docs)
 Serviceguard Solutions for HP-UX				| [www.hpe.com/info/hpux-serviceguard-docs](http://www.hpe.com/info/hpux-serviceguard-docs)
 Single Point of Connectivity Knowledge (SPOCK) Storage compatibility matrix	| [www.hpe.com/storage/spock](http://www.hpe.com/storage/spock)
@@ -73,7 +70,7 @@ HPE Intelligent Provisioning					| [www.hpe.com/info/intelligentprovisioning/doc
 UEFI System Utilities							| [www.hpe.com/info/ProLiantUEFI/docs](http://www.hpe.com/info/ProLiantUEFI/docs)
 SUM												| [www.hpe.com/info/hpsum](http://www.hpe.com/info/hpsum)
 Service Pack for ProLiant (SPP)					| [www.hpe.com/servers/spp](http://www.hpe.com/servers/spp)
-HPE iLO 4										| [www.hpe.com/info/ilo/docs](http://www.hpe.com/info/ilo/docs)
+HPE iLO 5 User Guide										| [hewlettpackard.github.io/ilo-rest-api-docs/ilo5](https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/)
 HPE iLO University videos						| [www.hpe.com/info/ilo/videos](http://www.hpe.com/info/ilo/videos)
 HPE Systems Insight Manager						| [www.hpe.com/info/hpsim](http://www.hpe.com/info/hpsim)
 U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://www.hpe.com/support/service_locator)
@@ -93,14 +90,6 @@ U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://ww
 - [Service Pack for ProLiant User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03190790)
 - [HPE BladeSystem Onboard Administrator User Guide](http://h20628.www2.hpe.com/km-ext/kmcsdirect/emr_na-c00705292-47.pdf)
 - [HPE iLO Federation User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04149067)
-
-## Customer self-repair
-
-**Hewlett Packard Enterprise customer self repair** (CSR) programs allow you to repair your product. If a CSR part needs to be replaced, it will be shipped directly to you so that you can install it at your convenience. Some parts do not qualify for CSR. Your Hewlett Packard Enterprise authorized service provider will determine whether a repair can be accomplished by CSR.
-
-For more information about CSR, contact your local service provider or go to the CSR website.
-
-[www.hpe.com/support/selfrepair](http://www.hpe.com/support/selfrepair)
 
 ## Remote Support
 

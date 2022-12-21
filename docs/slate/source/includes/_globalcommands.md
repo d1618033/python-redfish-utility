@@ -8,7 +8,7 @@ This section lists all global options available. These options apply to ilorest 
 
 Including the help flag will display general help for the tool.
 
-**-c, --config=CONFIGFILE**
+**--config=CONFIGFILE**
 
 Use the provided configuration file instead of the default.
 
@@ -90,9 +90,21 @@ Include to block copyright and logo.
 
 Include to block bottom status bar.
 
-**--proxy=PROXYURL**
+**--useproxy=PROXYURL**
 
 Use the provided proxy for communication.
+
+**--notab**
+
+Disable tab complete.
+
+**--redirectconsole**
+
+Optionally include this flag to redirect stdout/stderr console.
+
+**--toolbar**
+
+Show toolbar at the bottom.
 
 **--redfish**
 
@@ -111,208 +123,6 @@ Might cause errors in some data retrieval due to difference in schema versions.
 ## Global Commands
 
 This section includes commands as well as their usage and examples of general commands in the RESTful Interface Tool. They include commands used to do things such as listing help for using commands, viewing, retrieving, modifying, and committing changes to server properties, authenticating and logging in and out of the server.
-
-### Help Command
-
-> Help example commands:
-> Entering help will list the global options and all available commands for iLOREST.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">help</span>
-usage: iLOrest [GLOBAL OPTIONS] [COMMAND] [COMMAND ARGUMENTS] [COMMAND OPTIONS]
-
-iLOrest is a command-line or interactive interface that allows users to manage Hewlett Packard Enterprise products that take advantage of RESTful APIs.
-
-In order to view or manage a system you must first login. You can login using the login command or during execution of any other command.
-From here you can run any other commands. To learn more about specific commands, run iLOrest COMMAND -h.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -c FILE, --config FILE
-                        Use the provided configuration file instead of the default one.
-  --cache-dir PATH      Use the provided directory as the location to cache data (default location: C:\Users\kallur\AppData\Roaming\.iLOrest)
-  -v, --verbose         Display verbose information (with increasing level). '-v': Level 1, Logging, Stdout, Stderr. '-vv': Level 2, Extends Level 1 with slightly
-                        elaborated iLO and HTTP response message. '-vvv': Level3, Extends Level 2 with message id, validation class, message text with embedded args,
-                        and possible resolution/mitigation for iLO responses. High detailed HTTP responses. **NOTE 1**: Some responses may only contain limited
-                        information from the source.**NOTE 4**: Default level is 0.
-  -d, --debug           Display debug information.
-  --logdir PATH         Use the provided directory as the location for log file.
-  --nocache             During execution the application will temporarily store data only in memory.
-  --nologo              Include to block copyright and logo.
-  --toolbar             Show toolbar at the bottom.
-  --redfish             Use this flag if you wish to to enable Redfish only compliance. It is enabled by default in systems with iLO5 and above.
-  --latestschema        Optionally use the latest schema instead of the one requested by the file. Note: May cause errors in some data retrieval due to difference in
-                        schema versions.
-  --redirectconsole [REDIRECT CONSOLE]
-                        Optionally include this flag to redirect stdout/stderr console.
-
-BIOS COMMANDS
-biosdefaults              - Set the currently logged in server to default BIOS settings.
-bootorder                 - Displays and sets the current boot order.
-iscsiconfig               - Displays and configures the current iscsi settings.
-setpassword               - Sets the admin password and power-on password
-
-COMMANDS
-commit                    - Applies all the changes made during the current session.
-get                       - Displays the current value(s) of a property(ies) within a selected type.
-info                      - Displays detailed information about a property within a selected type.
-list                      - Displays the current value(s) of a property(ies) within a selected type including reserved properties.
-load                      - Loads the server configuration settings from a file.
-login                     - Connects to a server, establishes a secure session, and discovers data from iLO.
-logout                    - Ends the current session and disconnects from the server.
-pending                   - Show the pending changes that will be applied on reboot.
-results                   - Show the results of changes which require a server reboot.
-save                      - Saves the selected type's settings to a file.
-select                    - Selects the object type to be used.
-set                       - Changes the value of a property within the currently selected type.
-status                    - Displays all pending changes within a selected type that need to be committed.
-types                     - Displays all selectable types within the currently logged in server.
-exit                      - Exits from the interactive shell.
-help                      - Displays command line syntax and help menus for individual commands. Example: help login
-
-PERSISTENT MEMORY COMMANDS
-provisionpmm              - Applies specified configuration to PMM.
-applypmmconfig            - Applies a pre-defined configuration to PMM.
-clearpmmpendingconfig     - Clear pending config tasks
-pmmsecuritystate          - Displaying the Security state of dimms.
-showpmm                   - Display information about Persistent Memory modules.
-showpmmpendingconfig      - Shows the pending configuration for PMM.
-showrecommendedpmmconfig  - Show Recommended Configuration
-
-RAW COMMANDS
-rawdelete                 - Raw form of the DELETE command.
-rawget                    - Raw form of the GET command.
-rawhead                   - Raw form of the HEAD command.
-rawpatch                  - Raw form of the PATCH command.
-rawpost                   - Raw form of the POST command.
-rawput                    - Raw form of the PUT command.
-
-SMART ARRAY COMMANDS
-clearcontrollerconfig     - Clears smart array controller configuration.
-createlogicaldrive        - Creates a new logical drive on the selected controller.
-deletelogicaldrive        - Deletes logical drives from the selected controller.
-drivesanitize             - Erase/Sanitize physical drive(s)
-factoryresetcontroller    - Factory resets a controller by index or location.
-smartarray                - Discovers all storage controllers installed in the server and managed by the SmartStorage.
-
-iLO COMMANDS
-certificate               - Command for importing both iLO and login authorization certificates as well as generating iLO certificate signing requests (CSR)
-clearrestapistate         - Clears the persistent state of the REST API. Some portions of the API may not be available until after the server reboots.
-directory                 - Update directory settings, add/delete directory roles, and test directory settings on the currently logged in server.
-disableilofunctionality   - disables iLO's accessibility via the network and resets iLO. WARNING: This should be used with caution as it will render iLO unable to respond to further network operations (including REST operations) until iLO is re-enabled using the RBSU menu.
-eskm                      - Command for all ESKM available actions.
-ethernet                  - Command for configuring Ethernet Management Controller Interfaces and associated properties
-factorydefaults           - Resets iLO to factory defaults. WARNING: user data will be removed use with caution.
-fwintegritycheck          - Perform a firmware integrity check on the currently logged in server.
-firmwareupdate            - Perform a firmware update on the currently logged in server.
-iloaccounts               - Views/Adds/deletes/modifies an iLO account on the currently logged in server.
-backuprestore             - Backup and restore iLO to a server using a .bak file.
-ilofederation             - Adds / deletes an iLO federation group on the currently logged in server.
-ilolicense                - Adds an iLO license key to the currently logged in server.
-iloreset                  - Reset iLO on the current logged in server.
-ipprofiles                - This is used to manage hpeipprofile data store.
-onebuttonerase            - Performs One Button Erase on a system.
-reboot                    - Reboot operations for the current logged in server.
-sendtest                  - Command for sending various tests to iLO.
-serverclone               - Creates a JSON formatted clone file of a system's iLO, Bios, and SSA configuration which can be duplicated onto other systems. User editable JSON file can be manipulated to modify settings before being loaded onto another machine.
-serverinfo                - Shows aggregate health status and details of the currently logged in server.
-serverlogs                - Download and perform log operations.
-serverstate               - Returns the current state of the server.
-sigrecompute              - Command to recalculate the signature of the computer's configuration.
-singlesignon              - Command for all single sign on available actions.
-virtualmedia              - Command for inserting and removing virtual media.
-
-iLO REPOSITORY COMMANDS
-deletecomp                - Deletes components/binaries from the iLO Repository.
-downloadcomp              - Downloads components/binaries from the iLO Repository.
-flashfwpkg                - Flashes fwpkg components using the iLO repository.
-installset                - Manages install sets for iLO.
-listcomp                  - Lists components/binaries from the iLO Repository.
-maintenancewindow         - Manages the maintenance windows for iLO.
-makeinstallset            - Creates install sets for iLO.
-taskqueue                 - Manages the update task queue for iLO.
-uploadcomp                - Upload components/binary to the iLO Repository.
-</pre>
-
-> The syntax to get help details for specific command is '&lt;command&gt; **-h** or **--help**'
-
-<pre>
-iLOrest > <span style="color: #01a982; ">login -h</span>
-usage: login [-h] [--url URL] [--sessionid SESSIONID] [-u USER] [-p PASSWORD] [--biospassword BIOSPASSWORD] [--https HTTPS_CERT]
-             [--includelogs] [--path PATH] [--force-vnic] [--logout]
-             [--selector SELECTOR]
-
-To login remotely run using iLO url and iLO credentials
-        example: login &lt;iLO url/hostname&gt; -u &lt;iLO username&gt; -p &lt;iLO password&gt;
-
-        To login on a local server run without arguments
-        example: login
-
-        NOTE: A [URL] can be specified with an IPv4, IPv6, or hostname address.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --selector SELECTOR   Optionally include this flag to select a type to run the current command on. Use this flag when you wish to select a type without entering another command, or if you wish to work with a type that is different from the one you currently have selected.
-
-LOGIN OPTIONS:
-  Options for logging in to a system.
-
-  --url URL             Use the provided iLO URL to login.
-  --sessionid SESSIONID
-                        Use the provided sessionid to login.
-  -u USER, --user USER  If you are not logged in yet, including this flag along with the
-                        password and URL flags can be used to login to a server in the same command.
-  -p PASSWORD, --password PASSWORD
-                        Use the provided iLO password to log in.
-  --biospassword BIOSPASSWORD
-                        Select this flag to input a BIOS password. Include this
-                        flag if second-level BIOS authentication is needed for the command to execute.
-                        This option is only used on Gen 9 systems.
-  --https HTTPS_CERT    Use the provided CA bundle or SSL certificate with your login to
-                        connect securely to the system in remote mode. This flag has no effect in local mode.
-  --includelogs         Optionally include logs in the data retrieval process.
-  --path PATH           Optionally set a starting point for data collection during login.
-                        If you do not specify a starting point, the default path will be /redfish/v1/.
-                        Note: The path flag can only be specified at the time of login.
-                        Warning: Only for advanced users, and generally not needed for normal operations.  
-  --logout              Logout after the completion of the command.
-</pre>
-
-<p class="fake_header">Syntax</p>
-
-help *[command] [optional parameters]*
-
-<p class="fake_header">Description</p>
-
-Displays command-line syntax and help menus for individual commands. Use this command if you want to know more about a command or need help using a command. Alternatively, you can use the `help` command without specifying a particular command if you wish to see all the available commands and options.
-
-<p class="fake_header">Parameters</p>
-
-- Command
-
-Supplying a command to help will display the help message corresponding to the given command, as well as the options relating to that particular command.
-
-<aside class="notice">If no command is provided, the help command lists and provides a brief description of all available commands.</aside>
-
-- **-h, --help**
-
-Running the `help` command with the **&#8209;h** or **&#8209;&#8209;help** parameter displays information on how to use the `help` command.
-
-- **-c FILE, --config=FILE**
-
-Use the provided configuration file instead of the default one.
-
-- **--cache-dir=PATH**
-
-Use the provided directory as the location to cache data (default location: `C:\Users\USERNAME\AppData\Roaming\.ilorest`).
-
-<p class="fake_header">Inputs</p>
-
-None
-
-<p class="fake_header">Outputs</p>
-
-None
 
 ### Login Command
 
@@ -844,7 +654,7 @@ Including the help flag will display help for the command.
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filtering-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1242,7 +1052,7 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filtering-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1395,7 +1205,7 @@ Optionally including the **selector** flag allows you to select a type to run wh
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filtering-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1566,7 +1376,7 @@ Optionally include this flag to save multiple types of single file. Override the
 
 - **--filter [FILTER_ATTRIBUTE=FILTER_VALUE]**
 
-Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filter-option) for more information).
+Optionally set a filter value for a filter attribute. This uses the provided filter for the currently selected type. (see [Filter Option](#filtering-option) for more information).
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
@@ -1624,7 +1434,7 @@ Save a selected type to a file in JSON format. You can edit the values in the fi
 
 > Load example commands:
 
-> If no filename is supplied with the (-f, --filename) option, save looks for a file named `ilorest.json` in the current working directory. Save will automatically select the required type to make changes.
+> If no filename is supplied with the (-f, --filename) option, load looks for a file named `ilorest.json` in the current working directory. Save will automatically select the required type to make changes.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">load</span>
@@ -1683,6 +1493,10 @@ Loads the server configuration from a file. Run this command without parameters 
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+- **--reboot**
+
+Including the reboot flag will restart the server after loading.
 
 - **-f FILENAME, --filename=FILENAME**
 
@@ -1793,6 +1607,10 @@ Displays all pending changes, regardless of which type is currently selected. Al
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+- **-j, --json**
+
+Including the json flag will display in json format.
 
 <p class="fake_header">Inputs</p>
 

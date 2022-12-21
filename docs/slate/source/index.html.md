@@ -6,7 +6,7 @@ language_tabs:
 
 toc_footers:
   - <a href='https://www.hpe.com/'>Hewlett Packard Enterprise Development LP</a>
-  - Copyright &copy; 2016-2021
+  - Copyright &copy; 2016-2022
 
 includes:
   - overview
@@ -19,6 +19,7 @@ includes:
   - ilocommands
   - ilorepositorycommands
   - smartarraycommands
+  - smartniccommands
   - persistentmemorycommands
   - rawcommands
   - advancedusage

@@ -9,8 +9,20 @@ The RESTful Interface Tool has three modes of operation. By default, the interac
 Interactive mode is started when you run the RESTful Interface Tool without any command-line parameters. The `ilorest >` prompt is displayed and you can enter commands one at a time. Interactive mode provides immediate feedback for an entered command. You can also use this mode to validate a script.
 
 To start an interactive session:
-<ul><li>On Windows systems, double-click `ilorest.exe`. You must be an administrator to run `ilorest.exe`.</li>
-<li>On Linux systems, enter the following command as administrator: `/usr/sbin/ilorest`</li></ul>
+<ul><li>On Windows systems, goto `C:\Program Files\Hewlett Packard Enterprise\RESTful Interface Tool` and double-click `ilorest.exe`. You must be an administrator to run `ilorest.exe`.</li>
+<li>On Linux and Ubuntu systems, enter the following command as administrator: `/usr/sbin/ilorest`</li>
+<li>On MAC, enter the following command as administrator: `/Applications/ilorest`</li>
+<li>On VMware ESXi 7.0, enter the following command as administrator: `/opt/tools/ilorest`</li>
+<li>On VMware ESXi 8.0, enter the following command as administrator: `/opt/ilorest/bin/ilorest.sh`<br>
+NOTE: In ESXi 7.0/8.0, ilorest is also integrated with esxcli utility of vmware.<br>
+Some Examples:<br>
+esxcli ilorest cmd -q login<br>
+esxcli ilorest cmd -q types<br>
+esxcli ilorest cmd -q "select Bios."<br>
+esxcli ilorest cmd -q logout<br>
+esxcli ilorest help<br>
+esxcli ilorest debug -q login<br>
+esxcli ilorest debug -q logout<br></li></ul>
 
 You can exit the interactive mode by entering the `exit` command at the prompt.
 
@@ -20,13 +32,13 @@ You can exit the interactive mode by entering the `exit` command at the prompt.
 
 Tab complete is available for interactive mode in multiple capacities. See the features below.
 
-##### Commands
+##### For Commands
 
 Tab complete is available for viewing and completing commands.
 
 ![Tab complete commands](images/tab_command.gif "Tab complete commands")
 
-##### Types
+##### For Types
 
 Each Redfish resource is associated to a data type. To view or modify a resource, you must first select its type.
 NOTE: Types descriptions are available in the [iLO5 API reference](https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5)
@@ -37,7 +49,7 @@ Tab complete is available for viewing and completing types.
 
 ![Tab complete types](images/tab_types.gif "Tab complete types")
 
-##### Properties and sub-properties
+##### For Properties and sub-properties
 
 Tab complete is available for viewing and completing properties.
 
@@ -46,7 +58,7 @@ Tab complete is available for viewing and completing properties.
 
 ![Tab complete props](images/tab_props.gif "Tab complete props")
 
-##### Schema information for properties
+##### For Schema information for properties
 
 Tab complete can also show schema information for properties.
 
@@ -334,7 +346,8 @@ Running iLOREST against multiple managed systems can also be done using automati
 
 The configuration file contains the default settings for the tool. You can use a text editor to change the behavior of the tool such as adding a server IP address, username, and password. The settings that you add or update in the configuration file are automatically loaded each time you start the tool.
 
-Configuration file locations:
+Configuration file locations(only present for Windows/Linux/Ubuntu OS):
 
 - Windows OS: The same location as the executable file that starts the tool.
-- Linux OS: `/etc/ilorest/Redfish.conf`
+- Linux/Ubuntu OS: `/etc/ilorest/redfish.conf`
+

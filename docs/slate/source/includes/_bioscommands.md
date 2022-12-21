@@ -341,7 +341,7 @@ Current iSCSI Attempts:
 > To add an iSCSI boot attempt use the `--add` option, specifying which iSCSI Network Interface to attempt a boot from. This command will add a boot attempt from option [2] in the `Available iSCSI Boot Network Interfaces` list.
 
 <pre>
-iLOrest > iscsiconfig <span style="color: #01a982; ">--add [2]</span>
+iLOrest > iscsiconfig <span style="color: #01a982; ">--add 2</span>
 One or more properties were changed and will not take effect until system is reset.
 iLOrest > iscsiconfig --list
 Current iSCSI Attempts:
@@ -728,7 +728,7 @@ Please make sure the order of passwords is maintained. The passwords are extract
 
 > Setpassword example commands:
 
-> To set a new password, include the new password and the current password. When setting a bios or power on password with no previous password set, `OLD_PASSWORD` must be set to `None` signifying no password.
+> To set a new password, include the new password and the current password. When setting a bios or power on password with no previous password set, `OLD_PASSWORD` must be set to `None` or `none` or `null` signifying no password.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">setpassword --newpassword newpassword --currentpassword None</span>
@@ -737,7 +737,7 @@ setpassword --newpassword newpass1 --currentpassword
 The operation completed successfully.
 </pre>
 
-> When setting a bios or power on password back to nothing, `NEW_PASSWORD` must be set to `""`.
+> When setting a bios or power on password back to nothing, `NEW_PASSWORD` must be set to `None` or `none` or `null`.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">setpassword --newpassword None --currentpassword oldpassword</span>

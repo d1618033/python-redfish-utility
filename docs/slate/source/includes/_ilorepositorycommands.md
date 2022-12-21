@@ -187,7 +187,7 @@ Logging session out.
 </pre>
 
 <aside class="notice">
-Some firmware can be flashed directly without a reboot, may require a reboot to take effect, or may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
+Some firmware can be flashed directly without a reboot, some may require a reboot to take effect, or some may only be staged for flash on reboot. The command will inform users when a firmware update will take place.
 </aside>
 
 <p class="fake_header">Syntax</p>

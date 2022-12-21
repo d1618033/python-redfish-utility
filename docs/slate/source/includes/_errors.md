@@ -74,7 +74,7 @@ Error Code | Error Name | Description | Resolution
 73| REST_ILOREST_BLOB_NOT_FOUND_ERROR | BLOB could not be found. | Blobstore or Blob does not exist.
 74| JSON_DECODE_ERROR | JSON decoder error. | JSON data could not be decoded. Review the ilorest.debug log using '-d'. Report this issue for further investigation.
 75| V1_SECURITY_STATE_ERROR | Security state error. | Verify iLO security state.
-76| REST_ILOREST_BLOB_OVERRIDE_ERROR (see REST_ILOREST_WRITE_BLOB_ERROR) | iLO RESTful API BLOB override error. | Blobstore may not be available or the size of the data may exceed 15KB. Attempt to reset iLO as well as cycle logout and login operations. Review ilorest.debug log using '-d'. Report this issue for further investigation.
+76| REST_ILOREST_BLOB_OVERRIDE_ERROR (see REST_ILOREST_WRITE_BLOB_ERROR) | iLO RESTful API BLOB override error. | This may happen if more than 1 users are accessing the iLO in local mode/inband. Make sure only one user is accessing the iLO data. And also check if the size of the data exceeds 15KB. 
 77| REST_BLOB_RETRIES_EXHAUSTED_ERROR | Error occurred during the blob operation after maximum retries. | Blobstore may not be available or the size of the data may exceed 15KB if writing. Attempt to reset iLO as well as cycle logout and login operations. Review ilorest.debug log using '-d'. Report this issue for further investigation. Check Absaroka flash status.
 80| RESOURCE_ALLOCATION_ISSUES_ERROR | An error occurred allocating resources for an object. | See ilorest.debug log using '-d'.
 81| ENCRYPTION_ERROR | An error occured during encryption. | Check file encodings.

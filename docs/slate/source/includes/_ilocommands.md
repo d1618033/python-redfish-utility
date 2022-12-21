@@ -6,7 +6,7 @@ iLO commands that are supported for a specific HPE server generation:
 <ul>
 <li>certificate: Gen10 with limited functionality for Gen9
 <li>fwintegritycheck: Gen10
-<li>iloclone: Gen10
+<li>serverclone: Gen10
 <li>sigrecompute: Gen9
 </ul>
 
@@ -236,41 +236,41 @@ None
 <p class="fake_header">Output</p>
 None
 
-### Computeopsmanager Command
+### Computeopsmanagement Command
 
-> To enable your servers to be discovered, monitored and managed through Compute Ops Manager.
+> To enable your servers to be discovered, monitored and managed through Compute Ops Management.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">computeopsmanager connect --activationkey keyvalue</span>
-Connecting computeopsmanager...
-computeopsmanager connection is successful
+iLOrest > <span style="color: #01a982; ">computeopsmanagement connect --activationkey keyvalue</span>
+Connecting computeopsmanagement...
+computeopsmanagement connection is successful
 </pre>
 
-> To disconnect from Compute Ops Manager
+> To disconnect from Compute Ops Management
 
 <pre>
-iLOrest > <span style="color: #01a982; ">computeopsmanager disconnect</span>
+iLOrest > <span style="color: #01a982; ">computeopsmanagement disconnect</span>
 The operation completed successfully.
 </pre>
 
-> To check the status of Compute Ops Manager
+> To check the status of Compute Ops Management
 
 <pre>
-iLOrest > <span style="color: #01a982; ">computeopsmanager status</span>
+iLOrest > <span style="color: #01a982; ">computeopsmanagement status</span>
 ------------------------------------------------
-Compute Ops Manager Status
+Compute Ops Management Status
 ------------------------------------------------
-Compute Ops Manager Status : NotEnabled
+Compute Ops Management Status : NotEnabled
 </pre>
 
 <p class="fake_header">Syntax</p>
 
-computeopsmanager [connect/disconnect/status] [OPTIONS]
+computeopsmanagement [connect/disconnect/status] [OPTIONS]
 
 <p class="fake_header">Description</p>
 
 
-This command will enable your servers to be discovered, monitored and managed through Compute Ops Manager .
+This command will enable your servers to be discovered, monitored and managed through Compute Ops Management.
 
 <p class="fake_header">Parameters</p>
 
@@ -624,7 +624,7 @@ Use this command to add or remove search strings for generic LDAP services.
 
 - **--addrolemap=ROLES, --removerolemap=ROLES**
 
-Use this command to add or remove Role Mapping(s) for the LDAP and Kerberos services.
+Use this command to add or remove Role Mapping(s) for the LDAP services.
 
 <aside class="notice">
 When adding role map, SID is optional.
@@ -1274,8 +1274,8 @@ iloaccounts *[COMMAND] [OPTIONS]*
 
 Adds/deletes an iLO account on the currently logged in server and modifies iLO account privileges.
 
-- **LOGINNAME:**  The account name, not used to login.
-- **USERNAME:** The account username name, used to login.
+- **LOGINNAME:**  The account name, used to login.
+- **USERNAME:** The account username name, not used to login.
 - **PASSWORD:**  The account password, used to login.
 - **Id:** The number associated with an iLO user account.
 - **PRIVILEGES:**
@@ -1775,10 +1775,10 @@ iLOrest > <span style="color: #01a982; ">ipprofiles profile.json</span>
 The operation completed successfully.
 </pre>
 
-> To remove a profile, use the unique key contained in the profile with the `(-d, --delete)` option.
+> To remove a profile, use the unique key contained in the profile with the `(--delete)` option.
 
 <pre>
-iLOrest > ipprofiles <span style="color: #01a982; ">-d 1540504034216</span>
+iLOrest > ipprofiles <span style="color: #01a982; ">--delete 1540504034216</span>
 The operation completed successfully.
 iLOrest > ipprofiles
 {
@@ -1812,9 +1812,17 @@ Including the help flag will display help for the command.
 
 Write results to the specified file.
 
-- **-d DEL_KEY, --delete=DEL_KEY**
+- **--delete=DEL_KEY**
 
 Look for the key or keys in the ipprofile manager and delete.
+
+- **--diags**
+
+Get result of last HVT (diagnostics) run as part of an ipprofile job.
+
+- **-r, --running**
+
+Show status of the currently running or last job executed.
 
 - **-s START_IP, --start=START_IP**
 
@@ -1971,7 +1979,7 @@ Turning on the server in 3 seconds...
 iLO response with code [400]: The operation was not successful due to the current power state (for example, attempting to turn the power off when it is already off).
 </pre>
 
-<aside class="notice">The reboot command will log out, the user, from the server. Wait for the system to fully reboot before attempting to login, or data such as Bios may be unavailable.</aside>
+<aside class="notice">The reboot command will log out the user from the server. Wait for the system to fully reboot before attempting to login, or data such as Bios may be unavailable.</aside>
 <aside class="notice">Arguments are not case-sensitive.</aside>
 
 <p class="fake_header">Syntax</p>
@@ -2045,50 +2053,6 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 You can optionally choose to set the **includelogs** flag. Doing so will include logs in the data retrieval process.
 
 <aside class="notice">This option can be used to limit long login times.</aside>
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
-
-<p class="fake_header">Input</p>
-
-None
-
-<p class="fake_header">Output</p>
-
-None
-
-### Results Command
-
-<p class="fake_header">Syntax</p>
-
-results *[Optional Parameters]*
-
-<p class="fake_header">Description</p>
-
-Use this command to retrieve a Redfish response messages. The results command provides feedback after an iLO state change as a list of attributes that have been modified and a short message log that contains details regarding the state change. The results captured are limited to Redfish response messages for these groups: BIOS, iSCSI, and Smart Array.
-
-<p class="fake_header">Parameters</p>
-
-- **-h, --help**
-
-Including the help flag will display help for the command.
-
-<p class="fake_header">Login Parameters</p>
-
-The following parameters can be included to login to a server in the same line as the command is run.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
 - **--logout**
 
@@ -2208,7 +2172,7 @@ Saving properties of type: SmartStorageConfig, path: /redfish/v1/systems/1/smart
 Saving of clonefile to 'ilorest_clone.json' is complete.
 </pre>
 
-> To save an iLO and Bios config while providing a placeholder value for all user inputs run the command with the `save` argument and include the (`--auto`) option. This option can be used to problematically create a file without user input and then use a script to fill in the settings.
+> To save an iLO and Bios config while providing a placeholder value for all user inputs run the command with the `save` argument and include the (`--auto`) option. This option can be used to programmatically create a file without user input and then use a script to fill in the settings.
 
 <pre>
 iLOrest > serverclone save <span style="color: #01a982; ">--auto</span>
@@ -2254,7 +2218,7 @@ A configuration file 'ilorest_clone.json' containing configuration changes will 
 Proceeding with ServerClone Load Operation...
 This system has BIOS Version U32.
 BIOS Versions are different. Suggest to have 'U30' in place before upgrading.
-This system has has iLO 5 with firmware revision 1.40.
+This system has iLO 5 with firmware revision 1.40.
 iLO Versions are compatible.
 iLO Firmware Revisions are compatible.
 Would you like to continue with migration of iLO configuration from 'ProLiant DL380 Gen10' to 'ProLiant DL360 Gen10'? (y/n)
@@ -2327,7 +2291,7 @@ Discovering data...Done
 iLOrest > serverclone load <span style="color: #01a982; "> --auto --tlscert sso_certificate.txt --ssocert certificate.txt</span>
 This system has BIOS Version U32.
 BIOS Versions are different. Suggest to have 'U30' in place before upgrading.
-This system has has iLO 5 with firmware revision 1.40.
+This system has iLO 5 with firmware revision 1.40.
 iLO Versions are compatible.
 iLO Firmware Revisions are compatible.
 Attempting Clone from a 'ProLiant DL380 Gen10' to a 'ProLiant DL360 Gen10'.
@@ -2500,17 +2464,20 @@ Use this command during 'load' to include a TLS certificate. This should be prop
 
 This is an optional command used to rename the default clone file 'ilorest_clone.json'.
 
-- **--errarch=ARCHIVE, --archive=ARCHIVE**
-
-Allow for save to automatically archive the clone file and error log file. Use with load will archive the clone file, temporary patch file, error log file and changelog file.
-
 - **--uniqueoverride**
 
 Use this command to override the measures stopping the tool from writing over items that are system unique.
 
-- **auto**
+- **--auto**
 
-This optional command provides preset credentials. The preset value of **<p/k>** is used as the password for the iLO account manager accounts and the iLO federation group keys. Warning and confirmation messages are suppressed including those used to alert the user of mismatches and system reboots/iLO resets.
+This optional command provides preset credentials. The preset value of `<p/k>` is used as the password for the iLO account manager accounts and the iLO federation group keys. Warning and confirmation messages are suppressed including those used to alert the user of mismatches and system reboots/iLO resets. 
+When used with load, it reboots the server after load successfully completed.
+
+- **--noautorestart**
+
+This optional command when used with load --auto subcommand, it does not reboot the server automatically.  This is provided for customers who want
+to use both --auto and --noautorestart options together.
+
 
 - **--ilossa**
 
@@ -2853,7 +2820,7 @@ Use this with the --selectlog option to perform operations on the IEL logs.
 
 Use this with the --selectlog option to perform operations on the IML logs.
 
-- **SA**
+- **SL**
 
 Use this with the --selectlog option to perfrom opertation on the Security logs.
 

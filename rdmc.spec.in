@@ -6,7 +6,7 @@
 # norootforbuild
 
 Name:           ilorest
-License:        Copyright 2016-2021 Hewlett Packard Enterprise Development LP
+License:        Copyright 2016-2022 Hewlett Packard Enterprise Development LP
 Group:          System/Configuration/Packaging
 AutoReqProv:    on
 Version:        %VERSION%

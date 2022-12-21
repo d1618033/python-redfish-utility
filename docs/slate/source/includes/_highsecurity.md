@@ -13,7 +13,7 @@ This section describes how to set higher security modes and how to use the RESTf
 ### Using RESTful Interface Tool in iLO Higher Security Modes
 
 RESTful Interface Tool in remote mode continues to function normally in higher security modes.
-To use RESTful Interface Tool locally in higher security modes, you must pass credentials along with your commands.
+To use RESTful Interface Tool locally in higher security modes, you must pass iLO credentials along with your commands.
 <aside class="warning">In interactive mode, you only need to pass your credentials during the login command. In command line mode, you must pass credentials for EACH COMMAND, even if you are already logged in.</aside>
 
 > RESTful Interface Tool functions normally with higher security settings in remote mode.

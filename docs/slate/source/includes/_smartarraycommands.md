@@ -76,7 +76,7 @@ None
 
 <pre>
 
-ilorest > <span style="color: #01a982; ">createlogicaldrive quickdrive Raid0 1E:1:2 HDD SATA Internal --controller=1</span>
+ilorest > <span style="color: #01a982; ">createlogicaldrive quickdrive Raid0 1 SSD SAS --locationtype=Internal --controller="Slot 0"</span>
 
 One or more properties were changed an will not take effect until system is reset.
 </pre>
@@ -283,7 +283,7 @@ None
 > To sanitize a physical drive pass its drive location along with the `--controller` option to specify which controller to perform the operation on.
 
 <pre>
-ilorest > drivesanitize --controller=1 1I:3:4
+ilorest > drivesanitize --controller=0 1I:3:4 --mediatype="HDD"
 Setting physical drive 1I:3:4 for sanitization
 One or more properties were changed and will not take effect until system is reset.
 Sanitization will occur on the next system reboot.
@@ -292,7 +292,7 @@ Sanitization will occur on the next system reboot.
 > To sanitize multiple physical drives pass the location as a comma separated list along with the `--controller` option to dpecify which controller to perform the operation on.
 
 <pre>
-ilorest > drivesanitize --controller=<span style="color: #01a982; ">1 1I:3:3,1I:3:2,1I:3:1</span>
+ilorest > drivesanitize --controller=<span style="color: #01a982; ">0 1I:3:3,1I:3:2,1I:3:1 --mediatype="HDD"</span>
 Setting physical drive 1I:3:3 for sanitization
 Setting physical drive 1I:3:2 for sanitization
 Setting physical drive 1I:3:1 for sanitization
@@ -316,6 +316,10 @@ Including the help flag will display help for the command.
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--mediatype=HDD/SSD**
+
+Use this flag to indicate if the drive is HDD or SSD.  This is mandatory option.
 
 - **--reboot**
 
@@ -454,47 +458,31 @@ Physical Drives&#58;
 > To return a JSON formatted response including controller settings, as well as physical and logical drives information on the selected controller, include the `--controller` option followed by the number in brackets associated to the controller.
 
 <pre>
-ilorest > <span style="color: #01a982; ">smartarray --controller=1</span>
-{
-  "CurrentParallelSurfaceScanCount": 1,
-  "DataGuard": "Disabled",
-  "DegradedPerformanceOptimization": "Disabled",
-  "DriveWriteCache": "Disabled",
-  "ElevatorSort": "Enabled",
-  "EncryptionConfiguration": "None",
-  "EncryptionEULA": null,
-  "ExpandPriority": "Medium",
-  "FlexibleLatencySchedulerSetting": "Default",
-  "InconsistencyRepairPolicy": "Disabled",
-  "Location": "Slot 0",
-  "LocationFormat": "PCISlot",
-  "LogicalDrives": [
-    {
-      "CapacityBlocks": 1172058032,
-      "ParityGroupCount": 0,
-      "SpareRebuildMode": null,
-      "Raid": "Raid0",
-      "LogicalDriveNumber": 1,
-      "Accelerator": "ControllerCache",
-      "BlockSizeBytes": 512,
-      "CapacityGiB": 558,
-      "SpareDrives": [],
-      "DriveLocationFormat": "ControllerPort:Box:Bay",
-      "LogicalDriveName": "004D56ABPEYHC0ARH951TK A39C",
-      "VolumeUniqueIdentifier": "600508B1001C599DE361257397F69972",
-      "StripeSizeBytes": 262144,
-      "StripSizeBytes": 262144,
-      "DataDrives": [
-        "1I:3:2"
-      ]
-  ...
+ilorest > <span style="color: #01a982; ">smartarray --controller=0</span>
+Selected option(s): #StorageCollection.StorageCollection
+------------------------------------------------
+Controller Info
+------------------------------------------------
+Id: 0
+Name: HPE Smart Array SR308i-p Gen11
+FirmwareVersion: 5.32
+Manufacturer: HPE
+Model: HPE Smart Array SR308i-p Gen11
+PartNumber: 830826-001
+SerialNumber: PZDLCX1GFG002O
+SKU: 836269-001
+Status: {'Health': 'Critical', 'State': 'Enabled'}
+SupportedDeviceProtocols: ['SAS', 'SATA']
+SupportedControllerProtocols: ['PCIe']
+ILOREST return code: 0
 </pre>
 
 > To return a JSON formatted response regarding the settings and attributes of the selected physical drive on the selected controller include the `--controller` option specifying the controller and the `--pdrive` option specifying the physical drive number in brackets.
 
 <pre>
-ilorest > <span style="color: #01a982; ">smartarray --controller=1 --pdrive=1I:3:4</span>
+ilorest > <span style="color: #01a982; ">smartarray --controller=0 --pdrive=1I:3:4 -j</span>
 {
+  "Controller": "Slot=3 - HPE Smart Array SR308i-p Gen11",
   "BlockSizeBytes": 512,
   "CapacityGB": 400,
   "CapacityLogicalBlocks": 781422768,
@@ -535,8 +523,9 @@ ilorest > <span style="color: #01a982; ">smartarray --controller=1 --pdrive=1I:3
 > To return a JSON formatted response regarding the settings and attributes of the selected logical drive on the selected controller include the `--controller` option specifying the controller and the `--ldrive` option specifying the logical drive number in brackets.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">smartarray --controller=1 --ldrive=1</span>
+iLOrest > <span style="color: #01a982; ">smartarray --controller=0 --ldrive=1 -j</span>
 {
+  "Controller": "Slot=3 - HPE Smart Array SR308i-p Gen11",
   "Accelerator": "ControllerCache",
   "BlockSizeBytes": 512,
   "CapacityBlocks": 1172058032,

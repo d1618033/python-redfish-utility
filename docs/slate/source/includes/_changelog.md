@@ -1,5 +1,40 @@
 # Change Log
 
+
+##Version 3.6.0.0
+
+**Fixes:**
+
+* Fixed several issues related to command and subcommand help.
+* Fixed an issue in ipprofiles command to push HVT profile to Intelligent Provisioning page when server in poweroff or POST mode.
+* Fixed issues with setpassword command when resetting password to blank in both Gen9 and Gen10 servers.
+* Fixed several issues with serverclone command.
+* Fixed several customer issues reported in github.
+* Fixed issues in serverinfo command w.r.t. json formatting and filtering.
+* Upgraded openssl to 1.0.2zd
+
+**Enhancements:**
+
+* Added support for ESXi 8.0.
+* Introduced smartnic command to manage pensando and other Smart NICs
+
+
+##Version 3.5.1.0
+
+**Fixes:**
+
+* Changed computeopsmanager command to computeopsmanagement
+* Fixed an issue in ipprofiles command to push HVT profile to Intelligent Provisioning page.  Added new option -t/--sleeptime to specify the wait time to enter Intelligent Provisioning page. Default is set to 320s(4 min).
+* Fixed an InvalidFileInputError exception when deleting ipprofiles.
+* Fixed an issue where login command did not prompt for password when just username is given.
+* Fixed an issue where ethernet command did not display data completely.
+* Fixed an issue where serverinfo --system command did not display nic ports with iLO FW 2.70.
+
+**Enhancements:**
+
+* Added support for Red Hat Enterprise Linux(RHEL) ver 9
+* Added new option -t/--sleeptime to specify the wait time to enter Intelligent Provisioning page with default value to (4 min).
+
 ##Version 3.5.0
 
 **Fixes:**   
@@ -13,7 +48,7 @@
 
 **Feature Enhancements:**   
 
-* Added support to manage Compute Ops Manager which abstracts and orchestrates infrastructure and compute workflows.  
+* Added support to manage ComputeOpsManagement which abstracts and orchestrates infrastructure and compute workflows.
 * Added support to enable/disable enhanced download capability to ethernet command.  
 
 ## Version 3.3.0

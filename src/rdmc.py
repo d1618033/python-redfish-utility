@@ -204,6 +204,8 @@ try:
     # enable fips mode if our special functions are available in _ssl and OS is
     # in FIPS mode
     FIPSSTR = ""
+    #if Encryption.check_fips_mode_os():
+    #    LOGGER.info("FIPS mode is already enabled in openssl 3.0!")
     if Encryption.check_fips_mode_os() and not Encryption.check_fips_mode_ssl():
         ssl.FIPS_mode_set(int(1))
         if ssl.FIPS_mode():
@@ -884,7 +886,7 @@ class RdmcCommand(RdmcCommandBase):
         except redfish.rest.connections.SecurityStateError as excp:
             self.retcode = ReturnCodes.V1_SECURITY_STATE_ERROR
             self.ui.printer(
-                "High security mode [%s] has been enabled. "
+                "High security mode [%s] or Host Authentication has been enabled. "
                 "Please provide valid credentials.\n" % str(excp)
             )
         except redfish.hpilo.risblobstore2.ChifDllMissingError as excp:
@@ -915,8 +917,7 @@ class RdmcCommand(RdmcCommandBase):
             self.retcode = ReturnCodes.REST_ILOREST_BLOB_OVERRIDE_ERROR
             self.ui.error(excp)
             self.ui.printer(
-                "\nBlob was overwritten by another user. Please "
-                "ensure only one user is making changes at a time locally.\n"
+                "\nAnother user access in progress. Pease ensure only one user is accessing at a time locally.\n"
             )
         except redfish.hpilo.risblobstore2.BlobRetriesExhaustedError as excp:
             self.retcode = ReturnCodes.REST_BLOB_RETRIES_EXHAUSETED_ERROR

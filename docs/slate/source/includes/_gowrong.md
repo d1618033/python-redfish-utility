@@ -102,9 +102,9 @@ You are not using a selector that is exclusive to the type you want and/or the t
 
 1. Use a selector that is exclusive to the type you want.
 
-2. Verify that the type you have selected, does not have more than one instance. In this case, the [filter option](#filter-option) can help you limit the results to the instance you want.
+2. Verify that the type you have selected, does not have more than one instance. In this case, the [filter option](#filtering-option) can help you limit the results to the instance you want.
 
-> This example shows that we are selecting only 1 type, but multiple instances are available for that type. We only want to modify or view 1 instance! We can use the [--filter](#filter-option) option to limit to 1 instance only.
+> This example shows that we are selecting only 1 type, but multiple instances are available for that type. We only want to modify or view 1 instance! We can use the [--filter](#filtering-option) option to limit to 1 instance only.
 
 <pre>
 iLOrest > select <span style="color: #01a982; ">EthernetInterface.</span>
@@ -258,7 +258,7 @@ This list describes any reboot or reset behavior for commands:
   - Reboot
   - OneButtonErase
   - Serverclone
-  - iLOclone
+  
 - The following commands can reboot your system if you specify the option:
   - BiosDefaults
   - BootOrder
@@ -271,12 +271,11 @@ This list describes any reboot or reset behavior for commands:
 - The following commands will reset iLO:
   - OneButtonErase
   - Serverclone
-  - iLOclone
   - iLOreset
   - Uploadcomp - Can reset iLO if the firmware requires an iLO reset to finish flashing and you are directly flashing
   - flashfwpkg - Can reset iLO if the firmware requires an iLO reset to finish flashing
 - The following commands will factory reset your iLO:
-  - iLOclone
+  - Serverclone
   - factoryreset
 
 ## Firmware uploading/flash issues

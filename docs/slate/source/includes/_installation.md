@@ -4,9 +4,9 @@
 
 The requirements for the server, which you will manage with the tool, are as follows:
 
-- Local management: Gen9 or greater server with a Windows OS or Linux OS (64&#8209;bit) installed.  
+- Local management: Gen9 or greater server with a Windows/Linux/Ubuntu/ESXi OS (64&#8209;bit) installed.  
   Note: On a fresh windows installation, Chif driver need to be installed which will be available in Service Pack for ProLiant(SPP). 
-- Operating System: Windows 2019, 2016, 2012R2, RHEL 7.x, 8.x, SUSE 15SPx, 12SP3, MAC, Debian 9, 10  
+- Operating System: Windows 2022, 2019, 2016, RHEL 8.x, 9.x, SUSE 15SPx, 12SP3, MAC, Ubuntu, Debian, ESXi7.0 and ESXi 8.0.  
 - Remote management: Gen9 or greater server with or without an OS installed.
 - iLO 5: 2.10 or later
 - iLO 4: 2.10 or later
@@ -19,7 +19,8 @@ Note: When using an earlier version of iLO or an earlier version of the RESTful 
 ### Installing the RESTful Interface Tool
 
 Perform the following steps to install the tool in a Windows OS or Linux OS.  
-Note: Debian, Ubuntu and Mac Versions are available from [Github Releases](https://github.com/HewlettPackard/python-redfish-utility/releases/latest) URL.
+Note: Debian, Ubuntu and Mac Versions are available from [Github Releases](https://github.com/HewlettPackard/python-redfish-utility/releases/latest) URL. And ESXi Versions are available in [VIBS Depot](http://vibsdepot.hpe.com/index.html) 
+
 
 1. Download the RESTful Interface Tool for your operating system from [iLO Restful API Ecosystem](https://www.hpe.com/us/en/servers/restful-api.html) or directly from [Github Releases](https://github.com/HewlettPackard/python-redfish-utility/releases/latest)
 2. Install the installation package on the server you prefer to manage for local management. For remote management, install the package on a laptop or server that has access to the managed server network.
@@ -33,6 +34,14 @@ Note: Debian, Ubuntu and Mac Versions are available from [Github Releases](https
 2. Click **Hewlett Packard Enterprise** > **RESTful Interface Tool**.
 3. Right-click the **RESTful Interface Tool** prompt, and then click **Run as Administrator**.
 
-#### Linux
+#### Linux and Ubuntu
 1. Open a terminal window.
 2. Run the following command as an administrator to start interactive mode: `/usr/sbin/ilorest`
+
+#### MAC
+1. Open a terminal window.
+2. Run the following command as an administrator to start interactive mode: `/Applications/ilorest`
+
+#### Vmware ESXi
+1. Open a terminal window and install ilorest component.
+2. Run the following command as an administrator to start interactive mode: `/opt/ilorest/bin/ilorest.sh` for ESXi 8.0 and `/opt/tools/ilorest` for ESXi 7.0

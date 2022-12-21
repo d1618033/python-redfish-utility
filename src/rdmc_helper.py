@@ -186,11 +186,14 @@ class ReturnCodes(object):
     FAILED_TO_UPLOAD_COMPONENT = 103
     TASKQUEUE_ERROR = 104
 
-    # **** Compute Ops Manager Errors****
+    # **** ComputeOpsManagement Errors****
     CLOUD_CONNECT_TIMEOUT = 111
     CLOUD_CONNECT_FAILED = 112
     CLOUD_ALREADY_CONNECTED = 113
     PROXY_CONFIG_FAILED = 114
+
+    # **** scep error ****
+    SCEP_ENABLED_ERROR = 121
 
     # ****** GENERAL ERRORS ******
     GENERAL_ERROR = 255
@@ -212,25 +215,25 @@ class ConfigurationFileError(RdmcError):
 
 
 class ProxyConfigFailedError(RdmcError):
-    """Raised when compute ops manager connection fails"""
+    """Raised when ComputeOpsManagement connection fails"""
 
     pass
 
 
 class CloudConnectTimeoutError(RdmcError):
-    """Raised when compute ops manager connection times out"""
+    """Raised when ComputeOpsManagement connection times out"""
 
     pass
 
 
 class CloudConnectFailedError(RdmcError):
-    """Raised when compute ops manager connection fails"""
+    """Raised when ComputeOpsManagement connection fails"""
 
     pass
 
 
 class AlreadyCloudConnectedError(RdmcError):
-    """Raised when compute ops manager is already connected"""
+    """Raised when ComputeOpsManagement is already connected"""
 
     pass
 
@@ -401,10 +404,6 @@ class IloLicenseError(RdmcError):
 
     pass
 
-class ScepenabledError(RdmcError):
-    """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""
-
-    pass
 
 class ScepenabledError(RdmcError):
     """Raised when the generation csr or deletion of https cert is issues when scep is enabled"""
@@ -537,7 +536,7 @@ class UI(object):
 
     def invalid_commmand_line(self, excp):
         """Called when user entered invalid command line entries"""
-        self.printer(("\nError: %s\n" % excp), excp=excp)
+        self.printer(("Error: %s\n" % excp), excp=excp)
 
     def ilo_ris_corruption(self, excp):
         """Called when user entered invalid command line entries"""
