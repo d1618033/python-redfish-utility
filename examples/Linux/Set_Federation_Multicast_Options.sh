@@ -43,7 +43,7 @@ runLocal(){
 
 runRemote(){
   ilorest select Manager. --url=$1 --user $2 --password $3
-  ilorest set Oem/Hpe/FederationConfig/iLOFederationManagerment=Enabled
+  ilorest set Oem/Hpe/FederationConfig/iLOFederationManagement=Enabled
   # Notes:                                                          #
   # Disabling multicast discovery or announcements will             #
   #    disable iLO Federation features.                             #
@@ -51,7 +51,7 @@ runRemote(){
   #    All devices in a Federation group should have the same       #
   #    scope and TTL to avoid problems with peer discovery.         #
 
-  ilorest set Oem/Hpe/FederationConfig/MulticastDiscoveryEnabled=Enabled
+  ilorest set Oem/Hpe/FederationConfig/MulticastDiscovery=Enabled
   # Valid values for MulticastAnnouncementInterval are              #
   #    "Disabled", "30", "60", "120", "300", "600",                 #
   #    "900", and "1800".  Numeric values are in seconds.           #
