@@ -126,6 +126,66 @@ iLOrest > <span style="color: #01a982; ">certificate tls certfile.txt</span>
 The operation completed successfully.
 </pre>
 
+> To generate CSR use certificate command with gen_csr subcommand with all required arguments.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate gen_csr "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "False"</span>
+The operation completed successfully.
+</pre>
+
+
+> To view https certificate use certificate command with view subcommand followed by option --https_cert 
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate view --https_cert</span>
+Https Certificate details ...
+Id:HttpsCert
+target:/redfish/v1/Managers/1/SecurityService/HttpsCert/Actions/HpeHttpsCert.GenerateCSR/
+target:/redfish/v1/Managers/1/SecurityService/HttpsCert/Actions/HpeHttpsCert.ImportCertificate/
+CertificateSigningRequest:None
+Issuer:CN = Default Issuer (Do not trust), O = Hewlett Packard Enterprise, OU = ISS, L = Americas, ST = Houston, C = US
+SerialNumber:dc:XX:XX:XX:XX:XX:XX:XX
+Subject:CN = ILOSerNum-ACC.its.hpecorp.net, O = Hewlett Packard Enterprise, OU = ISS, L = Americas, ST = Houston, C = US
+ValidNotAfter:2037-10-11T18:30:00Z
+ValidNotBefore:2022-10-12T18:30:00Z
+</pre>
+
+> To view scep certificate use certificate command with view subcommand followed by option --scep_cert
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate view --scep_cert</span>
+Scep Certificate details ...
+Id:AutomaticCertificateEnrollment
+Certificate@Redfish.AllowableValues:['Certificate']
+target:/redfish/v1/Managers/1/SecurityService/AutomaticCertificateEnrollment/Actions/HpeAutomaticCertEnrollment.ImportCACertificate/
+CACertificateName:/DC=local/DC=ilorest/CN=ilorest-ROOT-CA
+CertificateEnrollmentStatus:Disabled
+ChallengePassword:None
+ServerUrl:https://10.10.10.10/certsrv/mscep/mscep.dll
+ServiceEnabled:False
+City:Americas
+CommonName:ILOSerNum-ACC.its.hpecorp.net
+Country:US
+IncludeIP:False
+OrgName:Hewlett Packard Enterprise
+OrgUnit:ISS
+State:Houston
+</pre>
+
+> To import scep certificate use certificate command with import subcommand followed by option --scep provided with scep cert file
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate import --scep scep.txt</span>
+Imported the scep certificate successfully
+</pre>
+
+> To auto enroll use certificate command with auto_enroll  subcommand followed by required arguments
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate auto_enroll "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "https://10.10.10.10/certsrv/mscep/mscep.dll" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" "True" "False"</span>
+
+</pre>
+
 <aside class="notice">
 <ul>
 <li>Please make sure the order of arguments is correct. The parameters are extracted based on their position in the arguments list.</li>
@@ -137,7 +197,7 @@ The operation completed successfully.
 
 <p class="fake_header">Syntax</p>
 
-certificate *[Optional Parameters]*
+certificate *[SUBCOMMAND]* *[Optional Parameters]*
 
 <p class="fake_header">Description</p>
 Command for importing both iLO and login authorization certificates as well as generating iLO certificate signing requests.
@@ -147,6 +207,19 @@ Command for importing both iLO and login authorization certificates as well as g
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+<p class="fake_header">SUBCOMMAND</p>
+
+Subcommand can be csr/getcsr/ca/crl/tls/gen_csr/view/import/auto_enroll. Usages are each one are given on the right side.
+
+- csr/gen_csr - Creates new certificate request.
+- getcsr - Downloads the certificate to certificate.txt.
+- ca - Imports CA certificate.
+- crl - Imports CRL certificate.
+- tls - Imports TLS certificate.
+- view - Prints scep certicate with option --scep_cert or https certificate with option --https_cert.
+- auto_enroll - Configures new SCEP certificate.
+- import - Imports certificate. To import scep certificate, use --scep option. 
 
 - **-f FILENAME, --filename=FILENAME**
 
@@ -1654,6 +1727,88 @@ iLOrest > <span style="color: #01a982; ">ilolicense XXXXX-XXXXX-XXXXX-XXXXX-XXXX
 The resource has been created successfully.
 </pre>
 
+> To Apply an iLO license on the current logged in server run the command with the --install sub command and  license key as an argument.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">ilolicense --install XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>
+The resource has been created successfully.
+</pre>
+
+> To check whether an iLO license key is installed on current logged in server run the command with the --check sub command and  license key as an argument.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">ilolicense --check XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>
+Matched. Provided key is installed on this server
+</pre>
+
+> To uninstall an iLO license key on current logged in server run the command with the --uninstall sub command.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">ilolicense --uninstall</span>
+Uninstalled license successfully
+</pre>
+
+> To check the confirmed state for an iLO license key on current logged in server run the command with the --check_confirm sub command.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">ilolicense --check_confirm</span>
+"State: unconfirmed"
+License is not confirmed
+</pre>
+
+> To get the details of an iLO license key on current logged in server run the command without any subcommand.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">ilolicense</span>
+Id:1
+Code:
+Message:
+Service:www.hpe.com/glis
+Status:False
+License:iLO Advanced
+LicenseKey:XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+Quantity:1
+State:unconfirmed
+Signer:iLO
+ChipId:XXXXXXXXXXXXXXXX
+Product:ProLiant DL325 Gen11
+SerialNumber:XXXXXXXXXX
+Description:iLO License View
+License:iLO Advanced
+LicenseClass:FQL
+LicenseErr:
+LicenseExpire:
+AutoCertEnroll:True
+DirectoryAuth:True
+DowngradePolicy:True
+EmailAlert:True
+FWScan:True
+Federation:True
+Jitter:True
+KD:True
+KeyMgr:True
+MURC:True
+ODIM:False
+PowerReg:True
+RC:True
+Recovery:True
+RemoteSyslog:True
+Scrncap:True
+SecureErase:True
+SmartCard:True
+SuiteB:True
+TextCons:True
+VM:True
+VMScript:True
+VSPLogging:True
+LicenseInstallDate:19 Oct 2022
+LicenseKey:XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+LicenseSeats:1
+LicenseTier:ADV
+LicenseType:Perpetual
+Name:iLO License
+</pre>
+
 <p class="fake_header">Syntax</p>
 
 ilolicense *[LICENSE_KEY] [OPTIONS]*
@@ -1666,6 +1821,22 @@ Applies an iLO license on the currently logged in server.
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+- **--install**
+
+Installs the provided iLO license.
+
+- **--uninstall**
+
+Removes or uninstall the iLO license.
+
+- **--check**
+
+Checks and matches the installed license with the provided license.
+
+- **--check_confirm**
+
+Checks the status of installed iLO license.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -3129,7 +3300,7 @@ The operation completed successfully.
 > To export a certificate use the `export` argument.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">unifiedcertificate export -f cert.txt
+iLOrest > <span style="color: #01a982; ">unifiedcertificate export -f cert.txt</span>
 </pre>
 
 <p class="fake_header">Syntax</p>

@@ -1,5 +1,18 @@
 # Change Log
 
+##Version 4.0.0.0
+
+**Fixes:**
+
+* Fixed several customer issues reported in github. 
+* Upgraded openssl to 1.0.2zf
+
+**Enhancements:**
+
+* Added support for new storage RDE URLs for iLO6 (Gen11)
+* iLOLicense command is enhanced with install, uninstall and check license options.
+* Cerificate command has new option to support SCEP (Simple Certificate Enrollment Protocol)
+
 
 ##Version 3.6.0.0
 

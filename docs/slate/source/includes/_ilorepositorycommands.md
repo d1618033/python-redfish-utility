@@ -216,6 +216,14 @@ Include this flag to force upload firmware with the same name already on the rep
 
 Include this flag to ignore all checks to the taskqueue before attempting to process the .fwpkg file.
 
+- **--tpmover**
+
+Use this flag if the server you are currently logged into has a TPM chip installed.
+
+- **--update_srs**
+
+The component flashed will become a part of the system recovery set (srs).
+
 <p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.

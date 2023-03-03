@@ -16,12 +16,8 @@ build/
 .cache
 .vagrant
 .sass-cache
-
-# YARD artifacts
 .yardoc
 _yardoc
 doc/
 .idea/
-
-# Vagrant artifacts
 ubuntu-*-console.log

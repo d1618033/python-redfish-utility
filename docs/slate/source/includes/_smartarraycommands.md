@@ -92,32 +92,93 @@ ilorest > <span style="color: #01a982; ">createlogicaldrive customdrive Raid5 1E
 One or more properties were changed an will not take effect until system is reset.
 </pre>
 
+> To create a volume run the command with the following arguments: The type of creation as volume, the raid level, the drive location. Also include the --controller option selecting the controller the drive will be created on. See the options list for possible values of these and more.
+
+<pre>
+ilorest > <span style="color: #01a982; ">createlogicaldrive volume RAID0 1D:0:0 --DisplayName Name1 --iOPerfModeEnabled False --ReadCachePolicy ReadAhead --WriteCachePolicy ProtectedWriteBack --WriteHoleProtectionPolicy Yes --sparedrives 1E:0:0 --capacitygib 1000 --controller=0</span>
+Operation completed successfully
+</pre>
+
 <aside class="notice">
 The createlogicaldrive command requires a reboot before creating the logical drives. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
 </aside>
 
 <p class="fake_header">Syntax</p>
 
-createlogicaldrive *[Optional Parameters]*
+createlogicaldrive *[SUBCOMMAND]* *[Optional Parameters]*
 
 <p class="fake_header">Description</p>
 Creates a new logical drive on the selected controller.
 
-Options:
-- raid-level:             Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, Raid6, Raid60
-- media-type:             SSD,HDD
-- interface-type:         SAS, SATA, NVMe
-- drive-location:         Internal, External
-- --spare-type:           Dedicated, Roaming
-- --accelerator-type:     ControllerCache, IOBypass, None
-- --paritytype:           Default, Rapid
+<p class="fake_header">SUBCOMMAND</p>
 
+* Either QuickDrive or CustomDrive for iLO5(Gen10/Gen10Plus)
+* Volume for Gen11(iLO6)
 
 <p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+- **--DisplayName**
+
+Drive display name (usable for volume subcommand)
+
+- **--iOPerfModeEnabled**
+
+Either True or False. (usable for volume subcommand)
+
+- **--ReadCachePolicy**
+
+Either ReadAhead or Off. (usable for volume subcommand)
+
+- **--WriteCachePolicy**
+
+Either Off, WriteThrough, ProtectedWriteBack or UnprotectedWriteBack. (usable for volume subcommand)
+
+- **--WriteHoleProtectionPolicy**
+
+Either Yes or No (usable for volume subcommand)
+
+- **--sparedrives**
+
+Specify Spare Drives if needed for create volume. Has to be different than main drive where volume is getting created. (usable for volume subcommand)
+
+- **--raid-level**
+  
+Use this to specify one of the raid levels  
+  Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, Raid6, Raid60  
+  
+  
+- **--media-type**  
+  
+Either SSD or HDD
+  
+  
+- **--interface-type**  
+
+Should be SAS, SATA or NVMe
+  
+    
+- **--drive-location**
+  
+Either Internal or External  
+  
+
+- **spare-type**
+  
+Either Dedicated or Roaming  
+  
+- **--accelerator-type**
+  
+Either ControllerCache, IOBypass or None  
+  
+
+- **paritytype**
+  
+Either Default or Rapid
+
 
 - **--controller=CONTROLLER**
 
@@ -131,7 +192,7 @@ Optionally include to set the drive name (usable in custom creation only).
 
 Optionally include to set the spare drives by the physical drive's drive Location (usable in custom creation only).
 
-- **--capacityGiB=CAPACITYGIB**
+- **--capacitygib=CAPACITYGIB**
 
 Optionally include to set the capacity of the drive in GiB (usable in custom creation only, use -1 for max size).
 
@@ -366,6 +427,13 @@ ilorest > <span style="color: #01a982; ">factoryresetcontroller --controller=1</
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
+> To factory reset a controller on Gen 11 server run the command with --resettype with options either resetall or preservevolumes followed by --storageid.
+
+<pre>
+ilorest > <span style="color: #01a982; ">factoryresetcontroller --resettype resetall --storageid DE000100</span>
+Operation completed successfully
+</pre>
+
 > To factory reset all controllers run this command and include the `--all` option.
 
 <pre>
@@ -385,6 +453,14 @@ Restores a controller to factory defaults.
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+-- **--reset_type**
+
+Either ResetAll or PreserveVolumes (Usable in iLO6/Gen11 servers)
+
+-- **--storage_id**
+
+Storage id like DE000010 (Usable in iLO6/Gen11 servers)
 
 - **--controller=CONTROLLER**
 

@@ -224,6 +224,8 @@ Connect to the server as the provided user.
 
 Connect to the server with the password corresponding to the given user.
 
+NOTE: In Linux, if password contains '!' (exclamation), then enclose the password with single quotation (')
+
 - **--usercert UserCertificate**
 
 Specify a user certificate file path for certificate based authentication with iLO.
