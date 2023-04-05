@@ -91,10 +91,12 @@ class SecurityStatusCommand(RdmcCommandBase):
                     if secstate == b"\x00":
                         state = struct.unpack("B", secstate)
                         state = str(state).strip(",( )")
-                        self.rdmc.ui.printer("Security State is {}...\n".format(state))
+                        self.rdmc.ui.printer("Security State is {}\n".format(state))
                     else:
                         secstate = secstate.decode("utf-8")
-                        self.rdmc.ui.printer("Security State is {}...\n".format(secstate))
+                        self.rdmc.ui.printer("Security State is {}\n".format(secstate))
+                else:
+                    self.rdmc.ui.printer("Security State is {}\n".format(secstate))
                 self.rdmc.ui.printer("Credentials: Valid\n")
             else:
                 self.rdmc.ui.error("Credentials: Invalid\n")
@@ -105,12 +107,12 @@ class SecurityStatusCommand(RdmcCommandBase):
                 if secstate == b"\x00":
                     state = struct.unpack("B", secstate)
                     state = str(state).strip(",( )")
-                    self.rdmc.ui.printer("Security State is {}...\n".format(state))
+                    self.rdmc.ui.printer("Security State is {}\n".format(state))
                 else:
                     secstate = secstate.decode("utf-8")
-                    self.rdmc.ui.printer("Security State is {}...\n".format(secstate))
+                    self.rdmc.ui.printer("Security State is {}\n".format(secstate))
             else:
-                self.rdmc.ui.printer("Security State is {}...\n".format(secstate))
+                self.rdmc.ui.printer("Security State is {}\n".format(secstate))
 
         return ReturnCodes.SUCCESS
 

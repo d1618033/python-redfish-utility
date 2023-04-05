@@ -106,8 +106,27 @@ class ClearControllerConfigCommand:
                             )
                             for control in content:
                                 if (
+                                    slotcontrol.lower()
+                                    == control["Location"]
+                                    .lower()
+                                    .split("slot")[-1]
+                                    .lstrip()
+                                ):
+                                    controllist.append(control)
+                    elif "slot" in options.controller.lower():
+                        controllerid = options.controller.strip("Slot ")
+                        slotlocation = self.get_location_from_id(controllerid)
+                        if slotlocation:
+                            slotcontrol = (
+                                slotlocation.lower().strip('"').split("slot")[-1].lstrip()
+                            )
+                            for control in content:
+                                if (
                                         slotcontrol.lower()
-                                        == control["Location"].lower().split("slot")[-1].lstrip()
+                                        == control["Location"]
+                                        .lower()
+                                        .split("slot")[-1]
+                                        .lstrip()
                                 ):
                                     controllist.append(control)
                     if not controllist:
@@ -117,20 +136,18 @@ class ClearControllerConfigCommand:
                         "Selected controller not found in the current " "inventory list."
                     )
                 for controller in controllist:
-                    self.rdmc.ui.printer(
-                        "ClearController path and payload: %s, %s\n"
-                        % (controller["@odata.id"], contentsholder)
-                    )
+                    # self.rdmc.ui.printer(
+                    #    "ClearController path and payload: %s, %s\n"
+                    #    % (controller["@odata.id"], contentsholder)
+                    # )
                     self.rdmc.app.put_handler(controller["@odata.id"], contentsholder)
 
             self.cmdbase.logout_routine(self, options)
             # Return code
             return ReturnCodes.SUCCESS
 
-    def get_storage_location_from_id(self,storage_id):
-        for sel in self.rdmc.app.select(
-            "StorageController", path_refresh=True
-        ):
+    def get_storage_location_from_id(self, storage_id):
+        for sel in self.rdmc.app.select("StorageController", path_refresh=True):
             if "Collection" not in sel.maj_type:
                 controller_storage = sel.dict
                 if controller_storage["Id"] == str(storage_id):

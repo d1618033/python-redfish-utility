@@ -63,7 +63,7 @@ class CertificateCommand:
             " TLS or CA certificate.\n Import Scep Certificate  \n Invoke Auto Enroll of certificate generation\n"
             "NOTE: Use quotes to include parameters which contain whitespace when "
             'generating a CSR.\nexample: certificate gen_csr "Hewlett Packard Enterprise"'
-            '"iLORest Group" "CName"\n"United States" "False\True" "Texas" "Houston"',
+            '"iLORest Group" "CName"\n"United States" "Texas" "Houston" "False\True"',
             "summary": "Command for importing both iLO and login authorization "
             "certificates as well as generating iLO certificate signing requests (CSR)",
             "aliases": [],

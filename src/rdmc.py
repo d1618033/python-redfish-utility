@@ -22,33 +22,31 @@ This is the main module for Redfish Utility which handles all of the CLI and UI 
 # ---------Imports---------
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from builtins import bytes, str, open, super, range, input, int, object
-import os
-import sys
-import six
-import ssl
-import copy
-import glob
-import errno
-import shlex
-import ctypes
-import logging
-import traceback
-import importlib
+
 import collections
-
-from six.moves import input
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.shortcuts import CompleteStyle
-from prompt_toolkit.output import Output
-from prompt_toolkit.formatted_text import HTML
+import copy
+import ctypes
+import errno
+import glob
+import importlib
+import logging
+import os
+import shlex
+import sys
+import traceback
 from argparse import RawTextHelpFormatter
+from builtins import str, open, super
 
-import redfish.ris
+import six
+from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.shortcuts import CompleteStyle
+from six.moves import input
+
 import redfish.hpilo
 import redfish.rest.v1
+import redfish.ris
 
 try:
     import cliutils
@@ -67,8 +65,6 @@ try:
     from config.rdmc_config import RdmcConfig
 except ImportError:
     from ilorest.config.rdmc_config import RdmcConfig
-
-from redfish.ris.rmc_helper import NothingSelectedError, UndefinedClientError
 
 try:
     from rdmc_helper import (
@@ -174,12 +170,11 @@ except ImportError:
     )
 
 from argparse import ArgumentParser
+
 try:
     from rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
 except ImportError:
     from ilorest.rdmc_base_classes import RdmcCommandBase, RdmcOptionParser, HARDCODEDLIST
-
-from contextlib import contextmanager
 
 import warnings
 
@@ -204,17 +199,17 @@ try:
     # enable fips mode if our special functions are available in _ssl and OS is
     # in FIPS mode
     FIPSSTR = ""
-    #if Encryption.check_fips_mode_os():
-    #    LOGGER.info("FIPS mode is already enabled in openssl 3.0!")
-    if Encryption.check_fips_mode_os() and not Encryption.check_fips_mode_ssl():
-        ssl.FIPS_mode_set(int(1))
-        if ssl.FIPS_mode():
-            FIPSSTR = (
-                "FIPS mode enabled using openssl version %s.\n" % ssl.OPENSSL_VERSION
-            )
-            LOGGER.info("FIPS mode enabled!")
-        else:
-            LOGGER.info("FIPS mode can not be enabled!")
+    if Encryption.check_fips_mode_os():
+        LOGGER.info("FIPS mode is already enabled in openssl 3.0!")
+    # if Encryption.check_fips_mode_os() and not Encryption.check_fips_mode_ssl():
+    #    ssl.FIPS_mode_set(int(1))
+    #    if ssl.FIPS_mode():
+    #        FIPSSTR = (
+    #            "FIPS mode enabled using openssl version %s.\n" % ssl.OPENSSL_VERSION
+    #        )
+    #        LOGGER.info("FIPS mode enabled!")
+    #    else:
+    #        LOGGER.info("FIPS mode can not be enabled!")
 except AttributeError:
     pass
 
@@ -243,8 +238,7 @@ class RdmcCommand(RdmcCommandBase):
         # import all extensions dynamically
         for name in extensions.classNames:
             pkgName, cName = name.rsplit(".", 1)
-            pkgName = ".extensions" + pkgName
-
+            pkgName = "extensions" + pkgName
             try:
                 if "__pycache__" not in pkgName and "Command" in cName:
                     self.commands_dict[cName] = getattr(
@@ -366,8 +360,13 @@ class RdmcCommand(RdmcCommandBase):
 
         if opts.debug:
             LOGGER.setLevel(logging.DEBUG)
+        if not opts.nostdoutlog:
             LOUT.setLevel(logging.DEBUG)
 
+        for a in args:
+            if a == "-j" or a == "--json":
+                opts.nologo = True
+                break
         if not opts.nologo and not self.interactive:
             CLI.version(
                 self._progname, versioning.__version__, versioning.__extracontent__
@@ -1168,7 +1167,7 @@ class RdmcCommand(RdmcCommandBase):
         return checkargs(cmdinstance.parser.parse_known_args(exarglist))
 
 
-if __name__ == "__main__":
+def ilorestcommand():
     # Initialization of main command class
     ARGUMENTS = sys.argv[1:]
 
@@ -1206,3 +1205,7 @@ if __name__ == "__main__":
 
     # Return code
     sys.exit(RDMC.retcode)
+
+
+if __name__ == "__main__":
+    ilorestcommand()

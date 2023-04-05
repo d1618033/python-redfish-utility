@@ -49,8 +49,8 @@ class DriveSanitizeCommand:
             '1I:1:1,1I:1:2 --controller="Slot 1" --mediatype="HDD" '
             "if incorrect mediatype is specified, error will generated",
             "summary": "Erase/Sanitize physical drive(s)",
-            "aliases": [],
-            "auxcommands": ["SelectCommand", "RebootCommand", "SmartArrayCommand"],
+            "aliases": ["DriveEraseCommand"],
+            "auxcommands": ["SelectCommand", "RebootCommand", "StorageControllerCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -82,23 +82,31 @@ class DriveSanitizeCommand:
         if ilo_ver >= 6.110:
             self.auxcommands["select"].selectfunction("StorageController")
             content = self.rdmc.app.getprops()
-            controllers = self.auxcommands["smartarray"].storagecontroller(options, single_use=True)
+            controllers = self.auxcommands["storagecontroller"].storagecontroller(
+                options, single_use=True
+            )
             if controllers:
                 for controller in controllers:
                     if int(controller) == int(options.controller):
                         controller_physicaldrives = self.auxcommands[
-                            "smartarray"
-                        ].storagephysical_drives(options, options.controller, single_use=True)
+                            "storagecontroller"
+                        ].storagephysical_drives(
+                            options, options.controller, single_use=True
+                        )
         else:
             self.auxcommands["select"].selectfunction("SmartStorageConfig")
             content = self.rdmc.app.getprops()
-            controllers = self.auxcommands["smartarray"].controllers(options, single_use=True)
+            controllers = self.auxcommands["smartarray"].controllers(
+                options, single_use=True
+            )
             if controllers:
                 for controller in controllers:
                     if int(controller) == int(options.controller):
                         controller_physicaldrives = self.auxcommands[
                             "smartarray"
-                        ].physical_drives(options, controllers[controller], single_use=True)
+                        ].physical_drives(
+                            options, controllers[controller], single_use=True
+                        )
 
         if not args and not options.all:
             raise InvalidCommandLineError(
@@ -122,13 +130,19 @@ class DriveSanitizeCommand:
                     slotlocation = self.storageget_location_from_id(options.controller)
                     if slotlocation:
                         slotcontrol = (
-                            slotlocation.lower().strip('"').split("slot")[-1].lstrip().strip("=")
+                            slotlocation.lower()
+                            .strip('"')
+                            .split("slot")[-1]
+                            .lstrip()
+                            .strip("=")
                         )
                         for control in content:
-                            if (
-                                "Location" in control
-                                and slotcontrol.lower()
-                                == control["Location"]["PartLocation"]["ServiceLabel"].lower().split("slot")[-1].lstrip().strip("=")
+                            if "Location" in control and slotcontrol.lower() == control[
+                                "Location"
+                            ]["PartLocation"]["ServiceLabel"].lower().split("slot")[
+                                -1
+                            ].lstrip().strip(
+                                "="
                             ):
                                 controllist.append(control)
                 if not controllist:
@@ -142,8 +156,8 @@ class DriveSanitizeCommand:
                         )
                         for control in content:
                             if (
-                                    slotcontrol.lower()
-                                    == control["Location"].lower().split("slot")[-1].lstrip()
+                                slotcontrol.lower()
+                                == control["Location"].lower().split("slot")[-1].lstrip()
                             ):
                                 controllist.append(control)
                 if not controllist:
@@ -155,9 +169,7 @@ class DriveSanitizeCommand:
 
         if ilo_ver >= 6.110:
             if self.storagesanitizedrives(
-                physicaldrives,
-                controller_physicaldrives,
-                options.all
+                physicaldrives, controller_physicaldrives, options.all
             ):
                 if options.reboot:
                     self.auxcommands["reboot"].run("ColdBoot")
@@ -282,10 +294,10 @@ class DriveSanitizeCommand:
                     "DataGuard": "Disabled",
                 }
 
-                self.rdmc.ui.printer(
-                    "DriveSanitize path and payload: %s, %s\n"
-                    % (controller["@odata.id"], contentsholder)
-                )
+                # self.rdmc.ui.printer(
+                #    "DriveSanitize path and payload: %s, %s\n"
+                #    % (controller["@odata.id"], contentsholder)
+                # )
 
                 self.rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
@@ -293,7 +305,7 @@ class DriveSanitizeCommand:
 
     def convertloc(self, servicelabel):
         loc = servicelabel.split(":")
-        temp_str = str(loc[1][-2:] + ':' + loc[2][-1] + ':' + loc[3][-1])
+        temp_str = str(loc[1][-2:] + ":" + loc[2][-1] + ":" + loc[3][-1])
         return temp_str
 
     def storagesanitizedrives(self, drivelist, controller_drives, optall):
@@ -303,7 +315,9 @@ class DriveSanitizeCommand:
         for plist in controller_drives.values():
             logicaldrivelist = []
             logicaldrivelist.extend(plist["Links"]["Volumes"])
-            plocation = self.convertloc(plist["PhysicalLocation"]["PartLocation"]["ServiceLabel"])
+            plocation = self.convertloc(
+                plist["PhysicalLocation"]["PartLocation"]["ServiceLabel"]
+            )
 
             if optall:
                 sanitizedrivelist.append(plocation)
@@ -311,13 +325,12 @@ class DriveSanitizeCommand:
                 for erasedrive in drivelist:
                     try:
                         if erasedrive == plocation:
-                            if logicaldrivelist:    #Need to change this
+                            if logicaldrivelist:  # Need to change this
                                 raise InvalidCommandLineError(
                                     "Unable to"
                                     " sanitize configured drive. Remove"
                                     " any volume(s) associated "
-                                    "with drive %s and try again."
-                                    % plocation
+                                    "with drive %s and try again." % plocation
                                 )
                             self.rdmc.ui.printer(
                                 "Setting physical drive %s "
@@ -332,25 +345,22 @@ class DriveSanitizeCommand:
 
             if sanitizedrivelist:
                 changes = True
-                path = plist["@odata.id"]+"/Actions/Drive.SecureErase"
+                path = plist["@odata.id"] + "/Actions/Drive.SecureErase"
                 contentsholder = {}
 
                 self.rdmc.ui.printer(
-                    "DriveSanitize path and payload: %s, %s\n"
-                    % (path, contentsholder)
+                    "DriveSanitize path and payload: %s, %s\n" % (path, contentsholder)
                 )
 
                 self.rdmc.app.post_handler(path, contentsholder)
 
-                path = plist["@odata.id"]+"/Actions/Drive.Reset"
+                path = plist["@odata.id"] + "/Actions/Drive.Reset"
                 contentsholder = {
-                        "ResetType": "ForceOn",
+                    "ResetType": "ForceOn"
                 }
                 self.rdmc.app.post_handler(path, contentsholder)
 
         return changes
-
-
 
     def validate_mediatype(self, erasedrive, mediatype, controller_drives):
         """validates media type as HDD or SSD"""

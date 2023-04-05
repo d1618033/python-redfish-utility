@@ -179,6 +179,7 @@ class SaveCommand:
         type_string = self.rdmc.app.typepath.defs.typestring
 
         templist = list()
+        srnum_list = list()
 
         for content in contents:
             typeselector = None
@@ -218,14 +219,21 @@ class SaveCommand:
                             del values["Oem"]["Hpe"][dictentry]["UseDNSServers"]
 
                 if values:
+                    skip = False
+                    if 'SerialNumber' in values:
+                        if values["SerialNumber"] in srnum_list:
+                            skip = True
+                        else:
+                            srnum_list.append(values["SerialNumber"])
                     tempcontents = dict()
 
-                    if typeselector and pathselector:
-                        tempcontents[typeselector] = {pathselector: values}
-                    else:
-                        raise InvalidFileFormattingError(
-                            "Missing path or selector in input file."
-                        )
+                    if not skip:
+                        if typeselector and pathselector:
+                            tempcontents[typeselector] = {pathselector: values}
+                        else:
+                            raise InvalidFileFormattingError(
+                                "Missing path or selector in input file."
+                            )
 
                 templist.append(tempcontents)
 

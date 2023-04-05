@@ -95,7 +95,7 @@ class FirmwareIntegrityCheckCommand:
         except:
             pass
         if not licenseres.dict["LicenseFeatures"]["FWScan"]:
-            raise IloLicenseError("This command is not available with this iLO license.")
+            raise IloLicenseError("This command is not available with this iLO license.\n")
 
         select = self.rdmc.app.typepath.defs.hpilofirmwareupdatetype
         results = self.rdmc.app.select(selector=select)

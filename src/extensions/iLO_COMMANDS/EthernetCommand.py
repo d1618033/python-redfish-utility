@@ -38,6 +38,7 @@ from redfish.ris.rmc_helper import (
 )
 
 from redfish.ris.utils import diffdict
+
 try:
     from rdmc_helper import (
         ReturnCodes,
@@ -85,9 +86,9 @@ class EthernetCommand:
             "\n\n\tSave ethernet management controller data.\n\texample: ethernet save "
             "\n\n\tLoad ethernet management controller data.\n\texample: ethernet load"
             "\n\n\tSave ethernet management controller data to a different file, silently\n\t"
-            "ethernet save -f <filename> --silent."
+            "ethernet save -f <filename> --silent"
             "\n\n\tLoad etherent management controller data from a different file, silently\n\t"
-            "ethernet load -f <filename> --silent."
+            "ethernet load -f <filename> --silent"
             "\n\n\tEnable network interfaces by listing each interface to be enabled. **Note**: "
             "Non-existent interfaces will be omitted from configuration.\n\t "
             "ethernet --enable_nic 1,2,3"
@@ -104,15 +105,15 @@ class EthernetCommand:
             "ethernet --disable_enhanced_downloads"
             "\n\n\tConfigure Domain Name Servers (DNS) in a list: <DNS1> <DNS2>\n\t"
             "ethernet --nameservers 8.8.8.8,1.1.1.1 OR ethernet --nameservers "
-            "dns_resolver1.aws.com, dns_resolver2.aws.com"
+            "dns_resolver1.aws.com,dns_resolver2.aws.com"
             "\n\n\tConfigure Static IPv4 Settings. Provide a list of network settings\n\t"
-            "ethernet --network_ipv4 <ipv4 address>, <ipv4 gateway>, <ipv4 network mask>."
+            "ethernet --network_ipv4 <ipv4 address>,<ipv4 gateway>,<ipv4 network mask>"
             "\n\n\tConfigure Proxy Settings. Provide a proxy server and port\n\t"
             "ethernet --proxy http://proxy.company.net:8080"
             "\n\n\tClear Proxy Settings. \n\t"
             "ethernet --proxy None"
             "\n\n\tConfigure Static IPv6 Settings. Provide a list of network settings\n\t"
-            "ethernet --network_ipv6 <ipv6 address>, <ipv6 gateway>, <ipv6 network mask>.",
+            "ethernet --network_ipv6 <ipv6 address>,<ipv6 gateway>,<ipv6 network mask>",
             "summary": "Command for configuring Ethernet Management Controller Interfaces and "
             "associated properties",
             "aliases": [],

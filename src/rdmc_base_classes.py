@@ -222,7 +222,8 @@ class RdmcCommandBase(CommandBase):
 
         if getattr(options, "biospassword", False):
             inputline.extend(["--biospassword", options.biospassword])
-
+        if getattr(options, "sessionid", False):
+            inputline.extend(["--sessionid", options.sessionid])
         if hasattr(options, "selector") and options.selector:
             if inputline:
                 inputline.extend(["--selector", options.selector])
@@ -482,6 +483,13 @@ class RdmcOptionParser(ArgumentParser):
             default=None,
             help="""Use the provided directory as the location for log file.""",
             metavar="PATH",
+        )
+        self.add_argument(
+            "--nostdoutlog",
+            dest="nostdoutlog",
+            action="store_true",
+            help="""Disable debug logs to stdout.""",
+            default=False,
         )
         self.add_argument(
             "--nocache",

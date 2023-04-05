@@ -17,21 +17,19 @@
 # -*- coding: utf-8 -*-
 """ RawGet Command for rdmc """
 
+import base64
+import gzip
+import json
 import os
 import re
-import sys
-import json
 import time
-import gzip
-import base64
-
-from datetime import datetime, timezone
 from ctypes import create_string_buffer
-import six
-from six import StringIO, BytesIO
+from datetime import datetime, timezone
 
 import redfish
+import six
 from redfish.hpilo.risblobstore2 import BlobStore2
+from six import BytesIO
 
 try:
     from rdmc_helper import (
@@ -134,6 +132,11 @@ class IPProfilesCommand:
             self.get_running_job()
             return ReturnCodes.SUCCESS
         if options.get_hvt:
+            if options.filename:
+                self.rdmc.ui.warn(
+                    "iprprofiles -D option does not support -f, please remove -f and rerun\n"
+                )
+                return ReturnCodes.SUCCESS
             self.get_hvt_output()
             return ReturnCodes.SUCCESS
         if options.del_key:

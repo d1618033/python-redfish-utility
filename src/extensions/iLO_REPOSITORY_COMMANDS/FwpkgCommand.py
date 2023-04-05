@@ -230,7 +230,7 @@ class FwpkgCommand:
                     for device in payload["Devices"]["Device"]:
                         if fw["Oem"]["Hpe"].get("Targets") is not None:
                             if device["Target"] in fw["Oem"]["Hpe"]["Targets"]:
-                                if fw["Updateable"]:
+                                if fw["Updateable"] and (payload['PackageFormat'] == 'FWPKG-v2'):
                                     ctype = "A"
                                     type_set = True
                                 else:
@@ -238,7 +238,7 @@ class FwpkgCommand:
                                     type_set = True
                 if type_set is None:
                     raise IncompatibleiLOVersionError(
-                        "Cannot flash the component on this server, server is not VROC enabled\n"
+                        "Cannot flash the component on this server, check whether the component is fwpkg-v2 or check whether the server is iLO6 and FW is above 2.30\n"
                     )
         else:
             for device in payload["Devices"]["Device"]:
@@ -320,7 +320,8 @@ class FwpkgCommand:
             if dll.isFwpkg20(fwpkg_buffer, 2048):
                 imagefiles = [pkgfile]
                 tempdir = ""
-
+        if comptype == 'A' and payloaddata['PackageFormat'] =='FWPKG-v2':
+            imagefiles = [pkgfile]
         return imagefiles, tempdir, comptype
 
     def type_c_change(self, tdir, pkgloc):

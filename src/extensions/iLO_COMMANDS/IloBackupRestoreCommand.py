@@ -217,7 +217,10 @@ class IloBackupRestoreCommand:
         )
 
         if not resp.status == 200:
-            if resp.ori == "invalid_restore_password":
+            resp_ori = resp.ori
+            if isinstance(resp_ori, bytes):
+                resp_ori = resp_ori.decode('utf-8')
+            if resp_ori == "invalid_restore_password":
                 raise UploadError(
                     "Invalid or no password supplied during restore. Please "
                     "supply the password used during creation of the backup file."

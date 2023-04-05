@@ -18,6 +18,7 @@
 """ Factory Reset Controller Command for rdmc """
 
 from argparse import RawDescriptionHelpFormatter
+
 try:
     from rdmc_helper import (
         ReturnCodes,
@@ -46,9 +47,9 @@ class FactoryResetControllerCommand:
             "factoryresetcontroller\n\n\tTo factory reset a controller "
             "by index.\n\texample: factoryresetcontroller --controller=2"
             '\n\texample: factoryresetcontroller --controller="Slot 1" \n\n'
-            "\tTo factory reset a controller on Gen11 server\n"            
-            "\texample: factoryresetcontroller --resettype resetall --storageid <id>\n"
-            "\texample: factoryresetcontroller --resettype preservevolumes --storageid <id>\n",
+            "\tTo factory reset a controller on Gen11 server\n"
+            "\texample: factoryresetcontroller --reset_type resetall --storageid DE000100\n"
+            "\texample: factoryresetcontroller --reset_type preservevolumes --storageid DE000100\n",
             "summary": "Factory resets a controller by index or location.",
             "aliases": [],
             "auxcommands": ["SelectCommand"],
@@ -81,7 +82,11 @@ class FactoryResetControllerCommand:
 
         ilo_ver = self.rdmc.app.getiloversion()
         if ilo_ver >= 6.110:
-            if (options.controller is not None) and (options.storageid is not None) and (options.reset_type is not None):
+            if (
+                (options.controller is not None)
+                and (options.storageid is not None)
+                and (options.reset_type is not None)
+            ):
                 raise InvalidCommandLineError("--controller is not supported in iLO6.")
 
             elif (options.storageid is not None) and (options.reset_type is not None):
@@ -93,13 +98,16 @@ class FactoryResetControllerCommand:
                     for mem in path:
                         for val in mem.values():
                             if "DE" in val:
-                                getval = self.rdmc.app.get_handler(val, silent=True, service=True).dict
+                                getval = self.rdmc.app.get_handler(
+                                    val, silent=True, service=True
+                                ).dict
                                 if options.storageid:
                                     if getval["Id"] == options.storageid:
                                         st_content.append(getval)
                                     else:
                                         raise InvalidCommandLineError(
-                                            "Selected storage id not found in the current inventory " "list."
+                                            "Selected storage id not found in the current inventory "
+                                            "list."
                                         )
                                 else:
                                     st_content.append(getval)
@@ -115,23 +123,28 @@ class FactoryResetControllerCommand:
                     else:
                         raise InvalidCommandLineError("Invalid command.")
 
-                    self.rdmc.ui.printer(
-                        "FactoryReset path and payload: %s, %s\n"
-                        % (path, body)
-                    )
+                    # self.rdmc.ui.printer(
+                    #    "FactoryReset path and payload: %s, %s\n"
+                    #    % (path, body)
+                    # )
                     self.rdmc.app.post_handler(path, body)
                     self.cmdbase.logout_routine(self, options)
                 # Return code
                 return ReturnCodes.SUCCESS
 
             elif (options.storageid is None) or (options.reset_type is None):
-                raise InvalidCommandLineError("Invalid command\n"
-                                              "--reset_type and --storageid is required")
+                raise InvalidCommandLineError(
+                    "Invalid command\n" "--reset_type and --storageid is required"
+                )
 
         else:
             self.auxcommands["select"].selectfunction("SmartStorageConfig.")
             content = self.rdmc.app.getprops()
-            if options.controller and options.reset_type is None and options.storageid is None:
+            if (
+                options.controller
+                and options.reset_type is None
+                and options.storageid is None
+            ):
                 controllist = []
 
                 try:
@@ -143,8 +156,11 @@ class FactoryResetControllerCommand:
                             )
                             for control in content:
                                 if (
-                                        slotcontrol.lower()
-                                        == control["Location"].lower().split("slot")[-1].lstrip()
+                                    slotcontrol.lower()
+                                    == control["Location"]
+                                    .lower()
+                                    .split("slot")[-1]
+                                    .lstrip()
                                 ):
                                     controllist.append(control)
                     # else:
@@ -167,9 +183,15 @@ class FactoryResetControllerCommand:
                     )
                     self.rdmc.app.patch_handler(controller["@odata.id"], contentsholder)
 
-            elif options.controller and (options.reset_type is not None) or (options.storageid is not None):
-                raise InvalidCommandLineError("Invalid command\n"
-                                              "--reset_type and --storageid is not supported in iLO5")
+            elif (
+                options.controller
+                and (options.reset_type is not None)
+                or (options.storageid is not None)
+            ):
+                raise InvalidCommandLineError(
+                    "Invalid command\n"
+                    "--reset_type and --storageid is not supported in iLO5"
+                )
 
             for idx, val in enumerate(content):
                 self.rdmc.ui.printer("[%d]: %s\n" % (idx, val["Location"]))

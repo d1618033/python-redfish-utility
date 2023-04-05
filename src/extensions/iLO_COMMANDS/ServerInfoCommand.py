@@ -16,8 +16,6 @@
 # -*- coding: utf-8 -*-
 """ Server Info Command for rdmc """
 import re
-
-from argparse import ArgumentParser, SUPPRESS
 from collections import OrderedDict
 
 import jsonpath_rw
@@ -207,7 +205,7 @@ class ServerInfoCommand:
             if not self.rdmc.app.typepath.defs.isgen9:
                 getloc = self.rdmc.app.getidbytype("ProcessorCollection.")
             else:
-                #getloc = self.rdmc.app.getidbytype("ProcessorCollection.")
+                # getloc = self.rdmc.app.getidbytype("ProcessorCollection.")
                 getloc = self.rdmc.app.getidbytype("Processor.")
             if getloc:
                 data = self.rdmc.app.getcollectionmembers(getloc[0])
@@ -281,6 +279,7 @@ class ServerInfoCommand:
 
     def build_json_out(self, info, absent):
         headers = list(info.keys())
+        content = dict()
         if "power" in headers and info["power"]:
             data = info["power"]
             if data is not None:
@@ -374,26 +373,21 @@ class ServerInfoCommand:
                             pass
                 except KeyError:
                     pass
-            UI().print_out_json(content)
 
         if "firmware" in headers and info["firmware"]:
-            output = []
+            firmware_info = {}
             data = info["firmware"]
             if data is not None:
                 if not self.rdmc.app.typepath.defs.isgen10:
                     for key, fw in data.items():
                         for fw_gen9 in fw:
-                            firmware_content = "%s : %s" % (
-                                fw_gen9["Name"],
-                                fw_gen9["VersionString"],
+                            firmware_info.update(
+                                {fw_gen9["Name"]: fw_gen9["VersionString"]}
                             )
-                            output.append(firmware_content)
                 else:
                     for fw in data:
-                        firmware_content = "%s : %s" % (fw["Name"], fw["Version"])
-                        output.append(firmware_content)
-            content = {"firmware": output}
-            UI().print_out_json(content)
+                        firmware_info.update({fw["Name"]: fw["Version"]})
+            content.update({"firmware": firmware_info})
 
         if "software" in headers and info["software"]:
             output = ""
@@ -404,11 +398,10 @@ class ServerInfoCommand:
                     for sw in data:
                         software_info.update({sw["Name"]: sw["Version"]})
                 else:
-                    #if not options.json:
+                    # if not options.json:
                     software_info = "No information available for the server\n"
                     self.rdmc.ui.printer(software_info, verbose_override=True)
-            content = {"software": software_info}
-            UI().print_out_json(content)
+            content.update({"software": software_info})
 
         if "memory" in headers and info["memory"]:
             data = info["memory"]
@@ -423,7 +416,6 @@ class ServerInfoCommand:
                 )
                 memorylist = {}
                 for board in collectiondata["MemoryList"]:
-                    board_detail = ""
                     board_detail = "Board CPU: %s" % board["BoardCpuNumber"]
                     memory_info = {
                         "Total Memory Size": "%s MiB" % board["BoardTotalMemorySize"]
@@ -482,9 +474,8 @@ class ServerInfoCommand:
 
                     memory_config = "Memory/DIMM Configuration" + " " + str(count)
                     memoryinfo.update({memory_config: memoryconfig})
-                    content = {"memory": memoryinfo}
+                    content.update({"memory": memoryinfo})
                     count = count + 1
-            UI().print_out_json(content)
 
         if "fans" in headers and info["fans"]:
             fan_output = {}
@@ -531,8 +522,7 @@ class ServerInfoCommand:
                     except KeyError:
                         pass
                     fan_details.update({fan_name: fan_output})
-                    content = {"fans": fan_details}
-            UI().print_out_json(content)
+                    content.update({"fans": fan_details})
 
         if "thermals" in headers and info["thermals"]:
             if info["thermals"] is not None:
@@ -570,8 +560,7 @@ class ServerInfoCommand:
                         except KeyError:
                             pass
                     thermal_detail.update({sensor: thermal_info})
-                    content = {"thermals": thermal_detail}
-            UI().print_out_json(content)
+                    content.update({"thermals": thermal_detail})
 
         if "processor" in headers and info["processor"]:
             data = info["processor"]
@@ -591,7 +580,7 @@ class ServerInfoCommand:
                                 {
                                     "Speed": "%s MHz"
                                     % processor["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                      "RatedSpeedMHz"
+                                        "RatedSpeedMHz"
                                     ]
                                 }
                             )
@@ -600,81 +589,80 @@ class ServerInfoCommand:
                         processor_date.update({"Cores": processor["TotalCores"]})
                         processor_date.update({"Threads": processor["TotalThreads"]})
                         try:
-                            for cache in processor["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                "Cache"
-                            ]:
+                            for cache in processor["Oem"][
+                                self.rdmc.app.typepath.defs.oemhp
+                            ]["Cache"]:
                                 processor_date.update(
                                     {cache["Name"]: "%s KB" % cache["InstalledSizeKB"]}
                                 )
                         except KeyError:
                             pass
                         try:
-                            processor_date.update({"Health": processor["Status"]["Health"]})
+                            processor_date.update(
+                                {"Health": processor["Status"]["Health"]}
+                            )
                         except KeyError:
                             pass
                         if absent:
                             try:
-                                processor_date.update({"State": processor["Status"]["State"]})
+                                processor_date.update(
+                                    {"State": processor["Status"]["State"]}
+                                )
                             except KeyError:
                                 pass
                         processor_info.update({process: processor_date})
                 else:
-                        data = data.dict
-                        #for processor in data:
-                        process = "Processor %s" % data["Id"]
-                        processor_date = {"Model": data["Model"]}
-                        processor_date.update({"Step": data["ProcessorId"]["Step"]})
-                        processor_date.update({"Socket": data["Socket"]})
+                    data = data.dict
+                    # for processor in data:
+                    process = "Processor %s" % data["Id"]
+                    processor_date = {"Model": data["Model"]}
+                    processor_date.update({"Step": data["ProcessorId"]["Step"]})
+                    processor_date.update({"Socket": data["Socket"]})
+                    processor_date.update({"Max Speed": "%s MHz" % data["MaxSpeedMHz"]})
+                    try:
                         processor_date.update(
-                            {"Max Speed": "%s MHz" % data["MaxSpeedMHz"]}
+                            {
+                                "Speed": "%s MHz"
+                                % data["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                                    "RatedSpeedMHz"
+                                ]
+                            }
                         )
-                        try:
+                    except KeyError:
+                        pass
+                    processor_date.update({"Cores": data["TotalCores"]})
+                    processor_date.update({"Threads": data["TotalThreads"]})
+                    try:
+                        for cache in data["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                            "Cache"
+                        ]:
                             processor_date.update(
-                                {
-                                    "Speed": "%s MHz"
-                                             % data["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                                 "RatedSpeedMHz"
-                                             ]
-                                }
+                                {cache["Name"]: "%s KB" % cache["InstalledSizeKB"]}
                             )
-                        except KeyError:
-                            pass
-                        processor_date.update({"Cores": data["TotalCores"]})
-                        processor_date.update({"Threads": data["TotalThreads"]})
+                    except KeyError:
+                        pass
+                    try:
+                        processor_date.update({"Health": data["Status"]["Health"]})
+                    except KeyError:
+                        pass
+                    if absent:
                         try:
-                            for cache in data["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                "Cache"
-                            ]:
-                                processor_date.update(
-                                    {cache["Name"]: "%s KB" % cache["InstalledSizeKB"]}
-                                )
+                            processor_date.update({"State": data["Status"]["State"]})
                         except KeyError:
                             pass
-                        try:
-                            processor_date.update({"Health": data["Status"]["Health"]})
-                        except KeyError:
-                            pass
-                        if absent:
-                            try:
-                                processor_date.update({"State": data["Status"]["State"]})
-                            except KeyError:
-                                pass
-                        processor_info.update({process: processor_date})
-                content = {"processor": processor_info}
-                UI().print_out_json(content)
+                    processor_info.update({process: processor_date})
+                content.update({"processor": processor_info})
 
         if "proxy" in headers and info["proxy"]:
-            output = []
+            proxy_info = {}
             data = info["proxy"]
             try:
                 if data is not None:
                     for k, v in data.items():
-                        proxy_output = "%s : %s" % (k, v)
-                        output.append(proxy_output)
+                        proxy_info.update({k: v})
             except KeyError:
                 pass
-            content = {"proxy": output}
-            UI().print_out_json(content)
+            content.update({"proxy": proxy_info})
 
         if "system" in headers:
             data = info["system"]
@@ -691,8 +679,9 @@ class ServerInfoCommand:
                     elif not key == "NICCount":
                         nic = {key: val}
                         system.update(nic)
-                    content = {"system": system}
-                UI().print_out_json(content)
+            content.update({"system": system})
+
+        UI().print_out_json(content)
 
     def prettyprintinfo(self, info, absent):
         """Print info in human readable form from json
@@ -720,7 +709,6 @@ class ServerInfoCommand:
             self.rdmc.ui.printer(output, verbose_override=True)
 
         if "firmware" in headers and info["firmware"]:
-            output = ""
             data = info["firmware"]
             output = "------------------------------------------------\n"
             output += "Firmware: \n"
@@ -772,7 +760,7 @@ class ServerInfoCommand:
             output = ""
             data = info["processor"]
             output = "------------------------------------------------\n"
-            output += "Processor :\n"
+            output += "Processor:\n"
             output += "------------------------------------------------\n"
             if data is not None:
                 if not self.rdmc.app.typepath.defs.isgen9:
@@ -784,19 +772,19 @@ class ServerInfoCommand:
                         output += "\tMax Speed: %s MHz\n" % processor["MaxSpeedMHz"]
                         try:
                             output += (
-                                    "\tSpeed: %s MHz\n"
-                                    % processor["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                        "RatedSpeedMHz"
-                                    ]
+                                "\tSpeed: %s MHz\n"
+                                % processor["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                                    "RatedSpeedMHz"
+                                ]
                             )
                         except KeyError:
                             pass
                         output += "\tCores: %s\n" % processor["TotalCores"]
                         output += "\tThreads: %s\n" % processor["TotalThreads"]
                         try:
-                            for cache in processor["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                "Cache"
-                            ]:
+                            for cache in processor["Oem"][
+                                self.rdmc.app.typepath.defs.oemhp
+                            ]["Cache"]:
                                 output += "\t%s: %s KB\n" % (
                                     cache["Name"],
                                     cache["InstalledSizeKB"],
@@ -822,23 +810,23 @@ class ServerInfoCommand:
                     output += "\tMax Speed: %s MHz\n" % data["MaxSpeedMHz"]
                     try:
                         output += (
-                                "\tSpeed: %s MHz\n"
-                                % data["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                                    "RatedSpeedMHz"
-                                ]
+                            "\tSpeed: %s MHz\n"
+                            % data["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                                "RatedSpeedMHz"
+                            ]
                         )
                     except KeyError:
-                            pass
+                        pass
                     output += "\tCores: %s\n" % data["TotalCores"]
                     output += "\tThreads: %s\n" % data["TotalThreads"]
                     try:
-                       for cache in data["Oem"][self.rdmc.app.typepath.defs.oemhp][
-                           "Cache"
-                       ]:
-                           output += "\t%s: %s KB\n" % (
-                               cache["Name"],
-                               cache["InstalledSizeKB"],
-                           )
+                        for cache in data["Oem"][self.rdmc.app.typepath.defs.oemhp][
+                            "Cache"
+                        ]:
+                            output += "\t%s: %s KB\n" % (
+                                cache["Name"],
+                                cache["InstalledSizeKB"],
+                            )
                     except KeyError:
                         pass
                     try:
@@ -1101,7 +1089,10 @@ class ServerInfoCommand:
         return options
 
     def setalloptionstrue(self, options):
-        """Updates all selector options values to be True"""
+        """Updates all selector options values to be True.
+        :param options: command line options
+        :type options: list
+        """
         options.memory = True
         options.thermals = True
         options.firmware = True

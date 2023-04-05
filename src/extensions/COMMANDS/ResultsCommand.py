@@ -98,6 +98,7 @@ class ResultsCommand:
         )
         iscsiresults = self.rdmc.app.get_handler(iscsipath, service=True, silent=True)
         bootsresults = self.rdmc.app.get_handler(bootpath, service=True, silent=True)
+        saresults = []
         if sapaths:
             saresults = [
                 self.rdmc.app.get_handler(path, service=True, silent=True)

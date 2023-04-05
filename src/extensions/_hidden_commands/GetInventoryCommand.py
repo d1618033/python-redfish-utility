@@ -236,10 +236,14 @@ class GetInventoryCommand:
                 members = self.rdmc.app.getcollectionmembers(
                     collectiondata.get("@odata.id")
                 )
+                if len(members) == 0:
+                    members = []
+                # else:
+                #     members = members.dict
                 collectiondata.update({"Members": members})
                 alldata.update({"installsets": collectiondata})
             except:
-                alldata.update({"installsets": {}})
+                alldata.update({"installsets": []})
 
             try:
                 results = self.rdmc.app.select(
@@ -249,10 +253,14 @@ class GetInventoryCommand:
                 members = self.rdmc.app.getcollectionmembers(
                     collectiondata.get("@odata.id")
                 )
+                if len(members) == 0:
+                    members = []
+                # else:
+                #     members = members.dict
                 collectiondata.update({"Members": members})
                 alldata.update({"updatetaskqueue": collectiondata})
             except:
-                alldata.update({"updatetaskqueue": {}})
+                alldata.update({"updatetaskqueue": []})
 
             if self.rdmc.app.getiloversion(skipschemas=True) >= 5.130:
                 try:
@@ -263,10 +271,14 @@ class GetInventoryCommand:
                     members = self.rdmc.app.getcollectionmembers(
                         collectiondata.get("@odata.id")
                     )
+                    if len(members) == 0:
+                        members = []
+                    # else:
+                    #     members = members.dict
                     collectiondata.update({"Members": members})
                     alldata.update({"maintenancewindows": collectiondata})
                 except:
-                    alldata.update({"maintenancewindows": {}})
+                    alldata.update({"maintenancewindows": []})
 
             results = self.rdmc.app.select(
                 selector="HpeComponentCollection", path_refresh=True

@@ -188,7 +188,8 @@ class RebootCommand:
 
         self.rdmc.app.post_handler(put_path, body)
 
-        self.cmdbase.logout_routine(self, options)
+        if not options.nologout:
+            self.cmdbase.logout_routine(self, options)
         # Return code
         return ReturnCodes.SUCCESS
 
@@ -270,5 +271,12 @@ class RebootCommand:
             dest="confirm",
             action="store_true",
             help="Optionally include to request user confirmation for reboot.",
+            default=False,
+        )
+        customparser.add_argument(
+            "--nologout",
+            dest="nologout",
+            action="store_true",
+            help="Optionally include to not to logout of iLO connection.",
             default=False,
         )

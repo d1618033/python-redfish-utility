@@ -18,8 +18,8 @@
 """Command to apply specified configuration to PMM"""
 from __future__ import absolute_import  # verify if python3 libs can handle
 
+from argparse import Action
 from copy import deepcopy
-from argparse import Action, REMAINDER
 
 try:
     from rdmc_helper import (
@@ -40,11 +40,7 @@ except ImportError:
         NoContentsFoundForOperationError,
     )
 
-from .lib.DisplayHelpers import DisplayHelpers
-from .lib.Mapper import Mapper
 from .lib.RestHelpers import RestHelpers
-from .ClearPendingConfigCommand import ClearPendingConfigCommand
-from .ShowPmemPendingConfigCommand import ShowPmemPendingConfigCommand
 
 
 class _ParseOptionsList(Action):
@@ -196,7 +192,7 @@ class AdvancedPmmConfigCommand:
                     "Specify the correct value (1-100)" " to configure PMM"
                 )
         if options.interleave:
-            if (options.interleave).lower() not in ["on", "off"]:
+            if options.interleave.lower() not in ["on", "off"]:
                 raise InvalidCommandLineError(
                     "Specify the correct value to set interleave"
                     " state of persistent memory regions\n\n" + self.ident["usage"]
@@ -211,11 +207,7 @@ class AdvancedPmmConfigCommand:
             )
 
         # If not 100% memorymode, -i flag is mandatory to interleave memroy regions.
-        if (
-            options.memorymode >= 0
-            and options.memorymode < 100
-            and not options.interleave
-        ):
+        if 0 <= options.memorymode < 100 and not options.interleave:
             raise InvalidCommandLineError(
                 "Use '-i | --pmem-interleave' flag to"
                 " specify the interleave state of persistent"

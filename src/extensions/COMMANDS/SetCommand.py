@@ -16,6 +16,9 @@
 
 # -*- coding: utf-8 -*-
 """ Set Command for RDMC """
+import json
+import sys
+import os
 
 import redfish.ris
 
@@ -55,7 +58,7 @@ class SetCommand:
             "summary": "Changes the value of a property within the"
             " currently selected type.",
             "aliases": [],
-            "auxcommands": ["CommitCommand", "RebootCommand"],
+            "auxcommands": ["CommitCommand", "RebootCommand", "RawPatchCommand", "SelectCommand"],
         }
         self.cmdbase = None
         self.rdmc = None
@@ -156,17 +159,14 @@ class SetCommand:
                 elif "/" in sel:
                     items = arg.split("=", 1)
                     newargs = items[0].split("/")
-
                 if not isinstance(val, bool):
                     if val:
                         if val[0] == "[" and val[-1] == "]":
                             val = val[1:-1].split(",")
-
                 payload = {newargs[-1]: val} if newargs else {sel: val}
                 if newargs:
                     for key in newargs[:-1][::-1]:
                         payload = {key: payload}
-
                 try:
                     contents = self.rdmc.app.loadset(
                         seldict=payload,
@@ -231,6 +231,106 @@ class SetCommand:
         else:
             raise InvalidCommandLineError("Missing parameters for 'set' command.\n")
 
+    def patchfunction(self, line):
+        """Main set worker function
+        :param line: command line input
+        :type line: string.
+        :param skipprint: boolean to determine output
+        :type skipprint: boolean.
+        """
+        try:
+            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
+            if not line or line[0] == "help":
+                self.parser.print_help()
+                return ReturnCodes.SUCCESS
+        except (InvalidCommandLineErrorOPTS, SystemExit):
+            if ("-h" in line) or ("--help" in line):
+                return ReturnCodes.SUCCESS
+            else:
+                raise InvalidCommandLineErrorOPTS("")
+
+        if not self.rdmc.interactive and not self.rdmc.app.cache:
+            raise InvalidCommandLineError(
+                "The 'set' command is not useful in "
+                "non-interactive and non-cache modes."
+            )
+
+        orig_selector = self.rdmc.app.selector
+        self.setvalidation(options)
+        if args:
+            count = 0
+            for arg in args:
+                if arg:
+                    if len(arg) > 2:
+                        if ('"' in arg[0] and '"' in arg[-1]) or (
+                                "'" in arg[0] and "'" in arg[-1]
+                        ):
+                            args[count] = arg[1:-1]
+                    elif len(arg) == 2:
+                        if (arg[0] == '"' and arg[1] == '"') or (
+                                arg[0] == "'" and arg[1] == "'"
+                        ):
+                            args[count] = None
+                count += 1
+                if not self.rdmc.app.selector:
+                    raise NothingSelectedError
+                if not "." in self.rdmc.app.selector:
+                    self.rdmc.app.selector = self.rdmc.app.selector + "."
+                if self.rdmc.app.selector:
+                    if self.rdmc.app.selector.lower().startswith("bios."):
+                        if "attributes" not in arg.lower():
+                            arg = "Attributes/" + arg
+
+                try:
+                    (sel, val) = arg.split("=")
+                    sel = sel.strip()
+                    val = val.strip("\"'")
+
+                    if val.lower() == "true" or val.lower() == "false":
+                        val = val.lower() in ("yes", "true", "t", "1")
+                except:
+                    raise InvalidCommandLineError(
+                        "Invalid set parameter format. [Key]=[Value]"
+                    )
+
+                newargs = list()
+
+                if "/" in sel and "/" not in str(val):
+                    newargs = sel.split("/")
+                elif "/" in sel:
+                    items = arg.split("=", 1)
+                    newargs = items[0].split("/")
+
+                if not isinstance(val, bool):
+                    if val:
+                        if val[0] == "[" and val[-1] == "]":
+                            val = val[1:-1].split(",")
+                patch_data = dict()
+                payload = {newargs[-1]: val} if newargs else {sel: val}
+                if newargs:
+                    for key in newargs[:-1][::-1]:
+                        payload = {key: payload}
+                        patch_data.update(payload)
+                        if "Oem" in key:
+                            if "managernetworkprotocol." or "thermal." in self.rdmc.app.selector:
+                                from pathlib import Path
+                                import platform
+                                import tempfile
+                                tempdir = Path("/tmp" if platform.system() == "Darwin" else tempfile.gettempdir())
+                                temp_file = os.path.join(tempdir, "temp_patch.json")
+                                out_file = open(temp_file, "w")
+                                if "managernetworkprotocol." in self.rdmc.app.selector:
+                                    patchpath = self.rdmc.app.typepath.defs.managerpath + "NetworkProtocol/"
+                                elif "thermal." in self.rdmc.app.selector:
+                                    patchpath = "/redfish/v1/Chassis/1/Thermal/"
+                                patch_payload = {patchpath: payload}
+                                json.dump(patch_payload, out_file, indent=6)
+                                out_file.close()
+                                sys.stdout.write("payload %s \n" % patch_payload)
+                                self.auxcommands["rawpatch"].run(temp_file + " --service")
+                                self.auxcommands["select"].run(self.rdmc.app.selector + " --refresh")
+                                os.remove(temp_file)
+
     def run(self, line, skipprint=False, help_disp=False):
         """Main set function
 
@@ -242,8 +342,10 @@ class SetCommand:
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        self.setfunction(line, skipprint=skipprint)
-
+        if ("Oem/Hpe/EnhancedDownloadPerformanceEnabled" in line[0]) or ("Oem/Hpe/ThermalConfiguration" in line[0]):
+            self.patchfunction(line)
+        else:
+            self.setfunction(line, skipprint=skipprint)
         # Return code
         return ReturnCodes.SUCCESS
 

@@ -19,6 +19,7 @@
 
 import copy
 import json
+import sys
 
 from argparse import ArgumentParser, SUPPRESS
 
@@ -82,7 +83,7 @@ class PendingChangesCommand:
         self.pendingvalidation(options)
 
         self.pendingfunction()
-
+        sys.stdout.write("\n")
         self.cmdbase.logout_routine(self, options)
         return ReturnCodes.SUCCESS
 

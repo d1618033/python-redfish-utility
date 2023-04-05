@@ -69,6 +69,7 @@ class LoginCommand:
         self.url = None
         self.username = None
         self.password = None
+        self.sessionid = None
         self.biospassword = None
         self.auxcommands = dict()
         self.cert_data = dict()
@@ -164,22 +165,24 @@ class LoginCommand:
             except:
                 pass
 
-            if self.username is not None:
-                self.username = self.username.replace("\\", "")
-            if self.password is not None:
-                self.password = self.password.replace("\\", "")
+            #if self.username is not None:
+            #    self.username = self.username.replace("\\", "")
+            #if self.password is not None:
+            #    self.password = self.password.replace("\\", "")
             # print (self.username)
             # print (self.password)
+            self.sessionid = options.sessionid
             self.rdmc.app.login(
                 username=self.username,
                 password=self.password,
+                sessionid=self.sessionid,
                 base_url=self.url,
                 path=options.path,
                 skipbuild=skipbuild,
                 includelogs=options.includelogs,
                 biospassword=self.biospassword,
                 is_redfish=self.rdmc.opts.is_redfish,
-                proxy=proxy,
+                proxy=self.rdmc.opts.proxy,
                 user_ca_cert_data=user_ca_cert_data,
                 json_out=self.rdmc.json,
             )
@@ -271,7 +274,7 @@ class LoginCommand:
                 getattr(options, "ca_cert_bundle", False)
                 or getattr(options, "user_certificate", False)
             ):
-                if not (self.username and self.password):
+                if not (self.username and self.password) and not options.sessionid:
                     raise UsernamePasswordRequiredError(
                         "Please provide credentials to login with VNIC"
                     )

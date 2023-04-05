@@ -17,10 +17,7 @@
 # -*- coding: utf-8 -*-
 """ RawGet Command for rdmc """
 
-import sys
 import json
-
-from argparse import ArgumentParser, SUPPRESS
 
 import redfish
 
@@ -113,6 +110,15 @@ class RawGetCommand:
         if options.response or options.getheaders:
             returnresponse = True
 
+        extra_path = None
+        if "#" in options.path:
+            path_list = options.path.split("#")
+            options.path = path_list[0]
+            extra_path = path_list[1]
+            if "/" in extra_path:
+                extra_path_list = extra_path.split("/")
+                extra_path_list = list(filter(None, extra_path_list))
+
         results = self.rdmc.app.get_handler(
             options.path,
             sessionid=options.sessionid,
@@ -123,14 +129,20 @@ class RawGetCommand:
             password=options.password,
             base_url=options.url,
         )
+        result = None
+        if results.dict:
+            if extra_path:
+                result = results.dict
+                for p in extra_path_list:
+                    if p.isdigit():
+                        p = int(p)
+                    result = result[p]
 
         if results and results.status == 200 and options.binfile:
             output = results.read
-
             filehndl = open(options.binfile[0], "wb")
             filehndl.write(output)
             filehndl.close()
-
         elif results and returnresponse:
             if options.getheaders:
                 self.rdmc.ui.printer(json.dumps(dict(results.getheaders())) + "\n")
@@ -140,7 +152,7 @@ class RawGetCommand:
             if results.dict:
                 if options.filename:
                     output = json.dumps(
-                        results.dict,
+                        result,
                         indent=2,
                         cls=redfish.ris.JSONEncoder,
                         sort_keys=True,
@@ -154,10 +166,12 @@ class RawGetCommand:
                         "Results written out to '%s'.\n" % options.filename[0]
                     )
                 else:
+                    if not result:
+                        result = results.dict
                     if options.service:
-                        self.rdmc.ui.printer("%s\n" % results.dict)
+                        self.rdmc.ui.printer("%s\n" % result)
                     else:
-                        self.rdmc.ui.print_out_json(results.dict)
+                        self.rdmc.ui.print_out_json(result)
         else:
             return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
 
@@ -185,9 +199,9 @@ class RawGetCommand:
             if options.url:
                 url = options.url
         else:
-            if self.rdmc.app.redfishinst.base_url:
+            if self.rdmc.app.redfishinst and self.rdmc.app.redfishinst.base_url:
                 url = self.rdmc.app.redfishinst.base_url
-        if url and not "https://" in url:
+        if url and "blobstore://" not in url and "https://" not in url:
             url = "https://" + url
 
         return url

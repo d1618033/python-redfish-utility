@@ -185,7 +185,7 @@ class FirmwareUpdateCommand:
                     if not written:
                         written = True
                         self.rdmc.ui.printer(
-                            "iLO is uploading the necessary files. Please wait..."
+                            "\n iLO is uploading the necessary files. Please wait..."
                         )
 
                 time.sleep(0.5)

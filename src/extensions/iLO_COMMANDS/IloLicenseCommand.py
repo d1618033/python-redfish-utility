@@ -162,7 +162,7 @@ class IloLicenseCommand:
             results = self.rdmc.app.delete_handler(path, silent=True)
             if results.status == 404:
                 raise PathUnavailableError("License is not installed")
-                return ReturnCodes.SUCCESS
+                ##return ReturnCodes.SUCCESS
             if results.status == 403:
                 self.rdmc.ui.error("Insufficient Privilege to uninstall license")
                 return ReturnCodes.RIS_MISSING_ID_TOKEN

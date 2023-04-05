@@ -1341,7 +1341,10 @@ class ServerlogsCommand:
 
             # Severity inside Oem/Hpe should be filtered
             if sel == "Severity":
-                sel = "Oem/Hpe/" + sel
+                if not self.rdmc.app.typepath.defs.isgen9:
+                    sel = "Oem/Hpe/" + sel
+                else:
+                    sel = "/" + sel
             data = filter_output(data, sel, val)
             if not data:
                 raise NoContentsFoundForOperationError("Filter returned no matches.")

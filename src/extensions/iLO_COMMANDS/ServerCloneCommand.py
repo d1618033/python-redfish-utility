@@ -191,6 +191,7 @@ class ServerCloneCommand:
             "save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n"
             "Example: serverclone <sub-command> <option>\n"
             "Example: serverclone save/load --auto \n"
+            "Example: serverclone save/load --ilossa \n"
             "Example: serverclone save/load --uniqueoverride \n\n"
             "NOTE 1: Use the '--auto' option to ignore "
             "all user input. Intended for scripting purposes.\n"
@@ -214,8 +215,7 @@ class ServerCloneCommand:
                 "LogoutCommand",
                 "LoadCommand",
                 "EthernetCommand",
-                "CreateLogicalDriveCommand",
-                "CreateLogicalDriveCommand",
+                "CreateVolumeCommand",
                 "IloAccountsCommand",
                 "IloFederationCommand",
                 "IloLicenseCommand",
@@ -223,11 +223,15 @@ class ServerCloneCommand:
                 "SingleSignOnCommand",
                 "IloResetCommand",
                 "RebootCommand",
+                "StorageControllerCommand",
+                "SelectCommand",
+                "FactoryResetControllerCommand",
             ],
         }
         self.cmdbase = None
         self.rdmc = None
         self.auxcommands = dict()
+        self.storage_file = None
         self.clone_file = None  # set in validation
         self._cache_dir = None  # set in validation
         self.tmp_clone_file = __tmp_clone_file__
@@ -292,7 +296,10 @@ class ServerCloneCommand:
         if self.save:
             self.gatherandsavefunction(self.getilotypes(options), options)
         elif self.load:
-            self.loadfunction(options)
+            if not options.iLOSSA:
+                self.loadfunction(options)
+            else:
+                self.load_storageclone(options)
 
         self.cleanup()
         # self.cmdbase.logout_routine(self, options)
@@ -363,6 +370,233 @@ class ServerCloneCommand:
             )
         else:
             return fdata
+    @log_decor
+    def controller_id(self, options):
+        """
+        Get iLO types from server and save storageclone URL get Controller
+        :parm options: command line options
+        :type options: attribute
+        :returns: returns list
+        """
+        self.auxcommands["select"].selectfunction("StorageControllerCollection.")
+        ctr_content = self.rdmc.app.getprops()
+        ctrl_data = []
+        all_ctrl = dict()
+        ctr_ide = []
+        for ct_controller in ctr_content:
+            path = ct_controller["Members"]
+            for i in path:
+                res = i["@odata.id"]
+                if self.rdmc.opts.verbose and not self.load:
+                    sys.stdout.write("Saving properties of type %s \t\n" % res)
+                ctrl_data.append(res)
+                ctrl_id_url = res + "?$expand=."
+                get_ctr = self.rdmc.app.get_handler(ctrl_id_url, silent=True, service=True).dict
+                ctrl_id = get_ctr["@odata.id"].split("/")
+                ctrl_id = ctrl_id[8]
+                get_ctr = self.rdmc.app.removereadonlyprops(get_ctr, False, True)
+                all_ctrl[get_ctr["Name"]] = get_ctr
+        return all_ctrl
+
+    @log_decor
+    def get_volume(self, options):
+        """
+        Get iLO types from server and save storageclone URL get volumes
+        :parm options: command line options
+        :type options: attribute
+        :returns: returns list
+        """
+        self.auxcommands["select"].selectfunction("VolumeCollection.")
+        vol_content = self.rdmc.app.getprops()
+        vol_data = []
+        all_vol = dict()
+        for st_volume in vol_content:
+            path = st_volume["Members"]
+            for i in path:
+                res = i["@odata.id"]
+                if self.rdmc.opts.verbose:
+                    sys.stdout.write("Saving properties of type %s \t\n" % res)
+                vol_data.append(res)
+                vol_id_url = res + "?$expand=."
+                get_vol = self.rdmc.app.get_handler(vol_id_url, silent=True, service=True).dict
+                # print("Assigned drive", get_vol["Links"]["Drives"])
+                get_vol = self.rdmc.app.removereadonlyprops(get_vol, False, True)
+                all_vol[get_vol["Name"]] = get_vol
+        return all_vol
+
+    @log_decor
+    def save_storageclone(self, options):
+        """
+        Get iLO types from server and save storageclone URL
+        :parm options: command line options
+        :type options: attribute
+        :returns: returns dict and save json format
+        """
+        storage = dict()
+        self.auxcommands["select"].selectfunction("StorageCollection.")
+        st_content = self.rdmc.app.getprops()
+        st_flag = False
+        all_stgcntrl = {}
+        de_url = []
+        out_file = open("ilorest_storage_clone.json", "w")
+        self.rdmc.ui.printer(
+            "Saving of storage clone file to '%s'...... \n" % out_file.name
+        )
+        for st_controller in st_content:
+            path = st_controller["Members"]
+            for i in path:
+                res = i["@odata.id"]
+                if "DE" in res:
+                    de_url.append(res)
+                    if self.rdmc.opts.verbose:
+                        sys.stdout.write("Saving properties of type %s \t\n" % res)
+                    st_flag = True
+                    storage_id_url = res + "?$expand=."
+                    get_storage = self.rdmc.app.get_handler(storage_id_url, silent=True, service=True).dict
+                    vol = self.get_volume(options)
+                    ctr = self.controller_id(options)
+                    get_storage = self.rdmc.app.removereadonlyprops(get_storage, False, True)
+                    # print("controller id", ctr["SATA Storage Controller"]["Id"])
+                    # Controller and volume update abve method called
+                    get_storage["Controllers"]["Members"].append(ctr)
+                    del get_storage["Controllers"]["Members"][0]
+                    get_storage["Volumes"]["Members"].append(vol)
+                    del get_storage["Volumes"]["Members"][0]
+                    all_stgcntrl[get_storage["Id"]] = get_storage
+                else:
+                    continue
+        if st_flag:
+            json.dump(all_stgcntrl, out_file, indent=6)
+            out_file.close()
+            self.rdmc.ui.printer(
+                "Saving of storage clone file to '%s' is complete.\n" % out_file.name
+            )
+        else:
+            sys.stdout.write(
+                "\nNo Storage controllers found which is redfish enabled \n"
+            )
+    @log_decor
+    def get_drives_capacityt(self, options):
+        self.auxcommands["select"].selectfunction("Drive.")
+        drive_content = self.rdmc.app.getprops()
+        drive_list = []
+        loc_list = []
+        for st_drive in drive_content:
+            drive_cap = st_drive["CapacityBytes"]
+            drive_list.append(drive_cap)
+            drive_loc = st_drive["PhysicalLocation"]["PartLocation"]["ServiceLabel"]
+            loc = drive_loc.split(":")
+            drv_loc = str(loc[1].split("=")[1] + ':' + loc[2].split("=")[1] + ':' + loc[3].split("=")[1])
+            loc_list.append(drv_loc)
+        return drive_list, loc_list
+
+    @log_decor
+    def controller_get_id(self, options):
+        self.auxcommands["select"].selectfunction("StorageController.")
+        ctr_content = self.rdmc.app.getprops()
+        ctr_id =[]
+        for ct_data in ctr_content:
+            ct_id = ct_data["Id"]
+            # ctr_id.append(ct_id)
+        return ct_id
+
+    @log_decor
+    def get_storage_de_id(self, options):
+        self.auxcommands["select"].selectfunction("StorageCollection.")
+        st_content = self.rdmc.app.getprops()
+        try:
+            for st_controller in st_content:
+                path = st_controller["Members"]
+                for i in path:
+                    res = i["@odata.id"].split("/")
+                    res = res[6]
+                    if "DE" in res:
+                        res
+                    return res
+        except:
+            pritn("Storage id not available")
+            
+    @log_decor
+    def load_storageclone(self, options):
+        """
+        Load iLO Server storage URL.
+        :parm ilovoldata: iLO Server Volume(logical drive) payload to be loaded
+        :type ilovoldata: dict of values
+        """
+        filename = "ilorest_storage_clone.json"
+        while True:
+            ans = input(
+                "A configuration file %s containing configuration changes will be "
+                "applied to this iLO server resulting in system setting changes for "
+                "Storage urls like controllers, volume, deletion and "
+                "rearrangement of logical disks...etc. Please confirm you acknowledge "
+                "and would like to perform this operation now? (y/n)\n" % filename
+            )
+            if ans.lower() == "y":
+                self.rdmc.ui.printer(
+                    "Proceeding with Storage Clone Load Operation...\n"
+                )
+                break
+            elif ans.lower() == "n":
+                self.rdmc.ui.warn(
+                    "Aborting load operation. No changes made to the server.\n"
+                )
+                return ReturnCodes.NO_CHANGES_MADE_OR_FOUND
+            else:
+                self.rdmc.ui.warn("Invalid input...\n")
+
+        ctr_id = self.controller_get_id(options)
+        print("Controller id", ctr_id)
+        st_id_de = self.get_storage_de_id(options)
+        print("Storage ID only DE", st_id_de)
+        with open(filename, "r+b") as file_handle:
+            data = json.load(file_handle)
+            for k, v in data.items():
+                while True:
+                    ans = input(
+                        "Do you want to delete current %s controller? (y/n)\n" % k
+                    )
+                    if ans.lower() == "y":
+                        self.rdmc.ui.printer(
+                            "Proceeding with Deletion DE storage...\n"
+                        )
+                        break
+                    elif ans.lower() == "n":
+                        self.rdmc.ui.warn(
+                            "Aborting load operation. No changes made to the server.\n"
+                        )
+                        return ReturnCodes.NO_CHANGES_MADE_OR_FOUND
+                    else:
+                        self.rdmc.ui.warn("Invalid input...\n")
+                self.auxcommands["factoryresetcontroller"].run("--reset_type resetall --storageid " + k)
+                if self.rdmc.opts.verbose:
+                    self.rdmc.ui.printer(
+                        "Deleted Volume using factoryresetcontroller %s command.\n" % k)
+                v_data = v["Volumes"]["Members"][0]
+                for i, j in v_data.items():
+                    # print("Key", i)
+                    writecachepolicy = j["WriteCachePolicy"]
+                    readcachepolicy = j["ReadCachePolicy"]
+                    displayname = j["DisplayName"]
+                    raidtype = j["RAIDType"]
+                    capacitybytes = j["CapacityBytes"]
+                    dr, loc = self.get_drives_capacityt(options)
+                    # print("------", dr, loc)
+                    i = 0
+                    for d in dr:
+                        print("drives list", d)
+                        if int(d) > int(capacitybytes):
+
+                            create_val = raidtype+" " + str(loc[i]) +" " + "DisplayName " + displayname + " --iOPerfModeEnabled False" + " --ReadCachePolicy "+ readcachepolicy + " --WriteCachePolicy " +writecachepolicy + " --controller="+ ctr_id + " --capacitybytes "+str(capacitybytes)
+                            print("createvolume properties", create_val)
+                            self.auxcommands["createvolume"].run("volume " + create_val)
+                            break
+                        elif int(d) < int(capacitybytes):
+                            print("Implementation logic", d)
+                            break
+                        else:
+                            sys.stdout.write("Drive capacity is lesser than present drives")
+                        i = i+1
 
     @log_decor
     def getilotypes(self, options):
@@ -386,22 +620,25 @@ class ServerCloneCommand:
             "iLOSSO": ["4", "5", "6"],
             "ESKM": ["4", "5", "6"],
             "ComputerSystem": ["4", "5", "6"],
-            "EthernetInterface": ["4", "5", "6"],
+            # "EthernetInterface": ["4", "5", "6"],
             "ServerBootSettings": ["4", "5", "6"],
             "SecureBoot": ["4", "5", "6"],
-            "SmartStorageConfig": ["5", "6"],
-            "HpSmartStorage": [4],
-            "HpeSmartStorage": [4],
+            "SmartStorageConfig": ["5"],
+            "HpSmartStorage": ["4"],
+            "HpeSmartStorage": ["5"],
         }
-
+        types_accepted = set()
         if self.save:
             if options.noBIOS:
                 self.rdmc.ui.warn("Bios configuration will be excluded.\n")
                 del supported_types_dict["Bios"]
-            if not options.iLOSSA:
+            if options.all:
                 self.rdmc.ui.printer(
-                    "Note: Smart storage configuration will not be included.\n"
-                )
+                    "Note: Smart storage configuration and Storage included all.\n")
+                self.save_storageclone(options)
+            if not options.iLOSSA and not options.all:
+                self.rdmc.ui.printer(
+                        "Note: Smart storage configuration will not be included.\n")
                 self.rdmc.ui.warn("Smart storage configuration will not be included.")
                 del supported_types_dict["SmartStorageConfig"]
                 del supported_types_dict["HpSmartStorage"]
@@ -414,7 +651,7 @@ class ServerCloneCommand:
         ]
 
         # supported types comparison
-        types_accepted = set()
+        # types_accepted = set()
         for _type in sorted(set(self.rdmc.app.types("--fulltypes"))):
             if _type[:1].split(".")[0] == "#":
                 _type_mod = _type[1:].split(".")[0]
@@ -471,6 +708,8 @@ class ServerCloneCommand:
         self.loadhelper(options)
         self.loadpatch(options)
         self.getsystemstatus(options)
+        self.load_idleconnectiontime(options)
+
 
         if not options.autocopy:
             while True:
@@ -611,6 +850,7 @@ class ServerCloneCommand:
                                 root_path_comps[1].isdigit()
                                 or "iLOFederationGroup" in _type
                                 or "ManagerAccount" in _type
+                                or "Manager" in _type
                             )
                         ):
                             singlet = False
@@ -646,7 +886,6 @@ class ServerCloneCommand:
                         "Scanned": False,
                         "Data": self._fdata[_type][thing],
                     }
-
             for path in scanned_dict.keys():
                 try:
                     if scanned_dict[path]["Origin"] == "Server":
@@ -814,16 +1053,20 @@ class ServerCloneCommand:
         :param options: command line options
         :type options: attribute
         """
-        data = OrderedDict()
-        data.update(self.rdmc.app.create_save_header())
-
-        for _type in typelist:
-            self.gatherandsavehelper(_type, data, options)
-
-        self.file_handler(self.clone_file, "w+", options, data, False)
-        self.rdmc.ui.printer(
-            "Saving of clone file to '%s' is complete.\n" % self.clone_file
-        )
+        if options.iLOSSA:
+            self.save_storageclone(options)
+        else:
+            data = OrderedDict()
+            data.update(self.rdmc.app.create_save_header())
+            self.rdmc.ui.printer(
+                "Saving of clone file to '%s'.......\n" % self.clone_file
+            )
+            for _type in typelist:
+                self.gatherandsavehelper(_type, data, options)
+            self.file_handler(self.clone_file, "w+", options, data, False)
+            self.rdmc.ui.printer(
+                "Saving of clone file to '%s' is complete.\n" % self.clone_file
+            )
 
     def gatherandsavehelper(self, _type, data, options):
         """
@@ -849,6 +1092,7 @@ class ServerCloneCommand:
                     ),
                     path_refresh=True,
                 )
+
             # 'links/self/href' required when using iLO 4 (rest).
             elif "EthernetNetworkInterface" in _type:
                 instances = self.rdmc.app.select(
@@ -904,11 +1148,14 @@ class ServerCloneCommand:
                 if _itc_pass:
                     instance = self.rdmc.app.removereadonlyprops(instance, False, True)
 
-                if instance:
+                if instance and not options.iLOSSA:
                     if _typep != "SmartStorageConfig":
-                        self.rdmc.ui.printer(
-                            "Saving properties of type: %s, path: %s\n" % (_typep, path)
-                        )
+                        if self.rdmc.opts.verbose:
+                            self.rdmc.ui.printer(
+                                "Saving properties of type: %s, path: %s\n" % (_typep, path)
+                            )
+                    elif _typep in options.iLOSSA:
+                        sys.stdout.write("ILO SSA calling")
                     if _type not in data:
                         data[_type] = OrderedDict(sorted({path: instance}.items()))
                     else:
@@ -1000,13 +1247,10 @@ class ServerCloneCommand:
             elif self.load:
                 self.load_federation(data[_type][path], _type, path)
 
-        elif "SmartStorage" in _typep:
-            # do not use identified=True. Kind of a hack to have the settings patched.
-            self.rdmc.ui.printer(
-                "Note: Currently SmartStorage save and load are not implemented\n"
-            )
+        elif "StorageCollection" in _typep:
+            identified = True
             # if self.save:
-            #    data = self.save_smartstorage(data, _type)
+               # data = self.save_smartstorage(data, _type, options)
             # elif self.load:
             #    self.load_smartstorage(data[_type][path], _type, path)
 
@@ -1027,8 +1271,9 @@ class ServerCloneCommand:
         :type path: string
         :returns: boolean indicating if the delete option occurred.
         """
+        user_confirm = False
 
-        if not options.autocopy:
+        if not options.autocopy and not options.iLOSSA and not options.all:
             while True:
                 ans = input(
                     "\n%s\nAre you sure you would like to delete the entry?:\n"
@@ -1036,7 +1281,8 @@ class ServerCloneCommand:
                 )
                 if ans.lower() == "y":
                     self.rdmc.ui.printer("Proceeding with Deletion...\n")
-                    return True
+                    user_confirm = True
+                    break
                 elif ans.lower() == "n":
                     self.rdmc.ui.warn(
                         "Aborting deletion. No changes have been made made to "
@@ -1045,6 +1291,9 @@ class ServerCloneCommand:
                     return False
                 else:
                     self.rdmc.ui.warn("Invalid input...\n")
+
+        # if "StorageCollection" in _type "Storage" in _type or :
+        #     sys.stdout.write("Storage related delete lun on particular controller")
 
         if "ManagerAccount" in _type:
             user_name = data["UserName"]
@@ -1075,8 +1324,8 @@ class ServerCloneCommand:
                                 "clone file. Deleting entry from server.\n"
                                 % data["UserName"]
                             )
-                            if not options.autocopy:
-                                ans = userprompt(data)
+                            if not options.autocopy and not options.iLOSSA and not options.all:
+                                ans = user_confirm
                             else:
                                 ans = True
                             if ans:
@@ -1126,8 +1375,8 @@ class ServerCloneCommand:
                             "\n" % data[fed_identifier]
                         )
                         return False
-                if not options.autocopy:
-                    ans = userprompt(data)
+                if not options.autocopy and not options.iLOSSA and not options.all:
+                    ans = user_confirm
                 else:
                     ans = True
                 if ans:
@@ -1169,6 +1418,38 @@ class ServerCloneCommand:
         :type path: string
         """
         self.auxcommands["ethernet"].load_ethernet_aux(_type, path, ethernet_data)
+
+    @log_decor
+    def load_idleconnectiontime(self, iloidlecondata):
+        """
+        Load iLO IdleConnectionTimeoutMinutes.
+        :parm iloidlecondata: IdleConnectionTimeoutMinutes payload to be loaded
+        :type iloidlecondata: dict
+        :param path: iLO schema path
+        """
+        filename = self.clone_file
+        idle_val = []
+        cli_val = []
+        with open(filename, "r+b") as file_handle:
+            data = json.load(file_handle)
+            idle_con = data["#Manager.v1_5_1.Manager"]["/redfish/v1/Managers/1/"]["Oem"]["Hpe"]["IdleConnectionTimeoutMinutes"]
+            serialclispeed = data["#Manager.v1_5_1.Manager"]["/redfish/v1/Managers/1/"]["Oem"]["Hpe"]["SerialCLISpeed"]
+            idle_val.append(idle_con)
+            cli_val.append(serialclispeed)
+        for _t in self._fdata:
+            try:
+                if "Manager" in _t:
+                    _t_path = next(iter(list(self._fdata.get(_t).keys())))
+                    pass_dict = {"Oem": {self.rdmc.app.typepath.defs.oemhp: {"IdleConnectionTimeoutMinutes": idle_con}}}
+                    cli_dict = {"Oem": {self.rdmc.app.typepath.defs.oemhp: {"SerialCLISpeed": serialclispeed}}}
+                    sys.stdout.write("IdleConnectionTimeoutMinutes data %s\n" % pass_dict)
+                    sys.stdout.write("SerialCLISpeed data %s\n" % cli_dict)
+                    sys.stdout.write("Manager data %s\n" % _t_path)
+                    self.rdmc.app.patch_handler(_t_path, pass_dict)
+                    self.rdmc.app.patch_handler(_t_path, cli_dict)
+                    break
+            except KeyError as excp:
+                pass
 
     @log_decor
     def load_datetime(self, datetime_data, path):
@@ -1250,9 +1531,10 @@ class ServerCloneCommand:
             if lic != "" and lic is not None:
                 license_key = lic
                 key_found = True
-                self.rdmc.ui.printer(
-                    "License Key Found ending in: %s\n" % license_key.split("-")[-1]
-                )
+                if self.rdmc.opts.verbose:
+                    self.rdmc.ui.printer(
+                        "License Key Found ending in: %s\n" % license_key.split("-")[-1]
+                    )
                 segpass = []
                 for seg in lic.split("-"):
                     if "XXXXX" in seg.upper():
@@ -1266,7 +1548,7 @@ class ServerCloneCommand:
             self.rdmc.ui.printer("A License Key was not found on this system.\n")
             license_key = "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
 
-        if not options.autocopy and not valid_key:
+        if not options.autocopy and not valid_key and not options.iLOSSA and not options.all:
             while True:
                 segpass = []
                 license_key = input("Provide your license key: (press enter to skip)\n")
@@ -1366,7 +1648,7 @@ class ServerCloneCommand:
             role_id = None
 
         password = [__DEFAULT__, __DEFAULT__]
-        if not options.autocopy:
+        if not options.autocopy and not options.iLOSSA and not options.all:
             while True:
                 for i in range(2):
                     if i < 1:
@@ -1400,10 +1682,11 @@ class ServerCloneCommand:
                         )
                         return None
         else:
-            self.rdmc.ui.printer(
-                "Remember to edit password for user: '%s', login name: '%s'"
-                "." % (account_un, account_ln)
-            )
+            if self.rdmc.opts.verbose:
+                self.rdmc.ui.printer(
+                    "Remember to edit password for user: '%s', login name: '%s'"
+                    "." % (account_un, account_ln)
+                )
 
         if not password[0]:
             password[0] = __DEFAULT__
@@ -1643,7 +1926,10 @@ class ServerCloneCommand:
             privileges = None
 
         fedkey = [__DEFAULT__, __DEFAULT__]
-        if not options.autocopy:
+        # if options.iLOSSA:
+        #     sys.stdout.write("Smart Storage Array functionality")
+
+        if not options.autocopy and not options.iLOSSA and not options.all:
             while True:
                 for i in range(2):
                     if i < 1:
@@ -1805,7 +2091,7 @@ class ServerCloneCommand:
         :param _type: iLO schema type
         :type _type: string
         """
-        return self.smartarrayobj.save()
+        save_storage = self.drive_data.save()
 
     @log_decor
     def load_smartstorage(self, controller_data, _type, path):
@@ -1892,7 +2178,7 @@ class ServerCloneCommand:
             else:
                 raise Exception("%s" % exp)
 
-        if (len(checks) == 0 or False in checks) and not options.autocopy:
+        if (len(checks) == 0 or False in checks) and not options.autocopy and not options.iLOSSA and not options.all:
             while True:
                 ans = input(
                     "Would you like to continue with migration of iLO configuration from "
@@ -2268,6 +2554,16 @@ class ServerCloneCommand:
             action="store_true",
             default=None,
         )
+
+        save_parser.add_argument(
+            "--all",
+            dest="all",
+            help="Optionally include this flag to include all"
+                 " iLO Smart Array Devices and All during save.",
+            action="store_true",
+            default=None,
+        )
+
         save_parser.add_argument(
             "--nobios",
             dest="noBIOS",
@@ -2306,6 +2602,14 @@ class ServerCloneCommand:
             help="Use this flag during 'load' to include a TLS certificate."
             " This should be properly formatted in a simple text file.",
             action="append",
+            default=None,
+        )
+        load_parser.add_argument(
+            "--ilossa",
+            dest="iLOSSA",
+            help="Optionally include this flag to include all"
+                 " iLO Smart Array Devices and All during loadn.",
+            action="store_true",
             default=None,
         )
         load_parser.add_argument(
