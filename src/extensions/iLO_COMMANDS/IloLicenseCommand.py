@@ -38,7 +38,7 @@ except ImportError:
         IloLicenseError,
     )
 
-from redfish.ris.rmc_helper import IdTokenError
+from redfish.ris.rmc_helper import IdTokenError, IloLicenseError
 
 
 class IloLicenseCommand:

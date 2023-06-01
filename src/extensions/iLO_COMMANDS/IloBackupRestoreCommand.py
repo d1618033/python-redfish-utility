@@ -128,7 +128,7 @@ class IloBackupRestoreCommand:
             service = results.resp.dict
         else:
             raise NoContentsFoundForOperationError(
-                "%s not found.It may not " "be available on this system." % select
+                "%s not found.It may not " "be available on this system.\n" % select
             )
 
         backuplocation = service["BackupFileLocation"]
@@ -138,8 +138,10 @@ class IloBackupRestoreCommand:
         postdata.append(("sessionKey", skey))
 
         if options.fpass:
+            if len(options.fpass) > 32:
+                raise InvalidFileInputError("Length of password cannot be greater than 32 characters.")
             postdata.append(("password", options.fpass))
-        self.rdmc.ui.printer("Downloading backup file %s..." % backupname)
+        self.rdmc.ui.printer("Downloading backup file %s...\n" % backupname)
         backupfile = self.rdmc.app.post_handler(
             backuplocation, postdata, service=True, silent=True
         )
@@ -229,7 +231,7 @@ class IloBackupRestoreCommand:
                 raise UploadError("Error while uploading the backup file.")
         else:
             self.rdmc.ui.printer(
-                "Restore in progress. iLO while be unresponsive while the "
+                "Restore in progress. iLO will be unresponsive while the "
                 "restore completes.\nYour session will be terminated.\n"
             )
             self.auxcommands["logout"].run("")

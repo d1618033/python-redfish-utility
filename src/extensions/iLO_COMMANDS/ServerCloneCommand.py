@@ -117,7 +117,7 @@ def log_decor(func):
                 )
         except ExitHandler as excp:
             sys.stderr.write(
-                "Exiting Servferclone command...no further changes have been "
+                "Exiting Serverclone command...no further changes have been "
                 "implemented.\n"
             )
             raise NoChangesFoundOrMadeError(
@@ -186,29 +186,32 @@ class ServerCloneCommand:
             "name": "serverclone",
             "usage": None,
             "description": "Clone from a server or restore to a server a JSON formatted file "
-            "containing the configuration settings of a system's iLO and Bios configuration.\n"
-            "SSA controller settings and logical configurations can be optionally be included for "
-            "save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n"
-            "Example: serverclone <sub-command> <option>\n"
-            "Example: serverclone save/load --auto \n"
-            "Example: serverclone save/load --ilossa \n"
-            "Example: serverclone save/load --uniqueoverride \n\n"
-            "NOTE 1: Use the '--auto' option to ignore "
-            "all user input. Intended for scripting purposes.\n"
-            "NOTE 2: During clone load, login using an ilo account with full privileges"
-            " (such as the Administrator account) to ensure all items are cloned "
-            "successfully.\n"
-            "NOTE 3: It is suggested to only include types and properties targetted for "
-            "modification when loading. If entire sections of properties (or all sub dictionaries)\n\t"
-            "of a particular types) are to be removed; then the type, path and all associated "
-            "properties within the section should be removed \n\tin a manner preserving the JSON "
-            "formatting.Individual properties or entire sections may be removed.\n"
-            "NOTE 4: Any iLO management account or iLO federation account not present in the "
-            "serverclone file will be deleted if present on the server during load.",
+                           "containing the configuration settings of a system's iLO and Bios configuration.\n"
+                           "SSA controller settings and logical configurations can be optionally be included for "
+                           "save.\nTo view help on specific sub-commands run: serverclone <sub-command> -h\n\n"
+                           "Example: serverclone <sub-command> <option>\n"
+                           "Example: serverclone save --auto --all\n"
+                           "Example: serverclone load --auto --all\n"
+                           "Example: serverclone save --all --auto -f clone.json -sf storage_clone.json \n"
+                           "Example: serverclone load --all --auto -f clone.json -sf storage_clone.json --noautorestart\n"
+                           "Example: serverclone save/load --ilossa \n"
+                           "Example: serverclone save/load --uniqueoverride \n\n"
+                           "NOTE 1: Use the '--auto' option to ignore "
+                           "all user input. Intended for scripting purposes.\n"
+                           "NOTE 2: During clone load, login using an ilo account with full privileges"
+                           " (such as the Administrator account) to ensure all items are cloned "
+                           "successfully.\n"
+                           "NOTE 3: It is suggested to only include types and properties targetted for "
+                           "modification when loading. If entire sections of properties (or all sub dictionaries)\n\t"
+                           "of a particular types) are to be removed; then the type, path and all associated "
+                           "properties within the section should be removed \n\tin a manner preserving the JSON "
+                           "formatting.Individual properties or entire sections may be removed.\n"
+                           "NOTE 4: Any iLO management account or iLO federation account not present in the "
+                           "serverclone file will be deleted if present on the server during load.",
             "summary": "Creates a JSON formatted clone file of a system's iLO, Bios, and SSA "
-            "configuration which can be duplicated onto other systems. "
-            "User editable JSON file can be manipulated to modify settings before being "
-            "loaded onto another machine.",
+                       "configuration which can be duplicated onto other systems. "
+                       "User editable JSON file can be manipulated to modify settings before being "
+                       "loaded onto another machine.",
             "aliases": [],
             "auxcommands": [
                 "LoginCommand",
@@ -296,7 +299,10 @@ class ServerCloneCommand:
         if self.save:
             self.gatherandsavefunction(self.getilotypes(options), options)
         elif self.load:
-            if not options.iLOSSA:
+            if options.all:
+                self.loadfunction(options)
+                self.load_storageclone(options)
+            elif not options.iLOSSA:
                 self.loadfunction(options)
             else:
                 self.load_storageclone(options)
@@ -370,6 +376,7 @@ class ServerCloneCommand:
             )
         else:
             return fdata
+
     @log_decor
     def controller_id(self, options):
         """
@@ -438,7 +445,11 @@ class ServerCloneCommand:
         st_flag = False
         all_stgcntrl = {}
         de_url = []
-        out_file = open("ilorest_storage_clone.json", "w")
+        if options.storageclonefilename:
+            outfilename = options.storageclonefilename[0]
+        else:
+            outfilename = "ilorest_storage_clone.json"
+        out_file = open(outfilename, "w")
         self.rdmc.ui.printer(
             "Saving of storage clone file to '%s'...... \n" % out_file.name
         )
@@ -475,6 +486,7 @@ class ServerCloneCommand:
             sys.stdout.write(
                 "\nNo Storage controllers found which is redfish enabled \n"
             )
+
     @log_decor
     def get_drives_capacityt(self, options):
         self.auxcommands["select"].selectfunction("Drive.")
@@ -494,7 +506,7 @@ class ServerCloneCommand:
     def controller_get_id(self, options):
         self.auxcommands["select"].selectfunction("StorageController.")
         ctr_content = self.rdmc.app.getprops()
-        ctr_id =[]
+        ctr_id = []
         for ct_data in ctr_content:
             ct_id = ct_data["Id"]
             # ctr_id.append(ct_id)
@@ -515,7 +527,7 @@ class ServerCloneCommand:
                     return res
         except:
             pritn("Storage id not available")
-            
+
     @log_decor
     def load_storageclone(self, options):
         """
@@ -523,7 +535,10 @@ class ServerCloneCommand:
         :parm ilovoldata: iLO Server Volume(logical drive) payload to be loaded
         :type ilovoldata: dict of values
         """
-        filename = "ilorest_storage_clone.json"
+        if options.storageclonefilename:
+            filename = options.storageclonefilename[0]
+        else:
+            filename = "ilorest_storage_clone.json"
         while True:
             ans = input(
                 "A configuration file %s containing configuration changes will be "
@@ -550,7 +565,12 @@ class ServerCloneCommand:
         st_id_de = self.get_storage_de_id(options)
         print("Storage ID only DE", st_id_de)
         with open(filename, "r+b") as file_handle:
-            data = json.load(file_handle)
+            if options.encryption:
+                data = json.load(Encryption().decrypt_file(
+                    file_handle.read(), options.encryption
+                ))
+            else:
+                data = json.load(file_handle)
             for k, v in data.items():
                 while True:
                     ans = input(
@@ -587,7 +607,9 @@ class ServerCloneCommand:
                         print("drives list", d)
                         if int(d) > int(capacitybytes):
 
-                            create_val = raidtype+" " + str(loc[i]) +" " + "DisplayName " + displayname + " --iOPerfModeEnabled False" + " --ReadCachePolicy "+ readcachepolicy + " --WriteCachePolicy " +writecachepolicy + " --controller="+ ctr_id + " --capacitybytes "+str(capacitybytes)
+                            create_val = raidtype + " " + str(loc[
+                                                                  i]) + " " + "DisplayName " + displayname + " --iOPerfModeEnabled False" + " --ReadCachePolicy " + readcachepolicy + " --WriteCachePolicy " + writecachepolicy + " --controller=" + ctr_id + " --capacitybytes " + str(
+                                capacitybytes)
                             print("createvolume properties", create_val)
                             self.auxcommands["createvolume"].run("volume " + create_val)
                             break
@@ -596,7 +618,7 @@ class ServerCloneCommand:
                             break
                         else:
                             sys.stdout.write("Drive capacity is lesser than present drives")
-                        i = i+1
+                        i = i + 1
 
     @log_decor
     def getilotypes(self, options):
@@ -638,7 +660,7 @@ class ServerCloneCommand:
                 self.save_storageclone(options)
             if not options.iLOSSA and not options.all:
                 self.rdmc.ui.printer(
-                        "Note: Smart storage configuration will not be included.\n")
+                    "Note: Smart storage configuration will not be included.\n")
                 self.rdmc.ui.warn("Smart storage configuration will not be included.")
                 del supported_types_dict["SmartStorageConfig"]
                 del supported_types_dict["HpSmartStorage"]
@@ -709,7 +731,6 @@ class ServerCloneCommand:
         self.loadpatch(options)
         self.getsystemstatus(options)
         self.load_idleconnectiontime(options)
-
 
         if not options.autocopy:
             while True:
@@ -844,14 +865,14 @@ class ServerCloneCommand:
                 try:
                     if "multi_sel" in locals() and "curr_sel" in locals():
                         if (
-                            len(multi_sel) > 1
-                            and len(curr_sel) == 1
-                            and (
+                                len(multi_sel) > 1
+                                and len(curr_sel) == 1
+                                and (
                                 root_path_comps[1].isdigit()
                                 or "iLOFederationGroup" in _type
                                 or "ManagerAccount" in _type
                                 or "Manager" in _type
-                            )
+                        )
                         ):
                             singlet = False
                             curr_sel = multi_sel
@@ -911,11 +932,11 @@ class ServerCloneCommand:
                 except KeyError as excp:
                     if path in str(excp) and self._fdata.get(_type):
                         if self.delete(
-                            scanned_dict[path]["Data"],
-                            _type,
-                            path,
-                            self._fdata[_type],
-                            options,
+                                scanned_dict[path]["Data"],
+                                _type,
+                                path,
+                                self._fdata[_type],
+                                options,
                         ):
                             # ok so this thing does not have a valid path, is not considered a
                             # deletable item so....idk what to do with you. You go to load.
@@ -982,7 +1003,11 @@ class ServerCloneCommand:
         tmp[_type][path] = self.rdmc.app.removereadonlyprops(
             tmp[_type][path], False, True, prop_list
         )
-        json_traversal_delete_empty(tmp, None, None)
+        val_emp = tmp["#Bios.v1_0_4.Bios"]["/redfish/v1/systems/1/bios/settings/"]["Attributes"]
+        if val_emp["AdminName"] == "" and val_emp["AdminPhone"] == "" and val_emp["AdminEmail"] == "":
+            pass
+        else:
+            json_traversal_delete_empty(tmp, None, None)
         # if not self.ilo_special_functions(tmp, _type, path, options):
         return tmp
 
@@ -1250,7 +1275,7 @@ class ServerCloneCommand:
         elif "StorageCollection" in _typep:
             identified = True
             # if self.save:
-               # data = self.save_smartstorage(data, _type, options)
+            # data = self.save_smartstorage(data, _type, options)
             # elif self.load:
             #    self.load_smartstorage(data[_type][path], _type, path)
 
@@ -1367,8 +1392,8 @@ class ServerCloneCommand:
                 )
                 for fpath in fdata:
                     if (
-                        fdata[next(iter(fdata))].get("FederationName")
-                        == data[fed_identifier]
+                            fdata[next(iter(fdata))].get("FederationName")
+                            == data[fed_identifier]
                     ):
                         self.rdmc.ui.warn(
                             "Account '%s' exists in file, not deleting."
@@ -1420,7 +1445,7 @@ class ServerCloneCommand:
         self.auxcommands["ethernet"].load_ethernet_aux(_type, path, ethernet_data)
 
     @log_decor
-    def load_idleconnectiontime(self, iloidlecondata):
+    def load_idleconnectiontime(self,options):
         """
         Load iLO IdleConnectionTimeoutMinutes.
         :parm iloidlecondata: IdleConnectionTimeoutMinutes payload to be loaded
@@ -1431,7 +1456,13 @@ class ServerCloneCommand:
         idle_val = []
         cli_val = []
         with open(filename, "r+b") as file_handle:
-            data = json.load(file_handle)
+            if options.encryption:
+                data = json.loads(Encryption().decrypt_file(
+                        file_handle.read(), options.encryption
+                    ))
+            else:
+                data = json.load(file_handle)
+            # data = json.load(file_handle, encoding='cp1252')
             idle_con = data["#Manager.v1_5_1.Manager"]["/redfish/v1/Managers/1/"]["Oem"]["Hpe"]["IdleConnectionTimeoutMinutes"]
             serialclispeed = data["#Manager.v1_5_1.Manager"]["/redfish/v1/Managers/1/"]["Oem"]["Hpe"]["SerialCLISpeed"]
             idle_val.append(idle_con)
@@ -1669,7 +1700,7 @@ class ServerCloneCommand:
                         pass
 
                 if password[0] == password[1] and (
-                    password[0] is not None or password[0] != ""
+                        password[0] is not None or password[0] != ""
                 ):
                     break
                 else:
@@ -2212,61 +2243,61 @@ class ServerCloneCommand:
         remove_privs_str = ""
 
         if desired_priv.get("Privileges").get("HostBIOSConfigPriv") and curr_privs.get(
-            "HostBIOSConfigPriv"
+                "HostBIOSConfigPriv"
         ):
             add_privs_str += "8,"
         else:
             remove_privs_str += "8,"
         if desired_priv.get("Privileges").get("HostNICConfigPriv") and curr_privs.get(
-            "HostNICConfigPriv"
+                "HostNICConfigPriv"
         ):
             add_privs_str += "7,"
         else:
             remove_privs_str += "7,"
         if desired_priv.get("Privileges").get("HostStorageConfigPriv") and curr_privs.get(
-            "HostStorageConfigPriv"
+                "HostStorageConfigPriv"
         ):
             add_privs_str += "9,"
         else:
             remove_privs_str += "9,"
         if desired_priv.get("Privileges").get("LoginPriv") and curr_privs.get(
-            "LoginPriv"
+                "LoginPriv"
         ):
             add_privs_str += "1,"
         else:
             remove_privs_str += "1,"
         if desired_priv.get("Privileges").get("RemoteConsolePriv") and curr_privs.get(
-            "RemoteConsolePriv"
+                "RemoteConsolePriv"
         ):
             add_privs_str += "2,"
         else:
             remove_privs_str += "2,"
         if desired_priv.get("Privileges").get(
-            "SystemRecoveryConfigPriv"
+                "SystemRecoveryConfigPriv"
         ) and curr_privs.get("SystemRecoveryConfigPriv"):
             add_privs_str += "10,"
         else:
             remove_privs_str += "10,"
         if desired_priv.get("Privileges").get("UserConfigPriv") and curr_privs.get(
-            "UserConfigPriv"
+                "UserConfigPriv"
         ):
             add_privs_str += "3,"
         else:
             remove_privs_str += "3,"
         if desired_priv.get("Privileges").get("VirtualMediaPriv") and curr_privs.get(
-            "VirtualMediaPriv"
+                "VirtualMediaPriv"
         ):
             add_privs_str += "5,"
         else:
             remove_privs_str += "5,"
         if desired_priv.get("Privileges").get(
-            "VirtualPowerAndResetPriv"
+                "VirtualPowerAndResetPriv"
         ) and curr_privs.get("VirtualPowerAndResetPriv"):
             add_privs_str += "6,"
         else:
             remove_privs_str += "6,"
         if desired_priv.get("Privileges").get("iLOConfigPriv") and curr_privs.get(
-            "iLOConfigPriv"
+                "iLOConfigPriv"
         ):
             add_privs_str += "4,"
         else:
@@ -2294,7 +2325,7 @@ class ServerCloneCommand:
         ]
         root_path, ident_ending = (
             path[: entries_list[-1][0]],
-            path[entries_list[-1][0] :],
+            path[entries_list[-1][0]:],
         )
 
         # check to verify the root path + ending match the original path.
@@ -2496,7 +2527,7 @@ class ServerCloneCommand:
             "--encryption",
             dest="encryption",
             help="Optionally include this flag to encrypt/decrypt a file"
-            " using the key provided.",
+                 " using the key provided.",
             default=None,
         )
         parser.add_argument(
@@ -2508,11 +2539,19 @@ class ServerCloneCommand:
             default=None,
         )
         parser.add_argument(
+            "-sf",
+            "--storageclonefile",
+            dest="storageclonefilename",
+            help="Optionally rename the default clone file 'ilorest_storage_clone.json'",
+            action="append",
+            default=None,
+        )
+        parser.add_argument(
             "--uniqueoverride",
             dest="uniqueoverride",
             action="store_true",
             help="Override the measures stopping the tool from writing."
-            "over items that are system unique.",
+                 "over items that are system unique.",
             default=None,
         )
         parser.add_argument(
@@ -2540,17 +2579,17 @@ class ServerCloneCommand:
             "save",
             help=save_help,
             description=save_help + "\n\texample: serverclone save"
-            "\n\n\tSave iLO config omitting BIOS attributes to a non-default file name.\n\t"
-            "example: serverclone save -f serv_clone.json --nobios"
-            "\n\n\tSave an encrypted iLO configuration file (to the default file name)\n\t"
-            "example: serverclone save --encryption <ENCRYPTION KEY>",
+                                    "\n\n\tSave iLO config omitting BIOS attributes to a non-default file name.\n\t"
+                                    "example: serverclone save -f serv_clone.json --nobios"
+                                    "\n\n\tSave an encrypted iLO configuration file (to the default file name)\n\t"
+                                    "example: serverclone save --encryption <ENCRYPTION KEY>",
             formatter_class=RawDescriptionHelpFormatter,
         )
         save_parser.add_argument(
             "--ilossa",
             dest="iLOSSA",
             help="Optionally include this flag to include configuration of"
-            " iLO Smart Array Devices during save.",
+                 " iLO Smart Array Devices during save.",
             action="store_true",
             default=None,
         )
@@ -2580,19 +2619,19 @@ class ServerCloneCommand:
             "load",
             help=load_help,
             description=load_help + "SSO and TLS certificates may be"
-            "added on load.\n\n\tLoad a clone file from a non-default file name.\n\t"
-            "example: serverclone load -f serv_clone.json"
-            "\n\n\tLoad a clone file with SSO and TLS certificates.\n\t"
-            "example: serverclone load -ssocert sso.txt --tlscert tls.txt"
-            "\n\n\tLoad a clone file which has been encrypted.\n\t"
-            "example: serverclone load --encryption abc12abc12abc123\n\n\t",
+                                    "added on load.\n\n\tLoad a clone file from a non-default file name.\n\t"
+                                    "example: serverclone load -f serv_clone.json"
+                                    "\n\n\tLoad a clone file with SSO and TLS certificates.\n\t"
+                                    "example: serverclone load -ssocert sso.txt --tlscert tls.txt"
+                                    "\n\n\tLoad a clone file which has been encrypted.\n\t"
+                                    "example: serverclone load --encryption abc12abc12abc123\n\n\t",
             formatter_class=RawDescriptionHelpFormatter,
         )
         load_parser.add_argument(
             "--ssocert",
             dest="ssocert",
             help="Use this flag during 'load' to include an SSO certificate."
-            " This should be properly formatted in a simple text file.",
+                 " This should be properly formatted in a simple text file.",
             action="append",
             default=None,
         )
@@ -2600,8 +2639,16 @@ class ServerCloneCommand:
             "--tlscert",
             dest="tlscert",
             help="Use this flag during 'load' to include a TLS certificate."
-            " This should be properly formatted in a simple text file.",
+                 " This should be properly formatted in a simple text file.",
             action="append",
+            default=None,
+        )
+        load_parser.add_argument(
+            "--all",
+            dest="all",
+            help="Optionally include this flag to include all"
+                 " iLO Smart Array Devices and All during save.",
+            action="store_true",
             default=None,
         )
         load_parser.add_argument(

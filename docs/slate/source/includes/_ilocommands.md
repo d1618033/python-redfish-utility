@@ -4,10 +4,10 @@ This section includes advanced functions for manipulating iLO using the RESTful 
 
 iLO commands that are supported for a specific HPE server generation:
 <ul>
-<li>certificate: Gen10 with limited functionality for Gen9
-<li>fwintegritycheck: Gen10
-<li>serverclone: Gen10
-<li>sigrecompute: Gen9
+<li>certificate: Gen10 and later with limited functionality for Gen9
+<li>fwintegritycheck: Gen10 and later
+<li>serverclone: Gen10 and later
+<li>sigrecompute: Gen9 and later
 </ul>
 
 ### Backuprestore Command
@@ -23,7 +23,7 @@ Downloading backup file HPE_Kappa_20190203_0012.bak...Download complete.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">backuprestore restore</span>
-Restore in progress. iLO while be unresponsive while the restore completes.
+Restore in progress. iLO will be unresponsive while the restore completes.
 Your session will be terminated.
 Logging session out.
 </pre>
@@ -87,49 +87,24 @@ None
 
 > Certificate example commands:
 
-> To Generate an https certificate signing request use the `csr` argument along with the following information `Organization Name`, `Organization Unit`, `Common Name`, `Country`, `State`, `City`. Use quotes to include parameters which contain whitespace.
-
-<pre>
-iLOrest > login
-Discovering data...Done
-iLOrest > <span style="color: #01a982; ">certificate csr "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Texas" "Houston" </span>
-iLO is creating a new certificate signing request This process can take up to 10 minutes.
-X509 Certificate is being generated and the process might take up to 10 minutes.
-</pre>
-
 > To retrieve the certificate signing request use the `getcsr` argument. The default filename is `certificate.txt`, saved to the current working directory. Including the *(-f, --filename)* option will change the default name.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">certificate getcsr</span>
+iLOrest > <span style="color: #01a982; ">certificate getcsr --TLS_CERT</span>
 Discovering data...Done
 Certificate saved to: certificate.txt
 </pre>
 
-> To import a CA certificate use the `ca` argument followed by a file containing the certificate.
-
 <pre>
-iLOrest > <span style="color: #01a982; ">certificate ca certfile.txt</span>
-The operation completed successfully.
-</pre>
-
-> To import a CRL certificate use the `crl` argument followed by a URI to the certificate file.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">certificate crl https://hostname/location/to/cert.txt</span>
-The operation completed successfully.
-</pre>
-
-> To import a TLS certificate use the `tls` argument followed by a file containing the certificate.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">certificate tls certfile.txt</span>
-The operation completed successfully.
+iLOrest > <span style="color: #01a982; ">certificate getcsr --PLATFORM_CERT</span>
+Discovering data...Done
+Certificate saved to: certificate.txt
 </pre>
 
 > To generate CSR use certificate command with gen_csr subcommand with all required arguments.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">certificate gen_csr "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "False"</span>
+iLOrest > <span style="color: #01a982; ">certificate gen_csr "Hewlett Packard Enterprise" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "False"</span>
 The operation completed successfully.
 </pre>
 
@@ -175,23 +150,56 @@ State:Houston
 > To import scep certificate use certificate command with import subcommand followed by option --scep provided with scep cert file
 
 <pre>
-iLOrest > <span style="color: #01a982; ">certificate import --scep scep.txt</span>
+iLOrest > <span style="color: #01a982; ">certificate import --scep_cert scep.txt</span>
 Imported the scep certificate successfully
 </pre>
+
+> To import ca certificate use certificate command with import subcommand followed by option --ca_cert provided with ca cert file
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate import --ca_cert ca.cer</span>
+Imported CA certificate successfully
+</pre>
+
+> To import IDEVID certificate use certificate command with import subcommand followed by option --idevid_cert provided with IDEVID cert file
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate import --idevid_cert IDEVID.cer</span>
+Imported the iLOIDevID certificate successfully
+</pre>
+
+>Please check the "Import Arguments" below to know all the available import options.
+
+> To export LDEVID certificate use certificate command with export subcommand followed by option --ldevid_cert and -f with a file name in which the certificate will be stored.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate export --ldevid_cert -f myLDEVID.cer</span>
+The certificate was saved to: myLDEVID.cer
+</pre>
+
+> To export SystemIAK certificate use certificate command with export subcommand followed by option --systemiak_cert and -f with a file name in which the certificate will be stored.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">certificate export --systemiak_cert -f mySystemIAK.cer</span>
+The certificate was saved to: mySystemIAK.cer
+</pre>
+
+>Please check the "Export Arguments" below to know all the available export options.
 
 > To auto enroll use certificate command with auto_enroll  subcommand followed by required arguments
 
 <pre>
-iLOrest > <span style="color: #01a982; ">certificate auto_enroll "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "https://10.10.10.10/certsrv/mscep/mscep.dll" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" "True" "False"</span>
+iLOrest > <span style="color: #01a982; ">certificate auto_enroll "Hewlett Packard Enterprise" "ILORestGroup" "iLORest" "US" "Americas" "Houston" "https://10.10.10.10/certsrv/mscep/mscep.dll" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" "True" "False"</span>
 
 </pre>
 
 <aside class="notice">
 <ul>
 <li>Please make sure the order of arguments is correct. The parameters are extracted based on their position in the arguments list.</li>
-<li>Some certificate types are not available on Gen9.</li>
+<li>Some certificate types for instance scep are not available on Gen9.</li>
 <li>Use the singlesignon command to import single sign on certificates.</li>
-<li>Use quotes to include parameters, which contain whitespace when generating a CSR. For example: certificate csr "Hewlett Packard Enterprise" "iLORest Group" "CName" "United States" "Texas" "Houston"</li>
+<li>Use quotes to include parameters, which contain whitespace when generating a CSR. For example: certificate gen_csr "Hewlett Packard Enterprise" "iLORest Group" "CName" "United States" "Texas" "Houston" "False"</li>
+<li>Platform certificates are specific to diagnostic usage purposes</li>
 </ul>
 </aside>
 
@@ -210,21 +218,102 @@ Including the help flag will display help for the command.
 
 <p class="fake_header">SUBCOMMAND</p>
 
-Subcommand can be csr/getcsr/ca/crl/tls/gen_csr/view/import/auto_enroll. Usages are each one are given on the right side.
+Subcommand can be getcsr/gen_csr/view/import/export/auto_enroll. Usages are each one are given on the right side.
 
-- csr/gen_csr - Creates new certificate request.
-- getcsr - Downloads the certificate to certificate.txt.
-- ca - Imports CA certificate.
-- crl - Imports CRL certificate.
-- tls - Imports TLS certificate.
-- view - Prints scep certicate with option --scep_cert or https certificate with option --https_cert.
+- gen_csr - Creates new certificate signing request.
+- getcsr - Downloads the CSR generated to certificate.txt.
+- view - Prints scep certificate with option --scep_cert or https certificate with option --https_cert.
 - auto_enroll - Configures new SCEP certificate.
-- import - Imports certificate. To import scep certificate, use --scep option. 
+- import - Useful in importing the certificates such as CA\TLS\CRL\SCEP\IDEVID\LDEVID\SYSTEMIAK etc.
+- export - Useful in exporting the certificates such as IDEVID\LDEVID\SYSTEMIAK\PLATFORMCERT etc.
 
-- **-f FILENAME, --filename=FILENAME**
+#### Import Arguments
 
-Use this flag if you wish to use a different filename for the certificate signing request. The default filename is certificate.txt.
+- **--ca_cert**
 
+Declare the import is an X.509 formatted user CA certificate.
+
+- **--scep_cert**
+
+Upload a SCEP certificate.
+
+- **--crl_cert**
+
+Provide iLO with a URL to retrieve the X.509 formatted CA certificate.
+
+- **--tls_cert**
+
+Declare the import is a X.509 formatted  TLS/SSL certificate.
+
+- **--idevid_cert**
+
+Upload an IDEVID certificate.
+
+- **--ldevid_cert**
+
+Upload an LDEVID certificate.
+
+- **--systemiak_cert**
+
+Upload an SystemIAK certificate.
+
+- **--systemidevid_cert**
+
+Upload a system IDEVID certificate.
+
+- **--platform_cert**
+
+Upload a system PlatformCert certificate.
+
+- **--from_url**
+
+Specify a URL as the source of the import.
+
+<aside class="notice">A certificate must be imported from a file or from a URL (only supported for TLS/SSL certificates).</aside>
+
+#### Export Arguments
+
+- **--idevid_cert**
+
+Declare the export is an X.509 formatted IDevID certificate.
+
+- **--ldevid_cert**
+
+Declare the export is an X.509 formatted LDevID certificate.
+
+- **--systemiak_cert**
+
+Declare the export is an X.509 formatted SystemIAK certificate.
+
+- **--systemidevid_cert**
+
+Declare the export is an X.509 formatted SystemIDevID certificate.
+
+- **--platform_cert**
+
+Declare the export is an X.509 formatted Platform certificate.
+
+- **--id**
+
+Specify the id of the certificate to retrieve from the collection. Requires a certificate type selection.
+
+- **-f File, --filename File**
+
+Specify the filename/filepath for the resulting certificate to be saved to. By default, the certificate is printed to the console.
+
+#### getcsr Arguments
+
+- **--TLS_CERT**
+
+Declare retrieval of an X.509 formatted TLS/SSL certificate signing request (CSR).
+
+- **--PLATFORM_CERT**
+
+Declare retrieval of an X.509 formatted Platform certificate signing request (CSR).
+
+- **-f File, --filename File**
+
+Specify the filename/filepath for the resulting certificate signing request (CSR) to be saved to. By default, the CSR is printed to the console.
 <p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -628,8 +717,6 @@ LOCAL PRIVILEGES:
 8. Host Bios Config
 9. Host Storage Config
 10. System Recovery Config
-11. Self Password Change
-12. Configure Components
 
 LOCAL ROLES:
 - ReadOnly
@@ -912,7 +999,7 @@ Save a network configuration.
 
 - **Load**
 
-Load a network cofiguration.
+Load a network configuration.
 
 #### Optional parameters
 
@@ -954,7 +1041,9 @@ Configure Domain Name Servers (DNS) in a list: <DNS1> <DNS2>
 
 - **--network_ipv4 <ipv4 address>, <ipv4 gateway>, <ipv4 network mask>.**  
 Configure Static IPv4 Settings. Provide a list of network settings
- 
+
+- **--network_ipv6 <ipv6 address>, <ipv6 gateway>, <ipv6 network mask>.**  
+Configure Static IPv6 Settings. Provide a list of network settings 
 
 ### Factorydefaults Command
 
@@ -1044,7 +1133,7 @@ Firmwareupdate *[URI] [Optional Parameters]*
 
 <p class="fake_header">Description</p>
 
-Use this command to update the firmware via URI. iLO must be able to access the URI for update to complete successfully. This command only supports firmware with a `.bin` extension.
+Use this command to update the firmware via URI. iLO must be able to access the URI for update to complete successfully. This command only supports firmware with all supported extensions.
 
 <aside class="notice">The firmware update command is only supported in <b>iLO 4 2.20</b> or higher.</aside>
 
@@ -1052,7 +1141,7 @@ Use this command to update the firmware via URI. iLO must be able to access the 
 
 - **URI**
 
-Point the **firmwareupdate** command towards the .bin file that holds the file for the firmware update.
+Point the **firmwareupdate** command towards the firmware file that holds the file for the firmware update.
 
 - **-h, --help**
 
@@ -1086,7 +1175,7 @@ Optionally include the logout flag to log out of the server after this command i
 
 File
 
-Input a URI pointing to a `.bin` file to perform the `firmwareupdate` command. The .bin file should hold the file needed to perform the firmware update.
+Input a URI pointing to a firmware file to perform the `firmwareupdate` command. The firmware file should hold the file needed to perform the firmware update.
 
 <p class="fake_header">Output</p>
 
@@ -1327,9 +1416,6 @@ PRIVILEGES:
 4. iLO Config
 5. Virtual Media
 6. Virtual Power and Reset
-
-iLO 5 added privileges:
-
 7. Host NIC Config
 8. Host Bios Config
 9. Host Storage Config
@@ -1347,23 +1433,23 @@ iloaccounts *[COMMAND] [OPTIONS]*
 
 Adds/deletes an iLO account on the currently logged in server and modifies iLO account privileges.
 
-- **LOGINNAME:**  The account name, used to login.
-- **USERNAME:** The account username name, not used to login.
+- **LOGINNAME:**  The account name, not used to login.
+- **USERNAME:** The account username name, used to login.
 - **PASSWORD:**  The account password, used to login.
 - **Id:** The number associated with an iLO user account.
-- **PRIVILEGES:**
-  * 1: Login
-  * 2: Remote Console
-  * 3: User Config
-  * 4: iLO Config
-  * 5: Virtual Media
-  * 6: Virtual Power and Reset
 
-- **iLO 5 added privileges:**
-  * 7: Host NIC Config
-  * 8: Host Bios Config
-  * 9: Host Storage Config
-  * 10: System Recovery Config
+**PRIVILEGES:**
+
+1. Login
+2. Remote Console
+3. User Config
+4. iLO Config
+5. Virtual Media
+6. Virtual Power and Reset
+7. Host NIC Config
+8. Host Bios Config
+9. Host Storage Config
+10. System Recovery Config
 
 - **Roles:**
   * Administrator
@@ -1380,6 +1466,11 @@ Only privileges available to the logged in account can be set to the new account
 
 <aside class="notice">
 Account credentials are case-sensitive.
+</aside>
+
+<aside class="notice">
+While executing the command: "iloaccounts add" in a Linux machine, an escape character needs to be added before a special character in the password.                                                                      
+Example: iloaccount add rest rest 12iso\$help 
 </aside>
 
 
@@ -1633,9 +1724,6 @@ PRIVILEGES:
 4. iLO Config
 5. Virtual Media
 6. Virtual Power and Reset
-
-iLO 5 added privileges:
-
 7. Host NIC Config
 8. Host Bios Config
 9. Host Storage Config
@@ -1658,18 +1746,16 @@ Adds, deletes, or modifies an iLO federation group on the currently logged in se
 - **Id**: The number associated with an iLO federation.
 
 - **PRIVILEGES:**
-  * 1: Login
-  * 2: Remote Console
-  * 3: User Config
-  * 4: iLO Config
-  * 5: Virtual Media
-  * 6: Virtual Power and Reset
-
-- **iLO 5 added privileges:**
-  * 7: Host NIC Config
-  * 8: Host Bios Config
-  * 9: Host Storage Config
-  * 10: System Recovery Config
+1. Login
+2. Remote Console
+3. User Config
+4. iLO Config
+5. Virtual Media
+6. Virtual Power and Reset
+7. Host NIC Config
+8. Host Bios Config
+9. Host Storage Config
+10. System Recovery Config
 
 <p class="fake_header">Parameters</p>
 
@@ -1881,7 +1967,7 @@ This process may take up to 3 minutes.
 A management processor reset is in progress.
 </pre>
 
-<aside class="warning">Resetting iLO will render it unresponseive as it resets. The user will be logged out.</aside>
+<aside class="warning">Resetting iLO will render it unresponsive as it resets. The user will be logged out.</aside>
 
 <p class="fake_header">Syntax</p>
 
@@ -2071,7 +2157,7 @@ Performs One Button Erase on a system. Erases all iLO settings, Bios settings, U
 
 <aside class="warning"> This command will erase user data. Use this command with extreme caution. Complete erase can take up to 24 hours to complete. </aside>
 
-<p class="fake_header">Paramters</p>
+<p class="fake_header">Parameters</p>
 
 - **-h, --help**
 
@@ -2195,6 +2281,10 @@ Simulates pressing and holding of the power button on this systems.
 
 Immediately removes power from the server, followed by a restart of the system.
 
+- **nologout**
+
+Use this option to not logout of iLO during server reboot.
+
 - **-h, --help**
 
 Including the help flag will display help for the command.
@@ -2305,7 +2395,7 @@ None
 
 ### Serverclone Command
 
-> To save an iLO and Bios config run the command with the `save` argument. You can specify a filename using the (`-f, --filename`) option, if this option is not used the command will search for `ilorest_clone.json`.
+> To save an iLO and Bios config run the command with the `save` argument. You can specify a filename using the (`-f, --filename`) option, if this option is not used the command will save the config in `ilorest_clone.json`.   
 
 <pre>
 iLOrest > <span style="color: #01a982; ">serverclone save</span>
@@ -2343,7 +2433,7 @@ Saving properties of type: SmartStorageConfig, path: /redfish/v1/systems/1/smart
 Saving of clonefile to 'ilorest_clone.json' is complete.
 </pre>
 
-> To save an iLO and Bios config while providing a placeholder value for all user inputs run the command with the `save` argument and include the (`--auto`) option. This option can be used to programmatically create a file without user input and then use a script to fill in the settings.
+> To save an iLO and Bios config while providing a placeholder value for all user inputs run the command with the `save` argument and include the (`--auto`) option. This option can be used to programmatically create a file without user input and then use a script to fill in the settings.  
 
 <pre>
 iLOrest > serverclone save <span style="color: #01a982; ">--auto</span>
@@ -2379,6 +2469,18 @@ Saving properties of type: SecureBoot, path: /redfish/v1/Systems/1/SecureBoot/
 Saving properties of type: SmartStorageConfig, path: /redfish/v1/systems/1/smartstorageconfig/settings/
 Saving of clonefile to 'ilorest_clone.json' is complete.
 </pre>
+
+NOTE: --ilossa is an option to save storage information. --ilossa information is stored in a default file 'ilorest_storage_clone.json'. To store it in a custom file, use -sf instead of -f.  
+
+<pre>
+iLOrest > serverclone save --nobios --ilossa --auto
+Saving of storage clone file to 'ilorest_storage_clone.json'......
+Saving properties of type /redfish/v1/Systems/1/Storage/DE009000/
+Selected option(s): #VolumeCollection.VolumeCollection
+Selected option(s): #StorageControllerCollection.StorageControllerCollection
+Saving properties of type /redfish/v1/Systems/1/Storage/DE009000/Controllers/0
+Saving of storage clone file to 'ilorest_storage_clone.json' is complete.
+</pre>   
 
 > To load a clone file run the command with the `load` argument. You can specify a filename using the (`-f, --filename`) option, if this option is not used the command will search for `ilorest_clone.json`.
 
@@ -2593,7 +2695,7 @@ Creates a JSON formatted clone file (named ilorest_clone.json) of a system's iLO
 
 <aside class="notice">When loading a clone file, login using an iLO account with full administrative privileges (such as the Administrator account) to ensure all system parameters are cloned successfully.</aside>
 
-<aside class="notice">When working with iLO Managment Accounts or iLO Federation Groups, remove entries from the JSON clone file (within the relevant dictionary) in order to perform deletion. In order to create new accounts on the server, simply add relevant nested dictionaries to the JSON file.</aside>
+<aside class="notice">When working with iLO Management Accounts or iLO Federation Groups, remove entries from the JSON clone file (within the relevant dictionary) in order to perform deletion. In order to create new accounts on the server, simply add relevant nested dictionaries to the JSON file.</aside>
 
 <aside class="notice">The Administrator account cannot be deleted using serverclone.</aside>
 
@@ -2634,6 +2736,10 @@ Use this command during 'load' to include a TLS certificate. This should be prop
 - **-f CLONEFILENAME, --clonefile=CLONEFILENAME**
 
 This is an optional command used to rename the default clone file 'ilorest_clone.json'.
+
+- **-sf CLONEFILENAME, --storageclonefile=CLONEFILENAME**
+
+This file is used for storing the storage information only. This is an optional command used to rename the default clone file 'ilorest_storage_clone.json'.
 
 - **--uniqueoverride**
 
@@ -2741,43 +2847,43 @@ Command for viewing server information like firmware, software and other useful 
 
 <p class="fake_header">Parameters</p>
 
-- **--firmware**
+- **-fw, --firmware**
 
-Use this to view firware versions.
+Use this to view firmware versions.
 
-- **--software**
+- **-sw, --software**
 
 Use this view software/driver versions.
 
-- **--proxy**
+- **-proxy, --proxy**
 
 Use this to view proxy server settings.
 
-- **--thermals**
+- **-thermals, --thermals**
 
 Use this to view thermal settings.
 
-- **--fans**
+- **-fans, --fans**
 
 Use this to view Fan settings.
 
-- **--memory**
+- **-memory, --memory**
 
 Use this to view Memory or RAM settings.
 
-- **--processors**
+- **-processors, --processors**
 
 Use this to view Processor settings.
 
-- **--power**
+- **-power, --power**
 
 Use this to view Power settings.
 
-- **--system**
+- **-system, --system**
 
 Use this to view System settings.
 
-- **--all**
+- **-all, --all**
 
 Use this to view all the server settings (everything from above)
 
@@ -2785,13 +2891,9 @@ Use this to view all the server settings (everything from above)
 
 Including the help flag will display help for the command.
 
-- **-f FILENAME, --filename=FILENAME**
+- **--showabsent**
 
-Use this flag if you wish to use a different filename than the default one. The default filename is ilorest.json.
-
-- **--filter=FILTER**
-
-Optionally set a filter value and a filter attribute to filter logs.
+Optionally show information on absent components in the output.
 
 - **-j, --json**
 
@@ -2890,7 +2992,7 @@ EntryType=Oem
 Severity=OK
 </pre>
 
-> Use the `--customiseAHS` with a string to customize AHS results. This is only available for downloading remote AHS logs. This command will only download AHS logs from January 26th 2019 to February 1st 2019.
+> Use the `--customiseAHS` with a string to customise AHS results. This is only available for downloading remote AHS logs. This command will only download AHS logs from January 26th 2019 to February 1st 2019.
 
 <pre>
 serverlogs --selectlog=AHS <span style="color: #01a982; ">--customiseAHS "from=2019-01-26&&to=2019-02-01"</span>
@@ -2993,7 +3095,7 @@ Use this with the --selectlog option to perform operations on the IML logs.
 
 - **SL**
 
-Use this with the --selectlog option to perfrom opertation on the Security logs.
+Use this with the --selectlog option to perform operation on the Security logs.
 
 - **-h, --help**
 
@@ -3022,7 +3124,7 @@ Clears the logs for the selected option.
 
 - **--customiseAHS=CUSTOMISEAHS**
 
-Allows customized AHS log data to be downloaded.
+Allows customised AHS log data to be downloaded.
 
 - **--downloadallahs**
 
@@ -3238,6 +3340,18 @@ Command for all single sign on available actions.
 
 <p class="fake_header">Parameters</p>
 
+- **deleterecord RECORD**
+
+To delete single sign on record.
+
+- **importdns**
+
+To import DNS settings for single sign on.
+
+- **importcert CERT**
+
+To import the given certficate for single sign on.
+
 - **-h, --help**
 
 Including the help flag will display help for the command.
@@ -3257,221 +3371,6 @@ If you are not logged in yet, use this flag along with the password and URL flag
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-- **--logout**
-
-Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
-
-<p class="fake_header">Input</p>
-None
-
-<p class="fake_header">Output</p>
-None
-
-### Unified Certificate Command
-
-> unifiedcertificate example commands:
-
-> To Generate an https certificate signing request use the `gen_csr` argument along with the following information `Organization Name`, `Organization Unit`, `Common Name`, `Country`, `State`, `City`. Use quotes to include parameters which contain whitespace.
-
-<pre>
-iLOrest > login
-Discovering data...Done
-iLOrest > <span style="color: #01a982; ">unifiedcertificate gen_csr "Hewlet Packard Enterprice" "ILORestGroup" "iLORest" "US" "Texas" "Houston" </span>
-iLO is creating a new certificate signing request This process can take up to 10 minutes.
-X509 Certificate is being generated and the process might take up to 10 minutes.
-</pre>
-
-> To retrieve the certificate signing request use the `getcsr` argument. The default filename is `certificate.txt`, saved to the current working directory. Including the *(-f, --filename)* option will change the default name.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">unifiedcertificate get_csr</span>
-Discovering data...Done
-Certificate saved to: certificate.txt
-</pre>
-
-> To import a CA certificate use the `import` argument followed by a file containing the certificate.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">unifiedcertificate import -f certfile.txt</span>
-The operation completed successfully.
-</pre>
-
-> To export a certificate use the `export` argument.
-
-<pre>
-iLOrest > <span style="color: #01a982; ">unifiedcertificate export -f cert.txt</span>
-</pre>
-
-<p class="fake_header">Syntax</p>
-
-unifiedcertificatecommand [IMPORT/EXPORT/GEN_CSR/GET_CSR] [OPTIONS]
-
-<p class="fake_header">Description</p>
-
-Command for importing or exporting X.509 formatted certificates including SSL/TLS, SSO and Platform certificates. Certificate signing requests can also be generated and exported for SSL/TLS and Platform certificates.
-
-<aside class="notice">Intended as a successor to the Certificate Command.</aside>
-
-<p class="fake_header">Parameters</p>
-
-- **-h, --help**
-
-Including the help flag will display help for the command.
-
-- **import**
-
-Use this subcommand in association with a valid optional argument to perform an import of TLS/SSL, SSO and Platform certificates. See IMPORT ARGUMENTS for a list of valid optional args.
-
-- **export**
-
-Use this subcommand in association with a valid optional argument to perform an export of TLS/SSL, SSO and Platform certificates. See EXPORT ARGUMENTS for a list of valid optional args.
-
-- **gen_csr**
-
-Generate a certificate signing request. Provide a valid, associated optional argument to generate a CSR for a TLS/SSL or platform certificate. See GEN_CSR ARGUMENTS for a list of valid optional args.
-
-- **get_csr**
-
-Retrieve a certificate signing request. Provide a valid, associated optional argument to retrieve a CSR for a TLS/SSL or platform certificate. See GET_CSR ARGUMENTS for a list of valid optional args.
-
-#### Import Arguments
-
-- **--USERCA**
-
-Declare the import is an X.509 formatted user CA certificate.
-
-- **--ROOTCA**
-
-Declare the import is a X.509 formatted  root CA certificate.
-
-- **--TLS_CERT**
-
-Declare the import is a X.509 formatted  TLS/SSL certificate.
-
-- **--from_url**
-
-Specify a URL as the source of the import.
-
-- **-f File, --filename File**
-
-Sepcify the filename/filepath for the resulting certificate to be read from.
-
-<aside class="notice">A certificate must be imported from a file or from a URL (only supported for TLS/SSL certificates).</aside>
-
-<aside class="notice">IDevID, LDevID, SystemIAK, SystemIDevID and Platform Certificates are not currently supported for import at this time.</aside>
-
-#### Export Arguments
-
-- **--IDEVID**
-
-Declare the export is an X.509 formatted IDevID certificate.
-
-- **--LDEVID**
-
-Declare the export is an X.509 formatted LDevID certificate.
-
-- **--SYSTEMIAK**
-
-Declare the export is an X.509 formatted SystemIAK certificate.
-
-- **--SYSTEMIDEVID**
-
-Declare the export is an X.509 formatted SystemIDevID certificate.
-
-- **--PLATFORMCERT**
-
-Declare the export is an X.509 formatted Platform certificate.
-
-- **--USERCA**
-
-Declare the export is an X.509 formatted User CA certificate.
-
-- **--ROOTCA**
-
-Declare the export is an X.509 formatted Root CA certificate.
-
-- **--TLS_CERT**
-
-Declare the export is an X.509 formatted TLS/SSL certificate.
-
-- **--id**
-
-Specify the id of the certificate to retrieve from the collection. Requires a certificate type selection.
-
-- **-f File, --filename File**
-
-Sepcify the filename/filepath for the resulting certificate to be saved to. By default, the certificate is printed to the console.
-
-#### Gen_CSR Arguments
-
-- **--csr_orgname**
-
-Specify the organization name for the certificate signing request (CSR).
-
-- **--csr_orgunit**
-
-Specify the organization unit for the certificate signing request (CSR).
-
-- **--csr_commonname**
-
-Specify the organization commonname for the certificate signing request (CSR).
-
-- **--csr_country**
-
-Specify the organization country for the certificate signing request (CSR).
-
-- **--csr_state**
-
-Specify the organization state for the certificate signing request (CSR).
-
-- **--csr_city**
-
-Specify the organization city for the certificate signing request (CSR).
-
-- **--TLS_CERT**
-
-Declare creation of an X.509 formatted TLS/SSL certificate signing request (CSR).
-
-- **--PLATFORM_CERT**
-
-Declare creation of an X.509 formatted Platform certificate signing request (CSR).
-
-#### Get_CSR Arguments
-
-- **--TLS_CERT**
-
-Declare retrieval of an X.509 formatted TLS/SSL certificate signing request (CSR).
-
-- **--PLATFORM_CERT**
-
-Declare retrieval of an X.509 formatted Platform certificate signing request (CSR).
-
-- **-f File, --filename File**
-
-Sepcify the filename/filepath for the resulting certificate signing request (CSR) to be saved to. By default, the CSR is printed to the console.
-
-<p class="fake_header">Login Parameters</p>
-
-The following parameters can be included to login to a server in the same line as the command is run.
-
-- **--url=URL**
-
-If you are not logged in yet, use the provided iLO URL along with the user and password flags to login to the server in the same command.
-
-- **-u User, --user=USER**
-
-If you are not logged in yet, use this flag along with the password and URL flags to login to a server in the same command.
-
-- **-p Password, --password=PASSWORD**
-
-If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-<aside class="notice">Providing a private user certificate or user root CA key will override the use of certificate bundles.</aside>
-
-<aside class="notice">
-The image will be ejected automatically on the second server reboot so that the server does not boot to the image twice.
-</aside>
 
 - **--logout**
 
@@ -3544,6 +3443,14 @@ Use this flag to remove the media from the selection.
 
 Use this flag if you wish to boot from the image on next server reboot.
 
+<aside class="notice">
+The image will be ejected automatically on the second server reboot so that the server does not boot to the image twice.
+</aside>
+
+- **-j, --json**
+
+Use this command to change the displayed output to JSON format. Preserving the JSON data structure makes the information easier to parse.
+
 <p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -3559,10 +3466,6 @@ If you are not logged in yet, use this flag along with the password and URL flag
 - **-p Password, --password=PASSWORD**
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
-
-<aside class="notice">
-The image will be ejected automatically on the second server reboot so that the server does not boot to the image twice.
-</aside>
 
 - **--logout**
 

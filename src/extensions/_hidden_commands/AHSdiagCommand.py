@@ -481,7 +481,7 @@ class AHSdiagCommand:
         customparser.add_argument(
             "--customiseAHS",
             dest="customiseAHS",
-            help="""Allows customized AHS log data to be downloaded.""",
+            help="""Allows customised AHS log data to be downloaded.""",
             default=None,
         )
         customparser.add_argument(

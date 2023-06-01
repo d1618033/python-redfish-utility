@@ -476,14 +476,14 @@ class EthernetCommand:
                     {"Address": usr_data[0], "PrefixLength": usr_data[2]}
                 )
                 data["IPv6DefaultGateway"] = options.network_ipv6[1]
-                data["DHCPv4"].update({"DHCPEnabled": False})
-                data["Oem"][self.rdmc.app.typepath.defs.oemhp]["DHCPv4"].update(
+                data["DHCPv6"].update({"DHCPEnabled": False})
+                data["Oem"][self.rdmc.app.typepath.defs.oemhp]["DHCPv6"].update(
                     {"Enabled": False}
                 )
             else:
                 raise InvalidCommandLineErrorOPTS(
                     "An invalid number of arguments provided to "
-                    " quick networking configuration. Check '--network_ipv4' entry."
+                    " quick networking configuration. Check '--network_ipv6' entry."
                 )
         else:
             del data["IPv6Addresses"]
@@ -491,26 +491,20 @@ class EthernetCommand:
         if options.nameservers:
             usr_data = re.split("[, ]", options.nameservers)
             if len(usr_data) <= 2:
+                ipv6_list = list()
+                ipv4_list = list()
+                static_list = list()
                 for elem in usr_data:
                     oem_ipv4 = data["Oem"][self.rdmc.app.typepath.defs.oemhp]["IPv4"]
                     oem_ipv6 = data["Oem"][self.rdmc.app.typepath.defs.oemhp]["IPv6"]
                     if "::" in elem:
-                        tmp = oem_ipv6["DNSServers"]
-                        if elem not in tmp:
-                            tmp.append(elem)
-                            oem_ipv6["DNSServers"] = tmp
+                        ipv6_list.append(elem)
                     elif "." in elem:
-                        tmp = oem_ipv4["DNSServers"]
-                        if elem not in tmp:
-                            tmp.append(elem)
-                            oem_ipv4["DNSServers"] = tmp
-                    # tmp = data['NameServers']
-                    # tmp.append(elem)
-                    # data['NameServers'] = tmp
-                    # tmp = data['StaticNameServers']
-                    tmp = list()
-                    tmp.append(elem)
-                    data["StaticNameServers"] = tmp
+                        ipv4_list.append(elem)
+                    static_list.append(elem)
+                oem_ipv6["DNSServers"] = ipv6_list
+                oem_ipv4["DNSServers"] = ipv4_list
+                data["StaticNameServers"] = static_list
             else:
                 raise InvalidCommandLineErrorOPTS(
                     "Name Servers argument has to be less than or equal to 2"
@@ -1088,15 +1082,10 @@ class EthernetCommand:
             except (KeyError, NameError) as exp:
                 errors.append("Unable to remove property %s.\n" % exp)
 
-        flags = dict()
-        if dhcpv4conf:
-            flags["DHCPv4"] = dhcpv4conf
-        if dhcpv6conf:
-            flags["DHCPv6"] = dhcpv6conf
-        if oem_dhcpv4conf:
-            flags["Oem"] = {self.rdmc.app.typepath.defs.oemhp: {"DHCPv4": oem_dhcpv4conf}}
-        if oem_dhcpv6conf:
-            flags["Oem"] = {self.rdmc.app.typepath.defs.oemhp: {"DHCPv6": oem_dhcpv6conf}}
+        flags = ethernet_data
+        if "StaticNameServers" in flags:
+            if dhcpv4curr["UseDNSServers"]:
+                flags["DHCPv4"] = {"UseDNSServers": False}
 
         # verify dependencies on those flags which are to be applied are eliminated
 

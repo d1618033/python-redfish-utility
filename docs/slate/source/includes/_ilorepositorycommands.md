@@ -1,7 +1,7 @@
 ## iLO Repository Commands
 
 <aside class="notice">
-The iLO repository commands are designed for use with HPE Gen10 servers.
+The iLO repository commands are designed for use with HPE Gen10 and later servers.
 </aside>
 
 ### Deletecomp Command
@@ -19,7 +19,7 @@ Deleted ilo5_137.bin
 > To delete firmware by Id run the command with the file Ids as arguments. You can also delete a single file by Id.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">deletecomp 30d2d7fa b5a00edc</span>
+iLOrest > <span style="color: #01a982; ">deletecomp 30d2d7fa,b5a00edc</span>
 The operation completed successfully.
 Deleted 30d2d7fa
 The operation completed successfully.
@@ -163,7 +163,7 @@ None
 > To upload firmware and flash (or stage for a flash) run the command with the `.fwpkg` file.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">fwpkg U32_1.46_10_02_2018.fwpkg</span>
+iLOrest > <span style="color: #01a982; ">flashfwpkg U32_1.46_10_02_2018.fwpkg</span>
 Uploading firmware: U32_1.46_10_02_2018.signed.flash
 [200] The operation completed successfully.
 Component U32_1.46_10_02_2018.signed.flash uploaded successfully
@@ -175,7 +175,7 @@ Firmware has successfully been flashed and a reboot is required for this firmwar
 > To skip checks for something blocking firmware updates also include the `--ignorechecks` option.
 
 <pre>
-iLOrest > fwpkg ilo5_137.fwpkg <span style="color: #01a982; ">--ignorechecks</span>
+iLOrest > flashfwpkg ilo5_137.fwpkg <span style="color: #01a982; ">--ignorechecks</span>
 Uploading firmware: ilo5_137.bin
 [200] The operation completed successfully.
 Component ilo5_137.bin uploaded successfully
@@ -224,6 +224,8 @@ Use this flag if the server you are currently logged into has a TPM chip install
 
 The component flashed will become a part of the system recovery set (srs).
 
+Note: update_srs option requires an account login with the system recovery set privilege.
+
 <p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -264,7 +266,7 @@ basic_update:
         command1: ApplyUpdate ilo5_137.bin
 </pre>
 
->To add an install set run the command with the `add` argument followed by the install set json file. If using sequence type json file (see below) the `--name` option must be included.
+>To add an install set run the command with the `add` argument followed by the install set json file. While using sequence type json file its not necessary to include --name flag, in this scenario the iLO will provide default install set name.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">installset add myinstallset.json</span>
@@ -292,7 +294,6 @@ The operation completed successfully.
 <pre>
 LOrest > installset <span style="color: #01a982; ">--removeall</span>
 Deleting all install sets...
-Deleting install set: basic_update
 The operation completed successfully.
 </pre>
 
@@ -385,6 +386,8 @@ Install set name to create, remove, or invoke.
 - **-r, --removeall**
 
 Remove all install sets.
+
+Note: Recovery install sets wont be removed
 
 - **-j, --json**
 
@@ -495,7 +498,9 @@ If you are not logged in yet, use this flag along with the password and URL flag
 
 If you are not logged in yet, use this flag along with the user and URL flags to login. Use the provided iLO password corresponding to the username you gave to login.
 
-- **--usercert User Certificate**
+- **--usercert**
+
+User Certificate for certificate login.
 
 - **--logout**
 
@@ -551,10 +556,20 @@ maintenancewindow *[Optional Parameters]*
 
 <p class="fake_header">Description</p>
 
-Command to add, remove, or delete maintenance windows from the iLO repository.
+Command to add or delete maintenance windows from the iLO repository.
 
 
 <p class="fake_header">Parameters</p>
+
+- **add TIME**
+
+To Add a maintenance window with a given time format
+
+Note: Time format is YEAR-MONTH-DAYTHOUR:MINUTE:SECOND
+
+- **delete NAME**
+
+To Delete a maintenance window.
 
 - **-h, --help**
 
@@ -780,7 +795,7 @@ Creating task: "Update-740856 iLO 5"
 [201] The operation completed successfully.
 </pre>
 
-> To view the current update task queue runt the command with no arguments.
+> To view the current update task queue, run the command with no arguments.
 
 <pre>
 iLOrest > <span style="color: #01a982; ">taskqueue</span>
@@ -903,7 +918,7 @@ Command to upload firmware on to iLO repository.
 The uploadcomp command requires iLO firmware version v1.48(a) or later. Earlier iLO Firmware versions will fail with a return code 103.  
 iLO firmware version v1.48(a) or later is required because the <b>uploadcomp</b> command depends on the Bunny Hop feature found in that version of the iLO firmware.  
 Before updating the iLO firmware, see <a href="https://support.hpe.com/hpesc/public/docDisplay?docId=emr_na-a00068199en_us" target="_blank">the customer advisory regarding iLO firmware upgrades</a>.
-To download the latest iLO Firmware, see the <a href="https://support.hpe.com/hpsc/swd/public/detail?swItemId=MTX_912b35cf18cd4b7ea530732822" target="_blank">Drivers & Software page for the Online ROM Flash Firmware Package - HPE iLO 5</a>
+To download the latest iLO6 Firmware, see the <a href="https://support.hpe.com/connect/s/softwaredetails?language=en_US&softwareId=MTX_d3cad213c1df4acb9392b2f10a" target="_blank">Drivers & Software page for the Online ROM Flash Firmware Package - HPE iLO 6</a>
 </aside>
 
 <p class="fake_header">Parameters</p>
@@ -934,7 +949,7 @@ Add this flag to force upload components with the same name already on the repos
 
 - **--update_repository**
 
-If true, uploads the component/binary on to the Repository. The default is set to True.
+Add this flag to skip uploading component/binary to the iLO Repository. If this flag is included with --update_srs, it will be ignored. Adding component to the repository is required to update the system reovery set.
 
 - **--update_target**
 

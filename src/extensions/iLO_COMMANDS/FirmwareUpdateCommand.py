@@ -81,13 +81,7 @@ class FirmwareUpdateCommand:
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if len(args) == 1:
-            self.firmwareupdatevalidation(options)
-        else:
-            raise InvalidCommandLineError(
-                "Invalid number of parameters."
-                " Firmware update takes exactly 1 parameter."
-            )
+        self.firmwareupdatevalidation(options)
 
         if args[0].startswith('"') and args[0].endswith('"'):
             args[0] = args[0][1:-1]
@@ -185,7 +179,7 @@ class FirmwareUpdateCommand:
                     if not written:
                         written = True
                         self.rdmc.ui.printer(
-                            "\n iLO is uploading the necessary files. Please wait..."
+                            "\n iLO is uploading the necessary files. Please wait...\n"
                         )
 
                 time.sleep(0.5)

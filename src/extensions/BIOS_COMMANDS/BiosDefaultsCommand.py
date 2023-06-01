@@ -73,9 +73,14 @@ class BiosDefaultsCommand:
 
         self.defaultsvalidation(options)
 
-        self.rdmc.ui.printer(
-            "Resetting BIOS attributes and settings to factory defaults.\n"
-        )
+        if options.manufdefaults:
+            self.rdmc.ui.printer(
+                "Resetting BIOS attributes and settings to manufacturing defaults.\n"
+            )
+        elif options.userdefaults:
+            self.rdmc.ui.printer(
+                "Resetting BIOS attributes and settings to user defaults.\n"
+            )
 
         put_path = self.rdmc.app.typepath.defs.biospath
         body = None
@@ -157,7 +162,7 @@ class BiosDefaultsCommand:
             "--userdefaults",
             dest="userdefaults",
             action="store_true",
-            help="Sets bios to user defaults instead of factory " "defaults.",
+            help="Sets bios to user defaults instead of manufacturing defaults.",
             default=False,
         )
         customparser.add_argument(

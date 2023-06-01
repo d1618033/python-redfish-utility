@@ -95,6 +95,14 @@ class LoadCommand:
         self.rdmc = None
         self.auxcommands = dict()
 
+    def securebootremovereadonly(self, tmp):
+        templist = [
+            "SecureBootCurrentBoot",
+
+        ]
+        remove_data = self.rdmc.app.removereadonlyprops(tmp, False, True, templist)
+        return remove_data
+
     def run(self, line, help_disp=False):
         """Main load worker function
 
@@ -190,6 +198,8 @@ class LoadCommand:
 
                     try:
                         for _, items in loaddict.items():
+                            remove_odata = self.securebootremovereadonly(items)
+                            items.update(remove_odata)
                             try:
                                 if self.rdmc.app.loadset(
                                     seldict=items,

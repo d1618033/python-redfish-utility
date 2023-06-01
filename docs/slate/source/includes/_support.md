@@ -65,31 +65,19 @@ Serviceguard Solutions for HP-UX				| [www.hpe.com/info/hpux-serviceguard-docs](
 Single Point of Connectivity Knowledge (SPOCK) Storage compatibility matrix	| [www.hpe.com/storage/spock](http://www.hpe.com/storage/spock)
 Storage white papers and analyst reports		| [www.hpe.com/storage/whitepapers](http://www.hpe.com/storage/whitepapers)
 iLO RESTful API									| [www.hpe.com/info/restfulapi](http://www.hpe.com/info/restfulapi)
-HPE ProLiant Gen9 Server Management				| [www.hpe.com/servers/proliantgen9/docs](http://www.hpe.com/servers/proliantgen9/docs)
-HPE Intelligent Provisioning					| [www.hpe.com/info/intelligentprovisioning/docs](http://www.hpe.com/info/intelligentprovisioning/docs)
 UEFI System Utilities							| [www.hpe.com/info/ProLiantUEFI/docs](http://www.hpe.com/info/ProLiantUEFI/docs)
 SUM												| [www.hpe.com/info/hpsum](http://www.hpe.com/info/hpsum)
 Service Pack for ProLiant (SPP)					| [www.hpe.com/servers/spp](http://www.hpe.com/servers/spp)
-HPE iLO 5 User Guide										| [hewlettpackard.github.io/ilo-rest-api-docs/ilo5](https://hewlettpackard.github.io/ilo-rest-api-docs/ilo5/)
+HPE iLO 6 User Guide										| [hewlettpackard.github.io/ilo-rest-api-docs/ilo6](https://hewlettpackard.github.io/ilo-rest-api-docs/ilo6/)
 HPE iLO University videos						| [www.hpe.com/info/ilo/videos](http://www.hpe.com/info/ilo/videos)
-HPE Systems Insight Manager						| [www.hpe.com/info/hpsim](http://www.hpe.com/info/hpsim)
-U.S. Authorized Resellers						| [www.hpe.com/support/service_locator](http://www.hpe.com/support/service_locator)
 
 ### Documents
 
 - [Transition to the RESTful Interface Tool (iLORest)](https://support.hpe.com/hpsc/doc/public/display?docId=a00061427en_us)
-- [iLO RESTful API Data Model Reference (iLO 4)](http://h22208.www2.hpe.com/eginfolib/servers/docs/HPRestfultool/iLo4/data_model_reference.html)
-- [HPE iLO 4 Scripting and Command Line Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03334058)
-- [HPE iLO 4 Release Notes](http://h20565.www2.hpe.com/hpsc/doc/public/display?docId=emr_na-c03334036&lang=en-us&cc=us)
-- [HPE ROM-Based Setup Utility User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c00191707)
-- [HPE UEFI System Utilities User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=a00016407en_us)
-- [HPE Intelligent Provisioning User Guide for HPE ProLiant Gen9 Servers](https://support.hpe.com/hpesc/public/docDisplay?docId=c04419967)
-- [Scripting Toolkit for Linux User Guide](https://support.hpe.com/hpesc/public/docDisplay?docLocale=en_US&docId=emr_na-a00047893en_us)
-- [Scripting Toolkit for Windows User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=a00017070en_us)
-- [Smart Update Manager User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c05059565)
-- [Service Pack for ProLiant User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c03190790)
-- [HPE BladeSystem Onboard Administrator User Guide](http://h20628.www2.hpe.com/km-ext/kmcsdirect/emr_na-c00705292-47.pdf)
-- [HPE iLO Federation User Guide](http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04149067)
+- [HPE ROM-Based Setup Utility User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=c00191707)
+- [HPE Intelligent Provisioning User Guide for HPE ProLiant Gen10 Servers](https://www.hpe.com/psnow/doc/a00040432en_us)
+- [Service Pack for ProLiant User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=c03190790)
+- [HPE iLO Federation User Guide](https://support.hpe.com/hpesc/public/docDisplay?docId=c04149067)
 
 ## Remote Support
 
@@ -101,4 +89,4 @@ For more information and device support details, go to the following website.
 
 ## Documentation feedback
 
-Hewlett Packard Enterprise is committed to providing documentation that meets your needs. To help us improve the documentation, send any errors, suggestions, or comments to **Documentation Feedback**, [docsfeedback@hpe.com](mailto:docsfeedback@hpe.com). When submitting your feedback, include the document title, part number, edition, and publication date located on the front cover of the document. For online help content, include the product name, product version, help edition, and publication date located on the legal notices page.
+Hewlett Packard Enterprise is committed to providing documentation that meets your needs. To help us improve the documentation, send any errors, suggestions, or comments to **Documentation Feedback**, [ilorest-team@hpe.com](mailto:ilorest-team@hpe.com). When submitting your feedback, include the document title, part number, edition, and publication date located on the front cover of the document. For online help content, include the product name, product version, help edition, and publication date located on the legal notices page.

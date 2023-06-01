@@ -148,89 +148,64 @@ class BootOrderCommand:
         ]
 
         bootoverride = None
-        self.auxcommands["select"].selectfunction("HpBios.")
-        bootmode = self.auxcommands["get"].getworkerfunction(
-            "BootMode", options, results=True, uselist=True
-        )
+        self.auxcommands["select"].selectfunction("HpeBios.")
+        try:
+            bootmode = self.auxcommands["get"].getworkerfunction(
+                "BootMode", options, results=True, uselist=True
+            )
+        except:
+            bootmode = dict()
+            bootmode["BootMode"] = "Uefi"
 
         self.auxcommands["select"].selectfunction("ComputerSystem.")
-        onetimebootsettings = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
-                    ["Boot/" + self.rdmc.app.typepath.defs.bootoverridetargettype],
-                    options,
-                    results=True,
-                    uselist=True,
-                )
-            ),
-            None,
+        onetimebootsettings = self.auxcommands["get"].getworkerfunction(
+            ["Boot/" + self.rdmc.app.typepath.defs.bootoverridetargettype],
+            options,
+            results=True,
+            uselist=True,
         )
 
-        bootstatus = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
-                    ["Boot/BootSourceOverrideEnabled"],
-                    options,
-                    results=True,
-                    uselist=True,
-                )
-            ),
-            None,
+        bootstatus = self.auxcommands["get"].getworkerfunction(
+            ["Boot/BootSourceOverrideEnabled"],
+            options,
+            results=True,
+            uselist=True,
         )
 
-        targetstatus = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
-                    ["Boot/BootSourceOverrideTarget"],
-                    options,
-                    results=True,
-                    uselist=True,
-                )
-            ),
-            None,
+        targetstatus = self.auxcommands["get"].getworkerfunction(
+            ["Boot/BootSourceOverrideTarget"],
+            options,
+            results=True,
+            uselist=True,
         )
 
-        uefitargetstatus = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
-                    ["Boot/UefiTargetBootSourceOverride"],
-                    options,
-                    results=True,
-                    uselist=True,
-                )
-            ),
-            None,
+        uefitargetstatus = self.auxcommands["get"].getworkerfunction(
+            ["Boot/UefiTargetBootSourceOverride"],
+            options,
+            results=True,
+            uselist=True,
         )
 
         currentsettings = self.rdmc.app.get_handler(
             self.rdmc.app.typepath.defs.systempath, service=True, silent=True
         )
 
-        if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
-            # Gen 9
-            uefionetimebootsettings = next(
-                iter(
-                    self.auxcommands["get"].getworkerfunction(
-                        ["Boot/UefiTargetBootSourceOverrideSupported"],
-                        options,
-                        results=True,
-                        uselist=True,
-                    )
-                ),
-                None,
-            )
-            if not uefionetimebootsettings and not self.rdmc.app.typepath.defs.isgen9:
+        if bootmode and bootmode.get("BootMode", None) == "Uefi":
+            if self.rdmc.app.typepath.defs.isgen9:
+                uefionetimebootsettings = self.auxcommands["get"].getworkerfunction(
+                    ["Boot/UefiTargetBootSourceOverrideSupported"],
+                    options,
+                    results=True,
+                    uselist=True,
+                )
+
+            else:
                 # Gen 10
-                uefionetimebootsettings = next(
-                    iter(
-                        self.auxcommands["get"].getworkerfunction(
-                            ["Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues"],
-                            options,
-                            results=True,
-                            uselist=True,
-                        )
-                    ),
-                    None,
+                uefionetimebootsettings = self.auxcommands["get"].getworkerfunction(
+                    ["Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues"],
+                    options,
+                    results=True,
+                    uselist=True,
                 )["Boot"]["UefiTargetBootSourceOverride@Redfish.AllowableValues"]
                 finaluefi = []
                 for setting in uefionetimebootsettings:
@@ -252,14 +227,9 @@ class BootOrderCommand:
             and options.continuousboot is None
             and not options.disablebootflag
         ):
-            self.auxcommands["select"].selectfunction("HpServerBootSettings.")
-            bootsettings = next(
-                iter(
-                    self.auxcommands["get"].getworkerfunction(
-                        "PersistentBootConfigOrder", options, results=True, uselist=True
-                    )
-                ),
-                None,
+            self.auxcommands["select"].selectfunction("HpeServerBootSettings.")
+            bootsettings = self.auxcommands["get"].getworkerfunction(
+                "PersistentBootConfigOrder", options, results=True, uselist=True
             )
 
             if not args:
@@ -665,7 +635,7 @@ class BootOrderCommand:
                 onetimecontent["Boot"], "Continuous and one time boot options:"
             )
 
-        if bootmode and any([boot.get("BootMode", None) == "Uefi" for boot in bootmode]):
+        if bootmode and any([bootmode.get(boot, None) == "Uefi" for boot in bootmode]):
             if uefionetimecontent is None:
                 self.rdmc.ui.printer("Continuous and one time boot uefi options:\n")
                 self.rdmc.ui.printer(

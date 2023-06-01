@@ -1,6 +1,41 @@
 # Change Log
 
-##Version 4.0.0.0
+## Version 4.2.0.0
+
+**Fixes:**
+
+* Fixed an issue with 'nameserver' option in 'ethernet' command.
+* Fixed an issue with 'ilolicense' command where the exception did not trigger for invalid license.
+* Fixed an issue with 'bootorder' command not working for iLO6.
+* Fixed an issue with 'serverinfo' command not displaying MAC address in iLO5.
+
+**Enhancements:**
+
+* Added a new option ‘—storageid’ to all storage commands, allowing for filtering by both storage id and controller id.
+* Added a new option ‘- sf’ to the 'serverclone' command to save storage configurations in a custom file.
+* Modified the 'Activation Key' parameter in the 'ComputeOpsManagement' command from mandatory to optional.
+* All subcommands from the 'unifiedcertificate' command have been merged into the 'certificate' command. The 'unifiedcertificate' command is now deprecated.
+
+## Version 4.1.0.0
+
+**Fixes:**
+
+* Fixed a customer issue in save where NVMe drives are getting saved 2 times.
+* Fixed an issue set command for Oem/Hpe/ThermalConfiguration.
+* Fixed several issues with storagecontroller command which is an alias to smartarray command.
+* Fixed an issue with logging in and logging out with sessionid option in login command.
+* Fixed minor issues with createvolume and deletevolume command.
+* Fixed an issue fetching storage controller details using location details.
+* Fixed an issue in clearcontroller command by specifying the location details.
+* Fixed an issue in login command by specifying the proxy details.
+* Fixed a github reported issue by giving --nologout option for reboot command.
+
+**Enhancements:**
+
+* Added support for server cloning storage controller configurations in Gen11(iLO6) servers.
+
+
+## Version 4.0.0.0
 
 **Fixes:**
 
@@ -11,10 +46,10 @@
 
 * Added support for new storage RDE URLs for iLO6 (Gen11)
 * iLOLicense command is enhanced with install, uninstall and check license options.
-* Cerificate command has new option to support SCEP (Simple Certificate Enrollment Protocol)
+* Certificate command has new option to support SCEP (Simple Certificate Enrollment Protocol)
 
 
-##Version 3.6.0.0
+## Version 3.6.0.0
 
 **Fixes:**
 
@@ -32,7 +67,7 @@
 * Introduced smartnic command to manage pensando and other Smart NICs
 
 
-##Version 3.5.1.0
+## Version 3.5.1.0
 
 **Fixes:**
 
@@ -48,7 +83,7 @@
 * Added support for Red Hat Enterprise Linux(RHEL) ver 9
 * Added new option -t/--sleeptime to specify the wait time to enter Intelligent Provisioning page with default value to (4 min).
 
-##Version 3.5.0
+## Version 3.5.0
 
 **Fixes:**   
 

@@ -305,6 +305,8 @@ class SetCommand:
                     if val:
                         if val[0] == "[" and val[-1] == "]":
                             val = val[1:-1].split(",")
+                if val.isnumeric():
+                    val = int(val)
                 patch_data = dict()
                 payload = {newargs[-1]: val} if newargs else {sel: val}
                 if newargs:
@@ -342,7 +344,7 @@ class SetCommand:
         if help_disp:
             self.parser.print_help()
             return ReturnCodes.SUCCESS
-        if ("Oem/Hpe/EnhancedDownloadPerformanceEnabled" in line[0]) or ("Oem/Hpe/ThermalConfiguration" in line[0]):
+        if ("Oem/Hpe/EnhancedDownloadPerformanceEnabled" in line[0]) or ("Oem/Hpe/ThermalConfiguration" in line[0]) or ("Oem/Hpe/FanPercentMinimum" in line[0]):
             self.patchfunction(line)
         else:
             self.setfunction(line, skipprint=skipprint)

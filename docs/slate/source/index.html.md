@@ -6,7 +6,7 @@ language_tabs:
 
 toc_footers:
   - <a href='https://www.hpe.com/'>Hewlett Packard Enterprise Development LP</a>
-  - Copyright &copy; 2016-2022
+  - Copyright &copy; 2016-2023
 
 includes:
   - overview

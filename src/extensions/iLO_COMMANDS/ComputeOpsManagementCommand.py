@@ -54,8 +54,9 @@ class ComputeOpsManagementCommand:
             "name": "computeopsmanagement",
             "usage": "computeopsmanagement\n\n",
             "description": "Run to enable your servers to be discovered, monitored and managed through ComputeOpsManagement\n\t"
-            "Example:\n\tcomputeopsmanagement connect --activationkey <ACTIVATION KEY> or \n\t"
-            "computeopsmanagement connect --activationkey <ACTIVATION KEY> --proxy http://proxy.abc.com:8080 \n\t"
+            "Example:\n\tcomputeopsmanagement connect or \n\t"
+            "computeopsmanagement connect --activationkey <ACTIVATION KEY> or \n\t"
+            "computeopsmanagement connect --activationkey <ACTIVATION KEY> --proxy http://proxy.abc.com:8080 or \n\t"
             "computeopsmanagement disconnect or \n\t"
             "computeopsmanagement status or \n\t"
             "computeopsmanagement status -j\n",
@@ -150,7 +151,7 @@ class ComputeOpsManagementCommand:
                     "Clearing Proxy Server Configuration Failed.\n"
                 )
 
-    def connect_cloud(self, activationkey):
+    def connect_cloud(self, activationkey=None):
         """cloud connect function
 
         :param activationkey: activation key
@@ -165,7 +166,10 @@ class ComputeOpsManagementCommand:
         body = dict()
         # Temporary
         # body['CloudActivateURL'] = "https://qa-devices.rugby.hpeserver.management/inventory/compute-provision"
-        body["ActivationKey"] = activationkey
+        if activationkey:
+            body["ActivationKey"] = activationkey
+        else:
+            body = {}
         path = (
             self.rdmc.app.typepath.defs.managerpath
             + "Actions"
@@ -173,7 +177,7 @@ class ComputeOpsManagementCommand:
         )
         path = path + "/HpeiLO.EnableCloudConnect"
         try:
-            if path and body:
+            if path:
                 self.rdmc.ui.printer(
                     "Connecting to ComputeOpsManagement...", verbose_override=True
                 )
@@ -315,8 +319,10 @@ class ComputeOpsManagementCommand:
             if options.command.lower() == "connect":
                 if options.proxy:
                     self.proxy_config(options.proxy)
-                if options.activationkey.isalnum() and len(options.activationkey) <= 32:
-                    self.connect_cloud(options.activationkey)
+                if options.activationkey and options.activationkey.isalnum() and len(options.activationkey) <= 32:
+                    self.connect_cloud(activationkey=options.activationkey)
+                elif not options.activationkey:
+                    self.connect_cloud()
                 else:
                     raise InvalidCommandLineError(
                         "Activation Key %s is not alphanumeric or not of length 32."
@@ -375,7 +381,10 @@ class ComputeOpsManagementCommand:
             "connect",
             help=connect_help,
             description=connect_help
-            + "\n\tExample:\n\tcomputeopsmanagement connect --activationkey 123456789EFGA or "
+            + "\n\tExample:\n\tcomputeopsmanagement connect or"
+            "\n\tcomputeopsmanagement connect --proxy http://proxy.abc.com:8080 or "
+            "\n\tcomputeopsmanagement connect --proxy None or "
+            "\n\tcomputeopsmanagement connect --activationkey 123456789EFGA or "
             "\n\tcomputeopsmanagement connect --activationkey 123456789EFGA --proxy http://proxy.abc.com:8080 or "
             "\n\tcomputeopsmanagement connect --activationkey 123456789EFGA --proxy None",
             formatter_class=RawDescriptionHelpFormatter,
@@ -383,8 +392,8 @@ class ComputeOpsManagementCommand:
         connect_parser.add_argument(
             "--activationkey",
             dest="activationkey",
-            help="activation key required for connecting",
-            required=True,
+            help="activation key is optional for connecting",
+            required=False,
             type=str,
             default=None,
         )

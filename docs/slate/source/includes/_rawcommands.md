@@ -31,6 +31,24 @@ Pass in the path to point the HTTP RESTful DELETE command.
 
 Including the help flag will display help for the command.
 
+- **--response**
+
+Use this flag to return the iLO response body.
+
+- **--getheaders**
+
+Use this flag to return the iLO response headers.
+
+- **--headers=HEADERS**
+
+Use this flag to add extra headers to the request.
+
+Usage: --headers=HEADER:VALUE,HEADER:VALUE
+
+- **--silent**
+
+Use this flag to silence responses.
+
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
@@ -108,9 +126,6 @@ Results written out to 'system.json'.
 > Use the `--expand` flag to expand collection URIs to include the response of collection members. The full response has been truncated for space.
 
 <pre>
-iLOrest > rawget /redfish/v1/systems/1 -f system.json
-[200] The operation completed successfully.
-Results written out to 'system.json'.
 iLOrest > rawget /redfish/v1/systems/
 [200] The operation completed successfully.
 {
@@ -273,7 +288,7 @@ rawhead [Path] [Optional Parameters]
 
 Use this command to perform an HTTP RESTful HEAD command. Run to retrieve header data from the passed in path.
 
-<p class="fake_header">Syntax</p>
+<p class="fake_header">Parameters</p>
 
 - **Path**
 
@@ -283,17 +298,13 @@ Pass in the path to point the HTTP RESTful HEAD command.
 
 Including the help flag will display help for the command.
 
-- **-f, --filename=Filename**
-
-Include the filename to perform the current operation.
-
 - **--silent**
 
 Use this flag to silence responses.
 
 - **-f FILENAME, --filename=FILENAME**
 
- Use the provided filename to perform operations.
+ Use the filename to write the results into it.
 
 - **--service**
 
@@ -340,7 +351,7 @@ iLOrest > <span style="color: #01a982; ">rawpatch rawpatch.json</span>
 The operation completed successfully.
 </pre>
 
-> The following **rawpatch.json** file was used in the above example:
+> JSON input filename example:
 
 ```json
 {
@@ -362,7 +373,7 @@ Use this command to perform an HTTP RESTful Patch command. Run to send a patch f
 
 <p class="fake_header">Parameters</p>
 
-> Filename parameter example:
+> JSON input filename example:
 
 ```json
 {
@@ -399,12 +410,6 @@ Use this flag to add extra headers to the request.
 
 Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
-- **--biospassword=BIOSPASSWORD**
-
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
-
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
-
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
@@ -428,6 +433,12 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
+- **--biospassword=BIOSPASSWORD**
+
+Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 <p class="fake_header">Input</p>
 
@@ -456,7 +467,7 @@ The operation completed successfully.
 </pre>
 
 
-> The following **rawpost.json** file is used in the example above:
+> JSON input filename example:
 
 ```json
 {
@@ -563,7 +574,7 @@ One or more properties were changed and will not take effect until system is res
 </pre>
 
 
-> This example uses the following **put.json** file:
+> JSON input filename example:
 
 ```json
 {
@@ -624,12 +635,6 @@ Usage: --headers=HEADER:VALUE,HEADER:VALUE
 
 Use this flag to silence responses.
 
-- **--biospassword=BIOSPASSWORD**
-
-Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
-
-<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
-
 - **--service**
 
 Use this flag to enable service mode and increase the function speed.
@@ -653,6 +658,12 @@ If you are not logged in yet, use this flag along with the user and URL flags to
 - **--logout**
 
 Optionally include the logout flag to log out of the server after this command is completed. Using this flag when not logged in will have no effect.
+
+- **--biospassword=BIOSPASSWORD**
+
+Select this flag to input a BIOS password. Include this flag if second-level BIOS authentication is needed for the command to execute.
+
+<aside class="notice">This flag is used only on iLO 4 systems and not required on iLO 5 systems.</aside>
 
 <p class="fake_header">Input</p>
 

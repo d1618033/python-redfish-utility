@@ -61,7 +61,7 @@ EthernetInterface.v1_4_1(/redfish/v1/Managers/1/EthernetInterfaces/2/) (Currentl
 <p class="fake_header">Description</p>
 If there is more than one instance of a type on the system, when you select it, the `filter` option can be used to narrow down the results. With this narrowed result, you can set specific instance properties, list specific instance properties, or get specific instance properties.
 
-<aside class="notice"> The filter option can be used in the get, list, and set commands.</aside>
+<aside class="notice"> The filter option can be used in the get, list, set, serverlogs and save commands.</aside>
 
 ## Path Option
 

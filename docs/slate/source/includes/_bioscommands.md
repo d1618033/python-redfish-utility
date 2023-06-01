@@ -69,11 +69,11 @@ Use this flag to perform a reboot command function after completion of operation
 
 - **--userdefaults**
 
-Sets bios to user defaults instead of factory defaults.
+Resetting BIOS attributes and settings to user defaults.
 
 - **--manufacturingdefaults**
 
-Sets bios to manufacturer defaults instead of factory defaults.
+Resetting BIOS attributes and settings to manufacturing defaults.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -268,6 +268,10 @@ Use this to disable either continuous or one-time boot modes.
 - **--securebootkeys=SECUREBOOT**
 
 Use this flag to perform actions on secure boot keys. Possible values include defaultkeys: resets all keys to default, deletekeys: deletes all keys, deletepk: deletes all product keys.
+
+- **--ignorematcherror**
+
+Use this flag when you want to run multiple matches and not throw an error in case there are no matches found for given expression.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -484,7 +488,7 @@ Use this iSCSI configuration option to add an iSCSI configuration option.
 
 Use this iSCSI configuration option to delete an iSCSI configuration option.
 
-- **--modifiy=MODIFY**
+- **--modify=MODIFY**
 
 Use this iSCSI configuration option to modify an iSCSI configuration option.
 

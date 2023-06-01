@@ -198,8 +198,8 @@ class SaveCommand:
                         "IPv6AddressPolicyTable",
                         "MACAddress",
                         "StaticNameServers",
-                        "AutoNeg",
-                        "FullDuplex",
+                        # "AutoNeg",
+                        # "FullDuplex",
                         "SpeedMbps",
                     ]:
                         del values[dictentry]
@@ -220,7 +220,7 @@ class SaveCommand:
 
                 if values:
                     skip = False
-                    if 'SerialNumber' in values:
+                    if 'SerialNumber' in values and values['SerialNumber'] is not None and values['SerialNumber']!= "":
                         if values["SerialNumber"] in srnum_list:
                             skip = True
                         else:

@@ -137,6 +137,8 @@ class RawGetCommand:
                     if p.isdigit():
                         p = int(p)
                     result = result[p]
+            else:
+                result = results.dict
 
         if results and results.status == 200 and options.binfile:
             output = results.read
@@ -147,7 +149,7 @@ class RawGetCommand:
             if options.getheaders:
                 self.rdmc.ui.printer(json.dumps(dict(results.getheaders())) + "\n")
             if options.response:
-                self.rdmc.ui.printer(results.read)
+                self.rdmc.ui.printer(results.read + "\n")
         elif results and results.status == 200:
             if results.dict:
                 if options.filename:

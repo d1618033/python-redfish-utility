@@ -133,6 +133,13 @@ iLOrest > <span style="color: #01a982; ">login xx.xx.xx.xx -u username -p passwo
 Discovering data...Done
 </pre>
 
+> To login with sessionid.
+
+<pre>
+iLOrest > <span style="color: #01a982; ">login xx.xx.xx.xx --sessionid xxxxxxxxxxxx</span>
+Discovering data...Done
+</pre>
+
 > To login remotely, with Certificate, supply the URL, user certificate, user key and user passphrase to the server.
 
 <pre>
@@ -192,7 +199,7 @@ privileged user account. Higher security modes, if configured, require a valid i
 
 Login using certificate authentication has following requirements:  
 
-- iLO 5 v2.40  
+- iLO 5 v2.40 or later
 - Set NTP Server on iLO and verify accurate time  
 - "iLO Advanced Premium Security Edition" license  
 - X509 SSL certificate signed with root CA key   
@@ -224,7 +231,11 @@ Connect to the server as the provided user.
 
 Connect to the server with the password corresponding to the given user.
 
-NOTE: In Linux, if password contains '!' (exclamation), then enclose the password with single quotation (')
+NOTE: In Linux, if password contains '!' (exclamation), then enclose the password with single quotation ('). Also, if the password include special characters, then escape that character with '\' (backslash). Eg: if the password is test#123, then type the password as test\\#123
+
+- **--sessionid**
+
+Connect to the server with the already known sessionid.
 
 - **--usercert UserCertificate**
 
@@ -443,11 +454,11 @@ None
 > This command simultaneously logs in to the server at the provided URL (--url) with the provided username (-u) and password (-p), and selects the `ComputerSystem.` type.
 
 <aside class="notice">
-Adding a period after the selected type will ensure the selection is limited to one type. For example, selecting **Bios** will select both **Bios.v1_0_0** and **HpeBiosMapping.v2_0_0**. Selecting **Bios.** will only select the **Bios.v1_0_0** type.
+Adding a period after the selected type will ensure the selection is limited to one type. For example, selecting **Bios** will select both **Bios.v1_0_0** and **HpeBiosMapping.v2_0_0**. Selecting **Bios** will only select the **Bios.v1_0_0** type.
 </aside>
 
 <aside class="notice">
-Supplying the type version is not required. The selection **Bios.** and **Bios.v1_0_0** are identical.
+Supplying the type version is not required. The selection Bios. and Bios.v1_0_0 are identical.
 </aside>
 
 <pre>
@@ -660,6 +671,14 @@ Optionally set a filter value for a filter attribute. This uses the provided fil
 
 <aside class="notice"> Use this flag to narrow down your results. For example, selecting a common type might return multiple objects that are all of that type. If you want to modify the properties of only one of those objects, use the filter flag to narrow down results based on properties.</aside>
 
+- **--refresh**
+
+Use this option to refresh a type with the most up to date information.
+
+-**--selector=SELECTOR**
+
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this command to select a type without entering another command, or to work with a type that is different from the one currently selected.
+
 - **-j, --json**
 
 Optionally include this flag if you wish to change the displayed output to JSON format. Preserving the JSON data structure can make the information easier to parse.
@@ -864,6 +883,14 @@ Displays detailed information about a property within a selected type. Informati
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+- **--refresh**
+
+Use this option to refresh a type with the most up to date information.
+
+-**--selector=SELECTOR**
+
+Optionally including the **selector** flag allows you to select a type to run while running the current command. Use this command to select a type without entering another command, or to work with a type that is different from the one currently selected.
 
 - **--latestschema**
 
@@ -1390,6 +1417,8 @@ Optionally include this flag if you wish to change the displayed output to JSON 
 
 Optionally include this flag to encrypt a file using the key provided.
 
+Note: It is custom encryption where length of the key can 16,24 and 32.
+
 <p class="fake_header">Login Parameters</p>
 
 The following parameters can be included to login to a server in the same line as the command is run.
@@ -1747,6 +1776,8 @@ To log out at the end of a command, include the *--logout* option. Not all comma
 - **-h, --help**
 
 Including the help flag will display help for the command.
+
+
 
 <p class="fake_header">Inputs</p>
 

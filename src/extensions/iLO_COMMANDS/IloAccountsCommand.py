@@ -112,8 +112,11 @@ class IloAccountsCommand:
             "description": "\tView, Add, Remove, and Modify iLO accounts based on the "
             "sub-command used.\n\n\tTo view help on specific sub-commands run: "
             "iloaccounts <sub-command> -h\n\t"
-            "Example: iloaccounts add -h\n\t*Note*: UserName and LoginName are reversed "
-            "in the iLO GUI for Redfish compatibility.",
+            "Example: iloaccounts add -h\n\tNote: \n\t\t1. UserName and LoginName are reversed "
+            "in the iLO GUI for Redfish compatibility.\n\t\t"
+            "2. While executing the command: iloaccounts add in a Linux machine, "
+            "an escape character needs to be added before a special character in the password.\n\t\t\t"
+            "Example: iloaccount add rest rest 12iso\$help\n",
             "summary": "Views/Adds/deletes/modifies an iLO account on the currently logged in server.",
             "aliases": ["iloaccount"],
             "auxcommands": [],

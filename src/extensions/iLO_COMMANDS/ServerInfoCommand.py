@@ -162,9 +162,15 @@ class ServerInfoCommand:
                     for eth in ethresults:
                         niccount += 1
                         if eth["Name"] == "":
-                            info["system"]["ethernet"][niccount] = eth["MACAddress"]
+                            if 'MACAddress' in eth:
+                                info["system"]["ethernet"][niccount] = eth["MACAddress"]
+                            else:
+                                info["system"]["ethernet"][niccount] = eth["PermanentMACAddress"]
                         elif eth["Name"] != "":
-                            info["system"]["ethernet"][eth["Name"]] = eth["MACAddress"]
+                            if 'MACAddress' in eth:
+                                info["system"]["ethernet"][eth["Name"]] = eth["MACAddress"]
+                            else:
+                                info["system"]["ethernet"][eth["Name"]] = eth["PermanentMACAddress"]
                     info["system"]["NICCount"] = niccount
         if options.thermals or options.fans:
             data = None

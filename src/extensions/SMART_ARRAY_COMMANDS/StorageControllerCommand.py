@@ -58,7 +58,7 @@ __config_file__ = "storagecontroller_config.json"
 
 # from rdmc_base_classes import HARDCODEDLIST
 
-__subparsers__ = ["load", "save", "state", "storage_id"]
+__subparsers__ = ["load", "save", "state"]
 
 
 class StorageControllerCommand:
@@ -69,28 +69,29 @@ class StorageControllerCommand:
             "name": "storagecontroller",
             "usage": None,
             "description": "\tRun without arguments for the "
-            "current list of Storage controllers.\n\texample: "
-            "storagecontroller\n\n\tTo get more details on a specific controller "
-            "select it by index.\n\texample: storagecontroller --controller=2"
-            "\n\n\tTo get more details on a specific controller select "
-            'it by location.\n\texample: storagecontroller --controller "Slot 0"'
-            "\n\n\tIn order to get a list of all physical drives for "
-            "each controller.\n\texample: storagecontroller --physicaldrives"
-            "\n\n\tTo obtain details about physical drives for a "
-            "specific controller.\n\texample: storagecontroller --controller=3 "
-            "--physicaldrives\n\n\tTo obtain details about a specific "
-            "physical drive for a specific controller.\n\texample: storagecontroller "
-            "--controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of "
-            "all volumes for the each controller.\n\texample: "
-            "storagecontroller --logicaldrives\n\n\tTo obtain details about "
-            "volumes for a specific controller.\n\texample: "
-            "storagecontroller --controller=3 --logicaldrives\n\n\tTo obtain "
-            "details about a specific volume for a specific "
-            "controller.\n\texample: storagecontroller --controller=3 --ldrive=1\n\n\tTo obtain "
-            "details about a specific Storage id for a specific "
-            "controllers.\n\texample: storagecontroller storage_id='DE00E000'\n",
+                           "current list of Storage controllers.\n\texample: "
+                           "storagecontroller\n\n\tTo get more details on a specific controller "
+                           "select it by index Note: On ILO6, --storageid is mandatory along with --controller.\n\t"
+                           "example: storagecontroller --storageid=DE00E000 --controller=2"
+                           "\n\n\tTo get more details on a specific controller select "
+                           'it by location.\n\texample: storagecontroller --storageid=DE00E000 --controller "Slot 0"'
+                           "\n\n\tIn order to get a list of all physical drives for "
+                           "each controller.\n\texample: storagecontroller --physicaldrives"
+                           "\n\n\tTo obtain details about physical drives for a "
+                           "specific controller.\n\texample: storagecontroller --storageid=DE00E000 --controller=3 "
+                           "--physicaldrives\n\n\tTo obtain details about a specific "
+                           "physical drive for a specific controller.\n\texample: storagecontroller "
+                           "--storageid=DE00E000 --controller=3 --pdrive=1I:1:1\n\n\tIn order to get a list of "
+                           "all volumes for the each controller.\n\texample: "
+                           "storagecontroller --logicaldrives\n\n\tTo obtain details about "
+                           "volumes for a specific controller.\n\texample: "
+                           "storagecontroller --storageid=DE00E000 --controller=3 --logicaldrives\n\n\tTo obtain "
+                           "details about a specific volume for a specific "
+                           "controller.\n\texample: storagecontroller --storageid=DE00E000 --controller=3 --ldrive=1\n\n\tTo obtain "
+                           "details about a specific Storage id for a specific "
+                           "controllers.\n\texample: storagecontroller --storageid=DE00E000\n",
             "summary": "Discovers all storage controllers installed in the "
-            "server and managed by the SmartStorage.",
+                       "server and managed by the SmartStorage.",
             "aliases": ["smartarray"],
             "auxcommands": ["SelectCommand"],
         }
@@ -211,7 +212,7 @@ class StorageControllerCommand:
                         )
                         sys.stdout.write("Last Configuration Attempt: %s\n" % str(time))
                         for message in storage_ctlr[storage]["@Redfish.Settings"].get(
-                            "Messages", []
+                                "Messages", []
                         ):
                             ResponseHandler(
                                 self.rdmc.app.validationmanager,
@@ -242,7 +243,7 @@ class StorageControllerCommand:
                         )
                         sys.stdout.write("Last Configuration Attempt: %s\n" % str(time))
                         for message in controllers[controller]["@Redfish.Settings"].get(
-                            "Messages", []
+                                "Messages", []
                         ):
                             ResponseHandler(
                                 self.rdmc.app.validationmanager,
@@ -283,10 +284,10 @@ class StorageControllerCommand:
                         options, print_ctrl=False, single_use=True
                     )
                     s_logical_drive = self.storagelogical_drives(
-                        options, "", print_ctrl=False, single_use=True
+                        options, "", "", print_ctrl=False, single_use=True
                     )
                     s_physical_drive = self.storagephysical_drives(
-                        options, "", print_ctrl=False, single_use=True
+                        options, "", "", print_ctrl=False, single_use=True
                     )
                     storage["Controllers"] = s_controller
                     storage["Drives"] = s_physical_drive
@@ -307,24 +308,24 @@ class StorageControllerCommand:
                     )
                     if self.rdmc.app.typepath.defs.isgen10:
                         for drivec_idx, drivec in enumerate(
-                            controller.get("PhysicalDrives", [])
+                                controller.get("PhysicalDrives", [])
                         ):
                             for drive in physical_drives:
                                 if (
-                                    drivec["Location"]
-                                    == physical_drives[drive]["Location"]
+                                        drivec["Location"]
+                                        == physical_drives[drive]["Location"]
                                 ):
                                     controller["PhysicalDrives"][drivec_idx].update(
                                         physical_drives[drive]
                                     )
                                     break
                         for drivec_idx, drivec in enumerate(
-                            controller.get("LogicalDrives", [])
+                                controller.get("LogicalDrives", [])
                         ):
                             for drive in logical_drives:
                                 if (
-                                    drivec["LogicalDriveNumber"]
-                                    == logical_drives[drive]["Id"]
+                                        drivec["LogicalDriveNumber"]
+                                        == logical_drives[drive]["Id"]
                                 ):
                                     controller["LogicalDrives"][drivec_idx].update(
                                         logical_drives[drive]
@@ -447,26 +448,64 @@ class StorageControllerCommand:
                             "finalize the configuration.\n"
                         )
         elif options.command == "default":
-            if getattr(options, "json", True):
-                if ilo_ver >= 6:
-                    if options.storage_id:
-                        self.storageid(options, print_ctrl=True, single_use=False)
-                    else:
-                        self.storagecontroller(options, print_ctrl=True, single_use=False)
-                else:
-                    self.controllers(options, print_ctrl=True, single_use=False)
+            if ilo_ver >= 6:
+                if options.storageid and not options.controller:
+                    self.storageid(options, print_ctrl=True, single_use=False)
+                elif options.storageid and options.controller:
+                    self.storagecontroller(options, print_ctrl=True, single_use=False)
+                elif options.controller and not options.storageid:
+                    raise InvalidCommandLineError(
+                        "with --controller option, --storageid option is mandatory for iLO6.\n")
+                elif (options.physicaldrives or options.pdrive or options.logicaldrives or options.ldrive) \
+                        and not options.storageid:
+                    raise InvalidCommandLineError(
+                        "--storageid option is mandatory for iLO6.\n")
+                elif not options.storageid and not options.controller and not options.physicaldrives \
+                        and not options.pdrive and not options.logicaldrives and not options.ldrive:
+
+                    self.list_all_storages(options, print_ctrl=True, single_use=False)
             else:
-                if ilo_ver >= 6:
-                    if options.storage_id:
-                        self.storageid(options, print_ctrl=True, single_use=False)
-                    else:
-                        self.storagecontroller(options, print_ctrl=True, single_use=False)
-                else:
-                    self.controllers(options, print_ctrl=True, single_use=False)
+                self.controllers(options, print_ctrl=True, single_use=False)
 
         self.cmdbase.logout_routine(self, options)
         # Return code
         return ReturnCodes.SUCCESS
+
+    def list_all_storages(self, options, print_ctrl=False, single_use=False):
+
+        self.auxcommands["select"].selectfunction("StorageCollection.")
+        st_content = self.rdmc.app.getprops()
+        if self.rdmc.opts.verbose or not options.json:
+            sys.stdout.write("---------------------------------\n")
+            sys.stdout.write("List of Storages in this server\n")
+            sys.stdout.write("---------------------------------\n")
+        if options.json:
+            outjson = dict()
+        for st_controller in st_content:
+            path = st_controller["Members"]
+            for mem in path:
+                for val in mem.values():
+                    if "DE" in val:
+                        st = self.rdmc.app.get_handler(
+                            val, silent=True, service=True
+                        ).dict
+                        health = ""
+                        if "Health" in st["Status"]:
+                            health = st["Status"]["Health"]
+                        elif "HealthRollup" in st["Status"]:
+                            health = st["Status"]["HealthRollup"]
+                        if options.json:
+                            outjson[st["Id"]] = dict()
+                            outjson[st["Id"]]['Name'] = st["Name"]
+                            outjson[st["Id"]]['Health'] = health
+                            outjson[st["Id"]]['State'] = st["Status"]["State"]
+                        else:
+                            sys.stdout.write(
+                                "%s: %s: Health %s: %s\n"
+                                % (st["Id"], st["Name"], health, st["Status"]["State"]))
+
+        if options.json:
+            UI().print_out_json(outjson)
 
     def storagecontrollerremovereadonly(self, controller):
         templist = [
@@ -523,13 +562,13 @@ class StorageControllerCommand:
         if getattr(options, "controller", False):
             controller_ident = False
         if (
-            not (getattr(options, "json", False))
-            and not (getattr(options, "controller", False))
-            and print_ctrl
-            and (options.physicaldrives is None)
-            and (options.pdrive is None)
-            and (options.logicaldrives is None)
-            and (options.ldrive is None)
+                not (getattr(options, "json", False))
+                and not (getattr(options, "controller", False))
+                and print_ctrl
+                and (options.physicaldrives is None)
+                and (options.pdrive is None)
+                and (options.logicaldrives is None)
+                and (options.ldrive is None)
         ):
             sys.stdout.write("Controllers:\n")
 
@@ -540,8 +579,8 @@ class StorageControllerCommand:
                 controller = sel.dict
                 if getattr(options, "controller", False):
                     if (
-                        getattr(options, "controller", False) == controller["Id"]
-                        or getattr(options, "controller", False) == controller["Location"]
+                            getattr(options, "controller", False) == controller["Id"]
+                            or getattr(options, "controller", False) == controller["Location"]
                     ):
                         controller_ident = True
                     else:
@@ -549,10 +588,10 @@ class StorageControllerCommand:
 
                 if self.rdmc.app.typepath.defs.isgen10:
                     for g10controller in self.rdmc.app.select(
-                        "SmartStorageConfig.", path_refresh=True
+                            "SmartStorageConfig.", path_refresh=True
                     ):
                         if g10controller.dict.get("Location") == controller.get(
-                            "Location"
+                                "Location"
                         ):
                             id = controller.get("Id")
                             controller.update(g10controller.dict)
@@ -561,12 +600,12 @@ class StorageControllerCommand:
                             break
 
                 if (
-                    print_ctrl
-                    and (options.controller is None)
-                    and (options.physicaldrives is None)
-                    and (options.pdrive is None)
-                    and (options.ldrive is None)
-                    and (options.logicaldrives is None)
+                        print_ctrl
+                        and (options.controller is None)
+                        and (options.physicaldrives is None)
+                        and (options.pdrive is None)
+                        and (options.ldrive is None)
+                        and (options.logicaldrives is None)
                 ):
                     sys.stdout.write(
                         "[%s]: %s - %s\n"
@@ -580,12 +619,12 @@ class StorageControllerCommand:
                     # self.tranverse_func(controller)
 
                 elif (
-                    getattr(options, "json", False)
-                    and (options.controller is None)
-                    and (options.physicaldrives is None)
-                    and (options.pdrive is None)
-                    and (options.ldrive is None)
-                    and (options.logicaldrives is None)
+                        getattr(options, "json", False)
+                        and (options.controller is None)
+                        and (options.physicaldrives is None)
+                        and (options.pdrive is None)
+                        and (options.ldrive is None)
+                        and (options.logicaldrives is None)
                 ):
                     outjson = dict()
                     outjson["Controllers"] = dict()
@@ -599,21 +638,20 @@ class StorageControllerCommand:
                     UI().print_out_json(outjson)
 
                 elif (
-                    print_ctrl
-                    and (options.controller is not None)
-                    and ((options.ldrive is not None) or options.pdrive is not None)
+                        print_ctrl
+                        and (options.controller is not None)
+                        and ((options.ldrive is not None) or options.pdrive is not None)
                 ):
                     pass
 
                 elif (
-                    getattr(options, "json", False)
-                    and (options.controller is not None)
-                    and ((options.ldrive is not None) or (options.pdrive is not None))
+                        getattr(options, "json", False)
+                        and (options.controller is not None)
+                        and ((options.ldrive is not None) or (options.pdrive is not None))
                 ):
                     pass
 
                 elif print_ctrl and (options.controller is not None) and options.json is None:
-                    controller_info = ""
                     controller_info = "------------------------------------------------\n"
                     controller_info += "Controller Info \n"
                     controller_info += (
@@ -624,7 +662,7 @@ class StorageControllerCommand:
                     controller_info += "DataGuard: %s\n" % controller["DataGuard"]
                     controller_info += "Description: %s\n" % controller["Description"]
                     controller_info += (
-                        "FirmwareVersion: %s\n" % controller["FirmwareVersion"]
+                            "FirmwareVersion: %s\n" % controller["FirmwareVersion"]
                     )
                     controller_info += "Name: %s\n" % controller["Name"]
                     controller_info += "Model: %s\n" % controller["Model"]
@@ -652,16 +690,16 @@ class StorageControllerCommand:
                     UI().print_out_json(outjson_data)
 
                 if (
-                    getattr(options, "logicaldrives", False)
-                    or getattr(options, "ldrive", False)
-                    or single_use
+                        getattr(options, "logicaldrives", False)
+                        or getattr(options, "ldrive", False)
+                        or single_use
                 ):
                     self.logical_drives(options, controller, print_ctrl)
 
                 if (
-                    getattr(options, "physicaldrives", False)
-                    or getattr(options, "pdrive", False)
-                    or single_use
+                        getattr(options, "physicaldrives", False)
+                        or getattr(options, "pdrive", False)
+                        or single_use
                 ):
                     self.physical_drives(options, controller, print_ctrl)
 
@@ -683,13 +721,13 @@ class StorageControllerCommand:
             controller_ident = False
 
         if (
-            not (getattr(options, "json", False))
-            and not (getattr(options, "controller", False))
-            and print_ctrl
-            and (options.physicaldrives is None)
-            and (options.pdrive is None)
-            and (options.logicaldrives is None)
-            and (options.ldrive is None)
+                not (getattr(options, "json", False))
+                and not (getattr(options, "controller", False))
+                and print_ctrl
+                and (options.physicaldrives is None)
+                and (options.pdrive is None)
+                and (options.logicaldrives is None)
+                and (options.ldrive is None)
         ):
             sys.stdout.write("Controllers:\n")
 
@@ -702,17 +740,27 @@ class StorageControllerCommand:
             path = st_controller["Members"]
             for mem in path:
                 for val in mem.values():
-                    if "DE" in val:
+                    storageid_fromurl = val.split("/")[-2]
+                    if "DE" in storageid_fromurl and options.storageid == storageid_fromurl:
                         getval = self.rdmc.app.get_handler(
                             val, silent=True, service=True
                         ).dict
-                        controller = getval["Controllers"]
-                        for ctl in controller.values():
-                            ctl = ctl + "/0"
+                        try:
+                            controller = getval["Controllers"]
+                            list_controllers = self.rdmc.app.get_handler(
+                                controller["@odata.id"], silent=True, service=True
+                            ).dict
+                        except KeyError:
+                            self.rdmc.ui.printer(
+                                "Please check controller was Gen11.\n")
+                            return ReturnCodes.NO_CONTENTS_FOUND_FOR_OPERATION
+
+                        for ctl in list_controllers['Members']:
+                            ctl = ctl["@odata.id"]
                             get_sel = self.rdmc.app.get_handler(
                                 ctl, silent=True, service=True
                             )
-                        get_contrller.append(get_sel)
+                            get_contrller.append(get_sel)
 
         for sel in get_contrller:
             if "Collection" not in sel.path:
@@ -721,76 +769,77 @@ class StorageControllerCommand:
                 storage_id = storage_id[6]
                 if getattr(options, "controller", False):
                     if (
-                        getattr(options, "controller", False) == controller["Id"]
-                        or getattr(options, "controller", False)[-1]
-                        == controller["Location"]["PartLocation"]["ServiceLabel"][-1]
+                            getattr(options, "controller", False) == controller["Id"]
+                            or getattr(options, "controller", False)[-1]
+                            == controller["Location"]["PartLocation"]["ServiceLabel"][-1]
                     ):
                         controller_ident = True
                     else:
                         continue
                 if (
-                    print_ctrl
-                    and (options.controller is None)
-                    and (options.physicaldrives is None)
-                    and (options.pdrive is None)
-                    and (options.ldrive is None)
-                    and (options.logicaldrives is None)
+                        print_ctrl
+                        and (options.controller is None)
+                        and (options.physicaldrives is None)
+                        and (options.pdrive is None)
+                        and (options.ldrive is None)
+                        and (options.logicaldrives is None)
                 ):
                     sys.stdout.write(
-                        "[%s]: %s StorageId=%s - %s\n"
+                        "StorageId:%s - ControllerId:%s - %s - %s\n"
                         % (
+                            storage_id,
                             controller["Id"],
                             controller["Location"]["PartLocation"]["ServiceLabel"],
-                            storage_id,
                             controller["Model"],
                         )
                     )
 
                 elif (
-                    getattr(options, "json", False)
-                    and (options.controller is None)
-                    and (options.physicaldrives is None)
-                    and (options.pdrive is None)
-                    and (options.ldrive is None)
-                    and (options.logicaldrives is None)
+                        getattr(options, "json", False)
+                        and (options.controller is None)
+                        and (options.physicaldrives is None)
+                        and (options.pdrive is None)
+                        and (options.ldrive is None)
+                        and (options.logicaldrives is None)
                 ):
                     outjson = dict()
                     outjson["Controllers"] = dict()
-                    outjson["Controllers"][controller["Id"]] = dict()
-                    outjson["Controllers"][controller["Id"]]["Location"] = controller[
-                        "Location"
-                    ]["PartLocation"]["ServiceLabel"]
-                    outjson["Controllers"][controller["Id"]]["StorageId"] = storage_id
-                    outjson["Controllers"][controller["Id"]]["Model"] = controller[
-                        "Model"
-                    ]
+                    outjson["Controllers"][storage_id] = dict()
+                    outjson["Controllers"][storage_id]["controllerid"] = controller["Id"]
+                    outjson["Controllers"][storage_id]["controllerid"]["Location"] = \
+                        controller["Location"]["PartLocation"]["ServiceLabel"]
+                    outjson["Controllers"][storage_id]["controllerid"]["Model"] = controller["Model"]
                     UI().print_out_json(outjson)
 
                 elif (
-                    print_ctrl
-                    and (options.controller is not None)
-                    and ((options.ldrive is not None) or options.pdrive is not None)
+                        print_ctrl
+                        and (options.controller is not None) and ((options.logicaldrives is not None)
+                                                                  or (options.physicaldrives is not None)
+                                                                  or (options.ldrive is not None) or (
+                                                                          options.pdrive is not None))
                 ):
                     pass
 
                 elif (
-                    getattr(options, "json", False)
-                    and (options.controller is not None)
-                    and ((options.ldrive is not None) or (options.pdrive is not None))
+                        getattr(options, "json", False)
+                        and (options.controller is not None) and ((options.logicaldrives is not None)
+                                                                  or (options.physicaldrives is not None)
+                                                                  or (options.ldrive is not None) or (
+                                                                          options.pdrive is not None))
                 ):
                     pass
 
                 elif print_ctrl and (options.controller is not None) and options.json is None:
-                    controller_info = "------------------------------------------------\n"
-                    controller_info += "Controller Info \n"
+                    controller_info = "---------------------------------------------\n"
+                    controller_info += "Controller {} Details on Storage Id {}\n".format(options.controller, storage_id)
                     controller_info += (
-                        "------------------------------------------------\n"
+                        "---------------------------------------------\n"
                     )
                     controller_info += "Id: %s\n" % controller["Id"]
                     controller_info += "StorageId: %s\n" % storage_id
                     controller_info += "Name: %s\n" % controller["Name"]
                     controller_info += (
-                        "FirmwareVersion: %s\n" % controller["FirmwareVersion"]
+                            "FirmwareVersion: %s\n" % controller["FirmwareVersion"]
                     )
                     controller_info += "Manufacturer: %s\n" % controller["Manufacturer"]
                     controller_info += "Model: %s\n" % controller["Model"]
@@ -803,15 +852,15 @@ class StorageControllerCommand:
                     controller_info += "Status: %s\n" % controller["Status"]
                     try:
                         controller_info += (
-                            "SupportedDeviceProtocols: %s\n"
-                            % controller["SupportedDeviceProtocols"]
+                                "SupportedDeviceProtocols: %s\n"
+                                % controller["SupportedDeviceProtocols"]
                         )
                     except KeyError:
                         pass
                     try:
                         controller_info += (
-                            "SupportedControllerProtocols: %s\n"
-                            % controller["SupportedControllerProtocols"]
+                                "SupportedControllerProtocols: %s\n"
+                                % controller["SupportedControllerProtocols"]
                         )
                     except KeyError:
                         pass
@@ -857,18 +906,18 @@ class StorageControllerCommand:
                     UI().print_out_json(outjson_data)
 
                 if (
-                    getattr(options, "logicaldrives", False)
-                    or getattr(options, "ldrive", False)
-                    or single_use
+                        getattr(options, "logicaldrives", False)
+                        or getattr(options, "ldrive", False)
+                        or single_use
                 ):
-                    self.storagelogical_drives(options, controller, print_ctrl)
+                    self.storagelogical_drives(options, controller, storage_id, print_ctrl)
 
                 if (
-                    getattr(options, "physicaldrives", False)
-                    or getattr(options, "pdrive", False)
-                    or single_use
+                        getattr(options, "physicaldrives", False)
+                        or getattr(options, "pdrive", False)
+                        or single_use
                 ):
-                    self.storagephysical_drives(options, controller, print_ctrl)
+                    self.storagephysical_drives(options, controller, storage_id, print_ctrl)
 
                 if single_use:
                     storage_data[controller["Id"]] = controller
@@ -889,7 +938,7 @@ class StorageControllerCommand:
             path = st_controller["Members"]
             for p in path:
                 url = p["@odata.id"]
-                if options.storage_id in url and "DE" in url:
+                if options.storageid in url and "DE" in url:
                     st_flag = True
                     break
                 else:
@@ -897,52 +946,70 @@ class StorageControllerCommand:
         if not st_flag:
             sys.stdout.write(
                 "\nStorage ID {} not found or Storage ID is not redfish enabled and does not have DE\n".format(
-                    options.storage_id
+                    options.storageid
                 )
             )
             return
 
         res_dict = dict()
         res_dict["Storage"] = dict()
-        res_dict["Storage"]["Controllers"] = list()
-        res_dict["Storage"]["Volumes"] = list()
-        res_dict["Storage"]["Drives"] = list()
+
         storage_id_url = (
-            "/redfish/v1/Systems/1/Storage/" + options.storage_id + "?$expand=."
+                "/redfish/v1/Systems/1/Storage/" + options.storageid + "?$expand=."
         )
 
         storage_resp = self.rdmc.app.get_handler(
             storage_id_url, silent=True, service=True
         ).dict
         if not storage_resp:
-            sys.stdout.write("\nStorage Id {} not found\n".format(options.storage_id))
+            sys.stdout.write("\nStorage Id {} not found\n".format(options.storageid))
             return
         controllers = storage_resp["Controllers"]["Members"]
         volumes = storage_resp["Volumes"]["Members"]
         drives = storage_resp["Drives"]
         stg_data = []
         if (
-            print_ctrl
-            and storage_resp
-            and volumes
-            and controllers
-            and options.json is None
+                print_ctrl
+                and storage_resp
+                and options.json is None
         ):
-            sys.stdout.write("Storage:\n")
-            sys.stdout.write("\tId: %s\n\t" % storage_resp["Id"])
-            sys.stdout.write("Health: %s\n\t" % storage_resp["Status"]["HealthRollup"])
-            sys.stdout.write("Name: %s\n\t" % storage_resp["Name"])
-            sys.stdout.write(
-                "Number of Controllers: %s\n\t"
-                % storage_resp["Controllers"]["Members@odata.count"]
-            )
-            sys.stdout.write(
-                "Number of Volumes: %s\n\t"
-                % storage_resp["Volumes"]["Members@odata.count"]
-            )
-            sys.stdout.write(
-                "Number of Drives: %s\n\t\n" % storage_resp["Drives@odata.count"]
-            )
+            if options.storageid and not options.physicaldrives and not options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write("Details of Storage %s\n" % options.storageid)
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write("\tId: %s\n\t" % storage_resp["Id"])
+                sys.stdout.write("Health: %s\n\t" % storage_resp["Status"]["HealthRollup"])
+                sys.stdout.write("Name: %s\n\t" % storage_resp["Name"])
+                sys.stdout.write(
+                    "Number of Controllers: %s\n\t"
+                    % storage_resp["Controllers"]["Members@odata.count"]
+                )
+                sys.stdout.write(
+                    "Number of Volumes: %s\n\t"
+                    % storage_resp["Volumes"]["Members@odata.count"]
+                )
+                sys.stdout.write(
+                    "Number of Drives: %s\n\t\n" % storage_resp["Drives@odata.count"]
+                )
+            elif options.storageid and options.physicaldrives and not options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write("Physical Drives of Storage %s\n" % options.storageid)
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write(
+                    "Number of Drives: %s\n\t\n" % storage_resp["Drives@odata.count"]
+                )
+            elif options.storageid and not options.physicaldrives and options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write("Volumes of Storage %s\n" % options.storageid)
+                sys.stdout.write("-----------------------------------\n")
+                sys.stdout.write(
+                    "Number of Volumes: %s\n\t"
+                    % storage_resp["Volumes"]["Members@odata.count"]
+                )
+
         elif options.json is not None:
             storage_data = dict()
             storage_data.update({"Id": storage_resp["Id"]})
@@ -961,6 +1028,54 @@ class StorageControllerCommand:
             storage_data.update({"Number of Drives": storage_resp["Drives@odata.count"]})
             stg_data.append(storage_data)
 
+        if options.storageid and not options.controllers and not options.physicaldrives and not options.logicaldrives and \
+                not options.ldrive and not options.pdrive:
+            c_data = self.print_list_controllers(options, controllers, print_ctrl)
+            v_data = self.print_list_volumes(options, volumes, print_ctrl)
+            d_data = self.print_list_drives(options, drives, print_ctrl)
+        if options.storageid and options.controllers and not options.physicaldrives and not options.logicaldrives and \
+                not options.ldrive and not options.pdrive:
+            c_data = self.print_list_controllers(options, controllers, print_ctrl)
+        if options.storageid and not options.controllers and not options.physicaldrives and options.logicaldrives and \
+                not options.ldrive and not options.pdrive:
+            v_data = self.print_list_volumes(options, volumes, print_ctrl)
+        if options.storageid and not options.controllers and options.physicaldrives and not options.logicaldrives and \
+                not options.ldrive and not options.pdrive:
+            d_data = self.print_list_drives(options, drives, print_ctrl)
+        if options.storageid and not options.controllers and not options.physicaldrives and not options.logicaldrives and \
+                not options.ldrive and options.pdrive:
+            self.storagephysical_drives(options, options.controller, options.storageid, print_ctrl)
+            return()
+        if options.storageid and not options.physicaldrives and not options.logicaldrives and \
+                options.ldrive and not options.pdrive:
+            self.storagelogical_drives(options, options.controller, options.storageid, print_ctrl)
+            return()
+        # Append controller, volume and drive information to final dictionary
+        if res_dict and options.json:
+            if options.storageid and not options.controllers and not options.physicaldrives and not options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                res_dict["Storage"].update(storage_data)
+                res_dict["Storage"]["Controllers"] = list()
+                res_dict["Storage"]["Volumes"] = list()
+                res_dict["Storage"]["Drives"] = list()
+                res_dict["Storage"]["Controllers"].extend(c_data)
+                res_dict["Storage"]["Volumes"].extend(v_data)
+                res_dict["Storage"]["Drives"].extend(d_data)
+            elif options.storageid and options.controllers and not options.physicaldrives and not options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                res_dict["Storage"]["Controllers"] = list()
+                res_dict["Storage"]["Controllers"].extend(c_data)
+            elif options.storageid and not options.controllers and options.physicaldrives and not options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                res_dict["Storage"]["Drives"] = list()
+                res_dict["Storage"]["Drives"].extend(d_data)
+            elif options.storageid and not options.controllers and not options.physicaldrives and options.logicaldrives and \
+                    not options.ldrive and not options.pdrive:
+                res_dict["Storage"]["Volumes"] = list()
+                res_dict["Storage"]["Volumes"].extend(v_data)
+            UI().print_out_json(res_dict)
+
+    def print_list_controllers(self, options, controllers, print_ctrl):
         c_data = []
         if not options.json:
             sys.stdout.write("Controllers Details:\n")
@@ -987,10 +1102,12 @@ class StorageControllerCommand:
                 )
                 ctrl_data.update({"Name": getctrl["Name"]})
                 c_data.append(ctrl_data)
+        return c_data
 
+    def print_list_volumes(self, options, volumes, print_ctrl):
         v_data = []
         if not options.json:
-            sys.stdout.write("Volume Details:\n")
+            sys.stdout.write("\nVolume Details:\n")
             if not volumes:
                 sys.stdout.write("\tNone\n\n")
         for vol in volumes:
@@ -999,19 +1116,24 @@ class StorageControllerCommand:
             if print_ctrl and getvolumes and options.json is None:
                 sys.stdout.write("\tId: %s\n\t" % getvolumes["Id"])
                 sys.stdout.write("Name: %s\n\t" % getvolumes["Name"])
-                sys.stdout.write("Health: %s\n\t" % getvolumes["Status"]["Health"])
-                sys.stdout.write("RAIDType: %s\n\t\n" % getvolumes["RAIDType"])
+                sys.stdout.write("RAIDType: %s\n\t" % getvolumes["RAIDType"])
+                sys.stdout.write("VolumeUniqueId: %s\n\t" % getvolumes["Identifiers"][0]["DurableName"])
+                sys.stdout.write("Health: %s\n\n" % getvolumes["Status"]["Health"])
+
             elif options.json is not None:
                 vol_data = dict()
                 vol_data.update({"Id": getvolumes["Id"]})
-                vol_data.update({"Model": getvolumes["Name"]})
+                vol_data.update({"Name": getvolumes["Name"]})
                 vol_data.update({"Health": getvolumes["Status"]["Health"]})
                 vol_data.update({"RAIDType": getvolumes["RAIDType"]})
+                vol_data.update({"VolumeUniqueId": getvolumes["Identifiers"][0]["DurableName"]})
                 v_data.append(vol_data)
+        return v_data
 
+    def print_list_drives(self, options, drives, print_ctrl):
         d_data = []
         if not options.json:
-            sys.stdout.write("Drive Details:\n")
+            sys.stdout.write("Drive Details:\n\n")
             if not drives:
                 sys.stdout.write("\tNone\n\n")
         for drive in drives:
@@ -1019,16 +1141,29 @@ class StorageControllerCommand:
             getdrives = self.rdmc.app.get_handler(dve, silent=True, service=True).dict
             if print_ctrl and getdrives and options.json is None:
                 sys.stdout.write("\tId: %s\n\t" % getdrives["Id"])
-                sys.stdout.write("Name: %s\n\t" % getdrives["Model"])
-                sys.stdout.write("Serial Number: %s\n\t" % getdrives["SerialNumber"])
                 sys.stdout.write(
-                    "Health: %s\n\t\n"
+                    "Location: %s\n\t"
                     % getdrives["PhysicalLocation"]["PartLocation"]["ServiceLabel"]
                 )
+                sys.stdout.write("Health: %s\n\t" % getdrives["Status"]["Health"])
+                sys.stdout.write("Name: %s\n\t" % getdrives["Name"])
+                sys.stdout.write("Model: %s\n\t" % getdrives["Model"])
+                sys.stdout.write("Revision: %s\n\t" % getdrives["Revision"])
+                sys.stdout.write("Serial Number: %s\n\t" % getdrives["SerialNumber"])
+                sys.stdout.write("Protocol: %s\n\t" % getdrives["Protocol"])
+                sys.stdout.write("MediaType: %s\n\t" % getdrives["MediaType"])
+                sys.stdout.write("CapacityBytes: %s\n\t\n" % getdrives["CapacityBytes"])
+
             elif options.json is not None:
                 drives_data = dict()
                 drives_data.update({"Id": getdrives["Id"]})
-                drives_data.update({"Model": getdrives["Name"]})
+                drives_data.update({"Model": getdrives["Model"]})
+                drives_data.update({"Revision": getdrives["Revision"]})
+                drives_data.update({"Protocol": getdrives["Protocol"]})
+                drives_data.update({"MediaType": getdrives["MediaType"]})
+                drives_data.update({"CapacityBytes": getdrives["CapacityBytes"]})
+                drives_data.update({"Name": getdrives["Name"]})
+                drives_data.update({"Health": getdrives["Status"]["Health"]})
                 drives_data.update({"Serial Number": getdrives["SerialNumber"]})
                 drives_data.update(
                     {
@@ -1038,121 +1173,114 @@ class StorageControllerCommand:
                     }
                 )
                 d_data.append(drives_data)
-
-        # Append controller, volume and drive information to final dictionary
-        if res_dict and options.json:
-            res_dict["Storage"].update(storage_data)
-            res_dict["Storage"]["Controllers"].extend(c_data)
-            res_dict["Storage"]["Volumes"].extend(v_data)
-            res_dict["Storage"]["Drives"].extend(d_data)
-            UI().print_out_json(res_dict)
+        return d_data
 
     def storagephysical_drives(
-        self, options, controller, print_ctrl=False, single_use=False
+            self, options, controller, storage_id, print_ctrl=False, single_use=False
     ):
         found_entries = False
         if not getattr(options, "json", False) and print_ctrl:
-            sys.stdout.write("Physical Drives:\n")
+            sys.stdout.write("--------------------------------------------------\n")
+            if not getattr(options, "pdrive", False):
+                sys.stdout.write("Drives on Controller %s and Storage %s\n" % (options.controller, storage_id))
+            else:
+                if controller:
+                    sys.stdout.write(
+                        "Drive %s on Controller %s and Storage %s\n" % (options.pdrive, options.controller, storage_id))
+                else:
+                    sys.stdout.write(
+                        "Drive %s on Storage %s\n" % (options.pdrive, storage_id))
+            sys.stdout.write("--------------------------------------------------\n")
         if getattr(options, "pdrive", False):
             pdrive_ident = False
         else:
             pdrive_ident = True
         if single_use:
             physicaldrives = {}
-
-        for sel in self.rdmc.app.select("Drive", path_refresh=True):
-            if "Collection" not in sel.maj_type:
-                tmp = sel.dict
-
-                if getattr(options, "pdrive", False):
-                    pdrive_ident = False
-                else:
-                    pdrive_ident = True
-                # if single_use:
-                #    physicaldrives = {}
-                found_entries = True
-
-                location = tmp["PhysicalLocation"]["PartLocation"]["ServiceLabel"]
-                loc = location.split(":")
+        if getattr(options, "json", False):
+            outjson = dict()
+            outjson["Drives"] = dict()
+        print_drives = []
+        storage_url = self.rdmc.app.typepath.defs.systempath + 'Storage/' + storage_id
+        dd_list = self.rdmc.app.get_handler(storage_url, silent=True).dict.get(
+                "Drives", {})
+        if dd_list:
+            found_entries = True
+        for dd in dd_list:
+            drive_url = dd['@odata.id']
+            drive_data = self.rdmc.app.get_handler(drive_url, silent=True).dict
+            location = drive_data["PhysicalLocation"]["PartLocation"]["ServiceLabel"]
+            loc = location.split(":")
+            if len(loc) == 4:
                 temp_str = str(
-                    loc[1].split("=")[1]
+                    loc[0].split("=")[1]
+                    + ":"
+                    + loc[1].split("=")[1]
                     + ":"
                     + loc[2].split("=")[1]
                     + ":"
                     + loc[3].split("=")[1]
                 )
-                # temp_str = str(loc[1][-2:] + ':' + loc[2][-1] + ':' + loc[3][-1])
                 location = temp_str
+            else:
+                pass
 
-                if getattr(options, "pdrive", False):
-                    if options.pdrive != location:
-                        continue
-                    else:
-                        pdrive_ident = True
-                if single_use:
-                    # physicaldrives[tmp["Id"]] = tmp
-                    physicaldrives.update({tmp["Id"]: tmp})
-                if print_ctrl and pdrive_ident and options.pdrive is None:
-                    sys.stdout.write(
-                        "\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s Bytes\n"
-                        % (
-                            location,
-                            tmp["Model"],
-                            location,
-                            tmp["MediaType"],
-                            tmp["SerialNumber"],
-                            tmp["CapacityBytes"],
-                        )
+            if getattr(options, "pdrive", False):
+                if options.pdrive != location:
+                    continue
+                else:
+                    pdrive_ident = True
+            if single_use:
+                physicaldrives.update({drive_data['Id']: drive_data})
+            if print_ctrl and pdrive_ident and options.pdrive is None and options.json is None and (location not in print_drives):
+                sys.stdout.write(
+                    "\t[%s]: Model %s, Location %s, Type %s, Serial %s - %s Bytes\n"
+                    % (
+                        location,
+                        drive_data["Model"],
+                        location,
+                        drive_data["MediaType"],
+                        drive_data["SerialNumber"],
+                        drive_data["CapacityBytes"],
                     )
-                elif (
+                )
+            elif print_ctrl and pdrive_ident and options.pdrive and options.json is None and (location not in print_drives):
+                sys.stdout.write(
+                    "\tId: %s\n\tModel: %s\n\tLocation: %s\n\tType: %s\n\tSerial: %s\n\tCapacity: %s Bytes\n"
+                    % (
+                        drive_data['Id'],
+                        drive_data["Model"],
+                        location,
+                        drive_data["MediaType"],
+                        drive_data["SerialNumber"],
+                        drive_data["CapacityBytes"],
+                    ))
+                break
+            elif (
                     getattr(options, "json", False)
                     and pdrive_ident
-                    and options.pdrive is None
-                ):
-                    outjson = dict()
-                    outjson["PhysicalDrives"] = dict()
-                    outjson["PhysicalDrives"][location] = dict()
-                    outjson["PhysicalDrives"][location]["Model"] = tmp["Model"]
-                    outjson["PhysicalDrives"][location]["Location"] = location
-                    outjson["PhysicalDrives"][location]["MediaType"] = tmp["MediaType"]
-                    outjson["PhysicalDrives"][location]["SerialNumber"] = tmp[
-                        "SerialNumber"
-                    ]
-                    outjson["PhysicalDrives"][location]["CapacityBytes"] = tmp[
-                        "CapacityBytes"
-                    ]
-                    UI().print_out_json(outjson)
-
-                elif print_ctrl and pdrive_ident and options.pdrive is not None:
-                    ctl_logical = dict()
-                    contoller_loc = (
-                        controller["Location"]["PartLocation"]["ServiceLabel"]
-                        + "-"
-                        + controller["Model"]
-                    )
-                    ctl_logical.update({"Controller": contoller_loc})
-                    remove_odata = self.odataremovereadonly(tmp)
-                    ctl_logical.update(remove_odata)
-                    UI().print_out_json(ctl_logical)
-
-                elif (
-                    getattr(options, "json", False)
-                    and pdrive_ident
-                    and options.pdrive is not None
-                ):
-                    ctl_logical = dict()
-                    contoller_loc = (
-                        controller["Location"]["PartLocation"]["ServiceLabel"]
-                        + "-"
-                        + controller["Model"]
-                    )
-                    ctl_logical.update({"Controller": contoller_loc})
-                    remove_odata = self.odataremovereadonly(tmp)
-                    ctl_logical.update(remove_odata)
-                    UI().print_out_json(ctl_logical)
-
-                if getattr(options, "pdrive", False) and pdrive_ident:
+                    and (location not in print_drives)
+            ):
+                outjson["Drives"][location] = dict()
+                outjson["Drives"][location]["Id"] = drive_data["Id"]
+                outjson["Drives"][location]["Model"] = drive_data["Model"]
+                outjson["Drives"][location]["Location"] = location
+                outjson["Drives"][location]["MediaType"] = drive_data["MediaType"]
+                outjson["Drives"][location]["SerialNumber"] = drive_data[
+                    "SerialNumber"
+                ]
+                outjson["Drives"][location]["CapacityBytes"] = drive_data[
+                    "CapacityBytes"
+                ]
+                if options.pdrive:
                     break
+
+            print_drives.append(location)
+        if (
+                getattr(options, "json", False)
+                and pdrive_ident
+        ):
+            UI().print_out_json(outjson)
         if getattr(options, "pdrive", False) and not pdrive_ident and print_ctrl:
             sys.stdout.write(
                 "\tPhysical drive in position '%s' was not found\n" % options.pdrive
@@ -1164,136 +1292,109 @@ class StorageControllerCommand:
             return physicaldrives
 
     def storagelogical_drives(
-        self, options, controller, print_ctrl=False, single_use=False
+            self, options, controller, storage_id, print_ctrl=False, single_use=False
     ):
         found_entries = False
         if not getattr(options, "json", False) and print_ctrl:
-            sys.stdout.write("Logical Drives:\n")
+            sys.stdout.write("--------------------------------------------------\n")
+            if not getattr(options, "ldrive", False):
+                sys.stdout.write("Volumes on Controller %s and Storage %s\n" % (options.controller, storage_id))
+            else:
+                if controller:
+                    sys.stdout.write(
+                        "Volume %s on Controller %s and Storage %s\n" % (options.ldrive, options.controller, storage_id))
+                else:
+                    sys.stdout.write(
+                        "Volume %s on Storage %s\n" % (options.ldrive, storage_id))
+            sys.stdout.write("--------------------------------------------------\n")
         if getattr(options, "ldrive", False):
             ldrive_ident = False
         else:
             ldrive_ident = True
         if single_use:
             logicaldrives = {}
-
-        for sel in self.rdmc.app.select("Volume", path_refresh=True):
+        if getattr(options, "json", False):
+            outjson = dict()
+            outjson["volumes"] = dict()
+        for sel in self.rdmc.app.select("Volume.", path_refresh=True):
             if "VolumeCollection" not in sel.maj_type:
-                # if "Collection" not in sel.maj_type:
                 tmp = sel.dict
-
-                if getattr(options, "ldrive", False):
-                    ldrive_ident = False
-                else:
-                    ldrive_ident = True
-                # if single_use:
-                #    logicaldrives = {}
-
-                if getattr(options, "ldrive", False):
-                    if options.ldrive != tmp["Id"]:
-                        continue
+                if options.storageid in tmp["@odata.id"]:
+                    if getattr(options, "ldrive", False):
+                        ldrive_ident = False
                     else:
                         ldrive_ident = True
+                    if getattr(options, "ldrive", False):
+                        if options.ldrive != tmp["Id"]:
+                            continue
+                        else:
+                            ldrive_ident = True
 
-                if "Identifiers" in tmp:
-                    durablename = tmp["Identifiers"]
-                    d_name = [name["DurableName"] for name in durablename]
-                    found_entries = True
+                    if "Identifiers" in tmp:
+                        durablename = tmp["Identifiers"]
+                        d_name = [name["DurableName"] for name in durablename]
+                        found_entries = True
 
-                    if print_ctrl and ldrive_ident and options.ldrive is None:
-                        sys.stdout.write(
-                            "\t[%s]: Name %s RAIDType %s VUID %s - %s Bytes\n"
-                            % (
-                                tmp["Id"],
-                                tmp["Name"],
-                                tmp["RAIDType"],
-                                d_name[0],
-                                tmp["CapacityBytes"],
+                        if print_ctrl and ldrive_ident and options.ldrive is None \
+                                and not getattr(options, "json", False):
+                            sys.stdout.write(
+                                "\t[%s]: Name %s RAIDType %s VUID %s Capacity %s Bytes - Health %s\n"
+                                % (
+                                    tmp["Id"],
+                                    tmp["Name"],
+                                    tmp["RAIDType"],
+                                    d_name[0],
+                                    tmp["CapacityBytes"],
+                                    tmp["Status"]['Health']
+                                )
                             )
-                        )
-                    elif (
-                        getattr(options, "json", False)
-                        and ldrive_ident
-                        and options.ldrive is None
-                    ):
-                        outjson = dict()
-                        outjson["LogicalDrives"] = dict()
-                        outjson["LogicalDrives"][tmp["Id"]] = dict()
-                        outjson["LogicalDrives"][tmp["Id"]]["LogicalDriveName"] = tmp[
-                            "Name"
-                        ]
-                        outjson["LogicalDrives"][tmp["Id"]]["RAIDType"] = tmp["RAIDType"]
-                        outjson["LogicalDrives"][tmp["Id"]][
-                            "VolumeUniqueIdentifier"
-                        ] = d_name[0]
-                        outjson["LogicalDrives"][tmp["Id"]]["CapacityMiB"] = tmp[
-                            "CapacityBytes"
-                        ]
-                        UI().print_out_json(outjson)
+                        elif getattr(options, "json", False) and ldrive_ident:
+                            outjson["volumes"][tmp["Id"]] = dict()
+                            outjson["volumes"][tmp["Id"]]["VolumeName"] = tmp["Name"]
+                            outjson["volumes"][tmp["Id"]]["RAIDType"] = tmp["RAIDType"]
+                            outjson["volumes"][tmp["Id"]][
+                                "VolumeUniqueIdentifier"
+                            ] = d_name[0]
+                            outjson["volumes"][tmp["Id"]]["Capacity"] = tmp[
+                                "CapacityBytes"
+                            ]
+                            outjson["volumes"][tmp["Id"]]["Health"] = tmp["Status"]['Health']
+                            if options.ldrive:
+                                break
 
-                    elif print_ctrl and ldrive_ident and options.ldrive is not None:
-                        ctl_logical = dict()
-                        contoller_loc = (
-                            controller["Location"]["PartLocation"]["ServiceLabel"]
-                            + "-"
-                            + controller["Model"]
-                        )
-                        ctl_logical.update({"Controller": contoller_loc})
-                        remove_odata = self.odataremovereadonly(tmp)
-                        ctl_logical.update(remove_odata)
-                        UI().print_out_json(ctl_logical)
-
-                    elif (
-                        getattr(options, "json", False)
-                        and ldrive_ident
-                        and options.ldrive is not None
-                    ):
-                        ctl_logical = dict()
-                        contoller_loc = (
-                            controller["Location"]["PartLocation"]["ServiceLabel"]
-                            + "-"
-                            + controller["Model"]
-                        )
-                        ctl_logical.update({"Controller": contoller_loc})
-                        remove_odata = self.odataremovereadonly(tmp)
-                        ctl_logical.update(remove_odata)
-                        UI().print_out_json(ctl_logical)
-
-                    # this piece of code will give drive data which is link to volumes
-                    # try:
-                    #    tmp2 = tmp["Links"]["Drives"][self.rdmc.app.typepath.defs.hrefstring]
-                    # except:
-                    #    data_drive = tmp["Links"]["Drives"]
-                    #    tmp2 = [drive["@odata.id"] for drive in data_drive]
-                    #    tmp2 = tmp2[0]
-                    # finally:
-                    #    tmp2 = self.rdmc.app.get_handler(tmp2, silent=True).dict
-                    # if ldrive_ident:
-                    #    datadrive = self.get_storage_data_drives(
-                    #        options, tmp2, print_ctrl, single_use
-                    #    )
-                    #    try:
-                    #        tmp["Links"]["Drives"] = datadrive
-                    #    except:
-                    #        tmp["links"]["Drives"] = datadrive
-                    if single_use:
-                        # logicaldrives[tmp["Id"]] = tmp
-                        logicaldrives.update({tmp["Id"]: tmp})
-                    if getattr(options, "ldrive", False) and ldrive_ident:
-                        break
-
+                        elif print_ctrl and ldrive_ident and options.ldrive is not None:
+                            sys.stdout.write(
+                                "\tId: %s\n\tName: %s\n\tRaidType: %s\n\tVolumeUniqueId: %s\n\tCapacity: %s Bytes\n\n"
+                                % (
+                                    tmp['Id'],
+                                    tmp["Name"],
+                                    tmp["RAIDType"],
+                                    d_name[0],
+                                    tmp["CapacityBytes"],
+                                ))
+                            break
+                        if single_use:
+                            logicaldrives.update({tmp["Id"]: tmp})
+                        if getattr(options, "ldrive", False) and ldrive_ident:
+                            break
+        if (
+                getattr(options, "json", False)
+                and ldrive_ident
+        ):
+            UI().print_out_json(outjson)
         if getattr(options, "ldrive", False) and not ldrive_ident:
             sys.stdout.write(
-                "\tLogical drive in position '%s' was not found.\n" % options.ldrive
+                "\tVolume '%s' was not found.\n" % options.ldrive
             )
 
         elif not found_entries and print_ctrl:
-            sys.stdout.write("\tLogical drives not found.\n")
+            sys.stdout.write("\tVolumes not found.\n")
 
         if single_use:
             return logicaldrives
 
     def get_storage_data_drives(
-        self, options, drives, print_ctrl=False, single_use=False
+            self, options, drives, print_ctrl=False, single_use=False
     ):
         if not (getattr(options, "json", False)) and print_ctrl:
             sys.stdout.write("\tData Drives:\n\n")
@@ -1358,7 +1459,7 @@ class StorageControllerCommand:
                 physicaldrives = {}
             found_entries = False
             for data in self.rdmc.app.get_handler(dd, silent=True).dict.get(
-                "Members", {}
+                    "Members", {}
             ):
                 try:
                     tmp = data[self.rdmc.app.typepath.defs.hrefstring]
@@ -1391,12 +1492,10 @@ class StorageControllerCommand:
                             tmp["CapacityMiB"],
                         )
                     )
-                    # self.tranverse_func(tmp)
-                    # sys.stdout.write("\n")
                 elif (
-                    getattr(options, "json", False)
-                    and pdrive_ident
-                    and options.pdrive is None
+                        getattr(options, "json", False)
+                        and pdrive_ident
+                        and options.pdrive is None
                 ):
                     outjson = dict()
                     outjson["PhysicalDrives"] = dict()
@@ -1425,9 +1524,9 @@ class StorageControllerCommand:
                     UI().print_out_json(ctl_logical)
 
                 elif (
-                    getattr(options, "json", False)
-                    and pdrive_ident
-                    and options.pdrive is not None
+                        getattr(options, "json", False)
+                        and pdrive_ident
+                        and options.pdrive is not None
                 ):
                     ctl_logical = dict()
                     contoller_loc = content["Location"] + "-" + content["Model"]
@@ -1472,7 +1571,7 @@ class StorageControllerCommand:
             dd = content["Links"]["LogicalDrives"][self.rdmc.app.typepath.defs.hrefstring]
         finally:
             if not getattr(options, "json", False) and print_ctrl:
-                sys.stdout.write("Logical Drives:\n")
+                sys.stdout.write("Volumes:\n")
             if getattr(options, "ldrive", False):
                 ldrive_ident = False
             else:
@@ -1481,7 +1580,7 @@ class StorageControllerCommand:
                 logicaldrives = {}
             found_entries = False
             for data in self.rdmc.app.get_handler(dd, silent=True).dict.get(
-                "Members", {}
+                    "Members", {}
             ):
                 try:
                     tmp = data[self.rdmc.app.typepath.defs.hrefstring]
@@ -1493,7 +1592,7 @@ class StorageControllerCommand:
                 if confd:
                     for confdd in confd:
                         if confdd.get("LogicalDriveNumber") == tmp.get(
-                            "LogicalDriveNumber"
+                                "LogicalDriveNumber"
                         ):
                             tmp.update(confdd)
                             break
@@ -1514,9 +1613,9 @@ class StorageControllerCommand:
                         )
                     )
                 elif (
-                    getattr(options, "json", False)
-                    and ldrive_ident
-                    and options.ldrive is None
+                        getattr(options, "json", False)
+                        and ldrive_ident
+                        and options.ldrive is None
                 ):
                     outjson = dict()
                     outjson["LogicalDrives"] = dict()
@@ -1532,8 +1631,6 @@ class StorageControllerCommand:
                         "CapacityMiB"
                     ]
                     UI().print_out_json(outjson)
-                    # self.tranverse_func(tmp)
-                    # sys.stdout.write("\n")
                 elif print_ctrl and ldrive_ident and options.ldrive is not None:
                     ctl_logical = dict()
                     contoller_loc = content["Location"] + "-" + content["Model"]
@@ -1543,9 +1640,9 @@ class StorageControllerCommand:
                     UI().print_out_json(ctl_logical)
 
                 elif (
-                    getattr(options, "json", False)
-                    and ldrive_ident
-                    and options.ldrive is not None
+                        getattr(options, "json", False)
+                        and ldrive_ident
+                        and options.ldrive is not None
                 ):
                     ctl_logical = dict()
                     contoller_loc = content["Location"] + "-" + content["Model"]
@@ -1556,36 +1653,16 @@ class StorageControllerCommand:
 
                 elif getattr(options, "json", False) and ldrive_ident:
                     UI().print_out_json(tmp)
-                """
-                try:
-                    tmp2 = tmp["Links"]["DataDrives"][
-                        self.rdmc.app.typepath.defs.hrefstring
-                    ]
-                except:
-                    tmp2 = tmp["links"]["DataDrives"][
-                        next(iter(tmp["links"]["DataDrives"]))
-                    ]
-                finally:
-                    tmp2 = self.rdmc.app.get_handler(tmp2, silent=True).dict
-                if ldrive_ident:
-                    data_drives = self.get_data_drives(
-                        options, tmp2, print_ctrl, single_use
-                    )
-                    try:
-                        tmp["links"]["DataDrives"] = data_drives
-                    except:
-                        tmp["Links"]["DataDrives"] = data_drives
-                """
                 if single_use:
                     logicaldrives[tmp["Id"]] = tmp
                 if getattr(options, "ldrive", False) and ldrive_ident:
                     break
             if getattr(options, "ldrive", False) and not ldrive_ident:
                 sys.stdout.write(
-                    "\tLogical drive in position '%s' was not found \n" % options.pdrive
+                    "\tVolume '%s' was not found \n" % options.pdrive
                 )
             elif not found_entries and print_ctrl:
-                sys.stdout.write("\tLogical drives not found.\n")
+                sys.stdout.write("\tVolumes not found.\n")
 
             if single_use:
                 return logicaldrives
@@ -1667,38 +1744,47 @@ class StorageControllerCommand:
         default_parser = subcommand_parser.add_parser(
             "default",
             help="Running without any sub-command will return storage controller configuration data\n"
-            "on the currently logged in server. Additional optional arguments will narrow the\n"
-            "scope of returned data to individual controllers, physical or volumes",
+                 "on the currently logged in server. Additional optional arguments will narrow the\n"
+                 "scope of returned data to individual controllers, physical or volumes",
         )
         default_parser.add_argument(
             "--controller",
             dest="controller",
             help="Use this flag to select the corresponding controller using either the slot "
-            "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-            "controller, select it by index.\tstoragecontroller --controller=2"
-            "\n\t2. To get more details on a specific controller select "
-            "it by location.\tstoragecontroller --controller='Slot 0'",
+                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+                 "controller, select it by index.\tstoragecontroller --controller=2"
+                 "\n\t2. To get more details on a specific controller select "
+                 "it by location.\tstoragecontroller --controller='Slot 0'",
             default=None,
         )
         default_parser.add_argument(
             "--storage_id",
             "--storageid",
-            dest="storage_id",
-            help="Use this flag to select the corresponding controller using either the storage_id "
-            "id. \n\tExamples:\n\t1. To get more details on a specific "
-            "controller, select it by storage_id.\tstoragecontroller --storage_id=DE00E000"
-            "\n\t2. To get more details on a specific controller select "
-            "it by location.\tstoragecontroller --storage_id='DE00E000'",
+            dest="storageid",
+            help="Use this flag to select the corresponding controller using either the storageid "
+                 "id. \n\tExamples:\n\t1. To get more details on a specific "
+                 "controller, select it by storageid.\tstoragecontroller --storageid=DE00E000"
+                 "\n\t2. To get more details on a specific controller select "
+                 "it by location.\tstoragecontroller --storageid='DE00E000'",
+            default=None,
+        )
+        default_parser.add_argument(
+            "--controllers",
+            dest="controllers",
+            action="store_true",
+            help="Use this flag to return the controllers for the storageid selected."
+                 "\n\tExamples:\n\t1. storagecontroller --controllers\n",
             default=None,
         )
         default_parser.add_argument(
             "--physicaldrives",
+            "--drives",
             dest="physicaldrives",
             action="store_true",
             help="Use this flag to return the physical drives for the controller selected."
-            "\n\tExamples:\n\t1. storagecontroller --physicaldrives\n\t2. To obtain details about "
-            "physical drives for a specific controller.\tstoragecontroller --controller=3 "
-            "--physicaldrives",
+                 "\n\tExamples:\n\t1. storagecontroller --drives\n\t2. To obtain details about "
+                 "physical drives for a specific controller.\tstoragecontroller --controller=3 "
+                 "--physicaldrives",
             default=None,
         )
         default_parser.add_argument(
@@ -1707,17 +1793,17 @@ class StorageControllerCommand:
             dest="logicaldrives",
             action="store_true",
             help="Use this flag to return the volumes for the controller selected.\n\t "
-            "\n\tExamples:\n\t1. storagecontroller --logicaldrives\n\t2. To obtain details about "
-            "volumes for a specific controller.\tstoragecontroller --controller=3 "
-            "--logicaldrives",
+                 "\n\tExamples:\n\t1. storagecontroller --logicaldrives\n\t2. To obtain details about "
+                 "volumes for a specific controller.\tstoragecontroller --controller=3 "
+                 "--logicaldrives",
             default=None,
         )
         default_parser.add_argument(
             "--pdrive",
             dest="pdrive",
             help="Use this flag to select the corresponding physical disk.\n\tExamples:\n\t "
-            "1. To obtain details about a specific physical drive for a specific controller."
-            "\tstoragecontroller --controller=3 --pdrive=1I:1:1",
+                 "1. To obtain details about a specific physical drive for a specific controller."
+                 "\tstoragecontroller --controller=3 --pdrive=1I:1:1",
             default=None,
         )
         default_parser.add_argument(
@@ -1725,8 +1811,8 @@ class StorageControllerCommand:
             "--volume",
             dest="ldrive",
             help="Use this flag to select the corresponding logical disk.\n\tExamples:\n\t "
-            "1. To obtain details about a specific physical drive for a specific controller."
-            "\tstoragecontroller --controller=3 --ldrive=1",
+                 "1. To obtain details about a specific physical drive for a specific controller."
+                 "\tstoragecontroller --controller=3 --ldrive=1",
             default=None,
         )
         default_parser.add_argument(
@@ -1750,10 +1836,10 @@ class StorageControllerCommand:
             "--controller",
             dest="controller",
             help="Use this flag to select the corresponding controller using either the slot "
-            "number or index. \n\tExamples:\n\t1. To get more details on a specific "
-            "controller, select it by index.\tstoragecontroller state --controller=2"
-            "\n\t2. To get more details on a specific controller select "
-            "it by location.\tstoragecontroller state --controller='Slot 0'",
+                 "number or index. \n\tExamples:\n\t1. To get more details on a specific "
+                 "controller, select it by index.\tstoragecontroller state --controller=2"
+                 "\n\t2. To get more details on a specific controller select "
+                 "it by location.\tstoragecontroller state --controller='Slot 0'",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(state_parser)
@@ -1763,14 +1849,14 @@ class StorageControllerCommand:
             "save",
             help=json_save_help,
             description=json_save_help
-            + "\n\tExample: storagecontroller save -f <filename>",
+                        + "\n\tExample: storagecontroller save -f <filename>",
             formatter_class=RawDescriptionHelpFormatter,
         )
         json_save_parser.add_argument(
             "-f",
             dest="sa_conf_filename",
             help="Specify a filename for saving the storagecontroller configuration. (Default: "
-            "'storagecontroller_config.json')",
+                 "'storagecontroller_config.json')",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(json_save_parser)
@@ -1783,14 +1869,14 @@ class StorageControllerCommand:
             "load",
             help=json_load_help,
             description=json_load_help
-            + "\n\tExample: storagecontroller load -f <filename>",
+                        + "\n\tExample: storagecontroller load -f <filename>",
             formatter_class=RawDescriptionHelpFormatter,
         )
         json_load_parser.add_argument(
             "-f",
             dest="sa_conf_filename",
             help="Specify a filename for loading a storagecontroller configuration. (Default: "
-            "'storagecontroller_config.json')",
+                 "'storagecontroller_config.json')",
             default=None,
         )
         self.cmdbase.add_login_arguments_group(json_load_parser)

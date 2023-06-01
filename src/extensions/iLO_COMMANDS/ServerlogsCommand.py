@@ -111,7 +111,7 @@ class ServerlogsCommand:
             "format (1 server per new line)\n\t--url <iLO url/hostname> "
             "-u admin -p password\n\t--url <iLO url/hostname> -u admin -"
             "p password\n\t--url <iLO url/hostname> -u admin -p password"
-            "\n\n\tInsert customized string "
+            "\n\n\tInsert customised string "
             "if required for AHS\n\texample: serverlogs --selectlog="
             'AHS --customiseAHS "from=2014-03-01&&to=2014'
             '-03-30"\n\n\t(AHS LOGS ONLY FEATURE)\n\tInsert the location/'
@@ -200,7 +200,7 @@ class ServerlogsCommand:
                 to_date = date_check.split("to")[-1].split("=")[-1]
                 if to_date < from_date or from_date > current_date:
                     raise InvalidCommandLineError(
-                        "Please provide valid date to custmiseAHS"
+                        "Please provide valid date to customiseAHS"
                     )
             self.downloadahslocally(options=options)
             return
@@ -1070,7 +1070,7 @@ class ServerlogsCommand:
                 )
             except Exception as excp:
                 LOGGER.warning(excp)
-                raise InvalidCommandLineError("Cannot parse customized AHSinput.")
+                raise InvalidCommandLineError("Cannot parse customised AHSinput.")
 
         atleastonefile = False
         for files in list(filenames):
@@ -1403,7 +1403,16 @@ class ServerlogsCommand:
         timenow = (str(datetime.datetime.now()).split()[0]).split("-")
         todaysdate = "".join(timenow)
 
+        resp = self.rdmc.app.get_handler(
+                "/redfish/v1",
+                sessionid=options.sessionid,
+                silent=True,
+                service=True,
+                uncache=True,
+            )
         ahsdefaultfilename = "HPE_" + snum + "_" + todaysdate + ".ahs"
+        if "Vendor" in resp.dict:
+            ahsdefaultfilename = ahsdefaultfilename.replace("HPE", resp.dict["Vendor"])
 
         if options.directorypath:
             if not os.path.exists(options.directorypath):
@@ -1480,7 +1489,7 @@ class ServerlogsCommand:
         customparser.add_argument(
             "--customiseAHS",
             dest="customiseAHS",
-            help="""Allows customized AHS log data to be downloaded.""",
+            help="""Allows customised AHS log data to be downloaded.""",
             default=None,
         )
         customparser.add_argument(

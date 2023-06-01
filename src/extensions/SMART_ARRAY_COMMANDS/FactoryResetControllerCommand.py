@@ -82,6 +82,8 @@ class FactoryResetControllerCommand:
 
         ilo_ver = self.rdmc.app.getiloversion()
         if ilo_ver >= 6.110:
+            if not options.storageid:
+                raise InvalidCommandLineError("--storageid option is mandatory for iLO6 along with --controller option.\n")
             if (
                 (options.controller is not None)
                 and (options.storageid is not None)
@@ -97,7 +99,7 @@ class FactoryResetControllerCommand:
                     path = st_controller["Members"]
                     for mem in path:
                         for val in mem.values():
-                            if "DE" in val:
+                            if "DE" in val and options.storageid in val:
                                 getval = self.rdmc.app.get_handler(
                                     val, silent=True, service=True
                                 ).dict

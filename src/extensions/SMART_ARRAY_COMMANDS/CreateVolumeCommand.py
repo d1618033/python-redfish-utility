@@ -29,7 +29,7 @@ try:
         InvalidCommandLineErrorOPTS,
         Encryption,
         InvalidSmartArrayConfigurationError, IloLicenseError,
-)
+    )
 except ImportError:
     from ilorest.rdmc_helper import (
         ReturnCodes,
@@ -48,11 +48,12 @@ class CreateVolumeCommand:
             "name": "createvolume",
             "usage": None,
             "description": "Creates volumes on compatible HPE SSA RAID controllers\nTo view "
-            "help on specific sub-commands run: createvolume <sub-command> -h\n\n"
-            "NOTE: Refer http://www.hpe.com/info/scmo for additional information on creating Volumes on Gen11 servers.\n\t"
-            "Also, when you select multiple physicaldrives you can select by both\n\t"
-            "physical drive name and by the location at the same time.\n\t"
-            "You can also select controllers by slot number as well as index.",
+                           "help on specific sub-commands run: createvolume <sub-command> -h\n\n"
+                           "NOTE: Refer http://www.hpe.com/info/scmo for additional information on creating Volumes on Gen11 servers.\n\t"
+                           "Also, when you select multiple physicaldrives you can select by both\n\t"
+                           "physical drive name and by the location at the same time.\n\t"
+                           "You can also select controllers by slot number as well as index.\n\t"
+                           "For iLO6, storage id need to be specified using --storageid=DE00E000 along with --controller=1",
             "summary": "Creates a new volume on the selected controller.",
             "aliases": ['createlogicaldrive'],
             "auxcommands": ["SelectCommand", "StorageControllerCommand"],
@@ -87,124 +88,138 @@ class CreateVolumeCommand:
 
         self.createvolumevalidation(options)
         ilo_ver = self.rdmc.app.getiloversion()
-        if options.controller is not None:
-            if options.controller:
-                if ilo_ver >= 6.110:
+
+        if ilo_ver >= 6.110:
+            if options.command == "customdrive" or options.command == "quickdrive":
+                raise InvalidCommandLineError("customdrive or quickdrive subcommand is not supported on iLO6(Gen11).\n")
+            if not options.storageid:
+                raise InvalidCommandLineError(
+                    "--storageid option is mandatory for iLO6 along with --controller option.\n")
+        else:
+            if options.command == "volume":
+                raise InvalidCommandLineError("volume subcommand is not supported on iLO5(Gen10).\n")
+        if options.controller:
+            if ilo_ver >= 6.110:
+                if options.storageid:
                     controllers = self.auxcommands["storagecontroller"].storagecontroller(
                         options, single_use=True
                     )
                 else:
-                    controllers = self.auxcommands["storagecontroller"].controllers(
-                        options, single_use=True
+                    print("Storageid not matching")
+            else:
+                controllers = self.auxcommands["storagecontroller"].controllers(
+                    options, single_use=True
                 )
-                try:
-                    controller = controllers[next(iter(controllers))]
-                    (create_flag, newdrive) = self.createvolume(options, controller)
-                    if create_flag:
-                        if ilo_ver >= 6.110:
-                            temp_odata = controller["@odata.id"]
-                            volume_path= temp_odata.split("Controllers")[0]+"Volumes"
-                            self.rdmc.ui.printer(
-                                "CreateVolume path and payload: %s, %s\n"
-                                % (volume_path, newdrive)
-                            )
-                            result= self.rdmc.app.post_handler(
-                                volume_path,
-                                newdrive)
+            try:
+                controller = controllers[next(iter(controllers))]
+                (create_flag, newdrive) = self.createvolume(options, controller)
+                if create_flag:
+                    if ilo_ver >= 6.110:
+                        temp_odata = controller["@odata.id"]
+                        volume_path = temp_odata.split("Controllers")[0] + "Volumes"
+                        self.rdmc.ui.printer(
+                            "CreateVolume path and payload: %s, %s\n"
+                            % (volume_path, newdrive)
+                        )
+                        result = self.rdmc.app.post_handler(
+                            volume_path,
+                            newdrive)
 
-                            self.rdmc.ui.printer(
-                                "Volume created successfully  \n"
-                            )
-                            if options.sparedrives:
-                                controller["physical_drives"] = self.auxcommands["storagecontroller"].storagephysical_drives(
-                                options, controller, single_use=True)
-                                array = options.disks.split(',')
-                                set_spare= False
-                                newdrive1 = {"Links": {"DedicatedSpareDrives": [{}]}}
-                                volume_path1= volume_path+result.session_location.split("Volumes")[1]
+                        self.rdmc.ui.printer(
+                            "Volume created successfully  \n"
+                        )
+                        if options.sparedrives:
+                            controller["physical_drives"] = self.auxcommands[
+                                "storagecontroller"].storagephysical_drives(
+                                options, controller, options.storageid, single_use=True)
+                            array = options.disks.split(',')
+                            set_spare = False
+                            newdrive1 = {"Links": {"DedicatedSpareDrives": [{}]}}
+                            volume_path1 = volume_path + result.session_location.split("Volumes")[1]
 
-                                sparedrives = options.sparedrives[0].split(',')
+                            sparedrives = options.sparedrives[0].split(',')
 
-                                if len(controller["physical_drives"]) > 0:
-                                    for p_id in controller["physical_drives"]:
-                                        p_loc = self.convertloc(
-                                            controller["physical_drives"][str(p_id)]["PhysicalLocation"]
-                                            ["PartLocation"]["ServiceLabel"])
-                                        for sdrive in sparedrives:
-                                            if sdrive == p_loc and sdrive not in array:
-                                                newdrive1["Links"]["DedicatedSpareDrives"] = [{
+                            if len(controller["physical_drives"]) > 0:
+                                for p_id in controller["physical_drives"]:
+                                    p_loc = self.convertloc(
+                                        controller["physical_drives"][str(p_id)]["PhysicalLocation"]
+                                        ["PartLocation"]["ServiceLabel"])
+                                    for sdrive in sparedrives:
+                                        if sdrive == p_loc and sdrive not in array:
+                                            newdrive1["Links"]["DedicatedSpareDrives"] = [{
                                                 "@odata.id": controller["physical_drives"][str(p_id)]['@odata.id'],
-                                                }]
-                                                set_spare= True
-                                if not set_spare:
-                                    raise InvalidCommandLineError("Invalid spare drive given, check whether given spare drive is different from disks given or check whether spare drive belongs to same controller")
+                                            }]
+                                            set_spare = True
+                            if not set_spare:
+                                raise InvalidCommandLineError(
+                                    "Invalid spare drive given, check whether given spare drive is different from disks given or check whether spare drive belongs to same controller")
 
-                                self.rdmc.app.patch_handler(
-                                    volume_path1,
-                                    newdrive1)
-                                self.rdmc.ui.printer(
-                                    "Successfully added the %s sparedrive\n"
-                                    % (newdrive1)
-                                )
+                            self.rdmc.app.patch_handler(
+                                volume_path1,
+                                newdrive1)
+                            self.rdmc.ui.printer(
+                                "Successfully added the %s sparedrive\n"
+                                % (newdrive1)
+                            )
 
-                            return ReturnCodes.SUCCESS
+                        return ReturnCodes.SUCCESS
 
+                    else:
+                        # if controller.get("DataGuard"):
+                        #    controller["DataGuard"] = "Disabled"
+                        temp_odata = controller["@odata.id"]
+                        # temp_l = controller['LogicalDrives']
+                        # temp_p = controller['PhysicalDrives']
+                        # readonly_removed = self.rdmc.app.removereadonlyprops(controller)
+                        payload_dict = dict()
+                        payload_dict["DataGuard"] = "Disabled"
+                        # readonly_removed['LogicalDrives'] = controller['LogicalDrives']
+                        # readonly_removed['PhysicalDrives'] = temp_p
+                        if not "settings" in temp_odata:
+                            temp_odata = temp_odata + "settings/"
+                        settings_controller = self.rdmc.app.get_handler(
+                            temp_odata, service=False, silent=True
+                        )
+                        # Fix for multiple logical creation at single reboot
+                        if self.rdmc.app.typepath.defs.isgen9:
+                            payload_dict["logical_drives"] = dict()
+                            payload_dict["logical_drives"]["new"] = newdrive
                         else:
-                            # if controller.get("DataGuard"):
-                            #    controller["DataGuard"] = "Disabled"
-                            temp_odata = controller["@odata.id"]
-                            # temp_l = controller['LogicalDrives']
-                            # temp_p = controller['PhysicalDrives']
-                            # readonly_removed = self.rdmc.app.removereadonlyprops(controller)
-                            payload_dict = dict()
-                            payload_dict["DataGuard"] = "Disabled"
-                            # readonly_removed['LogicalDrives'] = controller['LogicalDrives']
-                            # readonly_removed['PhysicalDrives'] = temp_p
-                            if not "settings" in temp_odata:
-                                temp_odata = temp_odata + "settings/"
-                            settings_controller = self.rdmc.app.get_handler(
-                                temp_odata, service=False, silent=True
-                            )
-                            # Fix for multiple logical creation at single reboot
-                            if self.rdmc.app.typepath.defs.isgen9:
-                                payload_dict["logical_drives"] = dict()
-                                payload_dict["logical_drives"]["new"] = newdrive
-                            else:
-                                payload_dict["LogicalDrives"] = settings_controller.dict[
-                                    "LogicalDrives"
-                                ]
-                                payload_dict["LogicalDrives"].append(newdrive)
-                            self.rdmc.ui.printer(
-                                "CreateVolume path and payload: %s, %s\n"
-                                % (temp_odata, payload_dict)
-                            )
-                            self.rdmc.app.put_handler(
-                                temp_odata,
-                                payload_dict,
-                                headers={"If-Match": self.getetag(temp_odata)},
-                            )
-                            self.rdmc.app.download_path(
-                                [temp_odata], path_refresh=True, crawl=False
-                            )
-                            self.rdmc.ui.printer(
-                                "One or more properties were changed and will not take effect "
-                                "until system is reset \n"
-                            )
-                except IloLicenseError:
-                    self.rdmc.ui.error("License Error Occured while creating volume\n")
-                    return ReturnCodes.ILO_LICENSE_ERROR
-                except IdTokenError:
-                    self.rdmc.ui.error(
-                        "Insufficient Privilege to create volume\n"
-                    )
-                    return ReturnCodes.RIS_MISSING_ID_TOKEN
-                except IloResponseError:
-                    self.rdmc.ui.error(
-                        "iLO threw iLOResponseError\n"
-                    )
-                    return ReturnCodes.RIS_ILO_RESPONSE_ERROR
-                except Exception as excp:
-                        self.rdmc.ui.error(excp)
+                            payload_dict["LogicalDrives"] = settings_controller.dict[
+                                "LogicalDrives"
+                            ]
+                            payload_dict["LogicalDrives"].append(newdrive)
+                        self.rdmc.ui.printer(
+                            "CreateVolume path and payload: %s, %s\n"
+                            % (temp_odata, payload_dict)
+                        )
+                        self.rdmc.app.put_handler(
+                            temp_odata,
+                            payload_dict,
+                            headers={"If-Match": self.getetag(temp_odata)},
+                        )
+                        self.rdmc.app.download_path(
+                            [temp_odata], path_refresh=True, crawl=False
+                        )
+                        self.rdmc.ui.printer(
+                            "One or more properties were changed and will not take effect "
+                            "until system is reset \n"
+                        )
+            except IloLicenseError:
+                self.rdmc.ui.error("License Error Occured while creating volume\n")
+                return ReturnCodes.ILO_LICENSE_ERROR
+            except IdTokenError:
+                self.rdmc.ui.error(
+                    "Insufficient Privilege to create volume\n"
+                )
+                return ReturnCodes.RIS_MISSING_ID_TOKEN
+            except IloResponseError:
+                self.rdmc.ui.error(
+                    "iLO threw iLOResponseError\n"
+                )
+                return ReturnCodes.RIS_ILO_RESPONSE_ERROR
+            except Exception as excp:
+                self.rdmc.ui.error(excp)
 
         else:
             self.rdmc.ui.error("Provide the controller \n")
@@ -215,11 +230,13 @@ class CreateVolumeCommand:
 
     def convertloc(self, servicelabel):
         loc = servicelabel.split(":")
-        temp_str = str(loc[1].split("=")[1] + ':' + loc[2].split("=")[1] + ':' + loc[3].split("=")[1])
+        temp_str = str(
+            loc[0].split("=")[1] + ':' + loc[1].split("=")[1] + ':' + loc[2].split("=")[1] + ':' + loc[3].split("=")[1])
         return temp_str
 
     def createvolume(self, options, controller):
         """Create volume"""
+        global p_loc
         raidlvllist = [
             "Raid0",
             "Raid1",
@@ -240,15 +257,15 @@ class CreateVolumeCommand:
         paritylist = ["Default", "Rapid"]
         iOPerfModeEnabledlist = ["true", "false"]
         readCachePolicylist = ["Off", "ReadAhead"]
-        writeCachePolicylist = ["Off", "WriteThrough","ProtectedWriteBack","UnprotectedWriteBack"]
-        WriteHoleProtectionPolicyList = ["Yes","No"]
+        writeCachePolicylist = ["Off", "WriteThrough", "ProtectedWriteBack", "UnprotectedWriteBack"]
+        WriteHoleProtectionPolicyList = ["Yes", "No"]
 
         sparedrives = []
         changes = False
         ilo_ver = self.rdmc.app.getiloversion()
         if ilo_ver >= 6.110:
             controller["physical_drives"] = self.auxcommands["storagecontroller"].storagephysical_drives(
-                options, controller, single_use=True
+                options, controller, options.storageid, single_use=True
             )
         else:
             controller["physical_drives"] = self.auxcommands["storagecontroller"].physical_drives(
@@ -256,7 +273,7 @@ class CreateVolumeCommand:
             )
         if ilo_ver >= 6.110:
             controller["logical_drives"] = self.auxcommands["storagecontroller"].storagelogical_drives(
-                options, controller, single_use=True
+                options, controller, options.storageid, single_use=True
             )
         else:
             controller["logical_drives"] = self.auxcommands["storagecontroller"].logical_drives(
@@ -460,51 +477,56 @@ class CreateVolumeCommand:
                 newdrive["DataDrives"]["DataDriveMinimumSizeGiB"] = minimumsize
                 newdrive["CapacityGiB"] = minimumsize
         elif options.command == "volume":
-            idval= []
+            idval = []
             if len(controller["physical_drives"]) > 0:
                 array = options.disks.split(',')
+                DA = ["DA000000", "DA000001"]
                 for p_id in controller["physical_drives"]:
-                    p_loc = self.convertloc(
-                    controller["physical_drives"][str(p_id)]["PhysicalLocation"]
-                    ["PartLocation"]["ServiceLabel"])
+                    if p_id not in DA:
+                        p_loc = self.convertloc(
+                            controller["physical_drives"][str(p_id)]["PhysicalLocation"]
+                            ["PartLocation"]["ServiceLabel"])
 
-                    for ar in array:
-                        if ar == p_loc:
-                            idval.append(controller["physical_drives"][str(p_id)]["@odata.id"])
-            newdrive["Links"]["Drives"]=[]
+                        for ar in array:
+                            if ar == p_loc:
+                                idval.append(controller["physical_drives"][str(p_id)]["@odata.id"])
+            newdrive["Links"]["Drives"] = []
             if idval is not None:
                 for id in idval:
                     newdrive["Links"]["Drives"].append({
                         "@odata.id": id,
                     })
             else:
-                raise InvalidCommandLineError("Disk location given is invalid , Kindly recheck and provide valid location")
-
+                raise InvalidCommandLineError(
+                    "Disk location given is invalid , Kindly recheck and provide valid location")
 
             if options.capacitybytes is not None:
                 if options.capacitybytes:
                     try:
-                            capacitybytes = int(options.capacitybytes[0])
+                        capacitybytes = int(options.capacitybytes[0])
                     except ValueError:
-                            raise InvalidCommandLineError("Capacity is not an integer.")
+                        raise InvalidCommandLineError("Capacity is not an integer.")
 
                     newdrive["CapacityBytes"] = capacitybytes
 
             if options.iOPerfModeEnabled is not None:
                 for item in iOPerfModeEnabledlist:
-                    if options.iOPerfModeEnabled[0].lower() == item.lower() and options.iOPerfModeEnabled[0].lower() == "false":
+                    if options.iOPerfModeEnabled[0].lower() == item.lower() and options.iOPerfModeEnabled[
+                        0].lower() == "false":
                         newdrive["IOPerfModeEnabled"] = eval(options.iOPerfModeEnabled[0])
                         itemadded = True
                         break
-                    elif options.iOPerfModeEnabled[0].lower() == item.lower() and options.iOPerfModeEnabled[0].lower() == "true":
-                       if "SSD" in controller["SupportedDeviceProtocols"] :
+                    elif options.iOPerfModeEnabled[0].lower() == item.lower() and options.iOPerfModeEnabled[
+                        0].lower() == "true":
+                        if "SSD" in controller["SupportedDeviceProtocols"]:
                             newdrive["IOPerfModeEnabled"] = eval(options.iOPerfModeEnabled[0])
                             itemadded = True
                             break
-                       else:
-                            raise InvalidCommandLineError(" IOPerfModeEnabled can be true only when supported protocol is SSD")
+                        else:
+                            raise InvalidCommandLineError(
+                                " IOPerfModeEnabled can be true only when supported protocol is SSD")
                 if not itemadded:
-                        raise InvalidCommandLineError("Invalid IOPerfModeEnabled, Value should be either False or True")
+                    raise InvalidCommandLineError("Invalid IOPerfModeEnabled, Value should be either False or True")
                 else:
                     itemadded = False
 
@@ -526,26 +548,28 @@ class CreateVolumeCommand:
                         itemadded = True
                         break
                 if not itemadded:
-                    raise InvalidCommandLineError("Invalid WriteCachePolicy, Values should be 'Off', 'WriteThrough','ProtectedWriteBack','UnprotectedWriteBack'")
+                    raise InvalidCommandLineError(
+                        "Invalid WriteCachePolicy, Values should be 'Off', 'WriteThrough','ProtectedWriteBack','UnprotectedWriteBack'")
                 else:
                     itemadded = False
 
             if "VROC" in controller["Model"]:
                 if options.WriteHoleProtectionPolicy is not None:
-                    for item in WriteHoleProtectionPolicyList :
-                        if options.WriteHoleProtectionPolicy[0].lower() == item.lower() and options.WriteHoleProtectionPolicy[0].lower() == "yes":
+                    for item in WriteHoleProtectionPolicyList:
+                        if options.WriteHoleProtectionPolicy[0].lower() == item.lower() and \
+                                options.WriteHoleProtectionPolicy[0].lower() == "yes":
                             newdrive["WriteHoleProtectionPolicy"] = "Journaling"
-                            newdrive["Links"]["JournalingMedia"]=idval
+                            newdrive["Links"]["JournalingMedia"] = idval
                             itemadded = True
                             break
                     if not itemadded:
-                        raise InvalidCommandLineError("Invalid WriteHoleProtectionPolicy, Values can be either Yes or No")
+                        raise InvalidCommandLineError(
+                            "Invalid WriteHoleProtectionPolicy, Values can be either Yes or No")
                     else:
                         itemadded = False
 
             if options.DisplayName is not None:
                 newdrive["DisplayName"] = options.DisplayName[0]
-
 
         if newdrive:
             if options.command == "quickdrive":
@@ -570,16 +594,16 @@ class CreateVolumeCommand:
 
                     if options.command == "quickdrive":
                         if (
-                            controller["physical_drives"][drive]["InterfaceType"]
-                            == newdrive["DataDrives"]["DataDriveInterfaceType"]
+                                controller["physical_drives"][drive]["InterfaceType"]
+                                == newdrive["DataDrives"]["DataDriveInterfaceType"]
                         ):
                             drivechecks = (True, True, False, False)
                         else:
                             drives_avail -= 1
                             continue
                         if (
-                            controller["physical_drives"][drive]["MediaType"]
-                            == newdrive["DataDrives"]["DataDriveMediaType"]
+                                controller["physical_drives"][drive]["MediaType"]
+                                == newdrive["DataDrives"]["DataDriveMediaType"]
                         ):
                             drivechecks = (True, True, True, False)
                         else:
@@ -598,18 +622,18 @@ class CreateVolumeCommand:
                                     "DataDrives"
                                 ]:
                                     if (
-                                        drive
-                                        == _logical_drive["LogicalDrives"]["DataDrives"][
-                                            _data_drive
-                                        ]
+                                            drive
+                                            == _logical_drive["LogicalDrives"]["DataDrives"][
+                                        _data_drive
+                                    ]
                                     ):
                                         in_use = True
                             elif _logical_drive.get("Links"):
                                 if not ilo_ver >= 6.110:
                                     for _data_drive in _logical_drive["Links"]["DataDrives"]:
                                         if (
-                                            drive
-                                            == _logical_drive["Links"]["DataDrives"][_data_drive]
+                                                drive
+                                                == _logical_drive["Links"]["DataDrives"][_data_drive]
                                         ):
                                             in_use = True
                                 else:
@@ -622,8 +646,8 @@ class CreateVolumeCommand:
                             elif _logical_drive.get("links"):
                                 for _data_drive in _logical_drive["links"]["DataDrives"]:
                                     if (
-                                        drive
-                                        == _logical_drive["links"]["DataDrives"][_data_drive]
+                                            drive
+                                            == _logical_drive["links"]["DataDrives"][_data_drive]
                                     ):
                                         in_use = True
                     if in_use:
@@ -639,7 +663,7 @@ class CreateVolumeCommand:
                         else:
                             if not ilo_ver >= 6.110:
                                 newdrive["links"]["DataDrives"][drive] = controller[
-                                "physical_drives"
+                                    "physical_drives"
                                 ][drive]
                         accepted_drives += 1
                         changes = True
@@ -727,9 +751,10 @@ class CreateVolumeCommand:
             "--controller",
             dest="controller",
             help="Use this flag to select the corresponding controller "
-            "using either the slot number or index.\nexample: --controller=Slot 0 OR "
-            "--controller=1",
+                 "using either the slot number or index.\nexample: --controller=Slot 0 OR "
+                 "--controller=1",
             default=None,
+            required=True,
         )
 
     def definearguments(self, customparser):
@@ -742,7 +767,7 @@ class CreateVolumeCommand:
             return
 
         self.cmdbase.add_login_arguments_group(customparser)
-        self.options_argument_group(customparser)
+        # self.options_argument_group(customparser)
 
         subcommand_parser = customparser.add_subparsers(dest="command")
         qd_help = (
@@ -754,8 +779,8 @@ class CreateVolumeCommand:
             "quickdrive",
             help=qd_help,
             description=qd_help + "\n\texample: createvolume quickdrive "
-            "<raid-level> <num-drives> <media-type> <interface-type> "
-            "--locationtype=Internal  --minimumsize=0 --controller=1",
+                                  "<raid-level> <num-drives> <media-type> <interface-type> "
+                                  "--locationtype=Internal  --minimumsize=0 --controller=1",
             formatter_class=RawDescriptionHelpFormatter,
         )
         qd_parser.add_argument(
@@ -788,14 +813,23 @@ class CreateVolumeCommand:
             "--minimumsize",
             dest="minimumsize",
             help="""Optionally include to set the minimum size of the drive """
-            """in GiB. (usable in quick creation only, use -1 for max size)""",
+                 """in GiB. (usable in quick creation only, use -1 for max size)""",
             default=None,
         )
+        qd_parser.add_argument(
+            "--controller",
+            dest="controller",
+            help="Use this flag to select the corresponding controller "
+                 "using either the slot number or index.\nexample: --controller=Slot 0 OR "
+                 "--controller=1",
+            default=None,
+            required=True,
+        )
         self.cmdbase.add_login_arguments_group(qd_parser)
-        self.options_argument_group(qd_parser)
+        # self.options_argument_group(qd_parser)
 
         cd_help = (
-            "Create a customized volume using all available properties (as optional "
+            "Create a customised volume using all available properties (as optional "
             "arguments) for creation. This option is only for iLO5 or Gen10"
         )
         # customdrive sub-parser
@@ -803,17 +837,17 @@ class CreateVolumeCommand:
             "customdrive",
             help=cd_help,
             description=cd_help + "\n\texample: createvolume customdrive "
-            "<raid-level> <physicaldrivelocations> --controller=1 "
-            "--name=drivename --spare-drives=1I:1:1,1I:1:3 --spare-type=Dedicated --capacitygib=10 "
-            "--accelerator-type=None\n\n\tOPTIONS:\n\traid-level:\t\t"
-            "Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, "
-            "Raid6, Raid60\n\tphysicaldrivelocation(s):\tLocation, Drive-name\n\t"
-            "media-type:\t\tSSD,HDD\n\tinterface-type:"
-            "\t\tSAS, SATA, NVMe\n\tdrive-location:\t\tInternal, External\n\t"
-            "--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t"
-            "ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid"
-            "\n\t--capacitygib:\t\t-1 (for Max Size)\n\t--capacityblocks:\t"
-            "-1 (for Max Size)\n\n\t",
+                                  "<raid-level> <physicaldrivelocations> --controller=1 "
+                                  "--name=drivename --spare-drives=1I:1:1,1I:1:3 --spare-type=Dedicated --capacitygib=10 "
+                                  "--accelerator-type=None\n\n\tOPTIONS:\n\traid-level:\t\t"
+                                  "Raid0, Raid1, Raid1ADM, Raid10, Raid10ADM, Raid5, Raid50, "
+                                  "Raid6, Raid60\n\tphysicaldrivelocation(s):\tLocation, Drive-name\n\t"
+                                  "media-type:\t\tSSD,HDD\n\tinterface-type:"
+                                  "\t\tSAS, SATA, NVMe\n\tdrive-location:\t\tInternal, External\n\t"
+                                  "--spare-type:\t\tDedicated, Roaming\n\t--accelerator-type:\t"
+                                  "ControllerCache, IOBypass, None\n\t--paritytype:\t\tDefault, Rapid"
+                                  "\n\t--capacitygib:\t\t-1 (for Max Size)\n\t--capacityblocks:\t"
+                                  "-1 (for Max Size)\n\n\t",
             formatter_class=RawDescriptionHelpFormatter,
         )
         cd_parser.add_argument(
@@ -831,22 +865,22 @@ class CreateVolumeCommand:
             "--name",
             dest="drivename",
             help="""Optionally include to set the drive name (usable in """
-            """custom creation only).""",
+                 """custom creation only).""",
             default=None,
         )
         cd_parser.add_argument(
             "--spare-drives",
             dest="sparedrives",
             help="""Optionally include to set the spare drives by the """
-            """physical drive's location. (usable in custom creation only)""",
+                 """physical drive's location. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--capacitygib",
             dest="capacitygib",
             help="""Optionally include to set the capacity of the drive in """
-            """GiB. (usable in custom creation only, use -1 for max """
-            """size)""",
+                 """GiB. (usable in custom creation only, use -1 for max """
+                 """size)""",
             default=None,
         )
         cd_parser.add_argument(
@@ -859,67 +893,76 @@ class CreateVolumeCommand:
             "--spare-type",
             dest="sparetype",
             help="""Optionally include to choose the spare drive type. """
-            """(usable in custom creation only)""",
+                 """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--minimumsize",
             dest="minimumsize",
             help="""Optionally include to set the minimum size of the drive """
-            """in GiB. (usable in quick creation only, use -1 for max size)""",
+                 """in GiB. (usable in quick creation only, use -1 for max size)""",
             default=None,
         )
         cd_parser.add_argument(
             "--legacy-boot",
             dest="legacyboot",
             help="""Optionally include to choose the legacy boot priority. """
-            """(usable in custom creation only)""",
+                 """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--capacityblocks",
             dest="capacityblocks",
             help="""Optionally include to choose the capacity in blocks. """
-            """(use -1 for max size, usable in custom creation only)""",
+                 """(use -1 for max size, usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--paritygroupcount",
             dest="paritygroup",
             help="""Optionally include to include the number of parity """
-            """groups to use. (only valid for certain RAID levels)""",
+                 """groups to use. (only valid for certain RAID levels)""",
             default=None,
         )
         cd_parser.add_argument(
             "--paritytype",
             dest="paritytype",
             help="""Optionally include to choose the parity initialization"""
-            """ type. (usable in custom creation only)""",
+                 """ type. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--block-size-bytes",
             dest="blocksize",
             help="""Optionally include to choose the block size of the disk"""
-            """ drive. (usable in custom creation only)""",
+                 """ drive. (usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--strip-size-bytes",
             dest="stripsize",
             help="""Optionally include to choose the strip size in bytes. """
-            """(usable in custom creation only)""",
+                 """(usable in custom creation only)""",
             default=None,
         )
         cd_parser.add_argument(
             "--stripe-size-bytes",
             dest="stripesize",
             help="""Optionally include to choose the stripe size in bytes. """
-            """(usable in custom creation only)""",
+                 """(usable in custom creation only)""",
             default=None,
         )
+        cd_parser.add_argument(
+            "--controller",
+            dest="controller",
+            help="Use this flag to select the corresponding controller "
+                 "using either the slot number or index.\nexample: --controller=Slot 0 OR "
+                 "--controller=1",
+            default=None,
+            required=True,
+        )
         self.cmdbase.add_login_arguments_group(cd_parser)
-        self.options_argument_group(cd_parser)
+        # self.options_argument_group(cd_parser)
         v_help = (
             "Create a volume using all available properties (as optional "
             "arguments) for creation on gen 11 or higher "
@@ -929,9 +972,10 @@ class CreateVolumeCommand:
             "volume",
             help=v_help,
             description=v_help + "\n\texample: createvolume volume "
-            "<raid-level> <physicaldrivelocations> <displayname> <iOPerfModeEnabled> <readCachePolicy> <writeCachePolicy> <WriteHoleProtectionPolicy> --controller=0 "
-            "<spare-drives> <capacitygib> "
-            "\n\n\t",
+                                 "<raid-level> <physicaldrivelocations> <displayname> <iOPerfModeEnabled> <readCachePolicy> "
+                                 "<writeCachePolicy> <WriteHoleProtectionPolicy> --storageid=DE009000 --controller=0 "
+                                 "<spare-drives> <capacitygib> "
+                                 "\n\n\t",
             formatter_class=RawDescriptionHelpFormatter,
         )
         v_parser.add_argument(
@@ -943,6 +987,14 @@ class CreateVolumeCommand:
             "disks",
             help="For custom drive, specify a comma separated physical disk locations.",
             metavar="Drive_Indices",
+        )
+        v_parser.add_argument(
+            "--storageid",
+            dest="storageid",
+            help="Use this flag to select the corresponding storageid "
+                 "using either the slot number or index.\nexample: --storageid=DE123234",
+            default=None,
+            required=True,
         )
         v_parser.add_argument(
             "--DisplayName",
@@ -986,7 +1038,7 @@ class CreateVolumeCommand:
             "--sparedrives",
             dest="sparedrives",
             help="""Optionally include to set the spare drives by the """
-            """physical drive's location. (usable in custom creation only)""",
+                 """physical drive's location. (usable in custom creation only)""",
             action="append",
             default=None,
         )
@@ -994,11 +1046,20 @@ class CreateVolumeCommand:
             "--capacitybytes",
             dest="capacitybytes",
             help="""Optionally include to set the capacity of the drive in """
-            """bytes. (usable in custom creation only, use -1 for max """
-            """size)""",
+                 """bytes. (usable in custom creation only, use -1 for max """
+                 """size)""",
             action="append",
             default=None,
         )
+        v_parser.add_argument(
+            "--controller",
+            dest="controller",
+            help="Use this flag to select the corresponding controller "
+                 "using either the slot number or index.\nexample: --controller=Slot 0 OR "
+                 "--controller=1",
+            default=None,
+            required=True,
+        )
 
         self.cmdbase.add_login_arguments_group(v_parser)
-        self.options_argument_group(v_parser)
+        # self.options_argument_group(v_parser)

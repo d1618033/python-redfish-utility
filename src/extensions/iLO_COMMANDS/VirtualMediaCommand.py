@@ -35,7 +35,7 @@ except ImportError:
         UI,
         IloLicenseError,
     )
-
+from redfish.ris import rmc_helper
 
 class VirtualMediaCommand:
     """ Changes the iscsi configuration for the server that is currently """ """ logged in """
@@ -230,8 +230,14 @@ class VirtualMediaCommand:
         if ilover <= 4.230:
             self.rdmc.app.patch_handler(path, body)
         else:
-            self.rdmc.app.post_handler(path, body)
-
+            # res = self.rdmc.app.post_handler(path, body)
+            try:
+                results = self.rdmc.app.post_handler(path, body)
+                if results.status == 200:
+                    return ReturnCodes.SUCCESS
+            except rmc_helper.IloLicenseError:
+                raise IloLicenseError("Error:License Key Required\n")
+                # return ReturnCodes.ILO_LICENSE_ERROR
         if options.bootnextreset:
             self.vmbootnextreset(args, paths)
 

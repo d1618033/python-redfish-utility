@@ -1,6 +1,6 @@
-## Smart Array Commands
+## StorageController Commands (previously smartarray command)
 
-The Smart Array commands are designed for use with HPE Gen10 servers.
+The Storage Controller commands are designed for use with HPE Gen10 and later servers.
 
 <aside class="notice">
 <ul>
@@ -26,7 +26,6 @@ clearcontrollerconfig *[Optional Parameters]*
 <p class="fake_header">Description</p>
 Clears smart array controller configuration.
 
-
 <p class="fake_header">Parameters</p>
 
 - **-h, --help**
@@ -36,10 +35,6 @@ Including the help flag will display help for the command.
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
-
-- **--all**
-
-Use this flag to sanitize all physical drives on a controller.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -68,9 +63,9 @@ None
 <p class="fake_header">Output</p>
 None
 
-### Createlogicaldrive Command
+### CreateVolume Command (previously Createlogicaldrive Command)
 
-> Createlogicaldrive example commands:
+> Createvolume example commands:
 
 > To create a quick logical drive run the command with the following arguments: The type of creation as quickdrive, the raid level, the number of drives to use, the type of drive to use, the drive interface type, and the drive location. Also include the `--controller` option selecting the controller the drive will be created on. See the options list for possible values of these and more.
 
@@ -87,7 +82,7 @@ One or more properties were changed an will not take effect until system is rese
 iLOrest > login
 Discovering data...Done
 
-ilorest > <span style="color: #01a982; ">createlogicaldrive customdrive Raid5 1E:1:2 --controller=1 --name=ANewLogicalDrive --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</span>
+ilorest > <span style="color: #01a982; ">createlogicaldrive customdrive Raid5 1E:1:2 --controller=1 --name=ANewVolume --spare-drives=2 --capacityGiB=100 --legacy-boot=Primary --accelerator-type=ControllerCache --sparetye=Dedicated</span>
 
 One or more properties were changed an will not take effect until system is reset.
 </pre>
@@ -95,20 +90,21 @@ One or more properties were changed an will not take effect until system is rese
 > To create a volume run the command with the following arguments: The type of creation as volume, the raid level, the drive location. Also include the --controller option selecting the controller the drive will be created on. See the options list for possible values of these and more.
 
 <pre>
-ilorest > <span style="color: #01a982; ">createlogicaldrive volume RAID0 1D:0:0 --DisplayName Name1 --iOPerfModeEnabled False --ReadCachePolicy ReadAhead --WriteCachePolicy ProtectedWriteBack --WriteHoleProtectionPolicy Yes --sparedrives 1E:0:0 --capacitygib 1000 --controller=0</span>
+ilorest > <span style="color: #01a982; ">createlogicaldrive volume RAID0 1D:0:0 --DisplayName Name1 --iOPerfModeEnabled False --ReadCachePolicy ReadAhead --WriteCachePolicy ProtectedWriteBack --WriteHoleProtectionPolicy Yes --sparedrives 1E:0:0 --capacitygib 1000 --controller=0 --storageid=DE00900</span>
 Operation completed successfully
 </pre>
 
 <aside class="notice">
-The createlogicaldrive command requires a reboot before creating the logical drives. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
+For iLO6 onwards, there is no need to reboot after creating a volume.
+But for iLO5, it requires a reboot after creating the volumes. If the drives are not present after a full reboot, run the results command to check for errors in the configuration.
 </aside>
 
 <p class="fake_header">Syntax</p>
 
-createlogicaldrive *[SUBCOMMAND]* *[Optional Parameters]*
+createvolume *[SUBCOMMAND]* *[Optional Parameters]*
 
 <p class="fake_header">Description</p>
-Creates a new logical drive on the selected controller.
+Creates a new volume on the selected controller.
 
 <p class="fake_header">SUBCOMMAND</p>
 
@@ -183,6 +179,10 @@ Either Default or Rapid
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--storageid=STORAGEID**
+
+Use this flag to select the corresponding Storage Id. This is applicable for iLO 6 only.
 
 - **-n DRIVENAME, --name=DRIVENAME**
 
@@ -259,39 +259,41 @@ None
 <p class="fake_header">Output</p>
 None
 
-### Deletelogicaldrive Command
+### Deletevolume Command (previously Deletelogicaldrive Command)
 
-> Deletelogicaldrive example commands:
+> Deletevolume example commands:
 
-> To delete multiple logical drives by drive location include the drive location of the drive you wish to delete. Also include the `--controller` option specifying the controller to use. You can specify multiple drives as well as a comma separated list.
+> To delete multiple volumes by drive location include the drive location of the drive you wish to delete. Also include the `--controller` option specifying the controller to use. You can specify multiple drives as well as a comma separated list.
+
+> In case of iLO 6, --storageid tag is mandatory.
 
 <aside class="notice">
-A Volume Unique Identifier must be available to delete a logical drive. Pending drives may not be deleted.
+A Volume Unique Identifier must be available to delete a volume. Pending drives may not be deleted.
 </aside>
 
 <pre>
-ilorest > <span style="color: #01a982; ">deletelogicaldrive --controller=1 1</span>
+ilorest > <span style="color: #01a982; ">deletevolume --controller=1 1</span>
 Are you sure you would like to continue deleting drive 004D56ABPEYHC0ARH951TK A39C? (y/n)
-Setting logical drive 004D56ABPEYHC0ARH951TK A39C for deletion
+Setting volume 004D56ABPEYHC0ARH951TK A39C for deletion
 One or more properties were changed and will not take effect until system is reset.
 </pre>
 
 
-> To delete all logical drives on a controller include the`--controller` option specifying the controller to perform the operation on and the `--all` option.
+> To delete all volumes on a controller include the`--controller` option specifying the controller to perform the operation on and the `--all` option.
 
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > deletelogicaldrive --controller=1 <span style="color: #01a982; ">--all</span>
+ilorest > deletevolume --controller=1 <span style="color: #01a982; ">--all</span>
 [200] The operation completed successfully.
 </pre>
 
 <p class="fake_header">Syntax</p>
 
-deletelogicaldrive *[Optional Parameters]*
+deletevolume *[Optional Parameters]*
 
 <p class="fake_header">Description</p>
-Deletes logical drives from the selected controller.
+Deletes volumes from the selected controller.
 
 <p class="fake_header">Parameters</p>
 
@@ -303,13 +305,17 @@ Including the help flag will display help for the command.
 
 Use this flag to select the corresponding controller.
 
+- **--storageid=STORAGEID**
+
+Use this flag to select the corresponding Storage Id. This is applicable for iLO 6 only.
+
 - **--all**
 
-Use this flag to delete all logical drives on a controller.
+Use this flag to delete all volumes on a controller.
 
 - **--force**
 
-Use this flag to override the "are you sure?" text when deleting a logical drive.
+Use this flag to override the "are you sure?" text when deleting a volume.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -342,6 +348,7 @@ None
 > Drivesanitize example commands:
 
 > To sanitize a physical drive pass its drive location along with the `--controller` option to specify which controller to perform the operation on.
+> In case of iLO 6, --storageid tag is mandatory.
 
 <pre>
 ilorest > drivesanitize --controller=0 1I:3:4 --mediatype="HDD"
@@ -350,7 +357,7 @@ One or more properties were changed and will not take effect until system is res
 Sanitization will occur on the next system reboot.
 </pre>
 
-> To sanitize multiple physical drives pass the location as a comma separated list along with the `--controller` option to dpecify which controller to perform the operation on.
+> To sanitize multiple physical drives pass the location as a comma separated list along with the `--controller` option to specify which controller to perform the operation on.
 
 <pre>
 ilorest > drivesanitize --controller=<span style="color: #01a982; ">0 1I:3:3,1I:3:2,1I:3:1 --mediatype="HDD"</span>
@@ -359,6 +366,20 @@ Setting physical drive 1I:3:2 for sanitization
 Setting physical drive 1I:3:1 for sanitization
 One or more properties were changed and will not take effect until system is reset.
 Sanitization will occur on the next system reboot.
+</pre>
+
+>Use the --status tag to check the status of Sanitization. This is only applicable for iLO 6.
+
+<pre>
+ilorest > drivesanitize 1I:1:1 --controller=1 --storageid=DE00900 --mediatype="HDD" --status </span>
+The drive is in Sanitizing state, 25 percent complete.
+</pre>
+
+>Once the process in 100% complete, use the --drivereset tag to reset the drive. This is only applicable for iLO 6
+
+<pre>
+ilorest > drivesanitize 1I:1:1 --controller=1 --storageid=DE00900 --mediatype="HDD" --drivereset </span>
+DriveReset path and payload: /redfish/v1/Systems/1/Storage/DE00A000/Drives/8/Actions/Drive.Reset, {"ResetType": "ForceOn"}
 </pre>
 
 <p class="fake_header">Syntax</p>
@@ -377,6 +398,18 @@ Including the help flag will display help for the command.
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--storageid=STORAGEID**
+
+Use this flag to select the corresponding Storage Id. This is applicable for iLO 6 only.
+
+- **--status**
+
+Use this flag to check sanitization status of a controller. This is applicable for iLO 6 only.
+
+- **--drivereset**
+
+Use this flag to reset physical drives on a controller. This is applicable for iLO 6 only.
 
 - **--mediatype=HDD/SSD**
 
@@ -421,6 +454,7 @@ None
 > Factoryresetcontroller example commands:
 
 > To factory reset a controller run this command and specify it's index with the `--controller` option.
+> In case of iLO 6, --storageid tag is mandatory.
 
 <pre>
 ilorest > <span style="color: #01a982; ">factoryresetcontroller --controller=1</span>
@@ -454,17 +488,17 @@ Restores a controller to factory defaults.
 
 Including the help flag will display help for the command.
 
--- **--reset_type**
+- **--reset_type**
 
 Either ResetAll or PreserveVolumes (Usable in iLO6/Gen11 servers)
-
--- **--storage_id**
-
-Storage id like DE000010 (Usable in iLO6/Gen11 servers)
 
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--storageid=STORAGEID**
+
+Use this flag to select the corresponding Storage Id. This is applicable for iLO 6 only.
 
 <p class="fake_header">Login Parameters</p>
 
@@ -493,23 +527,25 @@ None
 <p class="fake_header">Output</p>
 None
 
-### SmartArray Command
+### StorageController Command (previously Smartarray Command)
 
-> To list all available smart array controllers run the command without arguments.
+> In case of iLO 6, --storageid tag is mandatory.
+
+> To list all available storage controllers run the command without arguments.
 
 <pre>
-ilorest > <span style="color: #01a982; ">smartarray</span>
+ilorest > <span style="color: #01a982; ">storagecontroller</span>
 [1]&#58; Slot 0
 </pre>
 
-> To list all Existing Volume Unique Identifier's for logical drives for all controllers run the command including the `--logicaldrives` option. Drives which are pending will instead show "Pending Drive" for the Volume Unique Identifier (this will be available after the system has been rebooted and the drive has been successfully created.). The information is presented such that the controller slot number is noted first, followed by all associated logical drives to that controller.
+> To list all Existing Volume Unique Identifier's for logical drives for all controllers run the command including the `--volumes` option. Drives which are pending will instead show "Pending Drive" for the Volume Unique Identifier (this will be available after the system has been rebooted and the drive has been successfully created.). The information is presented such that the controller slot number is noted first, followed by all associated volumes to that controller.
 
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <span style="color: #01a982; ">smartarray --logicaldrives</span>
+ilorest > <span style="color: #01a982; ">storagecontroller --volumes</span>
 [1]&#58; Slot 0
-Logical Drives&#58;
+Volumes&#58;
 [1]&#58; 600508B1001C599DE361257397F69972
 [2]&#58; Pending drive
 [3]&#58; Pending drive
@@ -520,7 +556,7 @@ Logical Drives&#58;
 <pre>
 iLOrest > login
 Discovering data...Done
-ilorest > <span style="color: #01a982; ">smartarray --physicaldrives</span>
+ilorest > <span style="color: #01a982; ">storagecontroller --physicaldrives</span>
 [1]&#58; Slot 0
 Physical Drives&#58;
 [1]&#58; 1I:3:4
@@ -531,10 +567,10 @@ Physical Drives&#58;
 [6]&#58; 2I:3:6
 </pre>
 
-> To return a JSON formatted response including controller settings, as well as physical and logical drives information on the selected controller, include the `--controller` option followed by the number in brackets associated to the controller.
+> To return a response including controller settings, as well as physical drives and volumes information on the selected controller, include the `--controller` option followed by the number in brackets associated to the controller.
 
 <pre>
-ilorest > <span style="color: #01a982; ">smartarray --controller=0</span>
+ilorest > <span style="color: #01a982; ">storagecontroller --controller=0</span>
 Selected option(s): #StorageCollection.StorageCollection
 ------------------------------------------------
 Controller Info
@@ -556,7 +592,7 @@ ILOREST return code: 0
 > To return a JSON formatted response regarding the settings and attributes of the selected physical drive on the selected controller include the `--controller` option specifying the controller and the `--pdrive` option specifying the physical drive number in brackets.
 
 <pre>
-ilorest > <span style="color: #01a982; ">smartarray --controller=0 --pdrive=1I:3:4 -j</span>
+ilorest > <span style="color: #01a982; ">storagecontroller --controller=0 --pdrive=1I:3:4 -j</span>
 {
   "Controller": "Slot=3 - HPE Smart Array SR308i-p Gen11",
   "BlockSizeBytes": 512,
@@ -596,10 +632,10 @@ ilorest > <span style="color: #01a982; ">smartarray --controller=0 --pdrive=1I:3
 }
 </pre>
 
-> To return a JSON formatted response regarding the settings and attributes of the selected logical drive on the selected controller include the `--controller` option specifying the controller and the `--ldrive` option specifying the logical drive number in brackets.
+> To return a JSON formatted response regarding the settings and attributes of the selected volume on the selected controller include the `--controller` option specifying the controller and the `--ldrive` option specifying the volume number in brackets.
 
 <pre>
-iLOrest > <span style="color: #01a982; ">smartarray --controller=0 --ldrive=1 -j</span>
+iLOrest > <span style="color: #01a982; ">storagecontroller --controller=0 --ldrive=1 -j</span>
 {
   "Controller": "Slot=3 - HPE Smart Array SR308i-p Gen11",
   "Accelerator": "ControllerCache",
@@ -639,25 +675,33 @@ Discovers all storage controllers installed in the server and managed by the Sma
 
 Including the help flag will display help for the command.
 
+- **--storageid=STORAGEID, --storage_id=STORAGEID**
+
+Use this flag to select the corresponding storage id. This is applicable for iLO 6 only.
+
 - **--controller=CONTROLLER**
 
 Use this flag to select the corresponding controller.
+
+- **--volumes**
+
+Use this flag to list the volumes.
+
+- **--volume=VOLUMEID**
+
+Use this flag to print volume information specifying volume id.
+
+- **-j, --json**
+
+Use this flag to output in JSON format.
 
 - **--physicaldrives**
 
 Use this flag to return the physical drives for the controller selected.
 
-- **--logicaldrives**
-
-Use this flag to return the logical drives for the controller selected.
-
 - **--pdrive=PDRIVE_LOCATION**
 
 Use this flag to select the corresponding physical disk.
-
-- **--ldrive=LDRIVE**
-
-Use this flag to select the corresponding logical disk.
 
 <p class="fake_header">Login Parameters</p>
 

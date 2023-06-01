@@ -1,6 +1,6 @@
 ## Smart NIC Commands
 
-The Smart NIC commands are designed for use with HPE Gen10 servers.
+The Smart NIC commands are designed for use with HPE Gen10 and later servers.
 
 <aside class="notice">
 <ul>

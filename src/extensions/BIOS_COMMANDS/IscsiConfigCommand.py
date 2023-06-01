@@ -109,6 +109,7 @@ class IscsiConfigCommand:
             )
             iscsisettingspath = iscsipath + "settings"
             bootpath = self.gencompatpaths(selector="HpeServerBootSettings.")
+            bootpath = bootpath.replace("/settings", "")
         else:
             # TODO: update gencompats to handle the nesting of these links within the gen 9 version.
             if self.rdmc.app.typepath.defs.biospath[-1] == "/":
@@ -164,7 +165,7 @@ class IscsiConfigCommand:
         props = self.rdmc.app.getprops(skipnonsetting=False)
         for prop in props:
             name = prop.get("Name")
-            if "current" in name.lower():
+            if "current" in name.lower() or "pending" in name.lower():
                 try:
                     path = prop.get("@odata.id")
                 except:
@@ -184,15 +185,10 @@ class IscsiConfigCommand:
         :type bootpath: str.
         """
         devicealloc = list()
-        self.auxcommands["select"].selectfunction("HpBiosMapping.")
-        pcisettingsmap = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
+        self.auxcommands["select"].selectfunction("HpeBiosMapping.")
+        pcisettingsmap = self.auxcommands["get"].getworkerfunction(
                     "BiosPciSettingsMappings", options, results=True, uselist=True
                 )
-            ),
-            None,
-        )
 
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
             if "Associations" in item:
@@ -409,15 +405,10 @@ class IscsiConfigCommand:
         :param bootpath: current boot path
         :type bootpath: str.
         """
-        self.auxcommands["select"].selectfunction("HpBiosMapping.")
-        pcisettingsmap = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
+        self.auxcommands["select"].selectfunction("HpeBiosMapping.")
+        pcisettingsmap = self.auxcommands["get"].getworkerfunction(
                     "BiosPciSettingsMappings", options, results=True, uselist=True
                 )
-            ),
-            None,
-        )
 
         devicealloc = list()
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
@@ -549,14 +540,9 @@ class IscsiConfigCommand:
         :type bootpath: str.
         """
         self.auxcommands["select"].selectfunction("HpBiosMapping.")
-        pcisettingsmap = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
+        pcisettingsmap =self.auxcommands["get"].getworkerfunction(
                     "BiosPciSettingsMappings", options, results=True, uselist=True
                 )
-            ),
-            None,
-        )
 
         devicealloc = list()
         for item in pcisettingsmap["BiosPciSettingsMappings"]:
@@ -585,14 +571,10 @@ class IscsiConfigCommand:
         if self.rdmc.app.typepath.defs.isgen10:
             newpcilist = []
             self.auxcommands["select"].selectfunction("HpeServerPciDeviceCollection")
-            pcideviceslist = next(
-                iter(
-                    self.auxcommands["get"].getworkerfunction(
+            pcideviceslist = self.auxcommands["get"].getworkerfunction(
                         "Members", options, results=True, uselist=False
                     )
-                ),
-                None,
-            )
+            pcideviceslist = pcideviceslist[0]
             for device in pcideviceslist["Members"]:
                 newpcilist.append(
                     self.rdmc.app.get_handler(device["@odata.id"], silent=True).dict
@@ -600,30 +582,20 @@ class IscsiConfigCommand:
             pcideviceslist = newpcilist
         else:
             self.auxcommands["select"].selectfunction(["Collection."])
-            pcideviceslist = next(
-                iter(
-                    self.auxcommands["get"].getworkerfunction(
+            pcideviceslist = self.auxcommands["get"].getworkerfunction(
                         "Items",
                         options,
                         results=True,
                         uselist=False,
                         filtervals=("MemberType", "HpServerPciDevice.*"),
-                    )
-                ),
-                None,
-            )["Items"]
+                    )["Items"]
 
         self.auxcommands["select"].selectfunction(
             self.rdmc.app.typepath.defs.hpiscsisoftwareinitiatortype
         )
-        iscsiinitiatorname = next(
-            iter(
-                self.auxcommands["get"].getworkerfunction(
+        iscsiinitiatorname = self.auxcommands["get"].getworkerfunction(
                     "iSCSIInitiatorName", options, results=True, uselist=True
-                )
-            ),
-            None,
-        )
+                 )
 
         disabledlist = self.pcidevicehelper(
             devicealloc, iscsipath, bootpath, pcideviceslist
@@ -686,6 +658,7 @@ class IscsiConfigCommand:
             iscsisettingspath, contentsholder, optionalpassword=options.biospassword
         )
         self.rdmc.app.get_handler(iscsisettingspath, silent=True)
+        self.rdmc.ui.printer("Please reboot the server for changes to take effect\n")
 
     def modifyfunctionhelper(self, key, value, bootsources):
         """Helper function to modify the entries for iscsi

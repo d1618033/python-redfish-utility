@@ -6,8 +6,10 @@ The requirements for the server, which you will manage with the tool, are as fol
 
 - Local management: Gen9 or greater server with a Windows/Linux/Ubuntu/ESXi OS (64&#8209;bit) installed.  
   Note: On a fresh windows installation, Chif driver need to be installed which will be available in Service Pack for ProLiant(SPP). 
-- Operating System: Windows 2022, 2019, 2016, RHEL 8.x, 9.x, SUSE 15SPx, 12SP3, MAC, Ubuntu, Debian, ESXi7.0 and ESXi 8.0.  
+- Operating System(X64): Windows 2022, 2019, 2016, RHEL 8.x, 9.x, SUSE 15SPx, 12SPx, MAC, Ubuntu, Debian, ESXi7.0 and ESXi 8.0.  
+- Operating System(ARM64): RHEL 8.6 and Ubuntu specifically on HPE RL300 server.
 - Remote management: Gen9 or greater server with or without an OS installed.
+- iLO 6: 1.10 or later
 - iLO 5: 2.10 or later
 - iLO 4: 2.10 or later
 - Before you run the tool on a Linux system, the `/tmp` folder must be configured to allow code to execute. If the `/tmp` folder is set to *no-execution*, the tool will not run. You can work around this by exporting an environment variable to point to another location. `$ export TMPDIR=/some/other/location` You can assign a new location to any of the following environment variables: TMPDIR, TEMP, TMP.

@@ -53,9 +53,9 @@ class DeleteVolumeCommand:
             'deletevolume --controller="Slot1" --all\n\n\tNOTE: '
             "You can also delete volumes by "
             '"VolumeUniqueIdentifier".\n\n\t'
-            "You can also delete volumes by "
-            '"LogicalDriveName".',
-            "summary": "Deletes logical drives from the selected controller.",
+            "For iLO6, storage id need to be specified using --storageid=DE00E000 along with --controller=1\n\n\t"
+            "You can also delete volumes by VolumeName",
+            "summary": "Deletes volumes from the selected controller.",
             "aliases": ["deletelogicaldrive"],
             "auxcommands": ["SelectCommand", "StorageControllerCommand"],
         }
@@ -86,9 +86,13 @@ class DeleteVolumeCommand:
         self.deletevolumevalidation(options)
         ilo_ver = self.rdmc.app.getiloversion()
         if ilo_ver >= 6.110:
+            if not options.storageid:
+                raise InvalidCommandLineError("--storageid option is mandatory for iLO6 along with --controller option.\n")
             controller_logicaldrives = self.auxcommands[
                 "storagecontroller"
-            ].storagelogical_drives(options, options.controller, single_use=True)
+            ].storagelogical_drives(options, options.controller, options.storageid, single_use=True)
+            if len(controller_logicaldrives) == 0:
+                raise InvalidCommandLineError("No Logical drives found.\n")
             get_contrller = []
             self.auxcommands["select"].selectfunction("StorageCollection.")
             st_content = self.rdmc.app.getprops()
@@ -96,7 +100,7 @@ class DeleteVolumeCommand:
                 path = st_controller["Members"]
                 for mem in path:
                     for val in mem.values():
-                        if "DE" in val:
+                        if "DE" in val and options.storageid in val:
                             getval = self.rdmc.app.get_handler(
                                 val, silent=True, service=True
                             ).dict
@@ -128,7 +132,7 @@ class DeleteVolumeCommand:
         try:
             if ilo_ver >= 6.110:
                 if options.controller.isdigit():
-                    slotlocation = self.storageget_location_from_id(options.controller)
+                    slotlocation = self.storageget_location_from_id(options.controller, options.storageid)
                     if slotlocation:
                         slotcontrol = (
                             slotlocation.lower()
@@ -144,6 +148,25 @@ class DeleteVolumeCommand:
                                 "Location" in cont_temp
                                 and slotcontrol.lower()
                                 == temp.lower().split("slot")[-1].lstrip().strip("=")
+                            ):
+                                controllist.append(cont_temp)
+                elif "slot" in options.controller.lower():
+                    slotlocation = options.controller
+                    if slotlocation:
+                        slotcontrol = (
+                            slotlocation.lower()
+                            .strip('"')
+                            .split("slot")[-1]
+                            .lstrip()
+                            .strip("=")
+                        )
+                        for control in get_contrller:
+                            cont_temp = control.dict
+                            temp = cont_temp["Location"]["PartLocation"]["ServiceLabel"]
+                            if (
+                                    "Location" in cont_temp
+                                    and slotcontrol.lower()
+                                    == temp.lower().split("slot")[-1].lstrip().strip("=")
                             ):
                                 controllist.append(cont_temp)
                 if not controllist:
@@ -195,15 +218,15 @@ class DeleteVolumeCommand:
                     return controller["Location"]
         return None
 
-    def storageget_location_from_id(self, controller_id):
+    def storageget_location_from_id(self, controller_id, storageid):
         get_contrller = []
-        self.auxcommands["select"].selectfunction("StorageCollection.")
+        # self.auxcommands["select"].selectfunction("StorageCollection.")
         st_content = self.rdmc.app.getprops()
         for st_controller in st_content:
             path = st_controller["Members"]
             for mem in path:
                 for val in mem.values():
-                    if "DE" in val:
+                    if "DE" in val and storageid in val:
                         getval = self.rdmc.app.get_handler(
                             val, silent=True, service=True
                         ).dict
@@ -282,6 +305,7 @@ class DeleteVolumeCommand:
 
                             changes = True
                             found = True
+
                             break
 
                     if not found:
@@ -297,8 +321,12 @@ class DeleteVolumeCommand:
                 #    "DeleteVolume path and payload: %s, %s\n"
                 #    % (controller["@odata.id"], controller)
                 # )
+                put_path = controller["@odata.id"]
+                if "settings" not in put_path:
+                    put_path = put_path + "settings/"
+                controller["@odata.id"] = put_path
                 self.rdmc.app.put_handler(
-                    controller["@odata.id"],
+                    put_path,
                     controller,
                     headers={"If-Match": self.getetag(controller["@odata.id"])},
                 )
@@ -369,10 +397,11 @@ class DeleteVolumeCommand:
         else:
             found = False
             sorted_dict = sorted(logical_drives, reverse=True)
-            for drive in sorted_dict:
+            sorted_drivelist = sorted(drivelist, reverse=True)
+            for deldrive in sorted_drivelist:
                 found = False
                 changes = False
-                for deldrive in drivelist:
+                for drive in sorted_dict:
                     if logical_drives[drive]["Id"] == deldrive:
                         if not force:
                             if not self.inputaccept(logical_drives[drive]["Name"]):
@@ -442,9 +471,15 @@ class DeleteVolumeCommand:
             default=None,
         )
         customparser.add_argument(
+            "--storageid",
+            dest="storageid",
+            help="Use this flag to select the corresponding storageid in iLO6 only.",
+            default=None,
+        )
+        customparser.add_argument(
             "--all",
             dest="all",
-            help="""Use this flag to delete all volumes on a """ """controller.""",
+            help="""Use this flag to delete all volumes on a controller.""",
             action="store_true",
             default=False,
         )

@@ -320,7 +320,7 @@ class FwpkgCommand:
             if dll.isFwpkg20(fwpkg_buffer, 2048):
                 imagefiles = [pkgfile]
                 tempdir = ""
-        if comptype == 'A' and payloaddata['PackageFormat'] =='FWPKG-v2':
+        if self.rdmc.app.getiloversion() > 5.230 and payloaddata['PackageFormat'] =='FWPKG-v2':
             imagefiles = [pkgfile]
         return imagefiles, tempdir, comptype
 

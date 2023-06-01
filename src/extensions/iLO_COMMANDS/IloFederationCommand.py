@@ -166,11 +166,6 @@ class IloFederationCommand:
             else:
                 results = list()
 
-        if not results:
-            raise NoContentsFoundForOperationError(
-                "No iLO Federation accounts were found."
-            )
-
         mod_fed = None
         path = None
         for indx, acct in enumerate(results):
@@ -261,19 +256,22 @@ class IloFederationCommand:
             if path:
                 self.rdmc.app.delete_handler(path)
         else:
-            self.rdmc.ui.printer("iLO Federation Id list with Privileges:\n")
-            if options.json:
-                outdict = dict()
-                for fed in sorted(results, key=lambda k: k["Name"]):
-                    outdict[fed["Name"]] = fed["Privileges"]
-                self.rdmc.ui.print_out_json_ordered(outdict)
+            if len(results) == 0:
+                self.rdmc.ui.printer("No iLO Federation accounts found.\n")
             else:
-                for fed in sorted(results, key=lambda k: k["Name"]):
-                    privstr = ""
-                    privs = fed["Privileges"]
-                    for priv in privs:
-                        privstr += priv + "=" + str(privs[priv]) + "\n"
-                    self.rdmc.ui.printer("\nName=%s:\n%s" % (fed["Name"], privstr))
+                self.rdmc.ui.printer("iLO Federation Id list with Privileges:\n")
+                if options.json:
+                    outdict = dict()
+                    for fed in sorted(results, key=lambda k: k["Name"]):
+                        outdict[fed["Name"]] = fed["Privileges"]
+                    self.rdmc.ui.print_out_json_ordered(outdict)
+                else:
+                    for fed in sorted(results, key=lambda k: k["Name"]):
+                        privstr = ""
+                        privs = fed["Privileges"]
+                        for priv in privs:
+                            privstr += priv + "=" + str(privs[priv]) + "\n"
+                        self.rdmc.ui.printer("\nName=%s:\n%s" % (fed["Name"], privstr))
 
         self.cmdbase.logout_routine(self, options)
         # Return code
