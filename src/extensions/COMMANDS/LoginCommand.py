@@ -22,6 +22,7 @@ import os
 import socket
 
 import redfish.ris
+
 try:
     from rdmc_helper import (
         ReturnCodes,
@@ -51,15 +52,15 @@ class LoginCommand:
             "name": "login",
             "usage": None,
             "description": "To login remotely run using iLO url and iLO credentials"
-            "\n\texample: login <iLO url/hostname> -u <iLO username> "
-            "-p <iLO password>\n\n\tTo login on a local server run without "
-            "arguments\n\texample: login"
-            "\n\n\tTo login through VNIC run using --force_vnic and iLO credentials "
-            "\n\texample: login --force_vnic -u <iLO username> -p <iLO password>"
-            "\n\n\tNOTE: A [URL] can be specified with "
-            "an IPv4, IPv6, or hostname address.",
+                           "\n\texample: login <iLO url/hostname> -u <iLO username> "
+                           "-p <iLO password>\n\n\tTo login on a local server run without "
+                           "arguments\n\texample: login"
+                           "\n\n\tTo login through VNIC run using --force_vnic and iLO credentials "
+                           "\n\texample: login --force_vnic -u <iLO username> -p <iLO password>"
+                           "\n\n\tNOTE: A [URL] can be specified with "
+                           "an IPv4, IPv6, or hostname address.",
             "summary": "Connects to a server, establishes a secure session,"
-            " and discovers data from iLO.",
+                       " and discovers data from iLO.",
             "aliases": [],
             "auxcommands": ["LogoutCommand"],
             "cert_data": {},
@@ -165,9 +166,9 @@ class LoginCommand:
             except:
                 pass
 
-            #if self.username is not None:
+            # if self.username is not None:
             #    self.username = self.username.replace("\\", "")
-            #if self.password is not None:
+            # if self.password is not None:
             #    self.password = self.password.replace("\\", "")
             # print (self.username)
             # print (self.password)
@@ -215,7 +216,7 @@ class LoginCommand:
                 self.rdmc.app.select(selector=options.selector)
 
                 if self.rdmc.opts.verbose:
-                    self.rdmc.ui.printer(("Selected option: '%s'" % options.selector))
+                    self.rdmc.ui.printer(("Selected option: '%s'\n" % options.selector))
             except Exception as excp:
                 raise redfish.ris.InstanceNotFoundError(excp)
 
@@ -240,13 +241,13 @@ class LoginCommand:
             options.user_root_ca_password = self.rdmc.config.user_root_ca_password
 
         if (
-            options.user
-            and not options.password
-            and (
+                options.user
+                and not options.password
+                and (
                 not hasattr(options, "user_certificate")
                 or not hasattr(options, "user_root_ca_key")
                 or hasattr(options, "user_root_ca_password")
-            )
+        )
         ):
             # Option for interactive entry of password
             tempinput = getpass.getpass().rstrip()
@@ -271,8 +272,8 @@ class LoginCommand:
         # Assignment of url in case no url is entered
         if getattr(options, "force_vnic", False):
             if not (
-                getattr(options, "ca_cert_bundle", False)
-                or getattr(options, "user_certificate", False)
+                    getattr(options, "ca_cert_bundle", False)
+                    or getattr(options, "user_certificate", False)
             ):
                 if not (self.username and self.password) and not options.sessionid:
                     raise UsernamePasswordRequiredError(
@@ -291,9 +292,9 @@ class LoginCommand:
                 self.url = "https://" + self.url
 
             if not (
-                hasattr(options, "user_certificate")
-                or hasattr(options, "user_root_ca_key")
-                or hasattr(options, "user_root_ca_password")
+                    hasattr(options, "user_certificate")
+                    or hasattr(options, "user_root_ca_key")
+                    or hasattr(options, "user_root_ca_password")
             ):
                 if not (options.username and options.password):
                     raise InvalidCommandLineError(
@@ -310,16 +311,32 @@ class LoginCommand:
         :param customparser: command line input
         :type customparser: parser.
         """
+
+        def remove_argument(parser, arg):
+            for action in parser._actions:
+                opts = action.option_strings
+                if (opts and opts[0] == arg) or action.dest == arg:
+                    parser._remove_action(action)
+                    break
+
+            for action in parser._action_groups:
+                for group_action in action._group_actions:
+                    opts = group_action.option_strings
+                    if (opts and opts[0] == arg) or group_action.dest == arg:
+                        action._group_actions.remove(group_action)
+                        return
+
         if not customparser:
             return
         self.cmdbase.add_login_arguments_group(customparser)
+        remove_argument(customparser, "url")
         customparser.add_argument(
             "--selector",
             dest="selector",
             help="Optionally include this flag to select a type to run"
-            " the current command on. Use this flag when you wish to"
-            " select a type without entering another command, or if you"
-            " wish to work with a type that is different from the one"
-            " you currently have selected.",
+                 " the current command on. Use this flag when you wish to"
+                 " select a type without entering another command, or if you"
+                 " wish to work with a type that is different from the one"
+                 " you currently have selected.",
             default=None,
         )

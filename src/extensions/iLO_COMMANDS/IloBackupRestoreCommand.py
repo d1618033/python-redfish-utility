@@ -17,6 +17,7 @@
 # -*- coding: utf-8 -*-
 """ Factory Defaults Command for rdmc """
 import os
+from argparse import RawDescriptionHelpFormatter
 
 try:
     from rdmc_helper import (
@@ -25,6 +26,7 @@ try:
         InvalidCommandLineErrorOPTS,
         NoContentsFoundForOperationError,
         InvalidFileInputError,
+        InvalidPasswordLengthError,
         Encryption,
         UploadError,
     )
@@ -35,6 +37,7 @@ except ImportError:
         InvalidCommandLineErrorOPTS,
         NoContentsFoundForOperationError,
         InvalidFileInputError,
+        InvalidPasswordLengthError,
         Encryption,
         UploadError,
     )
@@ -70,21 +73,22 @@ class IloBackupRestoreCommand:
         :type line: bool.
         """
         if help_disp:
-            self.parser.print_help()
+            line.append("-h")
+            try:
+                (_, _) = self.rdmc.rdmc_parse_arglist(self, line)
+            except:
+                return ReturnCodes.SUCCESS
             return ReturnCodes.SUCCESS
         try:
-            (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
+            (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
             else:
                 raise InvalidCommandLineErrorOPTS("")
 
-        if not len(args) == 1:
-            raise InvalidCommandLineError("backuprestore command takes one argument.")
+        #if not len(args) == 1:
+        #    raise InvalidCommandLineError("backuprestore command takes one argument.")
 
         self.ilobackuprestorevalidation(options)
 
@@ -94,13 +98,13 @@ class IloBackupRestoreCommand:
         sessionkey = self.rdmc.app.current_client.session_key
         # sessionkey = (sessionkey).encode('ascii', 'ignore')
 
-        if args[0].lower() == "backup":
+        if options.command == "backup":
             self.backupserver(options, sessionkey)
-        elif args[0].lower() == "restore":
+        elif options.command == "restore":
             self.restoreserver(options, sessionkey)
         else:
             raise InvalidCommandLineError(
-                "%s is not a valid option for this " "command." % str(args[0])
+                "Only options are backup or restore\n"
             )
 
         self.cmdbase.logout_routine(self, options)
@@ -139,7 +143,7 @@ class IloBackupRestoreCommand:
 
         if options.fpass:
             if len(options.fpass) > 32:
-                raise InvalidFileInputError("Length of password cannot be greater than 32 characters.")
+                raise InvalidPasswordLengthError("Length of password cannot be greater than 32 characters.")
             postdata.append(("password", options.fpass))
         self.rdmc.ui.printer("Downloading backup file %s...\n" % backupname)
         backupfile = self.rdmc.app.post_handler(
@@ -255,7 +259,20 @@ class IloBackupRestoreCommand:
 
         self.cmdbase.add_login_arguments_group(customparser)
 
-        customparser.add_argument(
+        subcommand_parser = customparser.add_subparsers(dest="command", required=True)
+        backup_help = (
+            "Create a backup of a server. This option is iLO5 Onwards"
+        )
+        # backup sub-parser
+        backup_parser = subcommand_parser.add_parser(
+            "backup",
+            help=backup_help,
+            description=backup_help + "\n\texample: backuprestore backup "
+                                  "--f <backup_file>  --filepass <password>",
+            formatter_class=RawDescriptionHelpFormatter,
+        )
+
+        backup_parser.add_argument(
             "-f",
             "--filename",
             dest="filename",
@@ -265,7 +282,37 @@ class IloBackupRestoreCommand:
             action="append",
             default=None,
         )
-        customparser.add_argument(
+        backup_parser.add_argument(
+            "--filepass",
+            dest="fpass",
+            help="Optionally use the provided password when creating the "
+            "backup file. The same password must be used for restoring.",
+            default=None,
+        )
+
+        restore_help = (
+            "Restore a server with backup file. This option is for iLO5 Onwards"
+        )
+        # backup sub-parser
+        restore_parser = subcommand_parser.add_parser(
+            "restore",
+            help=restore_help,
+            description=restore_help + "\n\texample: backuprestore restore "
+                                  "--f <backup_file>  --filepass <password>",
+            formatter_class=RawDescriptionHelpFormatter,
+        )
+
+        restore_parser.add_argument(
+            "-f",
+            "--filename",
+            dest="filename",
+            help="Use this flag to specify which backup file to restore. By "
+            "default the commmand will try to find a .bak file in the current "
+            "working directory.",
+            action="append",
+            default=None,
+        )
+        restore_parser.add_argument(
             "--filepass",
             dest="fpass",
             help="Optionally use the provided password when creating the "

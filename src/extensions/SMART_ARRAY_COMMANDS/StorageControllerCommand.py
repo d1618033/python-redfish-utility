@@ -165,6 +165,57 @@ class StorageControllerCommand:
                 "and the file has a valid JSON format.\n" % excp
             )
 
+    def controller_id(self, options):
+        """
+        Get iLO types from server and save storageclone URL get Controller
+        :parm options: command line options
+        :type options: attribute
+        :returns: returns list
+        """
+        self.auxcommands["select"].selectfunction("StorageControllerCollection.")
+        ctr_content = self.rdmc.app.getprops()
+        ctrl_data = []
+        all_ctrl = dict()
+        ctr_ide = []
+        for ct_controller in ctr_content:
+            path = ct_controller["Members"]
+            for i in path:
+                res = i["@odata.id"]
+                ctrl_data.append(res)
+                ctrl_id_url = res + "?$expand=."
+                get_ctr = self.rdmc.app.get_handler(ctrl_id_url, silent=True, service=True).dict
+                ctrl_id = get_ctr["@odata.id"].split("/")
+                ctrl_id = ctrl_id[8]
+                get_ctr = self.rdmc.app.removereadonlyprops(get_ctr, False, True)
+                all_ctrl[get_ctr["Name"]] = get_ctr
+        return all_ctrl
+
+
+    def get_volume(self, options):
+        """
+        Get iLO types from server and save storageclone URL get volumes
+        :parm options: command line options
+        :type options: attribute
+        :returns: returns list
+        """
+        self.auxcommands["select"].selectfunction("VolumeCollection.")
+        vol_content = self.rdmc.app.getprops()
+        vol_data = []
+        all_vol = dict()
+        for st_volume in vol_content:
+            path = st_volume["Members"]
+            for i in path:
+                res = i["@odata.id"]
+                if self.rdmc.opts.verbose:
+                    sys.stdout.write("Saving properties of type %s \t\n" % res)
+                vol_data.append(res)
+                vol_id_url = res + "?$expand=."
+                get_vol = self.rdmc.app.get_handler(vol_id_url, silent=True, service=True).dict
+                # print("Assigned drive", get_vol["Links"]["Drives"])
+                get_vol = self.rdmc.app.removereadonlyprops(get_vol, False, True)
+                all_vol[get_vol["Name"]] = get_vol
+        return all_vol
+
     def run(self, line, help_disp=False):
         """Main sstorage controller worker function
         :param help_disp: command line input
@@ -184,9 +235,6 @@ class StorageControllerCommand:
             for cmnd in __subparsers__:
                 if cmnd in line:
                     (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
-                    if not line or line[0] == "help":
-                        self.parser.print_help()
-                        return ReturnCodes.SUCCESS
                     ident_subparser = True
                     break
             if not ident_subparser:
@@ -268,35 +316,37 @@ class StorageControllerCommand:
         if options.command == "save":
             if ilo_ver >= 6.110:
                 storage = {}
+                all_stgcntrl ={}
                 storage_controller = self.rdmc.app.select(
                     "StorageCollection", path_refresh=True
                 )
-                for sel in storage_controller:
-                    controller_dict = sel.dict
-                    mem_controller = controller_dict["Members"]
-                    get_id = mem_controller[0]["@odata.id"]
+                self.auxcommands["select"].selectfunction("StorageCollection.")
+                st_content = self.rdmc.app.getprops()
+                for sel in st_content:
+                    path = sel["Members"]
+                    for i in path:
+                        res = i["@odata.id"]
+                        if "DE" in res:
+                            break
+                        else:
+                            continue
+                    storage_id_url = res + "?$expand=."
                     getval = self.rdmc.app.get_handler(
-                        get_id, silent=True, service=True
+                        storage_id_url, silent=True, service=True
                     ).dict
-                    getid = getval["Id"]
+                    vol = self.get_volume(options)
+                    ctr = self.controller_id(options)
+                    getval = self.rdmc.app.removereadonlyprops(getval, False, True)
                     storage.update(getval)
-                    s_controller = self.storagecontroller(
-                        options, print_ctrl=False, single_use=True
+                    getval["Controllers"]["Members"].append(ctr)
+                    del getval["Controllers"]["Members"][0]
+                    getval["Volumes"]["Members"].append(vol)
+                    del getval["Volumes"]["Members"][0]
+                    all_stgcntrl[getval["Id"]] = getval
+                    self.file_handler(self.config_file, "w", options, all_stgcntrl, sk=True)
+                    sys.stdout.write(
+                        "Storage Controller configuration saved to '%s'.\n" % self.config_file
                     )
-                    s_logical_drive = self.storagelogical_drives(
-                        options, "", "", print_ctrl=False, single_use=True
-                    )
-                    s_physical_drive = self.storagephysical_drives(
-                        options, "", "", print_ctrl=False, single_use=True
-                    )
-                    storage["Controllers"] = s_controller
-                    storage["Drives"] = s_physical_drive
-                    storage["Volumes"] = s_logical_drive
-
-                self.file_handler(self.config_file, "w", options, storage, sk=True)
-                sys.stdout.write(
-                    "Storage Controller configuration saved to '%s'.\n" % self.config_file
-                )
             else:
                 controllers = self.controllers(options, print_ctrl=False, single_use=True)
                 for key, controller in controllers.items():

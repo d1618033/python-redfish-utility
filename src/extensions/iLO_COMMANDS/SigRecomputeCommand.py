@@ -75,7 +75,7 @@ class SigRecomputeCommand:
                 raise InvalidCommandLineErrorOPTS("")
 
         if args:
-            raise InvalidCommandLineError("Sigrecompute command takes no arguments.")
+            raise InvalidCommandLineError("Sigrecompute command takes no arguments.\n")
 
         self.sigrecomputevalidation(options)
         path = self.rdmc.app.typepath.defs.systempath
@@ -85,7 +85,7 @@ class SigRecomputeCommand:
             self.rdmc.app.post_handler(path, body)
         else:
             raise IncompatibleiLOVersionError(
-                "Sigrecompute action not available on redfish."
+                "Sigrecompute action not available on redfish.\n"
             )
 
         self.cmdbase.logout_routine(self, options)

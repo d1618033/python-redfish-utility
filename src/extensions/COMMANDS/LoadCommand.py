@@ -221,6 +221,13 @@ class LoadCommand:
             try:
                 if results:
                     self.auxcommands["commit"].commitfunction(options=options)
+                    reboot_needed = False
+                    for n in inputlist:
+                        n = n.lower()
+                        if "bios" in n or "boot" in n or "iscsi" in n:
+                            reboot_needed = True
+                    if reboot_needed:
+                        self.rdmc.ui.printer("Reboot is required for settings to take effect.\n")
             except NoChangesFoundOrMadeError as excp:
                 if returnvalue:
                     pass

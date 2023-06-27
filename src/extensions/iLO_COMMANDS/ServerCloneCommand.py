@@ -271,9 +271,6 @@ class ServerCloneCommand:
         _valid_args = ["save", "load"]
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -2572,7 +2569,7 @@ class ServerCloneCommand:
 
         self.cmdbase.add_login_arguments_group(customparser)
         # self.options_argument_group(customparser)
-        subcommand_parser = customparser.add_subparsers(dest="command")
+        subcommand_parser = customparser.add_subparsers(dest="command", required=True)
         save_help = "Save an iLO, Bios and SSA config."
         # save sub-parser
         save_parser = subcommand_parser.add_parser(

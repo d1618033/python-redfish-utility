@@ -105,6 +105,7 @@ class ReturnCodes(object):
     UI_CLI_WARN_EXCEPTION = 11
     UI_CLI_USAGE_EXCEPTION = 12
     UI_CLI_COMMAND_NOT_FOUND_EXCEPTION = 13
+    INVALID_PASSWORD_LENGTH_ERROR = 14
 
     # ****** RMC/RIS ERRORS ******
     RIS_UNDEFINED_CLIENT_ERROR = 21
@@ -185,6 +186,7 @@ class ReturnCodes(object):
     UPDATE_SERVICE_BUSY = 102
     FAILED_TO_UPLOAD_COMPONENT = 103
     TASKQUEUE_ERROR = 104
+    DEVICE_DISCOVERY_IN_PROGRESS = 105
 
     # **** ComputeOpsManagement Errors****
     CLOUD_CONNECT_TIMEOUT = 111
@@ -329,11 +331,15 @@ class InvalidOrNothingChangedSettingsError(RdmcError):
     pass
 
 
+class InvalidPasswordLengthError(RdmcError):
+    """Raised when password length is invalid"""
+
+    pass
+
 class NoDifferencesFoundError(RdmcError):
     """Raised when no differences are found in the current configuration"""
 
     pass
-
 
 class NothingSelectedError(RdmcError):
     """Raised when type selection is reference but none have been provided"""
@@ -481,6 +487,11 @@ class UnabletoFindDriveError(RdmcError):
 
 class TaskQueueError(RdmcError):
     """Raised when there is an issue with the current order of taskqueue"""
+
+    pass
+
+class DeviceDiscoveryInProgress(RdmcError):
+    """Raised when device discovery in progress"""
 
     pass
 

@@ -201,24 +201,27 @@ class BootOrderCommand:
 
             else:
                 # Gen 10
-                uefionetimebootsettings = self.auxcommands["get"].getworkerfunction(
-                    ["Boot/UefiTargetBootSourceOverride@Redfish.AllowableValues"],
+                bootsettings = self.auxcommands["get"].getworkerfunction(
+                    ["Boot"],
                     options,
                     results=True,
                     uselist=True,
-                )["Boot"]["UefiTargetBootSourceOverride@Redfish.AllowableValues"]
+                )["Boot"]
                 finaluefi = []
-                for setting in uefionetimebootsettings:
-                    for source in bootsources:
-                        if "UEFIDevicePath" in source and source[
-                            "UEFIDevicePath"
-                        ].endswith(setting):
-                            finaluefi.append(source["StructuredBootString"])
-                            continue
+                if "UefiTargetBootSourceOverride@Redfish.AllowableValues" in bootsettings:
+                    uefionetimebootsettings = bootsettings["UefiTargetBootSourceOverride@Redfish.AllowableValues"]
+
+                    for setting in uefionetimebootsettings:
+                        for source in bootsources:
+                            if "UEFIDevicePath" in source and source[
+                                "UEFIDevicePath"
+                            ].endswith(setting):
+                                finaluefi.append(source["StructuredBootString"])
+                                continue
+
                 uefionetimebootsettings = {
                     "Boot": {"UefiTargetBootSourceOverrideSupported": finaluefi}
                 }
-
         else:
             uefionetimebootsettings = None
 

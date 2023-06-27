@@ -16,6 +16,7 @@
 
 # -*- coding: utf-8 -*-
 """ Virtual Media Command for rdmc """
+import sys
 
 try:
     from rdmc_helper import (
@@ -234,15 +235,16 @@ class VirtualMediaCommand:
             try:
                 results = self.rdmc.app.post_handler(path, body)
                 if results.status == 200:
+                    if options.bootnextreset:
+                        self.vmbootnextreset(args, paths)
+                    if options.reboot:
+                        self.auxcommands["reboot"].run(options.reboot)
                     return ReturnCodes.SUCCESS
             except rmc_helper.IloLicenseError:
                 raise IloLicenseError("Error:License Key Required\n")
+            except Exception as e:
+                sys.stdout.write("Please unmount/Eject virtual media and try it again \n")
                 # return ReturnCodes.ILO_LICENSE_ERROR
-        if options.bootnextreset:
-            self.vmbootnextreset(args, paths)
-
-        if options.reboot:
-            self.auxcommands["reboot"].run(options.reboot)
 
     def vmdefaulthelper(self, options, paths):
         """Worker function to reset virtual media config to default

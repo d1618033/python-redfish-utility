@@ -88,7 +88,9 @@ try:
         InvalidOrNothingChangedSettingsError,
         NoDifferencesFoundError,
         InvalidMSCfileInputError,
+        InvalidPasswordLengthError,
         FirmwareUpdateError,
+        DeviceDiscoveryInProgress,
         BootOrderMissingEntriesError,
         NicMissingOrConfigurationError,
         StandardBlobErrorHandler,
@@ -139,7 +141,9 @@ except ImportError:
         InvalidOrNothingChangedSettingsError,
         NoDifferencesFoundError,
         InvalidMSCfileInputError,
+        InvalidPasswordLengthError,
         FirmwareUpdateError,
+        DeviceDiscoveryInProgress,
         BootOrderMissingEntriesError,
         NicMissingOrConfigurationError,
         StandardBlobErrorHandler,
@@ -698,6 +702,9 @@ class RdmcCommand(RdmcCommandBase):
         except UsernamePasswordRequiredError as excp:
             self.retcode = ReturnCodes.USERNAME_PASSWORD_REQUIRED_ERROR
             self.ui.error(excp)
+        except InvalidPasswordLengthError as excp:
+            self.retcode = ReturnCodes.INVALID_PASSWORD_LENGTH_ERROR
+            self.ui.error(excp)
         except NoChangesFoundOrMadeError as excp:
             self.retcode = ReturnCodes.NO_CHANGES_MADE_OR_FOUND
             self.ui.invalid_commmand_line(excp)
@@ -796,6 +803,9 @@ class RdmcCommand(RdmcCommandBase):
                 self.ui.printer("Requested path is unavailable.")
         except TaskQueueError as excp:
             self.retcode = ReturnCodes.TASKQUEUE_ERROR
+            self.ui.error(excp)
+        except DeviceDiscoveryInProgress as excp:
+            self.retcode = ReturnCodes.DEVICE_DISCOVERY_IN_PROGRESS
             self.ui.error(excp)
         # ****** CLI ERRORS ******
         except (CommandNotEnabledError, cliutils.CommandNotFoundException) as excp:

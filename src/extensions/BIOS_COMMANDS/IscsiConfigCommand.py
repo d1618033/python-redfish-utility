@@ -678,7 +678,8 @@ class IscsiConfigCommand:
             ):
                 foundoption = True
                 break
-
+            else:
+                return value
         if foundoption:
             return value
 

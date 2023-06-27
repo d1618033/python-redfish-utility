@@ -77,9 +77,6 @@ class CreateVolumeCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -94,7 +91,7 @@ class CreateVolumeCommand:
                 raise InvalidCommandLineError("customdrive or quickdrive subcommand is not supported on iLO6(Gen11).\n")
             if not options.storageid:
                 raise InvalidCommandLineError(
-                    "--storageid option is mandatory for iLO6 along with --controller option.\n")
+                    "--storageid option is mandatory for iLO6 onwards.\n")
         else:
             if options.command == "volume":
                 raise InvalidCommandLineError("volume subcommand is not supported on iLO5(Gen10).\n")
@@ -105,7 +102,8 @@ class CreateVolumeCommand:
                         options, single_use=True
                     )
                 else:
-                    print("Storageid not matching")
+                    raise InvalidCommandLineError(
+                        "--storageid option is mandatory for iLO6 onwards.\n")
             else:
                 controllers = self.auxcommands["storagecontroller"].controllers(
                     options, single_use=True
@@ -218,6 +216,8 @@ class CreateVolumeCommand:
                     "iLO threw iLOResponseError\n"
                 )
                 return ReturnCodes.RIS_ILO_RESPONSE_ERROR
+            except StopIteration:
+                self.rdmc.ui.error("Drive or Controller not exist, Please check drive or controller\n")
             except Exception as excp:
                 self.rdmc.ui.error(excp)
 
@@ -234,20 +234,34 @@ class CreateVolumeCommand:
             loc[0].split("=")[1] + ':' + loc[1].split("=")[1] + ':' + loc[2].split("=")[1] + ':' + loc[3].split("=")[1])
         return temp_str
 
+    def get_allowed_list(self, storage_id, attr):
+
+        url = "/redfish/v1/Systems/1/Storage/" + storage_id + "/Volumes/Capabilities"
+        attr_allowed_str = attr + "@Redfish.AllowableValues"
+
+        results = self.rdmc.app.get_handler(
+               url, service=True, silent=True
+           ).dict
+        return results[attr_allowed_str]
+
     def createvolume(self, options, controller):
         """Create volume"""
         global p_loc
-        raidlvllist = [
-            "Raid0",
-            "Raid1",
-            "Raid1ADM",
-            "Raid10",
-            "Raid10ADM",
-            "Raid5",
-            "Raid50",
-            "Raid6",
-            "Raid60",
-        ]
+        ilo_ver = self.rdmc.app.getiloversion()
+        if ilo_ver >= 6.110:
+            raidlvllist = self.get_allowed_list(options.storageid, "RAIDType")
+        else:
+            raidlvllist = [
+                "Raid0",
+                "Raid1",
+                "Raid1ADM",
+                "Raid10",
+                "Raid10ADM",
+                "Raid5",
+                "Raid50",
+                "Raid6",
+                "Raid60",
+            ]
         interfacetypelist = ["SAS", "SATA", "NVMe"]
         mediatypelist = ["SSD", "HDD"]
         sparetypelist = ["Dedicated", "Roaming"]
@@ -256,13 +270,14 @@ class CreateVolumeCommand:
         legacylist = ["Primary", "Secondary", "All", "None"]
         paritylist = ["Default", "Rapid"]
         iOPerfModeEnabledlist = ["true", "false"]
-        readCachePolicylist = ["Off", "ReadAhead"]
-        writeCachePolicylist = ["Off", "WriteThrough", "ProtectedWriteBack", "UnprotectedWriteBack"]
+        if ilo_ver >= 6.110:
+            readCachePolicylist = self.get_allowed_list(options.storageid, "ReadCachePolicy")
+            writeCachePolicylist = self.get_allowed_list(options.storageid, "WriteCachePolicy")
+            #InitMethodlist = self.get_allowed_list(options.storageid, "InitializeMethod")
         WriteHoleProtectionPolicyList = ["Yes", "No"]
-
         sparedrives = []
         changes = False
-        ilo_ver = self.rdmc.app.getiloversion()
+
         if ilo_ver >= 6.110:
             controller["physical_drives"] = self.auxcommands["storagecontroller"].storagephysical_drives(
                 options, controller, options.storageid, single_use=True
@@ -307,7 +322,7 @@ class CreateVolumeCommand:
                 if self.raidvalidation(item.lower(), drivecount, options):
                     itemadded = True
                     if ilo_ver >= 6.110:
-                        newdrive["RAIDType"] = options.raid
+                        newdrive["RAIDType"] = options.raid.upper()
                     else:
                         newdrive["Raid"] = item
                 break
@@ -769,7 +784,7 @@ class CreateVolumeCommand:
         self.cmdbase.add_login_arguments_group(customparser)
         # self.options_argument_group(customparser)
 
-        subcommand_parser = customparser.add_subparsers(dest="command")
+        subcommand_parser = customparser.add_subparsers(dest="command", required=True)
         qd_help = (
             "Create a volume with a minimal number of arguments (utilizes default "
             "values on the controller). This option is only for iLO5 or Gen10"

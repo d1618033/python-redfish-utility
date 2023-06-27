@@ -72,9 +72,6 @@ class FirmwareUpdateCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -82,9 +79,11 @@ class FirmwareUpdateCommand:
                 raise InvalidCommandLineErrorOPTS("")
 
         self.firmwareupdatevalidation(options)
-
-        if args[0].startswith('"') and args[0].endswith('"'):
-            args[0] = args[0][1:-1]
+        if args:
+            if args[0].startswith('"') and args[0].endswith('"'):
+                args[0] = args[0][1:-1]
+        else:
+            raise InvalidCommandLineErrorOPTS("No arguments supplied")
 
         action = None
         uri = "FirmwareURI"

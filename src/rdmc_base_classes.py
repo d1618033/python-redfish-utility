@@ -464,9 +464,9 @@ class RdmcOptionParser(ArgumentParser):
             "Logging, Stdout, Stderr. '-vv': Level 2, Extends Level 1 with slightly "
             "elaborated iLO and HTTP response message. '-vvv': Level3, Extends Level 2 "
             "with message id, validation class, message text with embedded args, and "
-            "possible resolution/mitigation for iLO responses. High detailed HTTP responses. "
+            "possible resolution/mitigation for iLO responses. Includes HTTP responses. "
             "**NOTE 1**: Some responses may only contain limited information from the source."
-            "**NOTE 4**: Default level is 0.",
+            "**NOTE 2**: Default level is 0.",
             default=0,
         )
         self.add_argument(

@@ -74,9 +74,6 @@ class DeleteVolumeCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -264,6 +261,9 @@ class DeleteVolumeCommand:
             if allopt:
                 controller["LogicalDrives"] = []
                 controller["DataGuard"] = "Disabled"
+                if not force:
+                    if not self.inputaccept(None):
+                        return
                 self.lastlogicaldrive(controller)
                 changes = True
             else:
@@ -276,25 +276,8 @@ class DeleteVolumeCommand:
                     for idx, ldrive in enumerate(controller["LogicalDrives"]):
                         if deldrive == ldrive["LogicalDriveNumber"]:
                             if not force:
-                                while True:
-                                    ans = input(
-                                        "Are you sure you would"
-                                        " like to continue deleting drive"
-                                        " %s? (y/n)" % ldrive["LogicalDriveName"]
-                                    )
-
-                                    if ans.lower() == "y":
-                                        break
-                                    elif ans.lower() == "n":
-                                        self.rdmc.ui.warn(
-                                            "Stopping command without "
-                                            "deleting logical drive.\n"
-                                        )
-                                        return
-                            self.rdmc.ui.printer(
-                                "Setting logical drive %s "
-                                "for deletion\n" % ldrive["LogicalDriveName"]
-                            )
+                                if not self.inputaccept(ldrive["LogicalDriveName"]):
+                                    return
 
                             controller["LogicalDrives"][idx]["Actions"] = [
                                 {"Action": "LogicalDriveDelete"}
@@ -366,33 +349,33 @@ class DeleteVolumeCommand:
 
     def inputaccept(self, drivename):
         while True:
-            ans = input(
-                "Are you sure you would"
-                " like to continue deleting drive"
-                " %s? (y/n)" % drivename
-            )
+            if drivename is None:
+                ans = input(
+                    "Are you sure you would"
+                    " like to continue deleting all volumes"
+                    "? (y/n)"
+                )
+            else:
+                ans = input(
+                    "Are you sure you would"
+                    " like to continue deleting volume"
+                    " %s? (y/n)" % drivename
+                )
 
             if ans.lower() == "y":
                 return 1
             elif ans.lower() == "n":
-                self.rdmc.ui.printer("Stopping command without " "deleting volume.\n")
+                self.rdmc.ui.printer("Stopping command without deleting volume/volumes.\n")
                 return 0
 
     def storagedeletevolume(self, logical_drives, drivelist, allopt, force):
 
         if allopt:
             sorted_dict = sorted(logical_drives, reverse=True)
+            if not force:
+                if not self.inputaccept(None):
+                    return
             for drive in sorted_dict:
-                if not force:
-                    if not self.inputaccept(logical_drives[drive]["Name"]):
-                        return
-                self.rdmc.ui.printer(
-                    "Setting volume %s " "for deletion\n" % logical_drives[drive]["Name"]
-                )
-                # self.rdmc.ui.printer(
-                #    "DeleteVolume path and payload: %s, %s\n"
-                #    % (logical_drives[drive]["@odata.id"], "{}")
-                # )
                 self.rdmc.app.delete_handler(logical_drives[drive]["@odata.id"], {})
         else:
             found = False

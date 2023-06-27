@@ -392,7 +392,13 @@ class ServerInfoCommand:
                             )
                 else:
                     for fw in data:
-                        firmware_info.update({fw["Name"]: fw["Version"]})
+                        n = 2
+                        if fw['Name'] in firmware_info.keys():
+                            fw1 = fw['Name'] + str(n)
+                            firmware_info.update({fw1: fw["Version"]})
+                            n = n + 1
+                        else:
+                            firmware_info.update({fw["Name"]: fw["Version"]})
             content.update({"firmware": firmware_info})
 
         if "software" in headers and info["software"]:

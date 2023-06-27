@@ -55,6 +55,7 @@ try:
         IncompatibleiLOVersionError,
         TimeOutError,
         InvalidFileInputError,
+        DeviceDiscoveryInProgress,
     )
 except ImportError:
     from ilorest.rdmc_helper import (
@@ -66,6 +67,7 @@ except ImportError:
         IncompatibleiLOVersionError,
         TimeOutError,
         InvalidFileInputError,
+        DeviceDiscoveryInProgress,
     )
 
 
@@ -122,9 +124,6 @@ class UploadComponentCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -135,9 +134,16 @@ class UploadComponentCommand:
         fwpkg = False
         if options.component.endswith(".fwpkg"):
             fwpkg = True
-            comp, loc, ctype = self.auxcommands["flashfwpkg"].preparefwpkg(
+            comp, loc, ctype, pldmfw = self.auxcommands["flashfwpkg"].preparefwpkg(
                 self, options.component
             )
+            # if pldm firmware
+            if pldmfw:
+                path = self.rdmc.app.typepath.defs.systempath
+                results = self.rdmc.app.get_handler(path, service=True, silent=True).dict
+                # check for device discovery
+                if results['Oem']['Hpe']['DeviceDiscoveryComplete']['DeviceDiscovery'] != "vMainDeviceDiscoveryComplete":
+                    raise DeviceDiscoveryInProgress("Device Discovery in progress...Please retry flashing firmware after 10 minutes")
             if ctype == "C":
                 options.component = comp[0]
             # else:

@@ -54,10 +54,10 @@ class SaveCommand:
             "name": "save",
             "usage": None,
             "description": "Run to save a selected type to a file"
-            "\n\texample: save --selector HpBios.\n\n\tChange the default "
-            "output filename\n\texample: save --selector HpBios. -f "
-            "output.json\n\n\tTo save multiple types in one file\n\texample: "
-            "save --multisave Bios.,ComputerSystem.",
+                           "\n\texample: save --selector HpBios.\n\n\tChange the default "
+                           "output filename\n\texample: save --selector HpBios. -f "
+                           "output.json\n\n\tTo save multiple types in one file\n\texample: "
+                           "save --multisave Bios.,ComputerSystem.",
             "summary": "Saves the selected type's settings to a file.",
             "aliases": [],
             "auxcommands": ["SelectCommand"],
@@ -78,9 +78,6 @@ class SaveCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, args) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -96,7 +93,7 @@ class SaveCommand:
         if options.filter:
             try:
                 if (str(options.filter)[0] == str(options.filter)[-1]) and str(
-                    options.filter
+                        options.filter
                 ).startswith(("'", '"')):
                     options.filter = options.filter[1:-1]
 
@@ -220,7 +217,7 @@ class SaveCommand:
 
                 if values:
                     skip = False
-                    if 'SerialNumber' in values and values['SerialNumber'] is not None and values['SerialNumber']!= "":
+                    if 'SerialNumber' in values and values['SerialNumber'] is not None and values['SerialNumber'] != "":
                         if values["SerialNumber"] in srnum_list:
                             skip = True
                         else:
@@ -320,7 +317,7 @@ class SaveCommand:
             "--filename",
             dest="filename",
             help="Use this flag if you wish to use a different filename than the default one. "
-            "The default filename is %s." % __filename__,
+                 "The default filename is %s." % __filename__,
             action="append",
             default=None,
         )
@@ -329,27 +326,28 @@ class SaveCommand:
             "--selector",
             dest="selector",
             help="Optionally include this flag to select a type to run the current command on. "
-            "Use this flag when you wish to select a type without entering another command, "
-            "or if you wish to work with a type that is different from the one currently "
-            "selected.",
+                 "Use this flag when you wish to select a type without entering another command, "
+                 "or if you wish to work with a type that is different from the one currently "
+                 "selected.",
             default=None,
+            required=True,
         )
         customparser.add_argument(
             "--multisave",
             dest="multisave",
             help="Optionally include this flag to save multiple types to a single file. "
-            "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
+                 "Overrides the currently selected type.\n\t Usage: --multisave type1.,type2.,type3.",
             default="",
         )
         customparser.add_argument(
             "--filter",
             dest="filter",
             help="Optionally set a filter value for a filter attribute. This uses the provided "
-            "filter for the currently selected type. Note: Use this flag to narrow down your "
-            "results. For example, selecting a common type might return multiple objects that "
-            "are all of that type. If you want to modify the properties of only one of those "
-            "objects, use the filter flag to narrow down results based on properties."
-            "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
+                 "filter for the currently selected type. Note: Use this flag to narrow down your "
+                 "results. For example, selecting a common type might return multiple objects that "
+                 "are all of that type. If you want to modify the properties of only one of those "
+                 "objects, use the filter flag to narrow down results based on properties."
+                 "\n\t Usage: --filter [ATTRIBUTE]=[VALUE]",
             default=None,
         )
         customparser.add_argument(
@@ -358,8 +356,8 @@ class SaveCommand:
             dest="json",
             action="store_true",
             help="Optionally include this flag if you wish to change the displayed output to "
-            "JSON format. Preserving the JSON data structure makes the information easier to "
-            "parse.",
+                 "JSON format. Preserving the JSON data structure makes the information easier to "
+                 "parse.",
             default=False,
         )
         customparser.add_argument(

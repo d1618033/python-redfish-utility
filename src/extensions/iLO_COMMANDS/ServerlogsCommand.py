@@ -144,9 +144,6 @@ class ServerlogsCommand:
             return ReturnCodes.SUCCESS
         try:
             (options, _) = self.rdmc.rdmc_parse_arglist(self, line)
-            if not line or line[0] == "help":
-                self.parser.print_help()
-                return ReturnCodes.SUCCESS
         except (InvalidCommandLineErrorOPTS, SystemExit):
             if ("-h" in line) or ("--help" in line):
                 return ReturnCodes.SUCCESS
@@ -1403,21 +1400,14 @@ class ServerlogsCommand:
         timenow = (str(datetime.datetime.now()).split()[0]).split("-")
         todaysdate = "".join(timenow)
 
-        resp = self.rdmc.app.get_handler(
-                "/redfish/v1",
-                sessionid=options.sessionid,
-                silent=True,
-                service=True,
-                uncache=True,
-            )
         ahsdefaultfilename = "HPE_" + snum + "_" + todaysdate + ".ahs"
-        if "Vendor" in resp.dict:
-            ahsdefaultfilename = ahsdefaultfilename.replace("HPE", resp.dict["Vendor"])
 
         if options.directorypath:
-            if not os.path.exists(options.directorypath):
-                os.makedirs(options.directorypath)
-            ahsdefaultfilename = os.path.join(options.directorypath, ahsdefaultfilename)
+            dir_name = options.directorypath
+            dir_name = dir_name.encode('utf-8').decode('utf-8')
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            ahsdefaultfilename = os.path.join(dir_name, ahsdefaultfilename)
 
         return ahsdefaultfilename
 
