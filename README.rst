@@ -6,7 +6,7 @@ python-ilorest-utility
 	:target: https://github.com/HewlettPackard/python-redfish-utility/releases
 .. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
 	:target: https://raw.githubusercontent.com/HewlettPackard/python-redfish-utility/master/LICENSE
-.. image:: https://img.shields.io/badge/python-2.7-blue.svg?maxAge=2592000
+.. image:: https://img.shields.io/badge/python-3.8-blue.svg?maxAge=2592000
 
 .. contents:: :depth: 1
 
