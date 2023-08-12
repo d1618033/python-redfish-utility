@@ -79,11 +79,12 @@ History
   * 07/05/2019: Release of version 2.5.0
   * 09/13/2019: Release of version 2.5.1
   * 11/14/2019: Release of version 3.0.0
+  * 06/27/2023: Release of version 4.3.0.0
 
 License
 ----------
 
-Copyright 2017-2021 Hewlett Packard Enterprise Development LP
+Copyright 2017-2023 Hewlett Packard Enterprise Development LP
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
