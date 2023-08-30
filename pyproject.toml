@@ -1,17 +1,41 @@
+[tool.poetry]
+name = "ilorest"
+version = "4.3.0.0"
+description = ""
+authors = ["David Sternlicht <dsternlicht@infinidat.com>"]
+readme = "README.rst"
+packages = [{include = "ilorest"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+urllib3 = ">=1.26.2"
+pyaes = ">=1.6.1"
+colorama = ">=0.4.4"
+jsonpointer = ">=2.0"
+six = ">=1.15.0"
+ply = ">=3.11"
+decorator = ">=4.4.2"
+jsonpatch = ">=1.28"
+jsonpath-rw = ">=1.4.0"
+jsondiff = ">=1.2.0"
+tabulate = ">=0.8.7"
+prompt-toolkit = ">=3.0.10"
+certifi = ">=2020.12.5"
+wcwidth = ">=0.2.5"
+setproctitle = ">=1.1.8"
+python-ilorest-library = "^4.3.0.0"
+pyudev = "^0.24.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+ilorest = "ilorest.rdmc:ilorestcommand"
+
 [tool.isort]
 profile = "black"
 [tool.black]
 line-length = 90
 include = '\\.pyi?$'
-exclude = '''
-/(
-    \\.git
-  | \\.hg
-  | \\.mypy_cache
-  | \\.tox
-  | \\.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
